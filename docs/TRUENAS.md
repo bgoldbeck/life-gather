@@ -40,4 +40,25 @@ For a repeatable deployment or rollback, pin the image by its published digest (
 
 Public images contain application code and bundled assets, not users' `/data` volumes, local `.env` files or provider credentials.
 
+## Publishing without hosted runners
+
+If GitHub Actions is unavailable, a maintainer can build and publish from local Docker. This does not require a paid runner or a paid GitHub plan. GitHub currently lists public packages and Container Registry storage/bandwidth as free; review its [current billing documentation](https://docs.github.com/en/billing/concepts/product-billing/github-packages) before changing hosting arrangements.
+
+Run the checks documented in the README first, then use a clean checkout of the revision being published. The GitHub CLI must have `write:packages` authorization. Keep tokens out of command arguments and files:
+
+```powershell
+$revision = git rev-parse HEAD
+docker build --platform linux/amd64 --label org.opencontainers.image.source=https://github.com/bgoldbeck/life-gather --label "org.opencontainers.image.revision=$revision" --tag "ghcr.io/bgoldbeck/life-gather:sha-$revision" --tag ghcr.io/bgoldbeck/life-gather:latest .
+gh auth token --hostname github.com | docker login ghcr.io --username bgoldbeck --password-stdin
+```
+
+Before pushing, run that image and verify `/health`, the homepage, the app icon, non-root execution, and writable private storage as documented in the Phase 0 checks. After verification:
+
+```powershell
+docker push "ghcr.io/bgoldbeck/life-gather:sha-$revision"
+docker push ghcr.io/bgoldbeck/life-gather:latest
+```
+
+For the first package publication, set the package visibility to **Public** in GitHub's package settings so TrueNAS can pull it anonymously. Source repository visibility alone does not make the container package public.
+
 References: [TrueNAS custom apps](https://apps.truenas.com/managing-apps/installing-custom-apps/), [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry).
