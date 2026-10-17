@@ -4,6 +4,8 @@ Execution: main chat only, as required by user policy. The user requested implem
 
 Goal: complete a testable Google OIDC login/logout slice with private account identity and persistent server-side sessions. Spec: `docs/AUTH_REQUIREMENTS.md` and `docs/superpowers/specs/2026-10-17-personal-discovery-design.md`.
 
+Implementation status: source committed as `532a653`; 30 backend tests and 7 UI tests passed, along with lint/type/format/build checks, Compose validation, and packaged-migration inspection. Real Google sign-in remains pending local OAuth client configuration and an interactive round trip. No Docker rebuild/upload was run. User separately requested a reusable local release script during this work; see `docs/LOCAL_RELEASE.md`.
+
 Architecture: Authlib handles authorization URL generation, code exchange with PKCE, and signed ID-token validation. SQLite/SQLAlchemy services persist short-lived single-use login flows, issuer/subject account identities, and hashed session tokens. Alembic migrations are packaged with the backend. React displays configuration/loading/error/login/account states and uses same-origin session APIs; no browser token storage.
 
 ## Tasks

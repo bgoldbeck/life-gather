@@ -46,6 +46,8 @@ Public images contain application code and bundled assets, not users' `/data` vo
 
 ## Publishing without hosted runners
 
+For a checked, interactive release, use [the PowerShell release script](LOCAL_RELEASE.md). It asks before building and uploading, checks source and the container, and can publish both the commit tag and `latest` after the source is merged. The manual commands below are a lower-level alternative; maintainers must still obtain rebuild/upload approval.
+
 If GitHub Actions is unavailable, a maintainer can build and publish from local Docker. This does not require a paid runner or a paid GitHub plan. GitHub currently lists public packages and Container Registry storage/bandwidth as free; review its [current billing documentation](https://docs.github.com/en/billing/concepts/product-billing/github-packages) before changing hosting arrangements.
 
 Run the checks documented in the README first, then use a clean checkout of the revision being published. The GitHub CLI must have `write:packages` authorization. Keep tokens out of command arguments and files:
