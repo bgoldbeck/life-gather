@@ -8,6 +8,10 @@ LifeGather is a self-hosted personal AI assistant that maintains a private, evid
 
 First release loop: sign in with Google, configure an individual AI connection, upload a receipt or nameplate photo, reconcile an item automatically, inspect its evidence and graph connections, and retrieve a useful fact in a later conversation. A small interactive graph is part of this release; elaborate dashboards are not.
 
+## Appearance and settings
+
+User decision, 2026-10-17: provide Light and Dark modes selectable in app Settings as part of the first usable UI. Preserve the selected preference per user. The soft cream/sage/green design in `.references/lifegather-soft-green-light-theme.png` is a pleasant reference for color and mood. Create a complementary dark palette, including semantic states, text, borders, focus indicators, charts, and graph connections, with accessible contrast in both modes. Do not rely only on color to distinguish connection/evidence status. Implement theme support alongside the early UI; the screenshot's placeholder content is not a requirement to preserve its layout or copy.
+
 ## Accounts and privacy
 
 - Any Google account can register without invitations or an email allowlist. First login creates an empty private workspace. Open registration does not itself authorize public internet deployment.
@@ -73,6 +77,7 @@ Provide simple home and vehicle records early: model/serial, filter dimensions, 
 - A mistaken match can be undone without losing evidence; later reprocessing respects reconciliation history.
 - Untrusted documents cannot trigger tools or leak another user's data or credentials. Extraction tests run against fixed synthetic fixtures and mock providers.
 - Upload an item source, ask about it in a later conversation, inspect graph evidence, correct a detail, restart, and verify persistence. Backup restoration is tested separately.
+- Switch Light/Dark in Settings and verify the user's preference persists without affecting another user. Check chat, forms, review cards, evidence views, and graph readability in both modes, including keyboard focus and status indicators.
 - Connector jobs honor requested scope, cancellation, schedule timezone, owner permissions, and budgets; canceled/retried jobs do not duplicate completed work.
 
 ## Operations and unresolved implementation choices

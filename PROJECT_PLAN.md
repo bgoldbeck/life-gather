@@ -157,6 +157,8 @@ Explicit deletion/export/backup operations should have their own guarded flows r
 
 **UX principle:** AI performs structured data entry; users can always inspect, verify, correct, and undo the results. Charts and graph visualizations are *views* over validated records, not parallel stores of truth.
 
+**Appearance requirement (2026-10-17):** Provide Light and Dark choices in app Settings, preserving each user's preference. The cream/sage/green reference in `.references/lifegather-soft-green-light-theme.png` is the approved visual direction for color and mood; adapt surfaces, text, borders, focus states, charts, and graph colors for readable contrast in each mode. Include theme support with the early usable UI, not as a late dashboard feature. This is planned, not implemented.
+
 ## 9. Development sequence and acceptance gates
 
 The original Phase 0 produced the frontend/backend Docker preview. Personal storage, migrations, authentication, and backup/restore acceptance remain outstanding; do not label them completed because the preview runs.
