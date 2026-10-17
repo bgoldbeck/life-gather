@@ -1,0 +1,35 @@
+# Allow only the source inputs required for the build.
+**
+!Dockerfile
+!.dockerignore
+!backend/
+backend/*
+!backend/pyproject.toml
+!backend/uv.lock
+!backend/src/
+!backend/src/**
+!frontend/
+frontend/*
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/index.html
+!frontend/tsconfig*.json
+!frontend/vite.config.ts
+!frontend/src/
+!frontend/src/**
+# Exclude tests, caches, private configuration and data even inside allowed trees.
+**/__pycache__/
+**/node_modules/
+**/.venv/
+**/dist/
+**/.git/
+**/*.pyc
+**/*.test.*
+**/test/
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*.db
+**/*.db-*
+**/*.sqlite*
