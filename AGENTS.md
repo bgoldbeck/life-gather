@@ -34,6 +34,8 @@ Read `PROJECT_PLAN.md` before implementing new features. LifeGather is a **priva
 - After a task, summarize files changed, commands/tests run, and any security or migration consequences.
 
 ## Workflow
+Optional source navigation: see `docs/SOURCE_GRAPH.md` for the local Graphify code-only workflow. Keep extraction local and sequential, without subagents or model calls. Verify graph findings against source; do not treat generated edges as authoritative.
+
 1. Read the plan; inspect repo state; identify exact current milestone.
 2. Present a bounded implementation plan, then implement it without unrelated redesign.
 3. Preserve existing APIs and data through migrations and backward-compatible changes.
