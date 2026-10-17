@@ -53,6 +53,8 @@ Extraction of untrusted email, web, or document content runs without write tools
 
 ## Early useful recall
 
+[Photo evidence design](../../PHOTO_EVIDENCE.md) specifies saved originals, private galleries, graph-to-source access, manual attachment to existing items, per-user file deduplication, and claim-level evidence. Ordinary image uploads remain early scope; a dedicated phone camera flow does not.
+
 Provide simple home and vehicle records early: model/serial, filter dimensions, maintenance, room paint information, and other supported specifications. Users can provide label photos, manuals, and corrections. Unknown values stay unknown. VIN decoding is identification, not proof of parts fitment; compatibility answers need appropriate manufacturer/parts evidence. Responsive capture and quick fact views matter for use in a store. Offline/PWA behavior is future work, not an initial guarantee.
 
 ## Delivery order and gates

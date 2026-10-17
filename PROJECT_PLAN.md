@@ -29,6 +29,7 @@ Phone-app planning, dedicated camera capture, PWA/share-menu features, and remot
 - Sources, purchases/lines/quantities, product models, physical assets, and reconciliation decisions remain distinct.
 - Clear new items are added automatically with inferred ownership; clear matches enrich existing records; ambiguous identities wait in chat and a persistent review queue.
 - Early features include receipt/photo uploads, a small interactive graph, evidence views, and simple home/vehicle profiles with sourced specifications.
+- Photos are private persistent attachments accessible from each item's Photos & Documents gallery and graph evidence views. Distinguish attaching an image from supporting a specific claim; reuse identical files per user and never create another asset merely by uploading a photo. See [photo evidence design](docs/PHOTO_EVIDENCE.md).
 - Preserve provenance, temporal history, idempotency, typed monetary values, tested restore, and two-user isolation from the beginning.
 
 Following the first release: requested email scans, user-defined schedules, requested web research, statement uploads, live bank syncing, additional providers, and separate domain expansions. Email scans start immediately when scope and permissions are clear. Email arrival alone never triggers ingestion. Every live integration requires current API, permission, privacy, and cost review.
