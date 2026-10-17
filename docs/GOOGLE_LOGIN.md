@@ -1,5 +1,11 @@
 # Google registration and login
 
+## Current installation reference
+
+- Google Cloud project ID: `lifegather-511910`.
+- [LifeGather OAuth clients console](https://console.cloud.google.com/auth/clients?authuser=1&project=lifegather-511910&supportedpurview=project) — saved at the user's request on 2026-10-17. Requires signing in with an authorized Google account; `authuser=1` selects a browser account slot and may need adjusting in another browser.
+- User reported local Google sign-in working on 2026-10-17. Client secrets remain only in ignored local configuration; do not copy them into this guide. Other self-hosted installations configure their own OAuth clients.
+
 This slice implements Google OIDC authorization-code login with PKCE, a persistent private account identity, server-side sessions, and logout. It requests only `openid email profile`; it does not read Gmail, connect banks, or create memory records. Any Google account may register once the installation's Google OAuth application permits it. Google's testing/publishing settings may limit who can complete consent independently of LifeGather's open-registration policy.
 
 ## Local setup
