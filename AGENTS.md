@@ -51,6 +51,7 @@ Use the source-code graph workflow below when code discovery is required.
 - Report the refresh result or failure in the task summary. Do not install hooks, enable agents, or change assistant configuration to enforce this workflow.
 
 ## Docker rebuild and upload approval
+- GitHub Actions is disabled by user choice. Do not re-enable hosted workflows or introduce paid GitHub services. Run checks locally; rebuild/publish containers locally only after the approval described below. Keep the container workflow manual-only as a fallback, not an automatic push/PR trigger.
 - The user's internet connection is slow. Before rebuilding a Docker image or uploading/publishing one, ask whether to proceed and wait for an explicit yes/no for that operation. A request to commit, push code, open a PR, or merge is not permission to rebuild or publish an image.
 - With each request, report the current image size from available local metadata, distinguishing compressed/content size from unpacked disk usage. If only an older size is known, label it as last measured. Do not pull or rebuild an image just to measure it.
 - Explain whether a rebuild is needed for the changes. Documentation and design references alone do not require one. Actual upload size depends on missing layers; do not present total image size as an exact upload estimate.

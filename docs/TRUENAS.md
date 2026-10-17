@@ -31,7 +31,7 @@ For an existing installation showing `127.0.0.1:8787`, edit its YAML port mappin
 
 ## Updates and rollback
 
-Every successful verification run on `main` publishes `latest` and a `sha-<full-commit-sha>` tag. Failed verification leaves the previous published image available. Publishing a newer image does not automatically restart an installed TrueNAS app: use its image update/pull controls, or pull and recreate the Compose service.
+GitHub Actions is disabled by maintainer choice; pushes and pull requests do not publish images automatically. Maintainers run checks locally and ask for approval before rebuilding or uploading an image, reporting its size. Approved local releases publish `latest` and a `sha-<full-commit-sha>` tag. Publishing a newer image does not automatically restart an installed TrueNAS app: use its image update/pull controls, or pull and recreate the Compose service.
 
 ```sh
 docker compose -f deploy/compose.image.yaml pull
