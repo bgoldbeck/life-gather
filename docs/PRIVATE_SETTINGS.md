@@ -32,7 +32,7 @@ The key mounts separately at `/run/secrets/lifegather_vault_key`, outside `/data
 
 ## Isolation and storage
 
-- Migration `0002_private_settings` preserves existing accounts/sessions and adds user settings, owner-scoped credentials, and a server key fingerprint. Future memory/file/job tables do not exist yet.
+- Migration `0002_private_settings` preserves existing accounts/sessions and adds user settings, owner-scoped credentials, and a server key fingerprint. Migration `0003_memory_core` adds owner-constrained memory tables; file/job tables remain future work.
 - AES-256-GCM uses a fresh nonce per secret and authenticates the owner, credential ID, kind, and provider. Copying ciphertext between records/users fails verification. Labels, providers, types, IDs, and timestamps are metadata and remain plaintext in the private database.
 - Every credential query/mutation filters by authenticated owner. Foreign and missing IDs both return not-found. Requests cannot select an owner. Lists are paginated and the transactional limit is 100 entries per user.
 - HTTP returns metadata only, never secrets, ciphertext, or nonce. Only internal owner-scoped services decrypt; these are not AI tools. Mutations require matching Origin and a session-bound CSRF token. Validation errors never echo submitted secrets. Bodies are capped at 32 KiB and secrets at 8,192 characters.
@@ -47,4 +47,4 @@ Rotation/recovery tooling is not implemented. Restore the original key, or disab
 
 ## Verification scope
 
-Tests cover two-user lists/preferences, guessed-ID writes/decryption, cross-session CSRF, ciphertext storage/binding, wrong keys, save/replace/removal, preservation of existing accounts, and UI secret-clearing/errors. No real credentials or external providers are used. Future domain records, files, imports, search, graphs, and jobs require their own ownership tests when introduced.
+Tests cover two-user lists/preferences, guessed-ID writes/decryption, cross-session CSRF, ciphertext storage/binding, wrong keys, save/replace/removal, preservation of existing accounts, and UI secret-clearing/errors. No real credentials or external providers are used. The memory-core service has separate ownership tests for records, search, graph links, and export. Future adapters, files, imports, and jobs require their own ownership tests when introduced.

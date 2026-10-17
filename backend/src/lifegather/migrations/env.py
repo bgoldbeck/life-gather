@@ -2,6 +2,7 @@ from alembic import context
 
 from lifegather.auth.models import Base
 from lifegather.credentials import models as credential_models  # noqa: F401
+from lifegather.memory import models as memory_models  # noqa: F401
 
 connection = context.config.attributes["connection"]
 context.configure(connection=connection, target_metadata=Base.metadata)
