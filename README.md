@@ -6,11 +6,15 @@ It aims to help organize possessions, events, documents, and relationships while
 
 ## Project status
 
-Phase 0 provides a local health endpoint, environment-based configuration, a responsive React navigation shell, and Docker Compose packaging. Memory storage, authentication, MCP, and model integration are not implemented yet. LifeGather is a working name pending clearance.
+The source includes a responsive React shell and Google registration/login with persistent server-side sessions. Follow [Google login setup](docs/GOOGLE_LOGIN.md) to configure an OAuth client; real Google sign-in needs installation credentials. The [evidence-backed memory core](docs/MEMORY_CORE.md) now provides private Python services for sources, graph facts, history, search, export, and database snapshots. Memory UI adapters, MCP, and AI integration remain planned. LifeGather is a working name pending clearance. The previously published preview image does not gain source changes until a separately approved rebuild/upload.
 
 ## Run with Docker
 
-For TrueNAS or an installation without a local source build, use the published image `ghcr.io/bgoldbeck/life-gather:latest`. See [TrueNAS installation and updates](docs/TRUENAS.md) and the [image-only Compose file](deploy/compose.image.yaml). GitHub Actions verifies changes and refreshes the image after successful builds on `main`.
+The source also includes [private settings and an encrypted credential vault](docs/PRIVATE_SETTINGS.md). Google login needs one-time OAuth setup by the installation owner; individual users only choose their Google account. The optional vault key is a separate server setting and is not a sign-in requirement.
+
+For TrueNAS or an installation without a local source build, use the published image `ghcr.io/bgoldbeck/life-gather:latest`. See [TrueNAS installation and updates](docs/TRUENAS.md) and the [image-only Compose file](deploy/compose.image.yaml). GitHub Actions is disabled; maintainers verify releases locally and rebuild/upload images only with user approval.
+
+To build and publish when your connection is free, use the [local release script and instructions](docs/LOCAL_RELEASE.md). It asks separately before building and uploading, reports local image sizes, and never pushes or merges source code.
 
 Install Docker Engine with the Compose plugin on Linux, or Docker Desktop with the Linux engine on Windows/macOS. No host Python or Node.js installation is needed for this path.
 
@@ -23,7 +27,7 @@ docker compose ps
 
 Open <http://127.0.0.1:8787> for the app or <http://127.0.0.1:8787/health> for `{"status":"ok"}`. The one service serves both the built frontend and backend. Node.js is used only during the image build.
 
-To change the local port or application name, copy `.env.example` to `.env` at the repository root. Set `LIFEGATHER_PORT` to an available port, then recreate the service. The default host port is 8787; port 8000 is used only inside the container. The root `.env` configures Compose; `backend/.env` is for local Python development only and is not copied into the image.
+To change the local port or application name, copy `.env.example` to `.env` at the repository root. Set `LIFEGATHER_PORT` to an available host port, then recreate the service. Both host and container default to port 8787; changing `LIFEGATHER_PORT` changes only the host port. The root `.env` configures Compose; `backend/.env` is for local Python development only and is not copied into the image.
 
 Useful commands:
 
@@ -33,11 +37,11 @@ docker compose restart backend
 docker compose down
 ```
 
-`docker compose down` preserves the named `lifegather-data` volume mounted at `/data`. **Do not add `--volumes` unless you intend to erase local application data.** There is no database yet; this volume establishes the persistence convention for the next milestone. Private data is never served from the frontend asset directory.
+`docker compose down` preserves the named `lifegather-data` volume mounted at `/data`. **Do not add `--volumes` unless you intend to erase local application data.** New builds create a private SQLite account/session database there and apply packaged Alembic migrations on startup. Private data is never served from the frontend asset directory.
 
-The container runs as UID/GID 10001, with a read-only root filesystem, a writable `/data` volume, a temporary `/tmp`, and dropped Linux capabilities. The source-build Compose file publishes only on `127.0.0.1`; the image-only TrueNAS Compose file publishes on all IPv4 interfaces (`0.0.0.0`) for LAN access. Authentication is not implemented: keep this preview on a private test network and do not enter personal data.
+The container runs as UID/GID 10001, with a read-only root filesystem, a writable `/data` volume, a temporary `/tmp`, and dropped Linux capabilities. The source-build Compose file publishes only on `127.0.0.1`; the image-only TrueNAS Compose file publishes on all IPv4 interfaces (`0.0.0.0`) for LAN access. Configure Google login using the documented public URL and credentials; non-loopback login requires HTTPS. Remote exposure remains deferred, and the old published preview is unauthenticated.
 
-Database migrations and a tested SQLite backup/restore workflow will be added when storage is implemented. This preview accepts no personal records.
+This slice stores account identities and sessions only; personal memory endpoints and a general backup/restore interface remain later work. See the login guide for session expiry, revocation, private storage, and verification limits.
 
 ## Backend development
 

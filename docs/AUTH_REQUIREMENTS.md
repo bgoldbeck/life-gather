@@ -6,6 +6,8 @@ This supersedes the original single-user assumption. A self-hosted installation 
 
 ## Required behavior
 
+- User decision, 2026-10-17: allow registration by any Google account without invitations or an allowlist. Create an empty private workspace on first login. No shared spaces or cross-user data access.
+- Every user supplies their own AI provider credentials, email and bank connections. Isolate chats, files, graph records, connector state, schedules, research, usage tracking, and settings. Installation OAuth client secrets remain server configuration, not another user's provider connection.
 - Offer a straightforward **Continue with Google** sign-in using OpenID Connect.
 - Use Google's stable issuer and subject identifiers to identify an account; do not use a mutable email address as the ownership key.
 - Keep Google client secrets and login validation on the server. Validate the authorization response, including state, nonce, signature, issuer, audience and expiration, using a supported library.
@@ -18,7 +20,7 @@ This supersedes the original single-user assumption. A self-hosted installation 
 
 ## Acceptance evidence
 
-- An allowed Google account can sign in and sign out using the supported local and deployed callback URLs.
+- A new Google account can register, sign in, and sign out using supported callback URLs, without an invitation or email allowlist.
 - Missing, invalid, expired and replayed login responses fail safely.
 - Unauthenticated requests cannot access personal data.
 - Two fixture users cannot read, search, modify, link, export or delete each other's records, including by guessing identifiers.
@@ -28,7 +30,7 @@ This supersedes the original single-user assumption. A self-hosted installation 
 ## Resolve at implementation time
 
 - Configure the Google Cloud OAuth client, consent screen, client ID/secret, exact redirect URLs and HTTPS origin for deployment.
-- Decide whether installation access uses an account allowlist or invitations; do not silently enable open registration.
+- Open registration is explicitly selected. Define abuse controls and rate limits without introducing an invitation or email allowlist requirement.
 - Choose the supported authentication library and define session persistence, expiration and CSRF controls.
 - Update the original project plan and repository instructions to reflect per-user ownership when implementing this milestone. Those existing local planning files have been preserved during Phase 0.
 

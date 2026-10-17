@@ -17,6 +17,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { AuthGate } from './AuthGate'
+import { PrivateSettingsPanel } from './PrivateSettingsPanel'
 
 const navigation = [
   {
@@ -50,7 +52,19 @@ const navigation = [
 
 type View = (typeof navigation)[number]['name']
 
-function App() {
+export function Workspace({
+  userName,
+  onSignOut,
+  signingOut = false,
+  csrfToken = '',
+  refreshSession,
+}: {
+  userName?: string
+  onSignOut?: () => void
+  signingOut?: boolean
+  csrfToken?: string
+  refreshSession?: () => Promise<void>
+}) {
   const [view, setView] = useState<View>('Overview')
   const current = navigation.find((item) => item.name === view)!
 
@@ -107,12 +121,26 @@ function App() {
           <span>
             Your personal space <span className="breadcrumb">/ {view}</span>
           </span>
-          <Badge variant="outline">
-            <Leaf aria-hidden="true" size={13} /> Local development
-          </Badge>
+          <div className="account-actions">
+            <span>{userName}</span>
+            {onSignOut && (
+              <Button
+                variant="outline"
+                onClick={onSignOut}
+                disabled={signingOut}
+              >
+                {signingOut ? 'Signing out…' : 'Sign out'}
+              </Button>
+            )}
+          </div>
         </header>
         <main id="main-content" className="main-content">
-          {view === 'Overview' ? (
+          {view === 'Settings' ? (
+            <PrivateSettingsPanel
+              csrfToken={csrfToken}
+              refreshSession={refreshSession}
+            />
+          ) : view === 'Overview' ? (
             <>
               <div className="section-label">
                 <span /> A HOME FOR WHAT MATTERS
@@ -136,7 +164,7 @@ function App() {
                     <ArrowUpRight aria-hidden="true" size={17} />
                   </Button>
                   <span className="preview-note">
-                    An early foundation. No personal data is stored yet.
+                    Your account is ready. Memory features are coming next.
                   </span>
                 </div>
                 <div className="memory-illustration" aria-hidden="true">
@@ -258,9 +286,8 @@ function App() {
               <div className="placeholder-notice">
                 <strong>{view} is not available yet.</strong>
                 <p>
-                  This preview establishes the application shell. Personal
-                  memory storage and authenticated access will be added in later
-                  phases.
+                  Your workspace is ready. Personal memory storage and this
+                  feature will be added in a later milestone.
                 </p>
               </div>
               <Button variant="outline" onClick={() => setView('Overview')}>
@@ -275,4 +302,19 @@ function App() {
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <AuthGate>
+      {(user, signOut, busy, csrfToken, refreshSession) => (
+        <Workspace
+          key={user.id}
+          userName={user.name || user.email}
+          onSignOut={signOut}
+          signingOut={busy}
+          csrfToken={csrfToken}
+          refreshSession={refreshSession}
+        />
+      )}
+    </AuthGate>
+  )
+}

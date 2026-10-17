@@ -1,7 +1,7 @@
-# LifeGather — Initial Product and Engineering Plan
+# LifeGather — Product and Engineering Plan
 
-**Status:** Draft / implementation-ready scope for the first iteration  
-**Date:** 2026-10-16  
+**Status:** Revised product direction; detailed design awaiting user review
+**Date:** Updated 2026-10-17
 **Project name:** LifeGather (working brand; domain and trademark clearance not yet completed)  
 **Deployment:** Private, self-hosted Linux server using Docker Compose  
 **Development mode:** AI-assisted, using Claude Code and/or Codex with reviewable, test-driven increments
@@ -10,40 +10,33 @@
 
 LifeGather is a private, AI-first, persistent personal-memory application. Its job is not merely to store a collection of personal lists. It should gradually accumulate a source-backed understanding of the user's life: possessions, places, organizations, purchases, repairs, events, conversations, expenses, subscriptions, vehicles, warranties, policies, and documents.
 
-The primary control surface is natural-language chat, backed by Model Context Protocol (MCP) tools. The web UI provides search, inspection, corrections, dashboards, timelines, and an eventual knowledge-graph visualization.
+The primary control surface is natural-language chat, backed by Model Context Protocol (MCP) tools. The web UI provides search, inspection, corrections, dashboards, timelines, and an early interactive knowledge-graph visualization.
 
 **Primary product principle:** Keep an auditable distinction between (a) what the user or a document asserted, (b) what has been verified, (c) what the AI inferred, and (d) what is unknown.
 
 **Guiding example:** A user says they bought a Husqvarna trimmer. Later they submit a receipt, mention a repair, and ultimately sell it. LifeGather should resolve those references to the same asset, maintain historical ownership and maintenance events, and answer questions with citations back to the underlying messages/receipts. It must not fabricate a price, serial number, exact date, or sale if none is supported.
 
-## 2. Scope: thin vertical slice first
+## 2. Scope: first useful release
 
-### MVP (first releasable personal prototype)
+The consolidated design is [Personal discovery and recall](docs/superpowers/specs/2026-10-17-personal-discovery-design.md). It records the current user decisions and supersedes earlier single-user and connector-scope assumptions. Review the written design before creating a detailed implementation plan.
 
-1. Single-user authenticated local/private deployment.
-2. Functional chat page with a configurable model provider and streamed response.
-3. MCP tools to ingest a user statement, search memories, read an entity, list relationships, and correct a fact.
-4. SQLite-backed entities, aliases, source episodes, assertions, evidence links, lifecycle events, and audit entries.
-5. AI extraction of proposed entities and facts from a statement using schema-validated JSON.
-6. Conservative entity resolution: exact identifiers, aliases and known relationships first; ambiguous cases go to review.
-7. Temporal facts: track when something was true *and* when LifeGather learned it.
-8. FTS5 text search plus relationship traversal; no embeddings required for the first demo.
-9. A browseable asset/entity list, detail view, memory timeline, and source/evidence view.
-10. Persistent Docker volumes, repeatable migrations, backups, health check, unit/integration tests.
+First release: Google sign-in → configure a personal AI connection → upload a receipt or nameplate photo → automatically reconcile an item → inspect its evidence and graph connections → recall a useful fact in a later conversation.
 
-### Not MVP
+Phone-app planning, dedicated camera capture, PWA/share-menu features, and remote-access/domain/tunnel setup are deferred by user decision on 2026-10-17. Basic responsive UI and ordinary image/file uploads remain in scope. Google authentication, private settings, and the deterministic memory-service foundation are implemented in source. Reconciliation is the next milestone; chat and memory UI adapters follow later.
 
-Automatic Plaid/banking ingestion; email inbox monitoring; full accounting; recurring payment detection; graph-wide AI consolidation; multi-user accounts; public SaaS; vector DB; Graphiti, Neo4j or FalkorDB; advanced Cytoscape layouts; mobile app; continuous autonomous monitoring. These are future milestones, not prerequisites.
+- Any Google account can register; every workspace, credential, connector, record, and background job is private to its user. No shared spaces.
+- Chat is the primary interface, with one provider initially behind replaceable interfaces. Keep direct correction, export, and recovery usable without AI.
+- Sources, purchases/lines/quantities, product models, physical assets, and reconciliation decisions remain distinct.
+- Clear new items are added automatically with inferred ownership; clear matches enrich existing records; ambiguous identities wait in chat and a persistent review queue.
+- Early features include receipt/photo uploads, a small interactive graph, evidence views, and simple home/vehicle profiles with sourced specifications.
+- Photos are private persistent attachments accessible from each item's Photos & Documents gallery and graph evidence views. Distinguish attaching an image from supporting a specific claim; reuse identical files per user and never create another asset merely by uploading a photo. See [photo evidence design](docs/PHOTO_EVIDENCE.md).
+- Preserve provenance, temporal history, idempotency, typed monetary values, tested restore, and two-user isolation from the beginning.
 
-### First end-to-end demo
+Following the first release: requested email scans, user-defined schedules, requested web research, statement uploads, live bank syncing, additional providers, and separate domain expansions. Email scans start immediately when scope and permissions are clear. Email arrival alone never triggers ingestion. Every live integration requires current API, permission, privacy, and cost review.
 
-- Submit: “I own a Husqvarna 525L trimmer that I purchased from Home Depot in 2024.”
-- Query: “What trimmers do I own?” → returns existing trimmer with evidence; price is *unknown*.
-- Submit: “My Husqvarna weed eater needed its carburetor cleaned.” → links maintenance to the existing asset; no duplicate.
-- Query: “What maintenance did I mention for my trimmer?” → returns the statement and evidence.
-- Submit: “I sold that trimmer in July 2025.” → currently owned = false, with sale event/history preserved.
-- Query: “Did I own it in June 2025?” → yes, if timelines support it.
-- Replay prior episode → no duplicate entities, events, or financial entries.
+Not initial scope: public SaaS infrastructure, shared workspaces, unrestricted AI tools, a vector database, advanced graph layouts, full accounting, native mobile apps, or continuous unsolicited monitoring. Email and bank ingestion are approved roadmap goals, not dependencies of the first release.
+
+The original trimmer lifecycle remains a regression scenario: record ownership, attach receipt and maintenance evidence, record a sale, answer current and historical questions, and replay sources without duplication. Add the multi-source reconciliation and quantity tests in the design.
 
 ## 3. Technology decisions
 
@@ -52,7 +45,7 @@ Automatic Plaid/banking ingestion; email inbox monitoring; full accounting; recu
 | UI | React + TypeScript + Vite | SPA, compiled for Docker deployment |
 | Styles/components | Tailwind CSS + shadcn/ui + Lucide React | Standard, reusable UI system |
 | Chat | assistant-ui (evaluate integration) | Provider-agnostic adapter; don't couple data layer to chat library |
-| Graph visualization | Cytoscape.js, after core MVP | Graph explorer is not a substitute for browse/search |
+| Graph visualization | Small interactive explorer in first release; evaluate Cytoscape.js | Graph explorer is not a substitute for browse/search |
 | Charts/data tables | Recharts; TanStack Table and Query | Add as view complexity grows |
 | Backend | Python + FastAPI + Pydantic | Hosting, auth, chat, uploads, static assets |
 | MCP | Official `mcp` Python SDK v2, `MCPServer` | Streamable HTTP; mount in ASGI app; configure host lifespan |
@@ -66,7 +59,7 @@ Automatic Plaid/banking ingestion; email inbox monitoring; full accounting; recu
 | Packaging | Multi-stage Docker build + Docker Compose | Vite static bundle copied into Python image; simple single-container start |
 | Tests | pytest, Playwright, Vitest | Includes time-dependent and entity-match fixtures |
 
-**Important MCP SDK note:** Version 2 is the current stable SDK line as of this plan, replacing v1 `FastMCP` with `MCPServer`. Verify installed API contracts against the official v2 documentation before authoring integration code. See https://py.sdk.modelcontextprotocol.io/ and https://py.sdk.modelcontextprotocol.io/run/asgi/ .
+**Important MCP SDK note:** The planned target is SDK v2 with `MCPServer`; this planning document is not evidence of current release status. Verify installed API contracts against the official v2 documentation before authoring integration code. See https://py.sdk.modelcontextprotocol.io/ and https://py.sdk.modelcontextprotocol.io/run/asgi/ .
 
 ## 4. Architecture and boundaries
 
@@ -103,7 +96,7 @@ FastAPI application
 
 ## 5. SQLite model: evidence-backed temporal graph
 
-Use string UUID/ULID identifiers; database foreign keys and indexes. Suggested tables:
+Use string UUID/ULID identifiers; database foreign keys and indexes. Every private record and cross-record relationship must enforce authenticated owner scope, including derived indexes and jobs. The following is a conceptual model, not migration-ready DDL; add users, sessions, encrypted credentials, purchase/product/unit mappings, and reconciliation decisions as specified in the design. Suggested graph tables:
 
 - `entities`: `id`, `kind`, `canonical_name`, `attributes_json`, `created_at`, `archived_at`.
 - `entity_aliases`: `id`, `entity_id`, `alias`, `normalized_alias`, provenance.
@@ -116,7 +109,7 @@ Use string UUID/ULID identifiers; database foreign keys and indexes. Suggested t
 - `audit_log`: `id`, `actor_type`, `actor_id`, `operation`, `target_type`, `target_id`, `occurred_at`, `details_json`.
 - `change_proposals`: pending operations/approval decisions for low-confidence, conflicting, or destructive actions.
 
-In later phases, use **typed financial tables** for accounting (`transactions`, `merchants`, `accounts`, `subscriptions`, `purchase_lines`). Don't calculate financial totals by asking the LLM to add graph-literal strings. Store money as integer minor units + ISO currency or decimal-safe values.
+When purchase capture is introduced, use **typed purchase/financial tables** for accounting (`transactions`, `merchants`, `accounts`, `subscriptions`, `purchase_lines`). Don't calculate financial totals by asking the LLM to add graph-literal strings. Store money as integer minor units + ISO currency or decimal-safe values.
 
 **Time semantics:** `valid_from` and `valid_to` describe when a claim was true in the world; `recorded_at` and `superseded_at` describe when the system knew/accepted the claim. Unknown dates stay nullable, not invented. Preserve source episodes even after a claim is superseded, unless explicitly deleted for privacy.
 
@@ -154,53 +147,39 @@ Explicit deletion/export/backup operations should have their own guarded flows r
 
 ## 8. Frontend information architecture
 
-**Navigation:** Chat, Overview, Assets, Memories, Graph (later), Documents (later), Settings.
+**Navigation:** Chat, Assets, Graph, Documents, Review, Settings; Overview and richer dashboards follow useful data. Chat is primary, and correction/recovery remain directly accessible.
 
 **MVP views:**
 - **Chat:** streamed answer, source citations, tool-activity states, confirmation dialogs for proposed changes.
 - **Assets:** sortable/filterable list and search; can open an entity detail.
 - **Entity detail:** current attributes, connected entities, ownership/condition, timeline, original evidence, correction action.
 - **Overview:** counts, last memories saved, items needing review; do not manufacture financial totals or insights.
-- **Settings:** local auth, provider configuration, data export/backup and import preferences.
+- **Settings:** Google sessions, individual provider/connector configuration, data export/backup and import preferences.
 
 **UX principle:** AI performs structured data entry; users can always inspect, verify, correct, and undo the results. Charts and graph visualizations are *views* over validated records, not parallel stores of truth.
 
+**Appearance requirement (2026-10-17):** Provide Light and Dark choices in app Settings, preserving each user's preference. The cream/sage/green reference in `.references/lifegather-soft-green-light-theme.png` is the approved visual direction for color and mood; adapt surfaces, text, borders, focus states, charts, and graph colors for readable contrast in each mode. Include theme support with the early usable UI, not as a late dashboard feature. This is planned, not implemented.
+
 ## 9. Development sequence and acceptance gates
 
-### Phase 0 — Repository, repeatable environment and policies
-- Create `frontend/`, `backend/`, `docs/`, `tests/`, Dockerfile, Compose and `.env.example`.
-- Scaffold React/Vite/TypeScript and FastAPI with `/health`.
-- Establish lint, formatting, type checks, unit tests and CI-equivalent local scripts.
-- Set up non-root Docker, persistent private data volume, secret handling, migrations, safe startup and backup command.
-- **Done when:** Docker can build and run the app; UI loads; backend health passes; database survives restart; secrets remain out of git.
+Source progress, 2026-10-17: Google login/session code, private settings/encrypted credentials, and the deterministic evidence-backed memory services are implemented with offline and two-user tests. The user reported local Google sign-in working. Credential storage needs an optional server key; it is not part of end-user login. Memory services include provenance, temporal corrections, search, bounded traversal, export, and tested database snapshots. HTTP/MCP memory adapters, chat, files, connectors, and jobs remain later work with their own authorization tests. See `docs/GOOGLE_LOGIN.md`, `docs/PRIVATE_SETTINGS.md`, and `docs/MEMORY_CORE.md`. Container builds/publication remain separately approved operations.
 
-### Phase 1 — Deterministic graph core (no LLM dependency)
-- Implement schema/migration, services for create/read/search/update entities and assertions, provenance and temporal facts.
-- Add idempotent source ingestion and alias handling.
-- Add FTS5 index and retrieval with constrained query limits.
-- Add test fixtures for corrections, as-of queries, duplicate episodes, and multiple identical objects.
-- **Done when:** An offline test can reconstruct the full trimmer lifecycle and produce correct current vs historical answers.
+The original Phase 0 produced the frontend/backend Docker preview. Authentication, migrations, private memory services, and database snapshot/restore now have source-level acceptance tests. The preview does not provide a working memory UI or chat yet; future file storage also requires coordinated backup/restore coverage.
 
-### Phase 2 — MCP and agent-assisted ingestion
-- Add authenticated MCPServer v2 Streamable HTTP tool handlers delegating to domain services.
-- Add one configurable model adapter and schema-validated extraction + entity-resolution proposal flow.
-- Add chat endpoint and server-side tool-calling loop with per-turn limits and approval barriers.
-- **Done when:** A message can create a sourced trimmer memory, a second message updates it, and MCP queries retrieve it without duplicate records.
+Follow the ordered stages and acceptance evidence in [the consolidated design](docs/superpowers/specs/2026-10-17-personal-discovery-design.md#delivery-order-and-gates):
 
-### Phase 3 — Usable React interface
-- Add chat, assets list, detail/timeline, evidence viewer, review queue and correction flow.
-- Run Playwright tests for save, search, inspect, correct, and restart persistence.
-- **Done when:** A user can complete the above trimmer scenario from the web UI without touching SQL or a developer console.
+1. Google registration, sessions, strict user isolation, and credential foundation.
+2. Deterministic memory/evidence graph, temporal corrections, export, and tested backups.
+3. Reconciliation with synthetic sources: create/enrich/review, distinct purchased units, idempotency, and reversible decisions.
+4. One-provider persistent chat and authenticated MCP with execution/usage limits.
+5. Receipt/nameplate uploads, isolated extraction, discovery cards, correction, and persistent review queue.
+6. Small interactive graph, evidence views, home/vehicle profiles, and useful recall. This completes the first useful release when its end-to-end acceptance tests pass.
+7. Chat-requested email scans, followed by user-configured scheduled scans with progress, cancellation, recovery, and summaries.
+8. Chat-requested sourced web research, after resolving external-data permission behavior.
+9. Statement uploads followed by live bank sync, reconciled with existing purchase evidence.
+10. Additional providers and separately scoped warranties, insurance exports, reminders, recalls, subscriptions, and dashboards.
 
-### Phase 4 — Receipts and document relationships
-- Add restricted file upload, hashing, dedupe, document extraction and human review.
-- Link receipt line-items to owned equipment and purchase events; mark uncertain association for review.
-- **Done when:** Uploading the same receipt twice doesn't duplicate purchases, and all amounts trace to the source.
-
-### Phase 5 — Expansion once quality is established
-- Add subscriptions, vehicles, policies, maintenance, accounts, recurring expenses and scheduled analysis in discrete domain slices.
-- Evaluate semantic embeddings, knowledge-summary consolidation and Cytoscape graph exploration based on measured retrieval needs.
-- Defer bank/email connectors and autonomous ingestion until consent, permissions, idempotency and auditability are solid.
+Each stage needs a bounded implementation plan, relevant tests, migrations where applicable, and a passing local commit before proceeding. No live personal-data ingestion before ownership controls pass. No automatic GitHub builds; container rebuild/upload requires user approval.
 
 ## 10. Test and quality policy
 
@@ -232,7 +211,7 @@ Explicit deletion/export/backup operations should have their own guarded flows r
 6. Keep models/provider SDKs behind adapters; upgrade dependencies deliberately and lock working versions.
 7. Commit at each passing acceptance gate. Avoid large speculative abstractions and autogenerated endpoints that bypass the domain layer.
 
-**First assignment to give an agent:** See `docs/FIRST_TASK.md` for the exact Phase 0 kickoff prompt. After that, implement Phase 1 with no LLM integration. The priority is a trustworthy memory store, not a flashy mock dashboard.
+**Next planning step:** Write a bounded implementation plan for deterministic reconciliation using synthetic sources, before introducing live connectors. `docs/FIRST_TASK.md` is historical Phase 0 kickoff material, not the current assignment.
 
 ## 13. References
 
