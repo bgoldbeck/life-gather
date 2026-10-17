@@ -2,6 +2,8 @@
 
 Research date: 2026-10-17. Recommendation only; nothing exposed or installed.
 
+Status update, 2026-10-17: user deferred phone-app planning and remote-access setup until later. Retain this research for reference; choosing a domain, configuring a tunnel, and building dedicated mobile capture/PWA features are not current milestones. Basic responsive web UI and ordinary file uploads may continue as part of the core app.
+
 ## User requirements
 
 Open LifeGather from a phone browser, sign in with Google, take/attach a photo with a message, and receive a response. No companion VPN installation on the phone. Keep self-hosted storage and private per-user records. User does not currently own a domain. Do not purchase a domain, select a paid plan, rebuild/upload images, or expose the unauthenticated preview as part of this research.

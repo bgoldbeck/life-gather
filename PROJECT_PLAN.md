@@ -22,6 +22,8 @@ The consolidated design is [Personal discovery and recall](docs/superpowers/spec
 
 First release: Google sign-in → configure a personal AI connection → upload a receipt or nameplate photo → automatically reconcile an item → inspect its evidence and graph connections → recall a useful fact in a later conversation.
 
+Phone-app planning, dedicated camera capture, PWA/share-menu features, and remote-access/domain/tunnel setup are deferred by user decision on 2026-10-17. Basic responsive UI and ordinary image/file uploads remain in scope. The next implementation milestone remains Google authentication and strict user isolation.
+
 - Any Google account can register; every workspace, credential, connector, record, and background job is private to its user. No shared spaces.
 - Chat is the primary interface, with one provider initially behind replaceable interfaces. Keep direct correction, export, and recovery usable without AI.
 - Sources, purchases/lines/quantities, product models, physical assets, and reconciliation decisions remain distinct.

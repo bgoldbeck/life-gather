@@ -77,7 +77,7 @@ Provide simple home and vehicle records early: model/serial, filter dimensions, 
 
 ## Operations and unresolved implementation choices
 
-Phone access should work in a normal browser without a companion VPN app. See [remote access research](../../REMOTE_ACCESS.md) for the recommended named-tunnel/HTTPS design, domain and third-party trust decisions, mobile capture flow, and authentication acceptance required before exposure. No domain is currently owned and no remote endpoint is enabled.
+User decision, 2026-10-17: defer dedicated phone-app/camera capture, PWA/share-menu work, and remote-access setup until later. Keep responsive web UI and ordinary receipt/nameplate file uploads in the first release. Earlier mentions of photo capture mean uploaded images at this stage, not a dedicated mobile workflow. [Remote access research](../../REMOTE_ACCESS.md) remains reference material; domain selection and tunnel setup are not next steps. No domain is currently owned and no remote endpoint is enabled.
 
 GitHub Actions stays disabled by user choice. Verify locally. Docker rebuilds and uploads need explicit approval with available image-size information; code push/merge is not approval. Source Graphify remains a development-only code navigation tool, unrelated to personal graph storage.
 
