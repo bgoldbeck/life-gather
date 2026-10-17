@@ -34,13 +34,21 @@ Read `PROJECT_PLAN.md` before implementing new features. LifeGather is a **priva
 - After a task, summarize files changed, commands/tests run, and any security or migration consequences.
 
 ## Workflow
-Optional source navigation: see `docs/SOURCE_GRAPH.md` for the local Graphify code-only workflow. Keep extraction local and sequential, without subagents or model calls. Verify graph findings against source; do not treat generated edges as authoritative.
+Use the source-code graph workflow below when code discovery is required.
 
 1. Read the plan; inspect repo state; identify exact current milestone.
 2. Present a bounded implementation plan, then implement it without unrelated redesign.
 3. Preserve existing APIs and data through migrations and backward-compatible changes.
 4. Add useful fixtures demonstrating ambiguity, temporal updates, duplicate ingestion and provenance.
 5. Stop at the acceptance criteria rather than opportunistically starting the next phase.
+
+## Source-code searches and graph refresh
+- When locating code by behavior, tracing calls/imports, or identifying affected components, first consult Graphify with a scoped query. For an exact filename, identifier, or text search, reach first for `rg`/`rg --files`; consult the graph when relationship context is needed. Directly reading a known file does not require a graph query.
+- Verify graph findings against current source and relevant tests. Use `rg` to cover omissions, unsupported files, configuration, or inconclusive results. Never infer that code is absent solely because the graph has no match.
+- If the graph is missing or source changes have made it stale, refresh it before relying on it. If Graphify is unavailable or fails, report the limitation and continue with normal source searches.
+- After each completed feature that changes code, and after major refactors, source renames/moves, or dependency/import restructuring, refresh the graph and HTML after relevant verification passes and before reporting completion. Refresh once per completed feature, not after every edit. Documentation-only and reference-image changes do not require a refresh.
+- Follow `docs/SOURCE_GRAPH.md`: local code-only extraction, one worker, no subagents, no model calls, and automatic assistant-skill refresh disabled. Keep generated output ignored by Git. Graph refreshes do not rebuild or upload Docker images and do not require Docker approval.
+- Report the refresh result or failure in the task summary. Do not install hooks, enable agents, or change assistant configuration to enforce this workflow.
 
 ## Docker rebuild and upload approval
 - The user's internet connection is slow. Before rebuilding a Docker image or uploading/publishing one, ask whether to proceed and wait for an explicit yes/no for that operation. A request to commit, push code, open a PR, or merge is not permission to rebuild or publish an image.
