@@ -2,12 +2,17 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from lifegather.auth.google import GoogleProvider
 from lifegather.auth.routes import auth_router
 from lifegather.auth.store import AuthStore
 from lifegather.config import Settings
+from lifegather.credentials.middleware import CredentialBodyLimit
+from lifegather.credentials.routes import private_router
+from lifegather.credentials.service import PrivateSettings, VaultError, read_key
 
 
 def create_app() -> FastAPI:
@@ -20,12 +25,29 @@ def create_app() -> FastAPI:
         store.migrate()
         app.state.auth_store = store
         try:
+            app.state.private_settings = PrivateSettings(
+                store.engine, read_key(settings.vault_key_file)
+            )
             yield
         finally:
             store.engine.dispose()
 
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
+    app.state.settings = settings
     app.include_router(auth_router(settings, GoogleProvider(settings)))
+    app.include_router(private_router())
+    app.add_middleware(CredentialBodyLimit)
+
+    @app.exception_handler(VaultError)
+    async def vault_error(request: Request, error: VaultError) -> JSONResponse:
+        return JSONResponse({"detail": str(error)}, status_code=error.status)
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(
+        request: Request, error: RequestValidationError
+    ) -> JSONResponse:
+        # Validation errors may otherwise echo submitted credential values.
+        return JSONResponse({"detail": "Invalid request"}, status_code=422)
 
     @app.middleware("http")
     async def private_auth_responses(

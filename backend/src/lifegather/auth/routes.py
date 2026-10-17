@@ -34,6 +34,20 @@ def require_session(request: Request) -> CurrentSession:
     return current
 
 
+def require_write_session(
+    request: Request, current: Annotated[CurrentSession, Depends(require_session)]
+) -> CurrentSession:
+    settings: Settings = request.app.state.settings
+    if request.headers.get(
+        "origin"
+    ) != settings.public_url or not secrets.compare_digest(
+        request.headers.get("x-csrf-token", ""),
+        current.csrf_token,
+    ):
+        raise HTTPException(403, "Invalid request origin or CSRF token")
+    return current
+
+
 def auth_router(settings: Settings, provider: GoogleProvider) -> APIRouter:
     router = APIRouter()
     attempts: OrderedDict[str, deque[float]] = OrderedDict()
@@ -133,15 +147,9 @@ def auth_router(settings: Settings, provider: GoogleProvider) -> APIRouter:
 
     @router.post("/auth/logout")
     def logout(
-        request: Request, current: Annotated[CurrentSession, Depends(require_session)]
+        request: Request,
+        current: Annotated[CurrentSession, Depends(require_write_session)],
     ) -> Response:
-        if request.headers.get(
-            "origin"
-        ) != settings.public_url or not secrets.compare_digest(
-            request.headers.get("x-csrf-token", ""),
-            current.csrf_token,
-        ):
-            raise HTTPException(403, "Invalid logout request")
         store_for(request).logout(request.cookies.get(SESSION_COOKIE, ""))
         response = Response(status_code=204)
         response.delete_cookie(

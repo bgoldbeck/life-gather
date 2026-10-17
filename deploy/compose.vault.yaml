@@ -1,0 +1,11 @@
+# Optional override for either the root source-build or image-only deployment.
+services:
+  backend:
+    environment:
+      LIFEGATHER_VAULT_KEY_FILE: /run/secrets/lifegather_vault_key
+    secrets:
+      - lifegather_vault_key
+
+secrets:
+  lifegather_vault_key:
+    file: "${LIFEGATHER_VAULT_KEY_SOURCE:?Set the absolute host path to your existing vault key}"

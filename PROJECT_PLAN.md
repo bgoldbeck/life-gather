@@ -161,6 +161,8 @@ Explicit deletion/export/backup operations should have their own guarded flows r
 
 ## 9. Development sequence and acceptance gates
 
+Source progress, 2026-10-17: Google login/session code and private settings/encrypted credential storage are implemented with synthetic-provider and two-user tests. Real Google sign-in awaits installation OAuth configuration. Credential storage needs an optional server key; it is not part of end-user login. Domain memory, files, connectors, and jobs still require their own ownership enforcement when implemented. See `docs/GOOGLE_LOGIN.md` and `docs/PRIVATE_SETTINGS.md`. Container builds/publication remain separately approved operations.
+
 The original Phase 0 produced the frontend/backend Docker preview. Personal storage, migrations, authentication, and backup/restore acceptance remain outstanding; do not label them completed because the preview runs.
 
 Follow the ordered stages and acceptance evidence in [the consolidated design](docs/superpowers/specs/2026-10-17-personal-discovery-design.md#delivery-order-and-gates):

@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Self
 from urllib.parse import urlsplit
 
-from pydantic import SecretStr, model_validator
+from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     public_url: str = "http://127.0.0.1:8787"
     google_client_id: str = ""
     google_client_secret: SecretStr = SecretStr("")
+    vault_key_file: Path | None = None
+
+    @field_validator("vault_key_file", mode="before")
+    @classmethod
+    def empty_key_path(cls, value: object) -> object:
+        return None if value == "" else value
 
     @property
     def google_enabled(self) -> bool:
@@ -66,4 +72,13 @@ class Settings(BaseSettings):
             self.static_dir.resolve()
         ):
             raise ValueError("Private data must be outside the static directory")
+        if self.vault_key_file is not None:
+            key = self.vault_key_file.resolve()
+            if key.is_relative_to(self.data_dir.resolve()) or (
+                self.static_dir is not None
+                and key.is_relative_to(self.static_dir.resolve())
+            ):
+                raise ValueError(
+                    "Vault key must be outside data and static directories"
+                )
         return self

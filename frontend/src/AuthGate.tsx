@@ -11,7 +11,13 @@ type Session = {
 export function AuthGate({
   children,
 }: {
-  children: (user: Account, signOut: () => void, busy: boolean) => ReactNode
+  children: (
+    user: Account,
+    signOut: () => void,
+    busy: boolean,
+    csrfToken: string,
+    refreshSession: () => Promise<void>,
+  ) => ReactNode
 }) {
   const [session, setSession] = useState<Session | null>(null)
   const [error, setError] = useState('')
@@ -67,7 +73,13 @@ export function AuthGate({
     return (
       <>
         {error && <p role="alert">{error}</p>}
-        {children(session.user, () => void signOut(), busy)}
+        {children(
+          session.user,
+          () => void signOut(),
+          busy,
+          session.csrf_token || '',
+          refresh,
+        )}
       </>
     )
   }

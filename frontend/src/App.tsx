@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { AuthGate } from './AuthGate'
+import { PrivateSettingsPanel } from './PrivateSettingsPanel'
 
 const navigation = [
   {
@@ -55,10 +56,14 @@ export function Workspace({
   userName,
   onSignOut,
   signingOut = false,
+  csrfToken = '',
+  refreshSession,
 }: {
   userName?: string
   onSignOut?: () => void
   signingOut?: boolean
+  csrfToken?: string
+  refreshSession?: () => Promise<void>
 }) {
   const [view, setView] = useState<View>('Overview')
   const current = navigation.find((item) => item.name === view)!
@@ -130,7 +135,12 @@ export function Workspace({
           </div>
         </header>
         <main id="main-content" className="main-content">
-          {view === 'Overview' ? (
+          {view === 'Settings' ? (
+            <PrivateSettingsPanel
+              csrfToken={csrfToken}
+              refreshSession={refreshSession}
+            />
+          ) : view === 'Overview' ? (
             <>
               <div className="section-label">
                 <span /> A HOME FOR WHAT MATTERS
@@ -295,11 +305,14 @@ export function Workspace({
 export default function App() {
   return (
     <AuthGate>
-      {(user, signOut, busy) => (
+      {(user, signOut, busy, csrfToken, refreshSession) => (
         <Workspace
+          key={user.id}
           userName={user.name || user.email}
           onSignOut={signOut}
           signingOut={busy}
+          csrfToken={csrfToken}
+          refreshSession={refreshSession}
         />
       )}
     </AuthGate>
