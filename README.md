@@ -6,7 +6,7 @@ It aims to help organize possessions, events, documents, and relationships while
 
 ## Project status
 
-Phase 0 is underway. The backend has a local health endpoint and environment-based configuration. The frontend, storage, authentication, MCP, and model integration are not implemented yet. LifeGather is a working name pending clearance.
+Phase 0 is underway. The backend has a local health endpoint and environment-based configuration. The React frontend provides a responsive navigation shell with clearly marked planned features. Storage, authentication, MCP, and model integration are not implemented yet. LifeGather is a working name pending clearance.
 
 ## Backend development
 
@@ -39,7 +39,31 @@ uv run --locked mypy
 
 `/health` reports process liveness only; it does not check database or model availability. The development server binds to localhost and has no authentication. Authentication is required before introducing personal-data endpoints or remote deployment.
 
-The next Phase 0 slice is the React frontend shell, followed by Docker packaging and persistent-data conventions.
+## Frontend development
+
+Use Node.js 24 and npm. In a second terminal, from the repository root:
+
+```powershell
+cd frontend
+npm ci
+npm run dev
+```
+
+Open the localhost URL printed by Vite (normally <http://127.0.0.1:5173>). The development server proxies `/health` to the backend at `127.0.0.1:8000`. All fonts and application assets are bundled locally; no model provider is contacted.
+
+From `frontend/`, run the frontend checks:
+
+```powershell
+npm test
+npm run lint
+npm run typecheck
+npm run format:check
+npm run build
+```
+
+The UI uses Tailwind CSS and shadcn/ui primitives. Navigation works within the preview; Chat, Assets, Memories, Graph, and Settings explain their planned purpose without accepting personal data.
+
+The next Phase 0 slice is Docker packaging and persistent-data conventions.
 
 ## Planned stack
 
