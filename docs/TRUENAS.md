@@ -19,13 +19,15 @@ The current app is a foundation preview with no authentication or personal-memor
 These instructions target the Docker-based Apps system in TrueNAS 24.10 and later, not the older Kubernetes-based system or TrueNAS CORE jails.
 
 1. Open **Apps → Discover Apps → Custom App** and configure the image above, or choose **Install via YAML** and paste [the image-only Compose file](../deploy/compose.image.yaml).
-2. The Compose example defaults to loopback binding. To reach the preview from another computer on your private network, replace `127.0.0.1` in its port mapping with your TrueNAS server's actual private LAN IP. Keep `8787:8000` as host-to-container ports, or choose another unused host port. Do not forward this preview's port through your internet router.
+2. The Compose example publishes `0.0.0.0:8787:8000`, accepting connections on all IPv4 interfaces without entering a specific NAS IP. In the Custom App wizard, use host bind address `0.0.0.0`, host port `8787`, and container port `8000/TCP`. If host port 8787 is already occupied, choose another unused host port. Do not forward this preview's port through your internet router.
 3. Keep the image's default command and health check. Do not enable privileged mode or add Linux capabilities.
 4. Keep the run-as user at UID/GID `10001:10001`. If the wizard overrides it, configure its custom user accordingly.
 5. Mount writable persistent storage at `/data`. The YAML example uses a named Docker volume for testing. For managed NAS storage, first create a dedicated TrueNAS dataset, grant UID/GID 10001 the required read/write/traverse access, and bind-mount that dataset to `/data`. Do not use a recursive permission reset on an existing shared dataset.
 6. Install, wait for healthy status, then open `http://YOUR_NAS_PRIVATE_IP:8787`. `/health` should return `{"status":"ok"}`.
 
 No source build or registry credentials are needed once the package is public. The image serves both the web UI and backend, and does not need a separate Node.js container.
+
+For an existing installation showing `127.0.0.1:8787`, edit its YAML port mapping to `0.0.0.0:8787:8000`, then save and redeploy. No image rebuild is needed. Open the NAS's actual LAN IP in your browser, not `0.0.0.0`. Connections still require a reachable network, firewall permission, and an unused host port. To restrict access to the NAS itself, use `127.0.0.1:8787:8000` instead.
 
 ## Updates and rollback
 
