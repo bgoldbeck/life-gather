@@ -4,7 +4,7 @@ services:
   backend:
     build: .
     ports:
-      - "127.0.0.1:${LIFEGATHER_PORT:-8787}:8000"
+      - "127.0.0.1:${LIFEGATHER_PORT:-8787}:8787"
     environment:
       LIFEGATHER_APP_NAME: "${LIFEGATHER_APP_NAME:-LifeGather}"
       LIFEGATHER_DATA_DIR: /data
@@ -12,7 +12,7 @@ services:
     volumes:
       - lifegather-data:/data
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).close()"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/health', timeout=2).close()"]
       interval: 10s
       timeout: 3s
       start_period: 10s

@@ -89,12 +89,12 @@ jobs:
 
           assert os.getuid() == 10001
           assert shutil.which('node') is None
-          with urllib.request.urlopen('http://127.0.0.1:8000/health') as response:
+          with urllib.request.urlopen('http://127.0.0.1:8787/health') as response:
               assert response.status == 200
               assert json.load(response) == {'status': 'ok'}
-          with urllib.request.urlopen('http://127.0.0.1:8000/') as response:
+          with urllib.request.urlopen('http://127.0.0.1:8787/') as response:
               assert b'<title>LifeGather</title>' in response.read()
-          with urllib.request.urlopen('http://127.0.0.1:8000/brand/lifegather-icon.png') as response:
+          with urllib.request.urlopen('http://127.0.0.1:8787/brand/lifegather-icon.png') as response:
               assert response.read(8) == b'\x89PNG\r\n\x1a\n'
           probe = Path('/data/.ci-probe')
           probe.write_text('synthetic probe')

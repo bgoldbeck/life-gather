@@ -24,7 +24,7 @@ Verified locally on 2026-10-16. This checkpoint establishes the application foun
 
 ## Local environment notes
 
-- Existing applications occupy host ports 8000 and 8080. LifeGather uses 8787; 8000 is only the internal container port.
+- Existing applications occupy host ports 8000 and 8080. LifeGather uses 8787 for both the host and internal container port.
 - Docker Desktop required launching through Windows Explorer after socket-access errors from the desktop-agent shell. Its previous runtime directory was preserved as `run.before-lifegather-20261016` under the local Docker directory. No Docker images or volumes were deleted.
 - Original planning/instruction documents that were untracked before this work were left unchanged and unstaged.
 

@@ -23,7 +23,7 @@ docker compose ps
 
 Open <http://127.0.0.1:8787> for the app or <http://127.0.0.1:8787/health> for `{"status":"ok"}`. The one service serves both the built frontend and backend. Node.js is used only during the image build.
 
-To change the local port or application name, copy `.env.example` to `.env` at the repository root. Set `LIFEGATHER_PORT` to an available port, then recreate the service. The default host port is 8787; port 8000 is used only inside the container. The root `.env` configures Compose; `backend/.env` is for local Python development only and is not copied into the image.
+To change the local port or application name, copy `.env.example` to `.env` at the repository root. Set `LIFEGATHER_PORT` to an available host port, then recreate the service. Both host and container default to port 8787; changing `LIFEGATHER_PORT` changes only the host port. The root `.env` configures Compose; `backend/.env` is for local Python development only and is not copied into the image.
 
 Useful commands:
 
