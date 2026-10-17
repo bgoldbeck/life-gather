@@ -77,6 +77,8 @@ Provide simple home and vehicle records early: model/serial, filter dimensions, 
 
 ## Operations and unresolved implementation choices
 
+Phone access should work in a normal browser without a companion VPN app. See [remote access research](../../REMOTE_ACCESS.md) for the recommended named-tunnel/HTTPS design, domain and third-party trust decisions, mobile capture flow, and authentication acceptance required before exposure. No domain is currently owned and no remote endpoint is enabled.
+
 GitHub Actions stays disabled by user choice. Verify locally. Docker rebuilds and uploads need explicit approval with available image-size information; code push/merge is not approval. Source Graphify remains a development-only code navigation tool, unrelated to personal graph storage.
 
 Choose concrete auth/session and encryption libraries, provider/model adapter, upload limits, graph library, and job persistence in implementation plans. Verify current SDK/API contracts and costs then. Do not assume packages or external services are free. No live connector setup, paid services, app implementation, or Docker publishing is authorized by this design document alone.
