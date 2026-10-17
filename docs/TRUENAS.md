@@ -1,0 +1,43 @@
+# Install the ready-built image on TrueNAS
+
+TrueNAS Docker-based Apps can install a container image directly. A GitHub source URL is not the container image reference.
+
+| Setting | Value |
+| --- | --- |
+| Image repository | `ghcr.io/bgoldbeck/life-gather` |
+| Tag | `latest` |
+| Architecture | `linux/amd64` (x86-64) |
+| Container port | `8000/TCP` |
+| Suggested host port | `8787/TCP` |
+| Run-as UID/GID | `10001:10001` |
+| Persistent mount | `/data` |
+
+The current app is a foundation preview with no authentication or personal-memory storage. Use a private test network only. Do not expose it to the internet or enter personal records. Google sign-in and per-user data isolation are the next milestone.
+
+## TrueNAS installation
+
+These instructions target the Docker-based Apps system in TrueNAS 24.10 and later, not the older Kubernetes-based system or TrueNAS CORE jails.
+
+1. Open **Apps → Discover Apps → Custom App** and configure the image above, or choose **Install via YAML** and paste [the image-only Compose file](../deploy/compose.image.yaml).
+2. The Compose example defaults to loopback binding. To reach the preview from another computer on your private network, replace `127.0.0.1` in its port mapping with your TrueNAS server's actual private LAN IP. Keep `8787:8000` as host-to-container ports, or choose another unused host port. Do not forward this preview's port through your internet router.
+3. Keep the image's default command and health check. Do not enable privileged mode or add Linux capabilities.
+4. Keep the run-as user at UID/GID `10001:10001`. If the wizard overrides it, configure its custom user accordingly.
+5. Mount writable persistent storage at `/data`. The YAML example uses a named Docker volume for testing. For managed NAS storage, first create a dedicated TrueNAS dataset, grant UID/GID 10001 the required read/write/traverse access, and bind-mount that dataset to `/data`. Do not use a recursive permission reset on an existing shared dataset.
+6. Install, wait for healthy status, then open `http://YOUR_NAS_PRIVATE_IP:8787`. `/health` should return `{"status":"ok"}`.
+
+No source build or registry credentials are needed once the package is public. The image serves both the web UI and backend, and does not need a separate Node.js container.
+
+## Updates and rollback
+
+Every successful verification run on `main` publishes `latest` and a `sha-<full-commit-sha>` tag. Failed verification leaves the previous published image available. Publishing a newer image does not automatically restart an installed TrueNAS app: use its image update/pull controls, or pull and recreate the Compose service.
+
+```sh
+docker compose -f deploy/compose.image.yaml pull
+docker compose -f deploy/compose.image.yaml up -d --wait
+```
+
+For a repeatable deployment or rollback, pin the image by its published digest (`ghcr.io/bgoldbeck/life-gather@sha256:...`) or select a previously published commit tag. Keep the same persistent storage mount. Do not remove the data volume when updating. Database migration/rollback policies will be added before persistent records are introduced.
+
+Public images contain application code and bundled assets, not users' `/data` volumes, local `.env` files or provider credentials.
+
+References: [TrueNAS custom apps](https://apps.truenas.com/managing-apps/installing-custom-apps/), [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry).
