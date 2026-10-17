@@ -14,6 +14,8 @@ TrueNAS Docker-based Apps can install a container image directly. A GitHub sourc
 
 The current app is a foundation preview with no authentication or personal-memory storage. Use a private test network only. Do not expose it to the internet or enter personal records. Google sign-in and per-user data isolation are the next milestone.
 
+The source now includes the first Google login slice, but the existing published preview has not been rebuilt for it. New image builds require the configuration described in [Google login setup](GOOGLE_LOGIN.md); do not assume pulling the old preview enables authentication. Deployment over a LAN IP needs an HTTPS public origin for Google login; remote-access setup remains deferred.
+
 ## TrueNAS installation
 
 These instructions target the Docker-based Apps system in TrueNAS 24.10 and later, not the older Kubernetes-based system or TrueNAS CORE jails.

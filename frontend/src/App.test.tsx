@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import App from './App'
+import { Workspace as App } from './App'
 
 describe('LifeGather shell', () => {
   it('shows the planned navigation and an honest empty overview', () => {

@@ -6,7 +6,7 @@ It aims to help organize possessions, events, documents, and relationships while
 
 ## Project status
 
-Phase 0 provides a local health endpoint, environment-based configuration, a responsive React navigation shell, and Docker Compose packaging. Memory storage, authentication, MCP, and model integration are not implemented yet. LifeGather is a working name pending clearance.
+The source includes a responsive React shell and Google registration/login with persistent server-side sessions. Follow [Google login setup](docs/GOOGLE_LOGIN.md) to configure an OAuth client; real Google sign-in needs installation credentials. Memory storage, MCP, and AI integration remain planned. LifeGather is a working name pending clearance. The previously published preview image does not gain source changes until a separately approved rebuild/upload.
 
 ## Run with Docker
 
@@ -33,11 +33,11 @@ docker compose restart backend
 docker compose down
 ```
 
-`docker compose down` preserves the named `lifegather-data` volume mounted at `/data`. **Do not add `--volumes` unless you intend to erase local application data.** There is no database yet; this volume establishes the persistence convention for the next milestone. Private data is never served from the frontend asset directory.
+`docker compose down` preserves the named `lifegather-data` volume mounted at `/data`. **Do not add `--volumes` unless you intend to erase local application data.** New builds create a private SQLite account/session database there and apply packaged Alembic migrations on startup. Private data is never served from the frontend asset directory.
 
-The container runs as UID/GID 10001, with a read-only root filesystem, a writable `/data` volume, a temporary `/tmp`, and dropped Linux capabilities. The source-build Compose file publishes only on `127.0.0.1`; the image-only TrueNAS Compose file publishes on all IPv4 interfaces (`0.0.0.0`) for LAN access. Authentication is not implemented: keep this preview on a private test network and do not enter personal data.
+The container runs as UID/GID 10001, with a read-only root filesystem, a writable `/data` volume, a temporary `/tmp`, and dropped Linux capabilities. The source-build Compose file publishes only on `127.0.0.1`; the image-only TrueNAS Compose file publishes on all IPv4 interfaces (`0.0.0.0`) for LAN access. Configure Google login using the documented public URL and credentials; non-loopback login requires HTTPS. Remote exposure remains deferred, and the old published preview is unauthenticated.
 
-Database migrations and a tested SQLite backup/restore workflow will be added when storage is implemented. This preview accepts no personal records.
+This slice stores account identities and sessions only; personal memory endpoints and a general backup/restore interface remain later work. See the login guide for session expiry, revocation, private storage, and verification limits.
 
 ## Backend development
 
