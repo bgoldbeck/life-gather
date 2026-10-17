@@ -2,6 +2,8 @@
 
 Read `PROJECT_PLAN.md` before implementing new features. LifeGather is a **private, self-hosted, AI-first personal-memory graph** with an evidence-backed source of truth. The product name is provisional, pending clearance.
 
+Current product direction: see `docs/superpowers/specs/2026-10-17-personal-discovery-design.md`. Any Google account may register, but all data, credentials, connectors, and jobs are isolated per user; no shared spaces. Ingestion runs on chat request or user-configured schedules, never merely on email arrival. Clear new assets are added automatically with inferred ownership and easy correction; ambiguous identities go to chat and a persistent review queue.
+
 ## Stack and boundaries
 - Frontend: React, TypeScript, Vite, Tailwind, shadcn/ui. Build accessible, responsive components.
 - Backend: Python, FastAPI, Pydantic, SQLAlchemy, Alembic, SQLite.
@@ -59,4 +61,4 @@ Use the source-code graph workflow below when code discovery is required.
 - Do not trigger automated workflows that rebuild or publish images without this approval; account for those triggers before pushing or merging code.
 
 ## Explicit anti-goals for initial milestones
-Do not introduce Neo4j, Graphiti, FalkorDB, Redis, Kubernetes, microservices, multi-user SaaS architecture, bank/email ingestion, public unauthenticated MCP, or a vector database unless a later task specifically requests and justifies them.
+Do not introduce Neo4j, Graphiti, FalkorDB, Redis, Kubernetes, microservices, public SaaS infrastructure, public unauthenticated MCP, or a vector database unless a later task specifically requests and justifies them. Private multi-user accounts are required from the start. Email/bank ingestion is an approved later roadmap goal; implement it only in its scoped stage after isolation and reconciliation acceptance passes.
