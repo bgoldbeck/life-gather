@@ -61,9 +61,14 @@ function App() {
       </a>
       <aside className="sidebar">
         <div className="brand">
-          <span className="brand-mark">
-            <Leaf aria-hidden="true" size={23} />
-          </span>
+          <img
+            className="brand-mark"
+            src="/brand/lifegather-icon.png"
+            width="40"
+            height="40"
+            alt=""
+            aria-hidden="true"
+          />
           LifeGather<span className="brand-dot">.</span>
         </div>
         <p className="sidebar-caption">A little more connected.</p>
