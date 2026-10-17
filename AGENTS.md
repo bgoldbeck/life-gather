@@ -40,5 +40,12 @@ Read `PROJECT_PLAN.md` before implementing new features. LifeGather is a **priva
 4. Add useful fixtures demonstrating ambiguity, temporal updates, duplicate ingestion and provenance.
 5. Stop at the acceptance criteria rather than opportunistically starting the next phase.
 
+## Docker rebuild and upload approval
+- The user's internet connection is slow. Before rebuilding a Docker image or uploading/publishing one, ask whether to proceed and wait for an explicit yes/no for that operation. A request to commit, push code, open a PR, or merge is not permission to rebuild or publish an image.
+- With each request, report the current image size from available local metadata, distinguishing compressed/content size from unpacked disk usage. If only an older size is known, label it as last measured. Do not pull or rebuild an image just to measure it.
+- Explain whether a rebuild is needed for the changes. Documentation and design references alone do not require one. Actual upload size depends on missing layers; do not present total image size as an exact upload estimate.
+- If approved to rebuild, report the resulting size before uploading unless the user explicitly approved both steps together. If declined, continue authorized source work and report the image publication as deferred.
+- Do not trigger automated workflows that rebuild or publish images without this approval; account for those triggers before pushing or merging code.
+
 ## Explicit anti-goals for initial milestones
 Do not introduce Neo4j, Graphiti, FalkorDB, Redis, Kubernetes, microservices, multi-user SaaS architecture, bank/email ingestion, public unauthenticated MCP, or a vector database unless a later task specifically requests and justifies them.
