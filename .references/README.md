@@ -4,5 +4,6 @@ User-supplied images saved on 2026-10-17 for LifeGather planning.
 
 - `lifegather-ui-concepts.png`: Light LifeGather concepts covering dashboard, AI chat, knowledge graph, asset detail, timeline, documents, settings, and mobile layouts.
 - `admincn-dark-dashboard.png`: AdminCN dark dashboard reference with sidebar navigation, charts, compact cards, and accent colors.
+- `lifegather-chat-purchase-example.png`: Conversational purchase capture with an inline asset card, price and retailer, explicit unverified warranty status, and a receipt follow-up.
 
 These images are visual inspiration, not implemented screens or approved feature requirements. Names, records, dates, and amounts shown are illustrative, not real user data. The AdminCN image is a third-party reference; no ownership or reuse license is asserted.
