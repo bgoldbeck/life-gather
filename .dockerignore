@@ -17,6 +17,11 @@ frontend/*
 !frontend/vite.config.ts
 !frontend/src/
 !frontend/src/**
+!frontend/public/
+frontend/public/*
+!frontend/public/brand/
+frontend/public/brand/*
+!frontend/public/brand/lifegather-icon.png
 # Exclude tests, caches, private configuration and data even inside allowed trees.
 **/__pycache__/
 **/node_modules/

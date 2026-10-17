@@ -59,13 +59,10 @@ button {
   letter-spacing: -1px;
 }
 .brand-mark {
-  color: #f3f6e9;
-  background: #31583e;
-  border-radius: 12px;
-  width: 37px;
-  height: 39px;
-  display: grid;
-  place-items: center;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  display: block;
   margin-right: 10px;
 }
 .brand-dot {
