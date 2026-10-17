@@ -35,7 +35,7 @@ docker compose down
 
 `docker compose down` preserves the named `lifegather-data` volume mounted at `/data`. **Do not add `--volumes` unless you intend to erase local application data.** There is no database yet; this volume establishes the persistence convention for the next milestone. Private data is never served from the frontend asset directory.
 
-The container runs as UID/GID 10001, with a read-only root filesystem, a writable `/data` volume, a temporary `/tmp`, and dropped Linux capabilities. Compose publishes the app only on `127.0.0.1`. Authentication is not implemented: keep this preview local and do not enter personal data.
+The container runs as UID/GID 10001, with a read-only root filesystem, a writable `/data` volume, a temporary `/tmp`, and dropped Linux capabilities. The source-build Compose file publishes only on `127.0.0.1`; the image-only TrueNAS Compose file publishes on all IPv4 interfaces (`0.0.0.0`) for LAN access. Authentication is not implemented: keep this preview on a private test network and do not enter personal data.
 
 Database migrations and a tested SQLite backup/restore workflow will be added when storage is implemented. This preview accepts no personal records.
 
