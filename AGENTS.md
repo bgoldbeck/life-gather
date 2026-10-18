@@ -59,13 +59,42 @@ Use the source-code graph workflow below when code discovery is required.
 - Follow `docs/SOURCE_GRAPH.md`: local code-only extraction, one worker, no subagents, no model calls, and automatic assistant-skill refresh disabled. Keep generated output ignored by Git. Graph refreshes do not rebuild or upload Docker images and do not require Docker approval.
 - Report the refresh result or failure in the task summary. Do not install hooks, enable agents, or change assistant configuration to enforce this workflow.
 
-## Docker rebuild and upload approval
-- GitHub Actions is disabled by user choice. Do not re-enable hosted workflows or introduce paid GitHub services. Run checks locally; rebuild/publish containers locally only after the approval described below. Keep the container workflow manual-only as a fallback, not an automatic push/PR trigger.
-- The user's internet connection is slow. Before rebuilding a Docker image or uploading/publishing one, ask whether to proceed and wait for an explicit yes/no for that operation. A request to commit, push code, open a PR, or merge is not permission to rebuild or publish an image.
-- With each request, report the current image size from available local metadata, distinguishing compressed/content size from unpacked disk usage. If only an older size is known, label it as last measured. Do not pull or rebuild an image just to measure it.
-- Explain whether a rebuild is needed for the changes. Documentation and design references alone do not require one. Actual upload size depends on missing layers; do not present total image size as an exact upload estimate.
-- If approved to rebuild, report the resulting size before uploading unless the user explicitly approved both steps together. If declined, continue authorized source work and report the image publication as deferred.
-- Do not trigger automated workflows that rebuild or publish images without this approval; account for those triggers before pushing or merging code.
+## Feature completion and release rule
+User instruction, 2026-10-18: once a new feature's scoped acceptance criteria and
+required tests/checks pass, complete its release rather than leaving local changes:
+
+1. Review the final diff and ensure only the intended feature is included.
+2. Commit the feature on its feature branch and push it to `bgoldbeck/life-gather`.
+3. Open a pull request into `main` with scope, validation, migrations, and limitations.
+4. Confirm the PR head is the tested commit and is mergeable. Merge it; never bypass
+   failing required checks, branch protection, or unresolved conflicts.
+5. Verify the PR is merged/closed, update local `main`, and delete the merged remote
+   and local feature branches. Never delete an unmerged branch or unrelated work.
+6. From clean `main` matching GitHub, build the `linux/amd64` Docker image, run the
+   isolated container smoke verification, then publish both the immutable
+   `ghcr.io/bgoldbeck/life-gather:sha-<full-commit>` tag and
+   `ghcr.io/bgoldbeck/life-gather:latest`. Verify the remote digest and revision.
+
+The user grants standing authorization for this feature-completion sequence,
+including source push, PR creation/merge, merged-branch deletion, local image build,
+and GHCR upload. Do not ask again for steps already covered by this rule unless the
+user later narrows/withdraws that authorization, the destination/scope changes, or
+an actual access/security requirement prevents proceeding. This supersedes the
+older requirement to ask separately before every feature build/upload. The agent
+may answer the release script's existing prompts under this standing authorization;
+retain the script's checks and refusal behavior for other invocations.
+
+GitHub Actions remains disabled by user choice. Do not enable hosted automation,
+paid services, or automatic push/PR container workflows. Build and verify locally.
+The connection may be slow: report available local image size before building,
+label compressed/content measurements separately from unpacked disk use, and report
+the new size before uploading. Do not pull merely to measure size or claim total
+image size equals transfer size; only missing layers are uploaded. A feature's code
+changes need a rebuild; documentation-only changes do not need one unless requested.
+A publication is not permission to restart/redeploy the running app or TrueNAS, alter
+package visibility, rotate credentials, or introduce live personal-data ingestion.
+If a step fails, preserve the completed work and report the exact remaining step;
+never claim that source merge implies image publication.
 
 ## Explicit anti-goals for initial milestones
 Do not introduce Neo4j, Graphiti, FalkorDB, Redis, Kubernetes, microservices, public SaaS infrastructure, public unauthenticated MCP, or a vector database unless a later task specifically requests and justifies them. Private multi-user accounts are required from the start. Email/bank ingestion is an approved later roadmap goal; implement it only in its scoped stage after isolation and reconciliation acceptance passes.

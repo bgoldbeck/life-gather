@@ -1,8 +1,9 @@
 # Private MCP recall adapter
 
-LifeGather now exposes ten read-only tools over the official Python MCP SDK
+LifeGather now exposes ten read-only tools and one explicit text-capture tool over the official Python MCP SDK
 v2 (`mcp==2.3.0` in the lockfile). This is the internal protocol foundation for
-chat. It does not provide a chat UI, model integration, or tools that change data.
+chat. The first [text chat increment](TEXT_CHAT.md) adds a separate chat transport
+and optional OpenAI recall. The model does not receive the capture tool.
 
 ## Authentication and transport
 
@@ -34,6 +35,7 @@ coerced numbers, and out-of-range values are rejected before execution.
 
 | Tool | Result |
 | --- | --- |
+| `memory_save_text` | Explicitly preserve original text with a retry-safe request ID; no extracted facts or inventory |
 | `memory_search` | Literal-word source and entity/alias search |
 | `memory_get_entity` | Entity and a page of sourced facts, with optional world-date/system-time filters |
 | `memory_source` | Original source metadata and a character page of text |
@@ -47,9 +49,11 @@ coerced numbers, and out-of-range values are rejected before execution.
 
 For example, the arguments to `memory_search` are
 `{"data":{"query":"trimmer","limit":10}}`. Calls return structured JSON alongside
-normal MCP content. All tools are annotated read-only, non-destructive,
-idempotent, and closed-world. No SQL, filesystem, export, backup, credential,
-provider, or write operations are exposed.
+normal MCP content. Read operations are annotated read-only; `memory_save_text`
+is explicitly annotated as a write. All are non-destructive, idempotent, and
+closed-world. No SQL, filesystem, export, backup, credential, provider, or graph
+mutation operations are exposed. Text capture requires an explicit user request;
+source content never authorizes a save.
 
 Fact responses retain source IDs, status, and temporal history. Original evidence
 and quotations can be inspected through `memory_source`; long quotations are not
@@ -86,7 +90,8 @@ under concurrent requests, session revocation, direct in-process denial, injecte
 arguments, source paging, response caps, and rate/concurrency limits. Synthetic
 fixtures require no Google, SMTP, or model service.
 
-Persistent chat, scoped write execution, correction UI, per-user provider permission,
-usage accounting, and external-client OAuth remain separate milestones. Source
+The first text chat increment adds persistent messages, explicit source capture,
+consent checks, and bounded OpenAI usage. Structured graph writes, correction UI,
+and external-client OAuth remain separate milestones. Source
 changes do not update an existing Docker container or published image; rebuilding
 and uploading still require the user's approval.

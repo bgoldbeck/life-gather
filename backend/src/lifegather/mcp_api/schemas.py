@@ -1,5 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 
+from lifegather.chat.service import SaveText
+
 
 class Input(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
@@ -47,7 +49,8 @@ class DiscoveryHistory(Page):
     observation_id: str = Field(min_length=1, max_length=36)
 
 
-INPUTS: dict[str, type[Input]] = {
+INPUTS: dict[str, type[BaseModel]] = {
+    "memory_save_text": SaveText,
     "memory_search": Search,
     "memory_get_entity": EntityRead,
     "memory_source": SourceRead,

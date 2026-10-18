@@ -2,6 +2,13 @@
 
 **Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
 **Date:** Updated 2026-10-17
+
+Source increment: [text memory chat](docs/TEXT_CHAT.md) now provides persistent
+private conversations, explicit text capture, keyword recall, source inspection,
+and optional bounded OpenAI answers. This is partial stage 4 progress; structured
+extraction, graph corrections/review, token streaming, and appearance preferences
+remain ahead. Live OpenAI access is not yet verified. Earlier milestone descriptions
+below describe the broader release gates, not additional completed functionality.
 **Project name:** LifeGather (working brand; domain and trademark clearance not yet completed)  
 **Deployment:** Private, self-hosted Linux server using Docker Compose  
 **Development mode:** AI-assisted, using Claude Code and/or Codex with reviewable, test-driven increments

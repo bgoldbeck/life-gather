@@ -1,8 +1,20 @@
-# Publish a container when you choose
+# Local container release
 
 Run `scripts/Publish-Container.ps1` from PowerShell on a machine with Git, uv/Python 3.13, Node/npm, and Docker's Linux engine. Publishing also needs GitHub CLI authenticated as a maintainer with `write:packages` permission. It uses local checks and GitHub Container Registry, not hosted GitHub Actions or a paid runner.
 
 The image uploads to GHCR, not into the Git repository. The script never commits/pushes source, opens/merges PRs, changes package visibility, or restarts your app/TrueNAS. Commit or safely stash outstanding changes first. To update `latest`, separately push/merge the intended source to GitHub `main`, then use a clean local `main` at that same commit. Do not include unrelated edits just to satisfy this preflight.
+
+## Feature-completion policy
+
+The user's 2026-10-18 standing instruction in `AGENTS.md` is: after a scoped feature
+passes its required checks, commit, push, open a PR, merge the tested head, delete
+the merged feature branch, then build/smoke-test clean GitHub-matching `main` and
+publish its commit tag plus `ghcr.io/bgoldbeck/life-gather:latest`. This sequence is
+authorized without repeated confirmation for each feature. Preserve branch checks,
+owner isolation, size reporting, and the script's release guards. The agent may
+answer the existing build/upload prompts using this standing authorization.
+Other interactive/manual invocations still retain their default decline behavior.
+Hosted GitHub Actions stays disabled; publication does not redeploy TrueNAS.
 
 ## Commands
 
