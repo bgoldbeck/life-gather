@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.28.0 — Correct one receipt unit without moving its siblings
+
+- Move one physical unit from a multi-unit source line to an explicitly chosen
+  existing item. Other unit targets, ordinals and source history are preserved.
+  Purchase details follow current unit associations without dividing line totals.
+- Reject duplicate unit targets, missing/foreign targets, stale sibling decisions
+  and whole-line undo through this single-item form. Reversal is an explicit
+  move back using the current decision; stable retries return their original result.
+- Display this item’s unit number in asset history and correction choices. Single-unit
+  creation/undo keeps its existing behavior. Atomic owner-scoped HTTP/MCP service;
+  no migration, dependency, provider call or general record consolidation.
+
 ## 0.27.0 — Compare ambiguous physical items before choosing
 
 - Add read-only candidate inspection to single-item proposals, receipt-line review

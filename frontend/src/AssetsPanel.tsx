@@ -16,6 +16,8 @@ type Asset = {
 }
 type Decision = {
   id: string
+  unit?: number
+  quantity?: number
   name: string
   manufacturer: string | null
   model: string | null
@@ -355,7 +357,10 @@ export function AssetsPanel({
             csrfToken={csrfToken}
           />
           <AssetPurchases
-            key={detail.asset.id}
+            key={`${detail.asset.id}:${detail.action_head ?? ''}:${detail.decisions
+              .filter((decision) => decision.superseded_at === null)
+              .map((decision) => decision.id)
+              .join(',')}`}
             assetId={detail.asset.id}
             csrfToken={csrfToken}
             onOpen={evidence}
@@ -428,6 +433,12 @@ export function AssetsPanel({
                 <span>Reason recorded then: </span>
                 <span>{decision.reason}</span>
               </p>
+              {(decision.quantity ?? 1) > 1 && (
+                <p>
+                  This item is unit {(decision.unit ?? 0) + 1} of{' '}
+                  {decision.quantity} in this source line.
+                </p>
+              )}
               <dl>
                 <dt>Manufacturer</dt>
                 <dd>{decision.manufacturer ?? 'Unknown'}</dd>

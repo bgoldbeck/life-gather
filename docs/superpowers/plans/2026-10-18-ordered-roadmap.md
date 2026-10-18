@@ -304,3 +304,13 @@ selection, merge or write. Candidate buttons page by five; late/closed reads are
 canceled/ignored. Explicit identity review remains required. No migration/API/tool.
 
 Comparison verified: 272 backend / 84 frontend tests; lint, format, types, frontend and source/wheel builds pass. Synthetic browser compared distinct serials S1/S2, showed sold ownership correction, opened its exact evidence and preserved the unselected identity choice. Graphify unavailable; graph/HTML refresh could not run. No schema/dependency/security boundary changes.
+
+
+Unit correction v0.28.0: bounded phase-8 increment moves one current multi-unit
+binding to an explicit existing target; keeps sibling unit order and mappings,
+preserves decision/source history and typed line-total meaning. Reject duplicate
+targets, stale/foreign/missing mappings. No whole-record consolidation, mixed new
+unit creation or single-unit undo of a whole receipt. Existing atomic service and
+HTTP/MCP contracts, no migration/dependency.
+
+Unit correction verified: 276 backend / 86 frontend tests; lint, format, types, frontend/package builds pass. Coverage includes typed whole-line money, exact sibling mapping, explicit reversal, private HTTP/MCP, stale sibling races, rollback after derived writes and snapshot recovery. Browser moved unit 2 and verified its receipt on the target; fixed stale purchase cards after corrections. Graphify unavailable; graph/HTML refresh could not run. No migration or dependency.

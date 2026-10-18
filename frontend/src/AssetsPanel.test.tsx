@@ -5,6 +5,90 @@ import { AssetsPanel } from './AssetsPanel'
 
 afterEach(() => vi.unstubAllGlobals())
 
+it('refreshes purchase associations when the current unit decision changes', async () => {
+  const user = userEvent.setup()
+  let corrected = false
+  let purchaseReads = 0
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      const asset = {
+        id: 'asset',
+        name: 'Synthetic unit',
+        source_id: 'source',
+        recorded_at: 100,
+      }
+      let value: unknown = { items: [], next_cursor: null }
+      if (url.startsWith('/api/assets?'))
+        value = { items: [asset], next_cursor: null }
+      else if (url.startsWith('/api/assets/asset/purchases')) {
+        purchaseReads++
+        value = {
+          items: corrected
+            ? []
+            : [
+                {
+                  key: 'line',
+                  receipt_id: 'receipt',
+                  index: 0,
+                  source_id: 'source',
+                  name: 'Original receipt',
+                  quantity: 2,
+                  unit: 1,
+                  source_current: true,
+                  claim: null,
+                },
+              ],
+          next_cursor: null,
+        }
+      } else if (url === '/api/assets/asset')
+        value = {
+          asset,
+          in_inventory: !corrected,
+          action_head: '',
+          facts: [],
+          decisions: [
+            {
+              id: 'original',
+              name: 'Synthetic unit',
+              quantity: 2,
+              unit: 0,
+              manufacturer: null,
+              model: null,
+              serial: null,
+              quote: 'Synthetic source',
+              source_id: 'source',
+              outcome: 'create',
+              reason: 'Purchase',
+              recorded_at: 100,
+              superseded_at: corrected ? 200 : null,
+            },
+          ],
+          next_fact_cursor: null,
+          next_decision_cursor: null,
+        }
+      return new Response(JSON.stringify(value))
+    }),
+  )
+  render(<AssetsPanel />)
+  await user.click(
+    await screen.findByRole('button', { name: 'Synthetic unit' }),
+  )
+  await screen.findByRole('heading', {
+    name: 'Original receipt · receipt line 1',
+  })
+  corrected = true // another unit correction changed the shared decision, not this action head
+  await user.click(screen.getByText('Make a correction'))
+  await user.click(screen.getByRole('button', { name: 'Reload item' }))
+  await screen.findByText(/No purchased receipt lines are currently linked/)
+  expect(purchaseReads).toBe(2)
+  expect(
+    screen.queryByRole('heading', {
+      name: 'Original receipt · receipt line 1',
+    }),
+  ).not.toBeInTheDocument()
+})
+
 it.each(['photo', 'document'])(
   'preserves deleted %s provenance when opening asset evidence',
   async (kind) => {

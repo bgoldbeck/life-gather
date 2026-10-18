@@ -216,7 +216,7 @@ class ActionService:
                 assert data.decision_id is not None
                 decision = self.reconcile._decision(db, actor, data.decision_id)
                 bound = db.scalar(
-                    select(Binding.id).where(
+                    select(Binding).where(
                         Binding.user_id == actor.id,
                         Binding.decision_id == decision.id,
                         Binding.asset_id == asset.id,
@@ -228,8 +228,27 @@ class ActionService:
                 discovery = DiscoveryInput.model_validate_json(observation.payload)
                 if not bound or decision.superseded_at is not None:
                     raise NoteConflict("This decision changed. Reload the item.")
+                targets = [data.target_asset_id] if data.target_asset_id else None
                 if discovery.quantity != 1:
-                    raise MemoryError("Use unit-aware review for a multi-item decision")
+                    if data.operation != "reassociate" or not data.target_asset_id:
+                        raise MemoryError(
+                            "Multi-unit corrections require an existing target item"
+                        )
+                    bindings = self.reconcile._bindings(db, actor, decision.id)
+                    if len(bindings) != discovery.quantity or [
+                        item.unit for item in bindings
+                    ] != list(range(discovery.quantity)):
+                        raise MemoryError("Incomplete unit mapping; reload the item")
+                    targets = [
+                        data.target_asset_id
+                        if item.unit == bound.unit
+                        else item.asset_id
+                        for item in bindings
+                    ]
+                    if len(set(targets)) != discovery.quantity:
+                        raise MemoryError(
+                            "Each unit must remain a distinct physical item"
+                        )
                 if data.target_asset_id:
                     target = self.memory._entity(db, actor, data.target_asset_id)
                     if target.kind != "asset":
@@ -240,13 +259,15 @@ class ActionService:
                     observation.id,
                     decision.id,
                     "undo" if data.operation == "undo" else "resolve",
-                    [data.target_asset_id] if data.target_asset_id else None,
+                    targets,
                 )
                 result = {
                     "operation": data.operation,
                     "source_id": source.id,
                     "decision": changed.model_dump(mode="json"),
                 }
+                if discovery.quantity != 1:
+                    result.update(unit=bound.unit + 1, quantity=discovery.quantity)
             row.result_json = json.dumps(result)
             db.add(row)
             db.flush()

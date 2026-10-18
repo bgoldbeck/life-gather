@@ -4,6 +4,80 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { AssetActions } from './AssetActions'
 
 afterEach(() => vi.unstubAllGlobals())
+it('moves only the selected receipt unit to an explicit existing item and excludes multi-unit undo', async () => {
+  const user = userEvent.setup()
+  const fetcher = vi.fn(
+    async (url: string) =>
+      new Response(
+        JSON.stringify(
+          url.startsWith('/api/assets?')
+            ? {
+                items: [
+                  { id: 'target', name: 'Replacement', recorded_at: 100 },
+                ],
+                next_cursor: null,
+              }
+            : { id: 'saved' },
+        ),
+      ),
+  )
+  vi.stubGlobal('fetch', fetcher)
+  render(
+    <AssetActions
+      assetId="item"
+      head=""
+      decisions={[
+        {
+          id: 'pair',
+          recorded_at: 100,
+          superseded_at: null,
+          quantity: 2,
+          unit: 1,
+        },
+      ]}
+      csrfToken="csrf"
+      onChanged={vi.fn()}
+    />,
+  )
+  await user.selectOptions(screen.getByLabelText('Change to make'), 'undo')
+  expect(
+    screen.queryByRole('option', { name: /this item is unit/ }),
+  ).not.toBeInTheDocument()
+  await user.selectOptions(
+    screen.getByLabelText('Change to make'),
+    'reassociate',
+  )
+  await user.selectOptions(screen.getByLabelText('Current decision'), 'pair')
+  expect(
+    screen.getByRole('option', { name: /this item is unit 2 of 2/ }),
+  ).toBeInTheDocument()
+  expect(
+    screen.getByRole('option', { name: /A different physical item/ }),
+  ).toBeDisabled()
+  await user.type(
+    screen.getByLabelText('Why are you changing it?'),
+    'This unit belongs to my replacement.',
+  )
+  expect(screen.getByRole('button', { name: 'Save correction' })).toBeDisabled()
+  await user.click(screen.getByRole('button', { name: 'Find target items' }))
+  await user.selectOptions(
+    screen.getByLabelText('Evidence belongs to'),
+    'target',
+  )
+  await user.click(screen.getByRole('button', { name: 'Save correction' }))
+  const write = fetcher.mock.calls.find(
+    (call) => call[0] === '/api/assets/actions',
+  )!
+  expect(
+    JSON.parse((write as unknown as [string, RequestInit])[1].body as string),
+  ).toMatchObject({
+    operation: 'reassociate',
+    asset_id: 'item',
+    decision_id: 'pair',
+    target_asset_id: 'target',
+  })
+})
+
 it('records an explicit sourced sale with the expected version and CSRF', async () => {
   const user = userEvent.setup()
   const changed = vi.fn().mockResolvedValue(undefined)
