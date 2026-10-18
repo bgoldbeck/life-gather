@@ -28,13 +28,13 @@ describe('LifeGather shell', () => {
   it('opens an unfinished view without inviting personal data entry', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole('button', { name: 'Assets' }))
+    await user.click(screen.getByRole('button', { name: 'Graph' }))
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Assets' }),
+      screen.getByRole('heading', { level: 1, name: 'Graph' }),
     ).toBeVisible()
-    expect(screen.getByText('Assets is not available yet.')).toBeVisible()
+    expect(screen.getByText('Graph is not available yet.')).toBeVisible()
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Assets' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'Graph' })).toHaveAttribute(
       'aria-current',
       'page',
     )

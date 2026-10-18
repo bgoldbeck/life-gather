@@ -104,7 +104,7 @@ npm run format:check
 npm run build
 ```
 
-The UI uses Tailwind CSS and shadcn/ui primitives. Chat supports explicit text memory capture, keyword search, and optional OpenAI recall; Settings manages private credentials and consent. Assets, Memories, and Graph remain preview placeholders.
+The UI uses Tailwind CSS and shadcn/ui primitives. Chat supports explicit text memory capture, keyword search, and optional OpenAI recall; Settings manages private credentials and consent. The [Assets browser](docs/ASSETS.md) shows private inventory, sourced details and history. Memories and Graph remain preview placeholders.
 
 The first [text memory chat increment](docs/TEXT_CHAT.md) provides private persistent conversations, explicit original-text saving, keyword recall, evidence inspection, saved-note correction/history, and optional OpenAI answers using the user's credential and consent. Single-item [asset proposals](docs/ASSET_PROPOSALS.md) add human-reviewed extraction. Broader extraction, graph-fact correction/review, streaming, and per-user appearance settings remain next increments. Authentication and the deterministic memory foundation are already implemented.
 

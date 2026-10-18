@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 — 2026-10-18
+
+- Browse/search private inventory and include historical asset records.
+- Inspect sourced item details, inferred ownership, decision/fact history and
+  exact original evidence with bounded paging. No schema or data migration.
+
 ## 0.4.0 — 2026-10-18
 
 - Propose one physical item from a selected saved note using bounded OpenAI
