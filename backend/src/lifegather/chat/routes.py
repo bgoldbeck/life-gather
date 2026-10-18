@@ -175,6 +175,7 @@ def chat_router() -> APIRouter:
                     request.app.state.private_settings,
                     request.app.state.chat_provider,
                     active,
+                    request.app.state.claude_provider,
                 )
 
         task = asyncio.create_task(guarded())

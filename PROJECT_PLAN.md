@@ -9,7 +9,9 @@ saved-note corrections with preserved history,
 and optional bounded OpenAI answers. [Saved-note asset proposals](docs/ASSET_PROPOSALS.md)
 add a single-item extraction/review increment from stage 5. This is partial stage 4/5
 progress; broader extraction, graph corrections/review, token streaming, and appearance preferences
-remain ahead. Live OpenAI access is not yet verified. Earlier milestone descriptions
+remain ahead. Asset browsing/corrections, private photo uploads, a persistent review queue and
+[OpenAI/Claude adapters](docs/AI_PROVIDERS.md) are now implemented in source.
+Live provider access remains unverified; graph UI and broader ingestion remain ahead. Earlier milestone descriptions
 below describe the broader release gates, not additional completed functionality.
 **Project name:** LifeGather (working brand; domain and trademark clearance not yet completed)  
 **Deployment:** Private, self-hosted Linux server using Docker Compose  

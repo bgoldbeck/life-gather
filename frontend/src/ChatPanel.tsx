@@ -12,7 +12,13 @@ type Turn = {
   mode: string
   text: string
   state: string
-  result: { text?: string; sources?: Source[]; proposal_id?: string }
+  result: {
+    text?: string
+    sources?: Source[]
+    proposal_id?: string
+    provider?: string
+    model?: string
+  }
 }
 type Conversation = { id: string; title: string }
 type Page<T> = { items: T[]; next_cursor: string | null }
@@ -103,7 +109,8 @@ export function ChatPanel({
         setConsent(settings.allow_external_ai === true)
         setCredentials(
           (entries.items ?? []).filter(
-            (c: Credential) => c.kind === 'ai' && c.provider === 'openai',
+            (c: Credential) =>
+              c.kind === 'ai' && ['openai', 'anthropic'].includes(c.provider),
           ),
         )
         setUsage(meter.requests)
@@ -329,7 +336,7 @@ export function ChatPanel({
                 <h2>A place for the details</h2>
                 <p>
                   Save a note in your own words, search using a few keywords, or
-                  ask OpenAI about your saved evidence.
+                  ask OpenAI or Claude about your saved evidence.
                 </p>
                 <p>
                   Saving and keyword search work without AI. Notes are original
@@ -348,10 +355,20 @@ export function ChatPanel({
                       ? 'Keyword search'
                       : turn.mode === 'extract'
                         ? 'Suggest asset'
-                        : 'Ask OpenAI'}
+                        : turn.mode === 'extract_photo'
+                          ? 'Read photo'
+                          : 'Ask AI'}
                 </p>
                 <p className="chat-text">{turn.text}</p>
                 <div className="chat-response">
+                  {turn.result.provider && (
+                    <p className="chat-label">
+                      {turn.result.provider === 'anthropic'
+                        ? 'Claude'
+                        : 'OpenAI'}{' '}
+                      · {turn.result.model}
+                    </p>
+                  )}
                   <p className="chat-text">
                     {turn.result.text ||
                       (turn.state === 'pending'
@@ -446,7 +463,7 @@ export function ChatPanel({
               >
                 <option value="save">Save memory</option>
                 <option value="search">Keyword search</option>
-                <option value="ask">Ask OpenAI</option>
+                <option value="ask">Ask AI</option>
                 <option value="extract" disabled={!extractSource}>
                   Suggest asset from selected note
                 </option>
@@ -456,8 +473,8 @@ export function ChatPanel({
               <div className="chat-provider">
                 <p>
                   {mode === 'extract'
-                    ? 'OpenAI receives only the selected saved note to propose one item. Nothing enters inventory until you review and confirm.'
-                    : 'OpenAI receives your question, up to four recent user messages, and matching evidence.'}{' '}
+                    ? 'Your selected provider receives only the selected saved note to propose one item. Nothing enters inventory until you review and confirm.'
+                    : 'Your selected provider receives your question, up to four recent user messages, and matching evidence.'}{' '}
                   {usage}/20 AI requests used today (UTC). Provider charges may
                   apply.
                 </p>
@@ -466,20 +483,25 @@ export function ChatPanel({
                 )}
                 {!credentials.length && (
                   <p>
-                    Add an AI credential with provider “openai” in Settings.
+                    Add an AI connection with provider “openai” or “anthropic”
+                    (Claude) in Settings.
                   </p>
                 )}
                 <label>
-                  OpenAI credential
+                  AI connection
                   <select
                     value={credential}
                     disabled={busy}
-                    onChange={(e) => setCredential(e.target.value)}
+                    onChange={(e) => {
+                      setCredential(e.target.value)
+                      setModel('')
+                    }}
                   >
                     <option value="">Choose a credential</option>
                     {credentials.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.label}
+                        {c.label} ·{' '}
+                        {c.provider === 'anthropic' ? 'Claude' : 'OpenAI'}
                       </option>
                     ))}
                   </select>
@@ -541,7 +563,7 @@ export function ChatPanel({
                       ? 'Search memories'
                       : mode === 'extract'
                         ? 'Suggest asset'
-                        : 'Ask OpenAI'}
+                        : 'Ask AI'}
               </Button>
               {busy && (
                 <Button

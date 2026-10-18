@@ -95,7 +95,8 @@ export function PhotosPanel({
         setCursor(page.next_cursor)
         setCredentials(
           (entries.items ?? []).filter(
-            (c: Credential) => c.kind === 'ai' && c.provider === 'openai',
+            (c: Credential) =>
+              c.kind === 'ai' && ['openai', 'anthropic'].includes(c.provider),
           ),
         )
         setConsent(settings.allow_external_ai === true)
@@ -340,12 +341,16 @@ export function PhotosPanel({
               <select
                 value={credential}
                 disabled={busy || retry}
-                onChange={(e) => setCredential(e.target.value)}
+                onChange={(e) => {
+                  setCredential(e.target.value)
+                  setModel('')
+                }}
               >
                 <option value="">Choose connection</option>
                 {credentials.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.label}
+                    {c.label} ·{' '}
+                    {c.provider === 'anthropic' ? 'Claude' : 'OpenAI'}
                   </option>
                 ))}
               </select>

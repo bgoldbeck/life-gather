@@ -32,6 +32,7 @@ async def answer(
     vault: PrivateSettings,
     provider: Provider,
     active: Callable[[], None],
+    claude_provider: Provider | None = None,
 ) -> dict[str, Any]:
     if body.mode == "save":
         original = save_text(
@@ -83,6 +84,11 @@ async def answer(
             raise MemoryError(
                 "Open the corrected transcription in Chat to propose an asset"
             )
+    selected_provider = chat.provider_name(actor, vault, body.credential_id)
+    if selected_provider == "anthropic":
+        if claude_provider is None:
+            raise MemoryError("Claude integration is unavailable")
+        provider = claude_provider
     secret, day = chat.reserve(actor, vault, body.credential_id)
     history = chat.recent(actor, conversation_id)
     context = [{"mode": t["mode"], "text": t["text"][:1000]} for t in history[-4:]]
@@ -95,6 +101,8 @@ async def answer(
             raise MemoryError("External AI permission was disabled")
         # Re-read the selected credential before each outbound request.
         nonlocal secret
+        if chat.provider_name(actor, vault, body.credential_id) != selected_provider:
+            raise MemoryError("Selected AI connection changed")
         secret = vault.read_secret(actor, body.credential_id)
         result = await provider.complete(
             secret, body.model, instruction, payload, schema
@@ -138,6 +146,8 @@ async def answer(
                 "AI transcription is unverified. Check it against the "
                 "original photo before confirming any item."
             ),
+            "provider": selected_provider,
+            "model": body.model,
             "proposal_id": proposal["id"],
             "sources": [{"id": proposal["source_id"], "text": proposal["source_text"]}],
         }
@@ -169,6 +179,8 @@ async def answer(
         proposal = proposals.create(actor, note.id, extracted)
         return {
             "text": "Review this proposal before adding anything to inventory.",
+            "provider": selected_provider,
+            "model": body.model,
             "proposal_id": proposal["id"],
             "sources": [{"id": note.id, "text": note.text}],
         }
@@ -186,6 +198,8 @@ async def answer(
     evidence = chat.evidence(actor, plan.query)
     if not evidence:
         return {
+            "provider": selected_provider,
+            "model": body.model,
             "text": "I couldn't find supporting evidence. "
             "Try keyword search or save the missing detail first.",
             "sources": [],
@@ -215,6 +229,8 @@ async def answer(
     if not result.source_ids or not set(result.source_ids) <= allowed:
         raise MemoryError("The answer did not provide valid evidence citations")
     return {
+        "provider": selected_provider,
+        "model": body.model,
         "text": result.text,
         "sources": [s for s in evidence if s["id"] in result.source_ids],
         "query": plan.query,
