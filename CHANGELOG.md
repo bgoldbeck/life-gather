@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.22.0 — Explicit receipt currencies
+
+- Support printed USD, EUR, GBP, CAD, AUD and JPY line totals in suggestions, review and immutable history. Store exact integer minor units; use whole yen for JPY and two decimals for the others. Never convert currencies or infer them from symbols.
+- Migration `0016_receipt_currencies` preserves existing USD history and request replay. Downgrade refuses to discard non-USD claims. Existing API callers default to USD for compatibility.
+
 ## 0.21.0 — Source-backed purchase-detail suggestions
 
 - Find uniquely labeled USD line totals and ISO purchase dates in saved receipt sources without an AI request. Copy exact passages into an editable draft only on request; saving still uses owner-scoped validation and immutable revision history.

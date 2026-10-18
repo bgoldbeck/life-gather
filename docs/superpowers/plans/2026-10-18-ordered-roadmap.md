@@ -197,3 +197,26 @@ confirmed additive read output, no automatic writes, stable revision checks and
 no source/model permission changes. Graphify refreshed 1792 nodes / 6813 edges and
 HTML; its pre-existing partial AssetsPanel extraction warning is covered by the
 passing TypeScript build. No migration, live provider call or Docker change.
+
+## v0.22.0 — explicit receipt currencies
+
+Bounded plan: extend existing typed claims and source suggestions to printed
+USD/EUR/GBP/CAD/AUD/JPY; exact integer minor units, no conversion or rounding.
+Use whole yen for JPY, two decimals otherwise. Add a currency selector and retain
+exact source validation. Migration 0016 replaces only the currency constraint,
+preserving every old revision/index and rejecting lossy downgrade. Preserve old
+USD request fingerprints so upgrading cannot break a lost-response replay.
+
+Preflight: schema, domain reader/writer, MCP typed schemas and receipt UI share
+DetailSave; default USD is backward compatible, explicit non-USD is source-checked.
+Observed failing tests: missing currency suggestions, rejected currency input and
+missing frontend currency selector before implementation. Existing history/privacy,
+source correction and retry tests remain required. Root-only self-review.
+
+Verified v0.22.0: 250 backend / 74 frontend tests pass; Ruff lint/format,
+mypy, TypeScript, Oxlint, Prettier and production/wheel builds pass. Tests cover
+exact values, source/currency mismatch, invalid precision/exponents/signs,
+ambiguous currencies, migration preservation, legacy replay and lossless-downgrade
+refusal. Self-review confirmed the unchanged owner/source/revision gates and
+no floating point. Graphify refreshed 1806 nodes / 6865 edges and HTML. Migration
+0016 only; no provider call, image build/upload or running-container changes.

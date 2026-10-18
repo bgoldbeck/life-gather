@@ -371,6 +371,7 @@ def test_purchase_read_suggests_exact_source_claims_without_writes(
     page = service.get(actor, read)
     assert page["suggestions"] == {
         "line_total": "49.90",
+        "currency": "USD",
         "money_quote": MONEY,
         "purchase_date": "2026-10-18",
         "date_quote": WHEN,
@@ -406,4 +407,165 @@ def test_ambiguous_or_invalid_dates_are_not_suggested(
     )
     assert page["suggestions"]["purchase_date"] is None
     assert page["suggestions"]["date_quote"] is None
+    auth.engine.dispose()
+
+
+@pytest.mark.parametrize(
+    "currency,amount,minor",
+    [
+        ("EUR", "49.90", 4990),
+        ("GBP", "0.10", 10),
+        ("CAD", "49.90", 4990),
+        ("AUD", "0.00", 0),
+        ("JPY", "4990", 4990),
+    ],
+)
+def test_explicit_currency_claims_round_trip_without_conversion(
+    tmp_path: Path,
+    currency: str,
+    amount: str,
+    minor: int,
+) -> None:
+    auth, actor, _, _, _ = setup(tmp_path)
+    text = SOURCE.replace("USD 49.90", f"{currency} {amount}")
+    receipt = accepted(auth.engine, actor, text)
+    service = PurchaseDetails(auth.engine)
+    page = service.get(actor, DetailRead(receipt_id=receipt["id"], index=0))
+    assert page["suggestions"]["currency"] == currency
+    result = service.save(
+        actor,
+        body(
+            receipt,
+            currency=currency,
+            line_total=amount,
+            money_quote=MONEY.replace("USD 49.90", f"{currency} {amount}"),
+        ),
+    )
+    assert result["currency"] == currency
+    assert result["line_total"] == amount and result["total_minor"] == minor
+    assert (
+        service.save(
+            actor,
+            body(
+                receipt,
+                currency=currency,
+                line_total=amount,
+                money_quote=MONEY.replace("USD 49.90", f"{currency} {amount}"),
+            ),
+        )
+        == result
+    )
+    auth.engine.dispose()
+
+
+def test_currency_change_requires_matching_source_quote(tmp_path: Path) -> None:
+    auth, actor, _, _, _ = setup(tmp_path)
+    receipt = accepted(auth.engine, actor)
+    with pytest.raises(MemoryError):
+        PurchaseDetails(auth.engine).save(actor, body(receipt, currency="EUR"))
+    auth.engine.dispose()
+
+
+def test_currency_migration_preserves_usd_history_and_legacy_replay(
+    tmp_path: Path,
+) -> None:
+    from alembic import command
+    from alembic.config import Config
+
+    import lifegather
+    from lifegather.memory.service import fingerprint
+
+    auth = AuthStore(tmp_path / "legacy-currency.sqlite3")
+    config = Config()
+    config.set_main_option(
+        "script_location", str(Path(lifegather.__file__).parent / "migrations")
+    )
+    with auth.engine.begin() as connection:
+        config.attributes["connection"] = connection
+        command.upgrade(config, "0015_receipt_details")
+    actor = auth.login("legacy", "legacy@example.test", "Synthetic", now=1).user
+    receipt = accepted(auth.engine, actor)
+    service = PurchaseDetails(auth.engine)
+    data = body(receipt)
+    saved = service.save(actor, data)
+    old_payload = data.model_dump(exclude={"currency"})
+    with Session(auth.engine) as db:
+        stored = db.get(ReceiptDetail, saved["id"])
+        assert stored is not None and stored.fingerprint == fingerprint(old_payload)
+    auth.migrate()
+    assert service.save(actor, data) == saved
+    page = service.get(actor, DetailRead(receipt_id=receipt["id"], index=0))
+    assert page["items"] == [saved]
+    auth.engine.dispose()
+
+
+@pytest.mark.parametrize(
+    "currency,amount",
+    [
+        ("JPY", "1.00"),
+        ("EUR", "1"),
+        ("USD", "1.999"),
+        ("JPY", "100000000000"),
+        ("CHF", "1.00"),
+    ],
+)
+def test_rejects_unsupported_precision_or_currency(currency: str, amount: str) -> None:
+    with pytest.raises(ValidationError):
+        DetailSave.model_validate(
+            dict(
+                receipt_id="r",
+                index=0,
+                request_id="x",
+                reason="test",
+                currency=currency,
+                line_total=amount,
+            )
+        )
+
+
+@pytest.mark.parametrize(
+    "passage",
+    [
+        "Line total: EUR 1e2",
+        "Line total: USD -1.00",
+        "Line total: JPY 1.00",
+        "Line total: CHF 1.00",
+        "Line total: $ 1.00",
+        "Line total: EUR 1.000",
+        "Line total: EUR 1.00-",
+        "Line total: USD 1.00; Line total: EUR 1.00",
+    ],
+)
+def test_ambiguous_amounts_are_never_suggested(passage: str) -> None:
+    suggested = PurchaseDetails.suggestions(
+        "Synthetic item " + passage, "Synthetic item"
+    )
+    assert suggested["line_total"] is None and suggested["currency"] is None
+
+
+def test_downgrade_refuses_to_discard_non_usd_claims(tmp_path: Path) -> None:
+    from alembic import command
+    from alembic.config import Config
+
+    import lifegather
+
+    auth, actor, _, _, _ = setup(tmp_path)
+    receipt = accepted(auth.engine, actor, SOURCE.replace("USD", "EUR"))
+    PurchaseDetails(auth.engine).save(
+        actor, body(receipt, currency="EUR", money_quote=MONEY.replace("USD", "EUR"))
+    )
+    config = Config()
+    config.set_main_option(
+        "script_location", str(Path(lifegather.__file__).parent / "migrations")
+    )
+    with pytest.raises(RuntimeError, match="data loss"):
+        with auth.engine.begin() as connection:
+            config.attributes["connection"] = connection
+            command.downgrade(config, "0015_receipt_details")
+    assert (
+        PurchaseDetails(auth.engine).get(
+            actor, DetailRead(receipt_id=receipt["id"], index=0)
+        )["current"]["currency"]
+        == "EUR"
+    )
     auth.engine.dispose()
