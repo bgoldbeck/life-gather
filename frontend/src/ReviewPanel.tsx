@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { ReceiptProposalCard } from './ReceiptProposalCard'
 import { AssetProposalCard } from './AssetProposalCard'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import { ChatRequestError } from './chatRequest'
 
 type Item = {
   key: string
-  kind: 'proposal' | 'identity'
+  kind: 'proposal' | 'identity' | 'receipt'
   id: string
   name: string
   reason: string
@@ -200,6 +201,7 @@ export function ReviewPanel({ csrfToken }: { csrfToken: string }) {
         >
           <option value="all">All pending</option>
           <option value="proposals">Item proposals</option>
+          <option value="receipts">Multi-item receipts</option>
           <option value="identities">Identity matches</option>
         </select>
       </label>
@@ -221,7 +223,11 @@ export function ReviewPanel({ csrfToken }: { csrfToken: string }) {
           <li key={item.key}>
             <div>
               <strong>
-                {item.kind === 'proposal' ? 'Item proposal' : 'Identity match'}
+                {item.kind === 'receipt'
+                  ? 'Multi-item receipt'
+                  : item.kind === 'proposal'
+                    ? 'Item proposal'
+                    : 'Identity match'}
               </strong>
               <p>{item.reason}</p>
             </div>
@@ -254,6 +260,15 @@ export function ReviewPanel({ csrfToken }: { csrfToken: string }) {
           >
             Not sure — leave pending
           </Button>
+          {selected.kind === 'receipt' && (
+            <ReceiptProposalCard
+              key={selected.id}
+              id={selected.id}
+              csrfToken={csrfToken}
+              onOpen={openSource}
+              onReviewed={reviewed}
+            />
+          )}
           {selected.kind === 'proposal' && (
             <AssetProposalCard
               key={selected.id}

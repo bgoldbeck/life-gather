@@ -177,6 +177,9 @@ class ProposalService:
         )
         if existing:
             return self._view(db, actor, existing)
+        from lifegather.reconciliation.receipts import active_receipt
+
+        active_receipt(db, actor, source_id)
         if data.candidate:
             self._validate(db, actor, source_id, data.candidate)
         now = self.memory.clock()
@@ -343,6 +346,9 @@ class ProposalService:
             if data.action == "reject":
                 row.state = "rejected"
             else:
+                from lifegather.reconciliation.receipts import active_receipt
+
+                active_receipt(db, actor, row.source_id)
                 assert data.fields is not None
                 discovery = self._validate(db, actor, row.source_id, data.fields)
                 if discovery.kind == "mention":

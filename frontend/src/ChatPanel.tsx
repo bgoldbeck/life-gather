@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import './chat.css'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
+import { ReceiptProposalCard } from './ReceiptProposalCard'
 import { AssetProposalCard } from './AssetProposalCard'
 import { ChatRequestError as RequestError } from './chatRequest'
 import { readChatStream } from './chatStream'
@@ -17,6 +18,7 @@ type Turn = {
   result: {
     text?: string
     sources?: Source[]
+    receipt_proposal_id?: string
     proposal_id?: string
     provider?: string
     model?: string
@@ -31,9 +33,11 @@ type Credential = { id: string; kind: string; provider: string; label: string }
 export function ChatPanel({
   csrfToken,
   refreshSession,
+  initialReceiptSourceId = '',
   onOpenGraph,
 }: {
   csrfToken: string
+  initialReceiptSourceId?: string
   refreshSession?: () => Promise<void>
   onOpenGraph?: (id: string) => void
 }) {
@@ -45,9 +49,12 @@ export function ChatPanel({
   const [turns, setTurns] = useState<Turn[]>([])
   const [turnCursor, setTurnCursor] = useState<string | null>(null)
   const [text, setText] = useState('')
-  const [mode, setMode] = useState('save')
+  const [mode, setMode] = useState(
+    initialReceiptSourceId ? 'extract_receipt' : 'save',
+  )
   const [extractSource, setExtractSource] = useState('')
   const [viewProposal, setViewProposal] = useState('')
+  const [viewReceipt, setViewReceipt] = useState('')
   const [credentials, setCredentials] = useState<Credential[]>([])
   const [credential, setCredential] = useState('')
   const [model, setModel] = useState('')
@@ -95,6 +102,29 @@ export function ChatPanel({
     },
     [csrfToken, refreshSession],
   )
+
+  useEffect(() => {
+    if (!initialReceiptSourceId) return
+    const controller = new AbortController()
+    void request('/sources/' + initialReceiptSourceId, {
+      signal: controller.signal,
+    })
+      .then((row) => {
+        if (controller.signal.aborted) return
+        if (!row.note?.is_current)
+          throw new Error('Choose the current saved note first.')
+        setExtractSource(row.id)
+        setText(row.text)
+        setMode('extract_receipt')
+      })
+      .catch(() => {
+        if (!controller.signal.aborted)
+          setError(
+            'Unable to select this receipt source. Open the current note in Memories and try again.',
+          )
+      })
+    return () => controller.abort()
+  }, [initialReceiptSourceId, request])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -264,7 +294,9 @@ export function ChatPanel({
         text,
         credential_id: credential,
         model,
-        ...(mode === 'extract' ? { source_id: extractSource } : {}),
+        ...(mode === 'extract' || mode === 'extract_receipt'
+          ? { source_id: extractSource }
+          : {}),
       }
       pending.current = { conversation: id, body }
       setRetryNeeded(true)
@@ -296,6 +328,8 @@ export function ChatPanel({
         })
       }
       setTurns((current) => [...current.filter((t) => t.id !== turn.id), turn])
+      if (turn.result.receipt_proposal_id)
+        setViewReceipt(turn.result.receipt_proposal_id)
       if (turn.result.proposal_id) setViewProposal(turn.result.proposal_id)
       setConversations((current) =>
         current.map((c) =>
@@ -437,8 +471,11 @@ export function ChatPanel({
                     ? 'Save memory'
                     : turn.mode === 'search'
                       ? 'Keyword search'
-                      : turn.mode === 'extract'
-                        ? 'Suggest asset'
+                      : turn.mode === 'extract' ||
+                          turn.mode === 'extract_receipt'
+                        ? turn.mode === 'extract_receipt'
+                          ? 'Suggest receipt items'
+                          : 'Suggest asset'
                         : turn.mode === 'extract_photo'
                           ? 'Read photo'
                           : 'Ask AI'}
@@ -487,6 +524,16 @@ export function ChatPanel({
                       evidence may exist.
                     </p>
                   )}
+                  {turn.result.receipt_proposal_id && (
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        setViewReceipt(turn.result.receipt_proposal_id!)
+                      }
+                    >
+                      View receipt review
+                    </Button>
+                  )}
                   {turn.result.proposal_id && (
                     <Button
                       variant="outline"
@@ -526,7 +573,7 @@ export function ChatPanel({
             )}
             {busy && (
               <p role="status">
-                {mode === 'extract'
+                {mode === 'extract' || mode === 'extract_receipt'
                   ? 'Preparing a proposal for your review…'
                   : mode === 'ask'
                     ? 'Searching your evidence and preparing an answer…'
@@ -543,6 +590,18 @@ export function ChatPanel({
               onOpen={openSource}
               onClose={() => setSource(null)}
               request={request}
+              onViewReceipt={setViewReceipt}
+              onSuggestReceipt={
+                busy || retryNeeded
+                  ? undefined
+                  : () => {
+                      setExtractSource(source.id)
+                      setText(source.text)
+                      setMode('extract_receipt')
+                      setSource(null)
+                      setViewReceipt('')
+                    }
+              }
               onViewProposal={(id) => setViewProposal(id)}
               onSuggest={
                 busy || retryNeeded
@@ -555,6 +614,14 @@ export function ChatPanel({
                       setViewProposal('')
                     }
               }
+            />
+          )}
+          {viewReceipt && (
+            <ReceiptProposalCard
+              key={viewReceipt}
+              id={viewReceipt}
+              csrfToken={csrfToken}
+              onOpen={openSource}
             />
           )}
           {viewProposal && (
@@ -581,16 +648,21 @@ export function ChatPanel({
                 <option value="save">Save memory</option>
                 <option value="search">Keyword search</option>
                 <option value="ask">Ask AI</option>
+                <option value="extract_receipt" disabled={!extractSource}>
+                  Review multiple items from selected note
+                </option>
                 <option value="extract" disabled={!extractSource}>
                   Suggest asset from selected note
                 </option>
               </select>
             </label>
-            {(mode === 'ask' || mode === 'extract') && (
+            {(mode === 'ask' ||
+              mode === 'extract' ||
+              mode === 'extract_receipt') && (
               <div className="chat-provider">
                 <p>
-                  {mode === 'extract'
-                    ? 'Your selected provider receives only the selected saved note to propose one item. Nothing enters inventory until you review and confirm.'
+                  {mode === 'extract' || mode === 'extract_receipt'
+                    ? 'Your selected provider receives only the selected saved note. Nothing enters inventory until you review and confirm the proposed items.'
                     : 'Your selected provider receives your question, up to four recent user messages, matching evidence, relevant records and requested graph connections.'}{' '}
                   {usage}/20 AI requests used today (UTC). Provider charges may
                   apply.
@@ -673,7 +745,7 @@ export function ChatPanel({
                 ? 'Memory to save'
                 : mode === 'search'
                   ? 'Search keywords'
-                  : mode === 'extract'
+                  : mode === 'extract' || mode === 'extract_receipt'
                     ? 'Selected saved note'
                     : 'Your question'}
             </label>
@@ -682,14 +754,14 @@ export function ChatPanel({
               value={text}
               maxLength={mode === 'search' ? 200 : 4000}
               disabled={busy || retryNeeded}
-              readOnly={mode === 'extract'}
+              readOnly={mode === 'extract' || mode === 'extract_receipt'}
               rows={3}
               onChange={(e) => setText(e.target.value)}
             />
             <p>
               {mode === 'search'
                 ? 'Use 1–12 keywords. Every word must match.'
-                : mode === 'extract'
+                : mode === 'extract' || mode === 'extract_receipt'
                   ? 'Review the proposal before creating an asset. Correct the saved note first if its text is wrong.'
                   : 'Only Save memory adds your original text to searchable memory.'}
             </p>
@@ -702,7 +774,9 @@ export function ChatPanel({
                   loading ||
                   !!turnCursor ||
                   !text.trim() ||
-                  ((mode === 'ask' || mode === 'extract') &&
+                  ((mode === 'ask' ||
+                    mode === 'extract' ||
+                    mode === 'extract_receipt') &&
                     (!consent || !credential || !model || usage >= 20))
                 }
               >
@@ -712,8 +786,10 @@ export function ChatPanel({
                     ? 'Save memory'
                     : mode === 'search'
                       ? 'Search memories'
-                      : mode === 'extract'
-                        ? 'Suggest asset'
+                      : mode === 'extract' || mode === 'extract_receipt'
+                        ? mode === 'extract_receipt'
+                          ? 'Suggest receipt items'
+                          : 'Suggest asset'
                         : 'Ask AI'}
               </Button>
               {busy && (

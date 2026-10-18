@@ -14,8 +14,8 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
 
 - Protect unrelated edits and unfinished worktrees. No live personal-data ingestion,
   paid model calls or externally configured services without configured permission.
-- Source delivery is authorized. Respect the user's most recent local-only Docker
-  choice; builds/uploads and running-container changes remain separate operations.
+- Source delivery is authorized. Follow the standing source and GHCR release authorization in AGENTS.md; publishing
+  never authorizes changing a running installation.
 - Each feature receives meaningful failing tests, implementation, relevant full
   checks, self-review, version/changelog update, graph refresh and a merged PR.
 - Record actual acceptance and remaining limitations; never equate a mocked adapter
@@ -144,3 +144,17 @@ and builds pass. Coverage includes owner isolation, exact original downloads,
 CSRF, idempotent uploads/review, corrected-source links, deletion retention,
 parse timeout, decompression caps, truncation and private MCP reads. Graphify
 refreshed 1650 nodes / 5715 edges. No external calls or Docker changes.
+
+
+Receipt increment v0.19.0 implements bounded multi-item extraction and sourced
+quantities, explicit per-unit new/link decisions, atomic batch review, private queue
+integration, source correction/deletion guards and safe request replay. See
+`../../MULTI_ITEM_RECEIPTS.md`. This is partial feature 6b: typed monetary values,
+purchase dates and accounting remain deferred. No automatic ingestion or live AI
+verification. Migration 0014 adds private receipt drafts; no new dependency.
+
+Receipt verification: 201 backend tests / 68 frontend tests; Ruff, mypy, TypeScript,
+frontend lint/format and production build passed. Synthetic browser QA followed
+Memories → Chat → persisted Review and confirmed three physical units together.
+Graphify executable is unavailable in this environment; graph/HTML refresh could
+not run. Source and tests were inspected directly. No real provider call.

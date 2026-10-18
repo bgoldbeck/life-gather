@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.19.0 — Review multiple receipt items and quantities
+
+- Suggest up to eight source-quoted receipt lines from a saved note, reviewed PDF
+  text or photo transcription; explicitly select ownership, quantities and new or
+  existing physical units before one atomic confirmation. Cap each receipt at 20 units.
+- Preserve drafts in Review, exact source provenance and reviewed field values;
+  block stale sources, deleted originals, duplicate unit choices and changed matches.
+  Retry a lost confirmation safely without duplicate records or partial batches.
+- Share the existing consent-gated OpenAI/Claude/Gemini runtime, owner-scoped HTTP
+  and MCP services. Migration `0014_receipt_proposals` adds private draft/replay
+  storage; no new dependency. Prices, dates and accounting remain deferred.
+
 ## 0.18.0 — Browse and capture private memories
 
 - Replace the Memories placeholder with an owner-scoped evidence library: literal

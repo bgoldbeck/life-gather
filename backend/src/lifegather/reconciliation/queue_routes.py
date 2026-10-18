@@ -17,7 +17,7 @@ def review_router() -> APIRouter:
     def reviews(
         request: Request,
         current: Annotated[CurrentSession, Depends(require_session)],
-        kind: Literal["all", "proposals", "identities"] = "all",
+        kind: Literal["all", "proposals", "identities", "receipts"] = "all",
         cursor: Annotated[str, Query(max_length=38)] = "",
         limit: Annotated[int, Query(ge=1, le=25)] = 25,
     ) -> dict[str, Any]:
