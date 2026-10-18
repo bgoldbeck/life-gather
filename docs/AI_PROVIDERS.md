@@ -1,8 +1,8 @@
 # Personal AI connections
 
-Version 0.9.0 supports OpenAI and Claude through the same private memory/chat runtime.
-In Settings, save an AI credential with provider `openai` for OpenAI or `anthropic`
-for Claude. This only stores an encrypted credential; it does not validate the key
+Version 0.16.0 supports OpenAI, Claude and Google Gemini through the same private
+memory/chat runtime. In Settings, save an AI credential with provider `openai` for
+OpenAI, `anthropic` for Claude, or `google` for Gemini. This only stores an encrypted credential; it does not validate the key
 or contact the provider. Enable external AI permission when desired. In Chat or
 Photos, explicitly choose that connection and enter a model ID available to the
 corresponding API account, supporting structured JSON and vision where needed.
@@ -20,18 +20,18 @@ turns remain readable without new metadata. Memory is shared across providers, n
 copied into provider-specific stores. All source and citation checks still apply.
 
 Provider selection comes from the authenticated owner's immutable credential
-metadata, rechecked before each outbound call. Only `openai` and `anthropic` AI
+metadata, rechecked before each outbound call. Only `openai`, `anthropic` and `google` AI
 credentials are accepted. Unsupported/foreign/deleted credentials fail without
 fallback. Fixed endpoints prevent user model names from choosing a destination.
 Secrets remain in the encrypted private vault and are read internally per call;
 no key-reading HTTP/MCP tool exists. This adds no connector activation or automatic
 background ingestion.
 
-Both providers share the existing 20-request-per-owner-per-UTC-day reservation,
+All providers share the existing 20-request-per-owner-per-UTC-day reservation,
 four active chat slots, session checks, persistent turns, exact request replay,
 explicit cancellation and no automatic retry. Each call has a 25-second network
 timeout; the runtime bounds the whole turn to 65 seconds. Text payloads cap at
-40,000 UTF-8 bytes, optional JPEG previews at 2 MiB, responses at 128 KiB and output
+40,000 UTF-8 bytes, optional JPEG previews at 2 MiB, complete responses at 128 KiB, streaming wire data at 512 KiB, and output
 at 1,500 tokens. Redirects and environment proxies are disabled. Refusals, truncation,
 non-text/tool output, malformed/oversized results and invalid usage/citations fail
 with redacted errors. Failed calls can still incur provider charges. Successful
@@ -87,3 +87,22 @@ These are bounded host-orchestrated reads over the same services as private MCP;
 there is no unbounded agent loop or outbound MCP session. Existing per-call consent,
 credential, session, cancellation and daily usage checks remain in force. Reply
 record links open the owned graph for inspection.
+
+## Google Gemini and Antigravity (v0.16.0)
+
+Gemini uses the fixed Interactions endpoint with `store=false`, `background=false`,
+no provider tools, a 1,500-output-token limit and local schema validation. The key
+travels only in `x-goog-api-key`. It is an AI API key, separate from Google sign-in
+OAuth credentials. Streaming uses step events; thought content is excluded from
+previews and saved replies. Usage includes reported output and thought tokens.
+No managed-agent execution, hosted environment or provider-side chat session is
+created. No live account access has been verified.
+
+[Interactions API](https://ai.google.dev/gemini-api/docs/interactions-overview),
+[structured output](https://ai.google.dev/gemini-api/docs/structured-output), and
+[streaming](https://ai.google.dev/gemini-api/docs/streaming) checked 2026-10-18.
+Google's [Antigravity agent limitations](https://ai.google.dev/gemini-api/docs/antigravity-agent)
+currently exclude structured outputs and output-token configuration. That agent
+requires a separate execution/cost/privacy design and is not advertised as supported
+by this bounded read-only provider adapter. Consumer subscription login is not
+reused as API authorization.

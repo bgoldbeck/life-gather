@@ -5,6 +5,71 @@ import { ChatPanel } from './ChatPanel'
 
 afterEach(() => vi.unstubAllGlobals())
 
+it('restores a Google Gemini connection and labels its completed reply', async () => {
+  const fetcher = mockServer()
+  const original = fetcher.getMockImplementation()!
+  fetcher.mockImplementation(async (url, init) => {
+    if (url === '/api/settings')
+      return new Response(JSON.stringify({ allow_external_ai: true }))
+    if (url.startsWith('/api/credentials'))
+      return new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: 'google',
+              kind: 'ai',
+              provider: 'google',
+              label: 'Synthetic Google',
+            },
+          ],
+        }),
+      )
+    if (url === '/api/chat/preferences')
+      return new Response(
+        JSON.stringify({ credential_id: 'google', model: 'gemini-synthetic' }),
+      )
+    if (url.endsWith('/stream'))
+      return new Response(
+        'data: ' +
+          JSON.stringify({
+            type: 'complete',
+            turn: {
+              id: 'google-turn',
+              request_id: 'request',
+              mode: 'ask',
+              text: 'filter?',
+              state: 'complete',
+              result: {
+                text: 'Synthetic Gemini reply.',
+                provider: 'google',
+                model: 'gemini-synthetic',
+              },
+            },
+          }) +
+          '\n\n',
+        { headers: { 'content-type': 'text/event-stream' } },
+      )
+    return original(url, init)
+  })
+  render(<ChatPanel csrfToken="csrf" />)
+  await screen.findByText('A place for the details')
+  await userEvent.selectOptions(screen.getByLabelText('Action'), 'ask')
+  expect(screen.getByLabelText('Model ID')).toHaveValue('gemini-synthetic')
+  expect(
+    screen.getByRole('option', { name: 'Synthetic Google · Google Gemini' }),
+  ).toBeInTheDocument()
+  await userEvent.type(screen.getByLabelText('Your question'), 'filter?')
+  await userEvent.click(screen.getByRole('button', { name: 'Ask AI' }))
+  expect(
+    await screen.findByText('Google Gemini · gemini-synthetic'),
+  ).toBeVisible()
+  const [, init] = fetcher.mock.calls.find(([url]) => url.endsWith('/stream'))!
+  expect(JSON.parse(String(init?.body))).toMatchObject({
+    credential_id: 'google',
+    model: 'gemini-synthetic',
+  })
+})
+
 it('shows a transient draft and discards it when final validation fails', async () => {
   const fetcher = mockServer()
   const original = fetcher.getMockImplementation()!

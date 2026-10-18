@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from lifegather.auth.store import Account
 from lifegather.chat.models import ChatPreference
+from lifegather.chat.provider_names import SUPPORTED_PROVIDERS
 from lifegather.credentials.models import Credential
 from lifegather.credentials.service import PrivateSettings, VaultError
 
@@ -40,7 +41,7 @@ class ChatPreferences:
                     Credential.user_id == actor.id,
                     Credential.id == choice.credential_id,
                     Credential.kind == "ai",
-                    Credential.provider.in_(["openai", "anthropic"]),
+                    Credential.provider.in_(SUPPORTED_PROVIDERS),
                 )
                 .limit(1)
             )
@@ -53,10 +54,10 @@ class ChatPreferences:
         with Session(self.engine) as db, db.begin():
             if data.credential_id:
                 credential = PrivateSettings._owned(db, actor, data.credential_id)
-                if credential.kind != "ai" or credential.provider not in {
-                    "openai",
-                    "anthropic",
-                }:
+                if (
+                    credential.kind != "ai"
+                    or credential.provider not in SUPPORTED_PROVIDERS
+                ):
                     raise VaultError("Choose a supported AI connection", 422)
             values = {"credential_id": data.credential_id or None, "model": data.model}
             db.execute(

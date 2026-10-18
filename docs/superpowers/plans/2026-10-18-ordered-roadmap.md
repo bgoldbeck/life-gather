@@ -117,3 +117,16 @@ Record recall verified: 174 backend / 56 frontend tests, all lint/type/format
 checks and builds pass. Coverage includes private ownership, same-name ambiguity,
 corrected sourced values, bounded context, private MCP lookup and reply graph links.
 No live calls, migrations or Docker changes.
+
+4c merged v0.15.0 via PR #25. Feature 5: Google Gemini Interactions adapter
+(v0.16.0), shared private credentials/consent/usage, structured output/streaming
+and sanitized photo input. Current official Antigravity agent docs explicitly
+exclude structured outputs and max_output_tokens; defer that managed-agent
+runtime rather than weaken the current bounded contract. This is a recorded
+technical limitation, not an implemented Antigravity integration. No live calls.
+
+Google Gemini verified: 182 backend / 57 frontend tests, lint/type/format checks
+and production builds pass. Tests cover fixed stateless requests, private header
+keys, image input, thought exclusion, streaming, redacted failures, consent, saved
+choices and no provider fallback. Graphify refreshed 1572 nodes / 5433 edges.
+All Google testing is mocked; Antigravity managed-agent support remains deferred.

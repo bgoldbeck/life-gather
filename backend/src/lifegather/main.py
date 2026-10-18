@@ -19,6 +19,7 @@ from lifegather.auth.mail import MailSender, SmtpSender
 from lifegather.auth.routes import auth_router
 from lifegather.auth.store import AuthStore
 from lifegather.chat.claude import ClaudeProvider
+from lifegather.chat.google import GeminiProvider
 from lifegather.chat.provider import OpenAIProvider
 from lifegather.chat.routes import chat_router
 from lifegather.config import Settings
@@ -82,6 +83,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.chat_provider = OpenAIProvider()
     app.state.claude_provider = ClaudeProvider()
+    app.state.google_provider = GeminiProvider()
     app.state.chat_slots = asyncio.Semaphore(4)
     app.state.photo_slots = asyncio.Semaphore(2)
     app.state.mcp_gate = PrivateMCP(mcp_app, app, settings)

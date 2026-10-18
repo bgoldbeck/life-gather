@@ -198,6 +198,7 @@ def chat_router() -> APIRouter:
                     active,
                     request.app.state.claude_provider,
                     emit,
+                    google_provider=request.app.state.google_provider,
                 )
 
         task = asyncio.create_task(guarded())

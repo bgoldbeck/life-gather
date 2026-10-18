@@ -5,6 +5,7 @@ import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import { AssetProposalCard } from './AssetProposalCard'
 import { ChatRequestError as RequestError } from './chatRequest'
 import { readChatStream } from './chatStream'
+import { isAIProvider, aiProviderLabel } from './aiProviders'
 
 type Source = { id: string; text: string }
 type Turn = {
@@ -119,8 +120,7 @@ export function ChatPanel({
         setConsent(settings.allow_external_ai === true)
         setCredentials(
           (entries.items ?? []).filter(
-            (c: Credential) =>
-              c.kind === 'ai' && ['openai', 'anthropic'].includes(c.provider),
+            (c: Credential) => c.kind === 'ai' && isAIProvider(c.provider),
           ),
         )
         setUsage(meter.requests)
@@ -128,7 +128,7 @@ export function ChatPanel({
           (c: Credential) =>
             c.id === choice.credential_id &&
             c.kind === 'ai' &&
-            ['openai', 'anthropic'].includes(c.provider),
+            isAIProvider(c.provider),
         )
         setCredential(saved?.id ?? '')
         setModel(saved ? choice.model : '')
@@ -420,7 +420,7 @@ export function ChatPanel({
                 <h2>A place for the details</h2>
                 <p>
                   Save a note in your own words, search using a few keywords, or
-                  ask OpenAI or Claude about your saved evidence.
+                  ask OpenAI, Claude or Google Gemini about your saved evidence.
                 </p>
                 <p>
                   Saving and keyword search work without AI. Notes are original
@@ -447,10 +447,8 @@ export function ChatPanel({
                 <div className="chat-response">
                   {turn.result.provider && (
                     <p className="chat-label">
-                      {turn.result.provider === 'anthropic'
-                        ? 'Claude'
-                        : 'OpenAI'}{' '}
-                      · {turn.result.model}
+                      {aiProviderLabel(turn.result.provider)} ·{' '}
+                      {turn.result.model}
                     </p>
                   )}
                   <p className="chat-text">
@@ -602,8 +600,8 @@ export function ChatPanel({
                 )}
                 {!credentials.length && (
                   <p>
-                    Add an AI connection with provider “openai” or “anthropic”
-                    (Claude) in Settings.
+                    Add an AI connection with provider “openai”, “anthropic”
+                    (Claude) or “google” (Gemini) in Settings.
                   </p>
                 )}
                 <label>
@@ -620,8 +618,7 @@ export function ChatPanel({
                     <option value="">Choose a credential</option>
                     {credentials.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.label} ·{' '}
-                        {c.provider === 'anthropic' ? 'Claude' : 'OpenAI'}
+                        {c.label} · {aiProviderLabel(c.provider)}
                       </option>
                     ))}
                   </select>
