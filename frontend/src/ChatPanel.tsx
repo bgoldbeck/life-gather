@@ -45,6 +45,9 @@ export function ChatPanel({
   const [credentials, setCredentials] = useState<Credential[]>([])
   const [credential, setCredential] = useState('')
   const [model, setModel] = useState('')
+  const [savingChoice, setSavingChoice] = useState(false)
+  const [choiceNotice, setChoiceNotice] = useState('')
+  const choiceAbort = useRef<AbortController | null>(null)
   const [consent, setConsent] = useState(false)
   const [usage, setUsage] = useState(0)
   const [busy, setBusy] = useState(false)
@@ -91,7 +94,7 @@ export function ChatPanel({
     let alive = true
     async function load() {
       try {
-        const [page, settings, entries, meter] = await Promise.all([
+        const [page, settings, entries, meter, choice] = await Promise.all([
           request('/conversations', { signal: controller.signal }),
           fetch('/api/settings', {
             signal: controller.signal,
@@ -102,6 +105,7 @@ export function ChatPanel({
             cache: 'no-store',
           }).then((r) => r.json()),
           request('/usage', { signal: controller.signal }),
+          request('/preferences', { signal: controller.signal }),
         ])
         if (!alive) return
         setConversations(page.items)
@@ -114,6 +118,14 @@ export function ChatPanel({
           ),
         )
         setUsage(meter.requests)
+        const saved = (entries.items ?? []).find(
+          (c: Credential) =>
+            c.id === choice.credential_id &&
+            c.kind === 'ai' &&
+            ['openai', 'anthropic'].includes(c.provider),
+        )
+        setCredential(saved?.id ?? '')
+        setModel(saved ? choice.model : '')
       } catch {
         if (alive)
           setError('Unable to load chat. Please reopen Chat to try again.')
@@ -126,8 +138,50 @@ export function ChatPanel({
       alive = false
       controller.abort()
       abort.current?.abort()
+      choiceAbort.current?.abort()
     }
   }, [request])
+
+  async function saveChoice(clear = false) {
+    if (savingChoice) return
+    const controller = new AbortController()
+    choiceAbort.current = controller
+    setSavingChoice(true)
+    setChoiceNotice('')
+    try {
+      const response = await fetch('/api/chat/preferences', {
+        method: 'PUT',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify({
+          credential_id: clear ? '' : credential,
+          model: clear ? '' : model,
+        }),
+        signal: controller.signal,
+      })
+      if (response.status === 401) await refreshSession?.()
+      if (!response.ok) throw new Error('Unable to save your AI choice.')
+      if (controller.signal.aborted) return
+      if (clear) {
+        setCredential('')
+        setModel('')
+      }
+      setChoiceNotice(
+        clear
+          ? 'Saved AI choice cleared.'
+          : 'AI choice saved for your account.',
+      )
+    } catch {
+      if (!controller.signal.aborted)
+        setChoiceNotice('Unable to save your AI choice. Please try again.')
+    } finally {
+      if (!controller.signal.aborted) setSavingChoice(false)
+    }
+  }
 
   async function openConversation(id: string) {
     const version = ++generation.current
@@ -181,7 +235,7 @@ export function ChatPanel({
 
   async function submit(event?: FormEvent) {
     event?.preventDefault()
-    if (busy || turnCursor || !text.trim()) return
+    if (busy || savingChoice || turnCursor || !text.trim()) return
     setBusy(true)
     setError('')
     const controller = new AbortController()
@@ -491,10 +545,11 @@ export function ChatPanel({
                   AI connection
                   <select
                     value={credential}
-                    disabled={busy}
+                    disabled={busy || savingChoice || retryNeeded || loading}
                     onChange={(e) => {
                       setCredential(e.target.value)
                       setModel('')
+                      setChoiceNotice('')
                     }}
                   >
                     <option value="">Choose a credential</option>
@@ -510,12 +565,45 @@ export function ChatPanel({
                   Model ID
                   <input
                     value={model}
-                    disabled={busy}
+                    disabled={busy || savingChoice || retryNeeded || loading}
                     maxLength={100}
                     placeholder="Enter a model available to your API account"
-                    onChange={(e) => setModel(e.target.value)}
+                    onChange={(e) => {
+                      setModel(e.target.value)
+                      setChoiceNotice('')
+                    }}
                   />
                 </label>
+                <div className="chat-send">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={
+                      busy ||
+                      loading ||
+                      savingChoice ||
+                      retryNeeded ||
+                      !credential ||
+                      !model
+                    }
+                    onClick={() => void saveChoice()}
+                  >
+                    Remember AI choice
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={busy || loading || savingChoice || retryNeeded}
+                    onClick={() => void saveChoice(true)}
+                  >
+                    Forget saved AI choice
+                  </Button>
+                </div>
+                <p>
+                  Remembering a choice does not enable external AI or send any
+                  records.
+                </p>
+                {choiceNotice && <p role="status">{choiceNotice}</p>}
               </div>
             )}
             <label htmlFor="chat-text">
@@ -548,6 +636,7 @@ export function ChatPanel({
                 type="submit"
                 disabled={
                   busy ||
+                  savingChoice ||
                   loading ||
                   !!turnCursor ||
                   !text.trim() ||

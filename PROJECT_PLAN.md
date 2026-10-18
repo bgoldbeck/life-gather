@@ -5,7 +5,7 @@
 
 Ordered continuation, 2026-10-18: [implementation ledger](docs/superpowers/plans/2026-10-18-ordered-roadmap.md).
 Per-user Light/Dark/System appearance is implemented in v0.10.0; the interactive
-graph is implemented in v0.11.0; sourced home/vehicle profiles are implemented in v0.12.0. Richer chat is next. Older milestone paragraphs below are historical context.
+graph is implemented in v0.11.0; sourced home/vehicle profiles are implemented in v0.12.0. Private saved chat choices are implemented in v0.13.0; streaming and richer read tools are next. Older milestone paragraphs below are historical context.
 
 Source increment: [text memory chat](docs/TEXT_CHAT.md) now provides persistent
 private conversations, explicit text capture, keyword recall, source inspection,

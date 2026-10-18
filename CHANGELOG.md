@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.13.0 — Remember private chat model choices
+
+- Explicitly remember or forget an owned AI connection and model from Chat; restore
+  that account's choice when reopening Chat. No browser storage or shared defaults.
+- Saving a choice never enables external AI, reads a secret or calls a provider.
+  Removed credentials clear the effective choice without a provider fallback.
+- Migration `0012_chat_preferences` adds an owner-scoped preference table and leaves
+  existing conversations, memory, appearance and external-AI consent intact.
+
 ## 0.12.0 — Sourced home and vehicle profiles
 
 - Add specifications, VIN/serial/model, filter dimensions, room paint and maintenance
