@@ -1,0 +1,106 @@
+.graph-panel {
+  display: grid;
+  gap: 1rem;
+  max-width: 75rem;
+}
+.graph-panel h1 {
+  font-size: 2rem;
+}
+.graph-panel h2 {
+  font-size: 1.5rem;
+}
+.graph-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 1rem;
+}
+.graph-toolbar label {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 12rem;
+}
+.graph-toolbar select {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  padding: 0.65rem;
+  border-radius: 0.5rem;
+  max-width: 100%;
+}
+.graph-canvas {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1rem;
+  overflow: hidden;
+}
+.graph-canvas svg {
+  width: 100%;
+  min-height: 20rem;
+  max-height: 38rem;
+}
+.graph-tools {
+  display: flex;
+  gap: 0.5rem;
+}
+.graph-edge {
+  stroke: var(--muted-foreground);
+  stroke-width: 3;
+}
+.graph-edge-label,
+.graph-node-label {
+  fill: var(--foreground);
+  font-size: 13px;
+  paint-order: stroke;
+  stroke: var(--card);
+  stroke-width: 4;
+  stroke-linejoin: round;
+}
+.graph-node {
+  fill: var(--secondary);
+  stroke: var(--primary);
+  stroke-width: 2;
+}
+.graph-root {
+  fill: var(--accent);
+  stroke-width: 4;
+}
+.graph-canvas g[role='button'] {
+  cursor: pointer;
+  outline: none;
+}
+.graph-canvas g[role='button']:focus-visible circle,
+.graph-canvas g[role='button']:hover circle {
+  stroke: var(--ring);
+  stroke-width: 5;
+}
+.graph-canvas g[role='button']:focus-visible line,
+.graph-canvas g[role='button']:hover line {
+  stroke: var(--ring);
+  stroke-width: 6;
+}
+.graph-facts {
+  display: grid;
+  gap: 0.5rem;
+}
+.graph-facts button {
+  white-space: normal;
+  height: auto;
+  min-height: 2.5rem;
+  text-align: left;
+}
+.graph-fact {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1rem;
+  background: var(--card);
+  display: grid;
+  gap: 0.75rem;
+}
+.graph-fact blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 1rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

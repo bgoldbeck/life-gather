@@ -26,13 +26,13 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
 
 ## Ordered features
 
-1. Appearance (verified, release pending): Light/Dark/System per authenticated user. Extend
+1. Appearance (merged, v0.10.0, PR #20): Light/Dark/System per authenticated user. Extend
    `user_settings` with migration `0011_appearance`; preserve external-AI consent.
    Add owner/CSRF-protected appearance reads/writes and include the current value
    in authenticated session metadata. React clears preference on sign-out, follows
    system changes, and applies semantic colors to all existing views. Test owner
    separation, migration defaults, invalid values, save failure and account switch.
-2. Interactive graph: reuse existing `memory_related` and entity/source reads;
+2. Interactive graph (v0.11.0, verified): reuse existing `memory_related` and entity/source reads;
    bounded authenticated graph service/adapter, selectable accessible nodes and
    explicit edge evidence, empty/error/limit states, no fabricated relationships.
 3. Home/vehicle profiles: sourced specifications and maintenance facts on existing
@@ -67,3 +67,8 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
 Dedicated mobile/PWA/share-menu and remote-access work remain explicitly deferred.
 Specific file/interface/test plans for later features are refined from current
 source immediately before that feature; do not prebuild speculative subsystems.
+
+Graph verification: 163 backend tests and 50 frontend tests pass; Ruff, mypy,
+TypeScript, frontend lint/format and production builds pass. Graphify refreshed
+1389 nodes / 5002 edges; its existing partial AssetsPanel extractor warning remains
+(the TypeScript compiler passes). No migration or Docker deployment.

@@ -26,6 +26,7 @@ import { PhotosPanel } from './PhotosPanel'
 import { AssetsPanel } from './AssetsPanel'
 import { BuildInfo, type Build } from './BuildInfo'
 import { AppearanceSettings } from './AppearanceSettings'
+import { GraphPanel } from './GraphPanel'
 import type { Theme } from './appearance'
 
 const navigation = [
@@ -92,6 +93,8 @@ export function Workspace({
   appearance?: Theme
 }) {
   const [view, setView] = useState<View>('Overview')
+  const [graphEntityId, setGraphEntityId] = useState('')
+  const [assetId, setAssetId] = useState('')
   const current = navigation.find((item) => item.name === view)!
 
   return (
@@ -183,8 +186,23 @@ export function Workspace({
             <PhotosPanel csrfToken={csrfToken} />
           ) : view === 'Chat' ? (
             <ChatPanel csrfToken={csrfToken} refreshSession={refreshSession} />
+          ) : view === 'Graph' ? (
+            <GraphPanel
+              csrfToken={csrfToken}
+              refreshSession={refreshSession}
+              initialEntityId={graphEntityId}
+              onOpenAsset={(id) => {
+                setAssetId(id)
+                setView('Assets')
+              }}
+            />
           ) : view === 'Assets' ? (
             <AssetsPanel
+              initialAssetId={assetId}
+              onOpenGraph={(id) => {
+                setGraphEntityId(id)
+                setView('Graph')
+              }}
               refreshSession={refreshSession}
               csrfToken={csrfToken}
             />

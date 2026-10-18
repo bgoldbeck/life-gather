@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.0 — Interactive evidence-backed graph
+
+- Explore private records and their stored connections with keyboard-accessible nodes,
+  zoom, bounded one/two-step traversal and an alternative record list.
+- Inspect fact status, direction, valid dates and original evidence; inferred and unknown
+  relationships have distinct line styles. Literal facts remain visible without edges.
+- Navigate between graph records and asset details/photos. All graph reads reuse the
+  owner-scoped memory service; no model calls, invented connections or schema change.
+
 ## 0.10.0 — Per-user light and dark themes
 
 - Select Light, Dark or System in Settings; preserve the choice per user across

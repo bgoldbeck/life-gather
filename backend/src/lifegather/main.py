@@ -28,6 +28,7 @@ from lifegather.credentials.service import PrivateSettings, VaultError, read_key
 from lifegather.mcp_api.tools import build_server
 from lifegather.mcp_api.transport import PrivateMCP
 from lifegather.memory.notes import NoteConflict
+from lifegather.memory.routes import graph_router
 from lifegather.memory.service import MemoryError
 from lifegather.photos.routes import photo_router
 from lifegather.reconciliation.queue_routes import review_router
@@ -92,6 +93,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(asset_router())
     app.include_router(photo_router())
     app.include_router(review_router())
+    app.include_router(graph_router())
     app.add_middleware(CredentialBodyLimit)
 
     @app.exception_handler(MemoryError)

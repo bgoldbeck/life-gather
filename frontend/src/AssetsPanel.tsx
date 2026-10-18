@@ -65,9 +65,13 @@ const recorded = (stamp: number) => new Date(stamp / 1000).toLocaleString()
 export function AssetsPanel({
   refreshSession,
   csrfToken = '',
+  initialAssetId = '',
+  onOpenGraph,
 }: {
   refreshSession?: () => Promise<void>
   csrfToken?: string
+  initialAssetId?: string
+  onOpenGraph?: (id: string) => void
 }) {
   const [items, setItems] = useState<Asset[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
@@ -110,6 +114,13 @@ export function AssetsPanel({
         if (!controller.signal.aborted) {
           setItems(page.items)
           setCursor(page.next_cursor)
+          if (initialAssetId) {
+            const row: Detail = await request(
+              `assets/${encodeURIComponent(initialAssetId)}`,
+              controller.signal,
+            )
+            if (!controller.signal.aborted) setDetail(row)
+          }
         }
       } catch (caught) {
         if (!controller.signal.aborted) setError((caught as Error).message)
@@ -119,7 +130,7 @@ export function AssetsPanel({
     }
     void load()
     return () => controller.abort()
-  }, [request, search, history])
+  }, [request, search, history, initialAssetId])
 
   async function more() {
     setBusy(true)
@@ -294,6 +305,14 @@ export function AssetsPanel({
       {detail && (
         <section className="asset-detail" aria-label="Asset details">
           <h2>{detail.asset.name}</h2>
+          {onOpenGraph && (
+            <Button
+              variant="outline"
+              onClick={() => onOpenGraph(detail.asset.id)}
+            >
+              View in graph
+            </Button>
+          )}
           <p>
             {detail.in_inventory
               ? 'In inventory. This does not independently verify current ownership.'
