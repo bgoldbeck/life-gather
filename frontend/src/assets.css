@@ -30,10 +30,10 @@
   gap: 0.3rem;
 }
 .asset-search input:not([type='checkbox']) {
-  border: 1px solid #a4b59d;
+  border: 1px solid var(--border);
   border-radius: 0.4rem;
   padding: 0.5rem;
-  background: #fffef9;
+  background: var(--card);
 }
 .asset-list {
   display: grid;
@@ -46,20 +46,20 @@
   flex-wrap: wrap;
 }
 .asset-list span {
-  color: #566757;
+  color: var(--muted-foreground);
   font-size: 0.85rem;
 }
 .asset-detail {
   margin-top: 1.3rem;
   padding: 1.2rem;
-  border: 1px solid #a4b59d;
+  border: 1px solid var(--border);
   border-radius: 0.8rem;
-  background: #f8faf4;
+  background: var(--card);
   overflow-wrap: anywhere;
 }
 .asset-detail article {
   padding: 0.8rem 0;
-  border-bottom: 1px solid #d9e1d6;
+  border-bottom: 1px solid var(--border);
 }
 .asset-detail dl {
   display: grid;
@@ -67,7 +67,7 @@
   gap: 0.3rem 1rem;
 }
 .asset-detail blockquote {
-  border-left: 3px solid #a4b59d;
+  border-left: 3px solid var(--border);
   padding-left: 0.7rem;
   white-space: pre-wrap;
   margin: 0.8rem 0;
@@ -81,7 +81,7 @@
   min-height: 2.2rem;
 }
 .assets-panel :focus-visible {
-  outline: 2px solid #3f6940;
+  outline: 2px solid var(--ring);
   outline-offset: 3px;
 }
 .asset-correction {
@@ -89,7 +89,7 @@
   gap: 0.65rem;
   margin: 1rem 0;
   padding: 1rem;
-  border: 1px solid #a4b59d;
+  border: 1px solid var(--border);
   border-radius: 0.7rem;
 }
 .asset-correction label {
@@ -102,7 +102,7 @@
   min-width: 0;
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid #a4b59d;
+  border: 1px solid var(--border);
   border-radius: 0.4rem;
-  background: #fffef9;
+  background: var(--card);
 }

@@ -38,7 +38,7 @@ button {
   left: 8px;
   padding: 12px;
   z-index: 10;
-  background: white;
+  background: var(--card);
   transform: translateY(-160%);
 }
 .skip-link:focus {
@@ -46,7 +46,7 @@ button {
 }
 .sidebar {
   border-right: 1px solid var(--border);
-  background: #f1f3ec;
+  background: var(--sidebar-surface);
   padding: 35px 22px 20px;
   display: flex;
   flex-direction: column;
@@ -66,10 +66,10 @@ button {
   margin-right: 10px;
 }
 .brand-dot {
-  color: #78965f;
+  color: var(--primary);
 }
 .sidebar-caption {
-  color: #647361;
+  color: var(--muted-foreground);
   font-size: 12px;
   margin: 14px 0 41px 2px;
 }
@@ -83,13 +83,13 @@ button {
   height: 44px;
   padding: 0 14px;
   gap: 13px;
-  color: #58665b;
+  color: var(--muted-foreground);
   font-size: 13px;
   font-weight: 450;
 }
 .nav-button[aria-current='page'] {
-  background: #dfe8d8;
-  color: #2a5036;
+  background: var(--accent);
+  color: var(--foreground);
   font-weight: 600;
 }
 .sidebar-note {
@@ -97,7 +97,7 @@ button {
   padding: 80px 6px 30px;
   display: flex;
   gap: 11px;
-  color: #52634f;
+  color: var(--muted-foreground);
 }
 .sidebar-note svg {
   margin-top: 2px;
@@ -111,16 +111,16 @@ button {
   font-size: 11px;
   line-height: 1.8;
   margin-top: 6px;
-  color: #6b7767;
+  color: var(--muted-foreground);
 }
 .sidebar-footer {
-  border-top: 1px solid #dce2d5;
+  border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   gap: 6px;
   padding-top: 18px;
   font-size: 10px;
-  color: #63705e;
+  color: var(--muted-foreground);
 }
 .sidebar-footer > span:last-child {
   margin-left: auto;
@@ -128,7 +128,7 @@ button {
 .phase-dot {
   width: 5px;
   height: 5px;
-  background: #83965d;
+  background: var(--primary);
   border-radius: 50%;
 }
 .workspace {
@@ -143,15 +143,15 @@ button {
   gap: 14px;
   padding: 16px 42px;
   font-size: 12px;
-  color: #5d6c61;
+  color: var(--muted-foreground);
 }
 .breadcrumb {
-  color: #899086;
+  color: var(--muted-foreground);
   margin-left: 12px;
 }
 .topbar [data-slot='badge'] {
   font-size: 10px;
-  color: #54654d;
+  color: var(--muted-foreground);
   font-weight: 450;
   padding: 6px 9px;
   gap: 6px;
@@ -165,7 +165,7 @@ button {
   font-size: 10px;
   font-weight: 550;
   letter-spacing: 1.7px;
-  color: #6b7e59;
+  color: var(--muted-foreground);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -173,7 +173,7 @@ button {
 .section-label > span {
   width: 6px;
   height: 6px;
-  background: #8d9e65;
+  background: var(--primary);
   border-radius: 50%;
 }
 .welcome {
@@ -194,7 +194,7 @@ button {
 .welcome-copy > p {
   font-size: 13px;
   line-height: 1.9;
-  color: #6d776d;
+  color: var(--muted-foreground);
   max-width: 470px;
 }
 .explore-button {
@@ -208,7 +208,7 @@ button {
 .preview-note {
   display: block;
   font-size: 10px;
-  color: #78816f;
+  color: var(--muted-foreground);
   margin-top: 13px;
 }
 .memory-illustration {
@@ -219,7 +219,7 @@ button {
   justify-self: center;
 }
 .orbit {
-  border: 1px solid #dfe6d7;
+  border: 1px solid var(--border);
   border-radius: 50%;
   position: absolute;
   left: 50%;
@@ -244,23 +244,23 @@ button {
   height: 96px;
   display: grid;
   place-items: center;
-  border: 1px solid #d2dfc8;
+  border: 1px solid var(--border);
   border-radius: 25px;
-  background: #e5eddd;
-  color: #416e45;
-  box-shadow: 0 10px 40px #dde5d14d;
+  background: var(--accent);
+  color: var(--primary);
+  box-shadow: 0 10px 40px var(--illustration-shadow);
   z-index: 2;
 }
 .graph-node {
   position: absolute;
-  background: #fffef8;
-  border: 1px solid #dde4d5;
+  background: var(--card);
+  border: 1px solid var(--border);
   width: 51px;
   height: 51px;
   display: grid;
   place-items: center;
   border-radius: 14px;
-  color: #6f8159;
+  color: var(--primary);
   z-index: 2;
 }
 .node-one {
@@ -282,7 +282,7 @@ button {
   position: absolute;
   height: 1px;
   width: 38%;
-  background: #ccd8bf;
+  background: var(--border);
   top: 44%;
   left: 16%;
   transform-origin: right;
@@ -305,7 +305,7 @@ button {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #c4d1ac;
+  background: var(--border);
 }
 .little-one {
   left: 18%;
@@ -325,7 +325,7 @@ button {
   font-family: Georgia, serif;
   font-style: italic;
   font-size: 13px;
-  color: #839175;
+  color: var(--muted-foreground);
 }
 .start-section {
   padding-top: 25px;
@@ -349,7 +349,7 @@ button {
 .section-description {
   margin-top: 7px;
   font-size: 12px;
-  color: #7a8175;
+  color: var(--muted-foreground);
 }
 .feature-grid {
   display: grid;
@@ -372,8 +372,8 @@ button {
   place-items: center;
   width: 39px;
   height: 39px;
-  background: #f0f3e8;
-  color: #647e4a;
+  background: var(--muted);
+  color: var(--primary);
   border-radius: 10px;
   margin-bottom: 20px;
 }
@@ -386,7 +386,7 @@ button {
 .feature-card p {
   font-size: 11px;
   line-height: 1.8;
-  color: #7a8177;
+  color: var(--muted-foreground);
   min-height: 60px;
 }
 .feature-link {
@@ -394,7 +394,7 @@ button {
   padding: 0;
   gap: 8px;
   margin-top: 9px;
-  color: #4b6b42;
+  color: var(--primary);
 }
 .principles {
   display: flex;
@@ -402,18 +402,18 @@ button {
   gap: 15px;
   margin-top: 25px;
   padding: 20px 22px;
-  background: #eef1e8;
+  background: var(--muted);
   border-radius: 9px;
-  color: #6d8455;
+  color: var(--primary);
 }
 .principles strong {
   font-size: 12px;
-  color: #4f6148;
+  color: var(--muted-foreground);
   font-weight: 550;
 }
 .principles p {
   font-size: 10px;
-  color: #74806b;
+  color: var(--muted-foreground);
   margin-top: 5px;
   line-height: 1.7;
 }
@@ -424,7 +424,7 @@ button {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  color: #87907d;
+  color: var(--muted-foreground);
   font-size: 9px;
   padding: 27px 0 0;
 }
@@ -441,7 +441,7 @@ button {
 .placeholder-icon {
   display: block;
   margin: 30px 0 20px;
-  color: #6f8559;
+  color: var(--primary);
 }
 .placeholder-view h1 {
   font-size: 40px;
@@ -449,7 +449,7 @@ button {
   margin-bottom: 15px;
 }
 .placeholder-view > p {
-  color: #687365;
+  color: var(--muted-foreground);
   line-height: 1.8;
 }
 .placeholder-notice {
@@ -457,13 +457,13 @@ button {
   margin: 30px 0;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: #f1f3ed;
+  background: var(--muted);
 }
 .placeholder-notice p {
   margin-top: 10px;
   font-size: 14px;
   line-height: 1.8;
-  color: #687365;
+  color: var(--muted-foreground);
 }
 
 @media (min-width: 1550px) {

@@ -3,6 +3,10 @@
 **Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
 **Date:** Updated 2026-10-17
 
+Ordered continuation, 2026-10-18: [implementation ledger](docs/superpowers/plans/2026-10-18-ordered-roadmap.md).
+Per-user Light/Dark/System appearance is implemented in v0.10.0; the interactive
+graph is next. Older milestone paragraphs below are historical context.
+
 Source increment: [text memory chat](docs/TEXT_CHAT.md) now provides persistent
 private conversations, explicit text capture, keyword recall, source inspection,
 saved-note corrections with preserved history,

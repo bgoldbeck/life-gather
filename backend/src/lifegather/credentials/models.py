@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, LargeBinary, String
+from sqlalchemy import CheckConstraint, ForeignKey, LargeBinary, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from lifegather.auth.models import Base
@@ -12,8 +12,12 @@ class VaultKey(Base):
 
 class UserSettings(Base):
     __tablename__ = "user_settings"
+    __table_args__ = (
+        CheckConstraint("theme IN ('system','light','dark')", name="ck_user_theme"),
+    )
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), primary_key=True)
     allow_external_ai: Mapped[bool]
+    theme: Mapped[str] = mapped_column(server_default="system")
 
 
 class Credential(Base):

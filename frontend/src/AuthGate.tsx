@@ -3,9 +3,11 @@ import { Button } from '@/components/ui/button'
 import { EmailAccess } from './EmailAccess'
 import { readEmailLink } from './emailLink'
 import { BuildInfo, type Build } from './BuildInfo'
+import { useAppearance, type Theme } from './appearance'
 
 type Account = { id: string; name: string; email: string }
 type Session = {
+  appearance?: Theme
   build?: Build
   test_login_enabled?: boolean
   email_delivery_enabled?: boolean
@@ -27,6 +29,7 @@ export function AuthGate({
     passwordEnabled: boolean,
     deliveryEnabled: boolean,
     build?: Build,
+    appearance?: Theme,
   ) => ReactNode
 }) {
   const [link, setLink] = useState(readEmailLink)
@@ -47,6 +50,7 @@ export function AuthGate({
   const [session, setSession] = useState<Session | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  useAppearance(session?.user ? (session.appearance ?? 'system') : 'system')
   const refresh = useCallback(async () => {
     try {
       const response = await fetch('/auth/session', {
@@ -168,6 +172,7 @@ export function AuthGate({
           !!session.email_password_enabled,
           !!session.email_delivery_enabled,
           session.build,
+          session.appearance,
         )}
       </>
     )
