@@ -13,8 +13,8 @@ watch the answer arrive, inspect its evidence, and return to the same conversati
 after a restart. Conversations belong to the user's stable workspace ID. A model
 is not the source of truth for possessions or graph facts.
 
-This document records the proposed implementation design for review. Scope
-approval does not mean the detailed design or implementation is already approved.
+The user approved this written design on 2026-10-17. The implementation plan
+requires review before execution; no chat code has been implemented yet.
 
 ## Approach and alternatives
 
