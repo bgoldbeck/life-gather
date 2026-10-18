@@ -161,3 +161,97 @@ describe('asset proposal review', () => {
     })
   })
 })
+
+it('records a clear reviewed item without a separate identity choice', async () => {
+  const user = userEvent.setup()
+  const operations: Record<string, unknown>[] = []
+  const request = vi.fn(async (path: string, init?: RequestInit) => {
+    if (path.endsWith('/review')) {
+      operations.push(JSON.parse(String(init?.body)))
+      return {
+        ...proposal,
+        state: 'accepted',
+        reviewed: fields,
+        result: { asset_ids: ['asset'], automatic_outcome: 'create' },
+      }
+    }
+    return proposal
+  })
+  render(
+    <AssetProposalCard id="proposal-1" request={request} onOpen={vi.fn()} />,
+  )
+  await user.click(
+    await screen.findByRole('button', { name: 'Record if identity is clear' }),
+  )
+  await screen.findByText(/Recorded through a clear automatic identity check/)
+  expect(operations[0]).toMatchObject({
+    action: 'auto',
+    asset_id: null,
+    candidate_ids: [],
+    fields,
+  })
+  expect(request.mock.calls.some(([path]) => path.endsWith('/preview'))).toBe(
+    false,
+  )
+})
+it('leaves an ambiguous identity pending and preserves edited fields for explicit review', async () => {
+  const user = userEvent.setup()
+  const request = vi.fn(async (path: string) =>
+    path.endsWith('/review')
+      ? {
+          ...proposal,
+          automatic_outcome: 'review',
+          automatic_reason: 'Name similarity is ambiguous',
+          automatic_check: {
+            candidates: [{ id: 'existing', name: 'Existing trimmer' }],
+            reliable_ids: [],
+          },
+        }
+      : proposal,
+  )
+  render(
+    <AssetProposalCard id="proposal-1" request={request} onOpen={vi.fn()} />,
+  )
+  const name = await screen.findByLabelText('Item name')
+  await user.clear(name)
+  await user.type(name, 'trimmer')
+  await user.click(
+    screen.getByRole('button', { name: 'Record if identity is clear' }),
+  )
+  await screen.findByText(/Identity needs your decision/)
+  expect(screen.getByLabelText('Item name')).toHaveValue('trimmer')
+  expect(screen.getByLabelText('Physical item')).toHaveValue('')
+  expect(screen.getByRole('button', { name: 'Confirm asset' })).toBeDisabled()
+})
+
+it('freezes automatic discovery and retries its exact request after connection loss', async () => {
+  const user = userEvent.setup()
+  const bodies: string[] = []
+  const request = vi.fn(async (path: string, init?: RequestInit) => {
+    if (path.endsWith('/review')) {
+      bodies.push(String(init?.body))
+      if (bodies.length === 1) throw new TypeError('connection lost')
+      return {
+        ...proposal,
+        state: 'accepted',
+        reviewed: fields,
+        result: { asset_ids: ['asset'], automatic_outcome: 'create' },
+      }
+    }
+    return proposal
+  })
+  render(
+    <AssetProposalCard id="proposal-1" request={request} onOpen={vi.fn()} />,
+  )
+  await user.click(
+    await screen.findByRole('button', { name: 'Record if identity is clear' }),
+  )
+  await screen.findByRole('button', { name: 'Retry same decision' })
+  expect(screen.getByLabelText('Item name')).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Reject proposal' })).toBeDisabled()
+  await user.click(screen.getByRole('button', { name: 'Retry same decision' }))
+  await screen.findByText(/Recorded through a clear automatic identity check/)
+  expect(bodies).toHaveLength(2)
+  expect(bodies[0]).toBe(bodies[1])
+  expect(JSON.parse(bodies[1]).action).toBe('auto')
+})
