@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from lifegather.assets.actions import ActionService
 from lifegather.auth.store import Account
 from lifegather.chat.models import Conversation, Turn, Usage
+from lifegather.chat.provider_names import SUPPORTED_PROVIDERS
 from lifegather.credentials.service import PrivateSettings
 from lifegather.memory.notes import NoteService
 from lifegather.memory.schemas import SourceInput, SourceView
@@ -259,11 +260,11 @@ class ChatService:
     ) -> str:
         with Session(self.engine) as db:
             credential = vault._owned(db, actor, credential_id)
-            if credential.kind != "ai" or credential.provider not in {
-                "openai",
-                "anthropic",
-            }:
-                raise MemoryError("Select an OpenAI or Claude AI connection")
+            if (
+                credential.kind != "ai"
+                or credential.provider not in SUPPORTED_PROVIDERS
+            ):
+                raise MemoryError("Select a supported AI connection")
             return credential.provider
 
     def reserve(

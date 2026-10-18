@@ -262,7 +262,7 @@ export function PrivateSettingsPanel({
                         pattern="[a-z0-9][a-z0-9_-]*"
                         placeholder={
                           kind === 'ai'
-                            ? 'openai or anthropic (Claude)'
+                            ? 'openai, anthropic (Claude), or google (Gemini)'
                             : 'Provider identifier'
                         }
                       />
@@ -270,9 +270,10 @@ export function PrivateSettingsPanel({
                     {kind === 'ai' && (
                       <p>
                         Chat and photo reading support provider “openai” for
-                        OpenAI or “anthropic” for Claude. Select a compatible
-                        model in Chat or Photos. Saving a key makes no provider
-                        request.
+                        OpenAI, “anthropic” for Claude, or “google” for Gemini.
+                        Select a compatible model in Chat or Photos. Saving a
+                        key makes no provider request. Gemini uses a separate AI
+                        API key, not your Google sign-in OAuth credentials.
                       </p>
                     )}
                     <label>

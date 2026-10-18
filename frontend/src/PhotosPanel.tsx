@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
+import { isAIProvider, aiProviderLabel } from './aiProviders'
 import { AssetProposalCard } from './AssetProposalCard'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import { ChatRequestError } from './chatRequest'
@@ -95,8 +96,7 @@ export function PhotosPanel({
         setCursor(page.next_cursor)
         setCredentials(
           (entries.items ?? []).filter(
-            (c: Credential) =>
-              c.kind === 'ai' && ['openai', 'anthropic'].includes(c.provider),
+            (c: Credential) => c.kind === 'ai' && isAIProvider(c.provider),
           ),
         )
         setConsent(settings.allow_external_ai === true)
@@ -349,8 +349,7 @@ export function PhotosPanel({
                 <option value="">Choose connection</option>
                 {credentials.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.label} ·{' '}
-                    {c.provider === 'anthropic' ? 'Claude' : 'OpenAI'}
+                    {c.label} · {aiProviderLabel(c.provider)}
                   </option>
                 ))}
               </select>

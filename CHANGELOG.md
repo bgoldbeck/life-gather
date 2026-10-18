@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.16.0 — Google Gemini alongside OpenAI and Claude
+
+- Add Google Gemini to private Chat, saved choices and photo reading using an
+  owned `google` AI credential. Google sign-in OAuth remains separate.
+- Use stateless Gemini Interactions requests with structured output, streaming,
+  optional sanitized JPEG input, fixed endpoint and header-only API key. Disable
+  provider storage/background work/tools and retain shared consent/usage checks.
+- Do not expose thought content. Validate final structure, citations and usage;
+  redact failures and reject managed-agent model IDs. Google currently documents
+  Antigravity agent without the structured-output/output-token controls required
+  by this runtime; its integration remains deferred. No schema or SDK dependency
+  change. Live Google access remains unverified (synthetic/mocked tests only).
+
 ## 0.15.0 — Recall sourced records and graph connections
 
 - Let the shared chat runtime plan up to two exact record-name lookups, inspect

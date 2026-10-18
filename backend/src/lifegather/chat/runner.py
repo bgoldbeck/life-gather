@@ -37,6 +37,7 @@ async def answer(
     active: Callable[[], None],
     claude_provider: Provider | None = None,
     emit: DeltaSink | None = None,
+    google_provider: Provider | None = None,
 ) -> dict[str, Any]:
     if body.mode == "save":
         original = save_text(
@@ -93,6 +94,10 @@ async def answer(
         if claude_provider is None:
             raise MemoryError("Claude integration is unavailable")
         provider = claude_provider
+    elif selected_provider == "google":
+        if google_provider is None:
+            raise MemoryError("Google AI integration is unavailable")
+        provider = google_provider
     secret, day = chat.reserve(actor, vault, body.credential_id)
     history = chat.recent(actor, conversation_id)
     context = [{"mode": t["mode"], "text": t["text"][:1000]} for t in history[-4:]]
