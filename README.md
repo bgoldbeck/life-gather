@@ -6,7 +6,7 @@ It aims to help organize possessions, events, documents, and relationships while
 
 ## Project status
 
-The source includes a responsive React shell, Google sign-in, and [email/password signup and recovery](docs/EMAIL_PASSWORD_AUTH.md) with persistent server-side sessions. Native registration/recovery need a configured installation email sender; real SMTP delivery has not been tested here. Follow [Google login setup](docs/GOOGLE_LOGIN.md) to configure an OAuth client; real Google sign-in needs installation credentials. The [evidence-backed memory core](docs/MEMORY_CORE.md) now provides private Python services for sources, graph facts, history, search, export, and database snapshots. The [reconciliation service](docs/RECONCILIATION.md) now distinguishes purchased units, enriches reliable matches, and preserves review/correction decisions. The [private MCP recall adapter](docs/PRIVATE_MCP.md) exposes authenticated read-only tools over those services. Memory UI adapters, writable tools, and AI chat integration remain planned. LifeGather is a working name pending clearance. The previously published preview image does not gain source changes until a separately approved rebuild/upload.
+The source includes a responsive React shell, Google sign-in, and [email/password signup and recovery](docs/EMAIL_PASSWORD_AUTH.md) with persistent server-side sessions. Native registration/recovery need a configured installation email sender; real SMTP delivery has not been tested here. Follow [Google login setup](docs/GOOGLE_LOGIN.md) to configure an OAuth client; real Google sign-in needs installation credentials. The [evidence-backed memory core](docs/MEMORY_CORE.md) now provides private Python services for sources, graph facts, history, search, export, and database snapshots. The [reconciliation service](docs/RECONCILIATION.md) now distinguishes purchased units, enriches reliable matches, and preserves review/correction decisions. The [private MCP recall adapter](docs/PRIVATE_MCP.md) exposes authenticated read-only tools over those services. The first [text chat increment](docs/TEXT_CHAT.md) adds persistent conversations, explicit original-text capture, keyword recall, evidence inspection, and optional OpenAI answers. Structured extraction, graph correction/review, and streaming remain planned. LifeGather is a working name pending clearance. The previously published preview image does not gain source changes until a separately approved rebuild/upload.
 
 ## Run with Docker
 
@@ -41,7 +41,7 @@ docker compose down
 
 The container runs as UID/GID 10001, with a read-only root filesystem, a writable `/data` volume, a temporary `/tmp`, and dropped Linux capabilities. The source-build Compose file publishes only on `127.0.0.1`; the image-only TrueNAS Compose file publishes on all IPv4 interfaces (`0.0.0.0`) for LAN access. Configure Google login using the documented public URL and credentials; non-loopback login requires HTTPS. Remote exposure remains deferred, and the old published preview is unauthenticated.
 
-The source includes private memory and reconciliation services plus a read-only MCP adapter; memory UI and a general backup/restore interface remain later work. See the login guide for session expiry, revocation, private storage, and verification limits.
+The source includes private memory and reconciliation services, an authenticated MCP adapter, and the first text chat UI; broader memory views and a general backup/restore interface remain later work. See the login guide for session expiry, revocation, private storage, and verification limits.
 
 ## Backend development
 
@@ -96,9 +96,9 @@ npm run format:check
 npm run build
 ```
 
-The UI uses Tailwind CSS and shadcn/ui primitives. Navigation works within the preview; Chat, Assets, Memories, Graph, and Settings explain their planned purpose without accepting personal data.
+The UI uses Tailwind CSS and shadcn/ui primitives. Chat supports explicit text memory capture, keyword search, and optional OpenAI recall; Settings manages private credentials and consent. Assets, Memories, and Graph remain preview placeholders.
 
-The next milestone is **Google sign-in and per-user data isolation**, before accepting personal memories. See [the authentication requirements](docs/AUTH_REQUIREMENTS.md). The earlier single-user assumption is superseded by this requirement. Deterministic memory storage follows authentication.
+The first [text memory chat increment](docs/TEXT_CHAT.md) provides private persistent conversations, explicit original-text saving, keyword recall, evidence inspection, and optional OpenAI answers using the user's credential and consent. Structured extraction, correction/review, streaming, and per-user appearance settings remain next increments. Authentication and the deterministic memory foundation are already implemented.
 
 ## Planned stack
 

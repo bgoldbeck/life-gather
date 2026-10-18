@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from urllib.parse import urlsplit
@@ -16,12 +17,15 @@ from lifegather.auth.google import GoogleProvider
 from lifegather.auth.mail import MailSender, SmtpSender
 from lifegather.auth.routes import auth_router
 from lifegather.auth.store import AuthStore
+from lifegather.chat.provider import OpenAIProvider
+from lifegather.chat.routes import chat_router
 from lifegather.config import Settings
 from lifegather.credentials.middleware import CredentialBodyLimit
 from lifegather.credentials.routes import private_router
 from lifegather.credentials.service import PrivateSettings, VaultError, read_key
 from lifegather.mcp_api.tools import build_server
 from lifegather.mcp_api.transport import PrivateMCP
+from lifegather.memory.service import MemoryError
 
 
 def create_app(mail_sender: MailSender | None = None) -> FastAPI:
@@ -65,13 +69,20 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
 
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
     app.state.settings = settings
+    app.state.chat_provider = OpenAIProvider()
+    app.state.chat_slots = asyncio.Semaphore(4)
     app.state.mcp_gate = PrivateMCP(mcp_app, app, settings)
     app.state.mcp_server = mcp_server
     app.router.routes.append(Route("/mcp", app.state.mcp_gate))
     app.include_router(auth_router(settings, GoogleProvider(settings)))
     app.include_router(private_router())
     app.include_router(email_router(settings))
+    app.include_router(chat_router())
     app.add_middleware(CredentialBodyLimit)
+
+    @app.exception_handler(MemoryError)
+    async def memory_error(request: Request, error: MemoryError) -> JSONResponse:
+        return JSONResponse({"detail": str(error)}, status_code=400)
 
     @app.exception_handler(EmailAuthError)
     async def email_auth_error(request: Request, error: EmailAuthError) -> JSONResponse:

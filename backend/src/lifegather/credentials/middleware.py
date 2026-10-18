@@ -1,3 +1,4 @@
+import anyio
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -10,7 +11,7 @@ class CredentialBodyLimit:
         if (
             scope["type"] != "http"
             or not scope.get("path", "").startswith(
-                ("/api/credentials", "/auth/email/")
+                ("/api/credentials", "/auth/email/", "/api/chat")
             )
             or scope.get("method") not in {"POST", "PUT"}
         ):
@@ -18,21 +19,30 @@ class CredentialBodyLimit:
             return
         limit = 16384 if scope.get("path", "").startswith("/auth/email/") else 32768
         body = bytearray()
-        while True:
-            message = await receive()
-            if message["type"] == "http.disconnect":
-                return
-            chunk = message.get("body", b"")
-            if len(body) + len(chunk) > limit:
-                await JSONResponse(
-                    {"detail": "Request too large"},
-                    status_code=413,
-                    headers={"Cache-Control": "no-store"},
-                )(scope, receive, send)
-                return
-            body.extend(chunk)
-            if not message.get("more_body", False):
-                break
+        try:
+            with anyio.fail_after(10):
+                while True:
+                    message = await receive()
+                    if message["type"] == "http.disconnect":
+                        return
+                    chunk = message.get("body", b"")
+                    if len(body) + len(chunk) > limit:
+                        await JSONResponse(
+                            {"detail": "Request too large"},
+                            status_code=413,
+                            headers={"Cache-Control": "no-store"},
+                        )(scope, receive, send)
+                        return
+                    body.extend(chunk)
+                    if not message.get("more_body", False):
+                        break
+        except TimeoutError:
+            await JSONResponse(
+                {"detail": "Request timed out"},
+                status_code=408,
+                headers={"Cache-Control": "no-store"},
+            )(scope, receive, send)
+            return
         delivered = False
 
         async def replay() -> Message:

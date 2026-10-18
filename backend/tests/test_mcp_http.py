@@ -117,7 +117,17 @@ def test_mcp_discovery_and_owner_scoped_memory_reads() -> None:
                 "params": {"_meta": META},
             },
         ).json()["result"]["tools"]
-        assert tools and all(tool["annotations"]["readOnlyHint"] for tool in tools)
+        assert tools and all(
+            tool["annotations"]["readOnlyHint"]
+            for tool in tools
+            if tool["name"] != "memory_save_text"
+        )
+        assert (
+            next(t for t in tools if t["name"] == "memory_save_text")["annotations"][
+                "readOnlyHint"
+            ]
+            is False
+        )
         assert "memory_search" in {tool["name"] for tool in tools}
         result = rpc(client, alice, "memory_get_entity", {"entity_id": item.id})
         assert result.status_code == 200 and not result.json()["result"].get("isError")
