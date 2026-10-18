@@ -239,3 +239,5 @@ Each stage needs a bounded implementation plan, relevant tests, migrations where
 - SQLite backup: https://www.sqlite.org/backup.html
 - Codex repository instructions: https://developers.openai.com/codex/guides/agents-md
 - Claude Code `CLAUDE.md`: https://support.claude.com/en/articles/14553240-give-claude-context-claude-md-and-better-prompts
+
+Source increment v0.18.0: the [Memories library](docs/MEMORIES.md) now supports browsing/searching saved sources, current/history filters and direct note capture. Shared asset/file evidence views preserve derived-source labels and deletion notices. Broader receipt extraction remains ahead.

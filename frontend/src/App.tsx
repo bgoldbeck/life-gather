@@ -23,6 +23,7 @@ import { PasswordSettings } from './PasswordSettings'
 import { ChatPanel } from './ChatPanel'
 import { ReviewPanel } from './ReviewPanel'
 import { PhotosPanel } from './PhotosPanel'
+import { MemoriesPanel } from './MemoriesPanel'
 import { AssetsPanel } from './AssetsPanel'
 import { BuildInfo, type Build } from './BuildInfo'
 import { AppearanceSettings } from './AppearanceSettings'
@@ -228,6 +229,11 @@ export function Workspace({
                 setAssetId(id)
                 setView('Assets')
               }}
+            />
+          ) : view === 'Memories' ? (
+            <MemoriesPanel
+              csrfToken={csrfToken}
+              refreshSession={refreshSession}
             />
           ) : view === 'Assets' ? (
             <AssetsPanel

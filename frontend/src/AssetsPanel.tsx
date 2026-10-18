@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import './assets.css'
 import { PhotosPanel } from './PhotosPanel'
+import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
+import { ChatRequestError } from './chatRequest'
 import { AssetActions } from './AssetActions'
 
 type Asset = {
@@ -54,12 +56,8 @@ type Detail = {
     recorded_at: number
   }[]
 }
-type Source = {
-  id: string
-  text: string
-  next_offset: number | null
-  photo?: { id: string; deleted_at: number | null } | null
-}
+type Source = EvidenceSource & { next_offset: number | null }
+
 const recorded = (stamp: number) => new Date(stamp / 1000).toLocaleString()
 
 export function AssetsPanel({
@@ -190,6 +188,27 @@ export function AssetsPanel({
       if (version === generation.current) setBusy(false)
     }
   }
+  const chatRequest = useCallback(
+    async (path: string, init?: RequestInit) => {
+      const response = await fetch('/api/chat' + path, {
+        ...init,
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
+      })
+      if (response.status === 401) await refreshSession?.()
+      if (!response.ok)
+        throw new ChatRequestError(
+          'Unable to load or correct this source. Please try again.',
+          response.status,
+        )
+      return response.json()
+    },
+    [csrfToken, refreshSession],
+  )
   async function evidence(id: string, offset = 0) {
     const version = ++generation.current
     setBusy(true)
@@ -198,9 +217,9 @@ export function AssetsPanel({
       const row = await request(`chat/sources/${id}?offset=${offset}`)
       if (version === generation.current) setSource(row)
     } catch (caught) {
-      setError((caught as Error).message)
+      if (version === generation.current) setError((caught as Error).message)
     } finally {
-      setBusy(false)
+      if (version === generation.current) setBusy(false)
     }
   }
   function submit(event: FormEvent) {
@@ -476,22 +495,19 @@ export function AssetsPanel({
         </section>
       )}
       {source && (
-        <section className="asset-detail" aria-label="Original source">
-          <h2>Original source</h2>
-          <p>Original statement, not independently verified.</p>
-          <p className="source-text">{source.text}</p>
-          {source.next_offset !== null && (
-            <Button
-              disabled={busy}
-              onClick={() => void evidence(source.id, source.next_offset!)}
-            >
-              Next source page
-            </Button>
-          )}
-          <Button variant="ghost" onClick={() => setSource(null)}>
-            Close source
-          </Button>
-        </section>
+        <EvidencePanel
+          key={source.id}
+          source={source}
+          nextOffset={source.next_offset}
+          opening={busy}
+          onOpen={evidence}
+          onClose={() => {
+            generation.current++
+            setBusy(false)
+            setSource(null)
+          }}
+          request={chatRequest}
+        />
       )}
     </section>
   )

@@ -4,6 +4,77 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { AssetsPanel } from './AssetsPanel'
 
 afterEach(() => vi.unstubAllGlobals())
+
+it.each(['photo', 'document'])(
+  'preserves deleted %s provenance when opening asset evidence',
+  async (kind) => {
+    const user = userEvent.setup()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        let result: unknown = { items: [], next_cursor: null }
+        if (url.startsWith('/api/assets?'))
+          result = {
+            items: [
+              {
+                id: 'asset',
+                name: 'Synthetic item',
+                source_id: 'source',
+                recorded_at: 100,
+              },
+            ],
+            next_cursor: null,
+          }
+        else if (url === '/api/assets/asset')
+          result = {
+            asset: {
+              id: 'asset',
+              name: 'Synthetic item',
+              source_id: 'source',
+              recorded_at: 100,
+            },
+            in_inventory: true,
+            decisions: [],
+            facts: [],
+            next_fact_cursor: null,
+            next_decision_cursor: null,
+          }
+        else if (url.startsWith('/api/chat/sources/'))
+          result = {
+            id: 'source',
+            text: 'Derived source text',
+            next_offset: null,
+            [kind]: {
+              id: 'original',
+              filename: 'synthetic.pdf',
+              deleted_at: 123,
+            },
+          }
+        return new Response(JSON.stringify(result))
+      }),
+    )
+    render(<AssetsPanel csrfToken="csrf" />)
+    await user.click(
+      await screen.findByRole('button', { name: 'Synthetic item' }),
+    )
+    await user.click(
+      await screen.findByRole('button', { name: 'View original evidence' }),
+    )
+    await screen.findByText(
+      kind === 'photo'
+        ? 'The original photo has been deleted. Derived text remains.'
+        : 'The original PDF has been deleted; saved source history remains.',
+    )
+    expect(
+      screen.queryByText('Original statement · not independently verified'),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText('Derived source text')).toBeVisible()
+    expect(
+      screen.queryByRole('link', { name: 'Download original PDF' }),
+    ).not.toBeInTheDocument()
+  },
+)
+
 it('browses private assets, details, original evidence and history pages safely', async () => {
   const user = userEvent.setup()
   const fetcher = vi.fn(async (url: string) => {

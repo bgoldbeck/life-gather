@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.18.0 — Browse and capture private memories
+
+- Replace the Memories placeholder with an owner-scoped evidence library: literal
+  search, source-type filters, current/earlier note versions and stable newest-first
+  pagination. Original source reads, corrections and history reuse shared services.
+- Capture exact note text directly without a chat, AI permission or inferred assets;
+  preserve request identity through connection loss and repeated/concurrent capture.
+- Preserve photo/PDF categories through corrections; expose private library reads
+  through typed MCP. No schema migration, provider call or new dependency.
+- Fix asset evidence views that discarded photo/PDF provenance and mislabeled
+  derived text as an original statement. Use the shared evidence panel, including
+  original-file deletion notices and correction history.
+- Fix evidence image overflow caused by a heading layout rule affecting all child
+  sections; ignore stale source/page responses during navigation and search.
+
+
 ## 0.17.0 — Private PDF evidence and reviewed text
 
 - Upload owner-scoped PDF originals, inspect automatic text extraction and explicitly

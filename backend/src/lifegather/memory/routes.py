@@ -1,14 +1,54 @@
-"""Thin private graph reads over the same services used by MCP."""
+"""Thin private source-library and graph adapters over shared domain services."""
 
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 
-from lifegather.auth.routes import require_session
+from lifegather.auth.routes import require_session, require_write_session
 from lifegather.auth.store import CurrentSession
+from lifegather.chat.service import SaveText, save_text
+from lifegather.memory.library import LibraryPage, MemoryLibrary
 from lifegather.memory.service import MemoryError, MemoryService
 
 Authenticated = Annotated[CurrentSession, Depends(require_session)]
+
+
+def library_router() -> APIRouter:
+    router = APIRouter(prefix="/api/memories")
+
+    @router.get("")
+    def memories(
+        request: Request,
+        current: Authenticated,
+        query: Annotated[str, Query(max_length=200)] = "",
+        kind: Literal["all", "notes", "photos", "pdfs", "other"] = "all",
+        include_history: bool = False,
+        cursor: Annotated[str, Query(max_length=36)] = "",
+        limit: Annotated[int, Query(ge=1, le=25)] = 25,
+    ) -> dict[str, Any]:
+        return MemoryLibrary(request.app.state.auth_store.engine).list(
+            current.user,
+            LibraryPage(
+                query=query,
+                kind=kind,
+                include_history=include_history,
+                cursor=cursor,
+                limit=limit,
+            ),
+        )
+
+    @router.post("", status_code=201)
+    def capture(
+        request: Request,
+        body: SaveText,
+        current: Annotated[CurrentSession, Depends(require_write_session)],
+    ) -> dict[str, Any]:
+        source = save_text(
+            MemoryService(request.app.state.auth_store.engine), current.user, body
+        )
+        return source.model_dump(mode="json")
+
+    return router
 
 
 def graph_router() -> APIRouter:

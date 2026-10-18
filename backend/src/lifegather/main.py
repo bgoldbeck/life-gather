@@ -30,7 +30,7 @@ from lifegather.documents.routes import document_router
 from lifegather.mcp_api.tools import build_server
 from lifegather.mcp_api.transport import PrivateMCP
 from lifegather.memory.notes import NoteConflict
-from lifegather.memory.routes import graph_router
+from lifegather.memory.routes import graph_router, library_router
 from lifegather.memory.service import MemoryError
 from lifegather.photos.routes import photo_router
 from lifegather.profiles.routes import profile_router
@@ -99,6 +99,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(photo_router())
     app.include_router(review_router())
     app.include_router(graph_router())
+    app.include_router(library_router())
     app.include_router(profile_router())
     app.include_router(document_router())
     app.add_middleware(CredentialBodyLimit)

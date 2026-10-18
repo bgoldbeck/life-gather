@@ -20,6 +20,7 @@ class CredentialBodyLimit:
                     "/auth/email/",
                     "/auth/test-login",
                     "/api/chat",
+                    "/api/memories",
                     "/api/assets",
                     "/api/photos/delete",
                     "/api/reviews",

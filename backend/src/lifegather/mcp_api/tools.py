@@ -29,6 +29,7 @@ from lifegather.mcp_api.schemas import (
     Search,
     SourceRead,
 )
+from lifegather.memory.library import LibraryPage, MemoryLibrary
 from lifegather.memory.notes import CorrectionInput, NoteHistoryInput, NoteService
 from lifegather.memory.schemas import FactView
 from lifegather.memory.service import MemoryError, MemoryService
@@ -144,6 +145,13 @@ def build_server() -> MCPServer:
         idempotent_hint=True,
         open_world_hint=False,
     )
+
+    @server.tool(annotations=annotation)
+    def memory_library(data: LibraryPage, ctx: ToolContext) -> dict[str, Any]:
+        """Browse owned saved evidence and search current or earlier source versions."""
+        return read(
+            ctx, lambda actor, memory, _: MemoryLibrary(memory.engine).list(actor, data)
+        )
 
     @server.tool(annotations=annotation)
     def document_list(data: DocumentPage, ctx: ToolContext) -> dict[str, Any]:

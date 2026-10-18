@@ -128,7 +128,7 @@ export function EvidencePanel({
 
   return (
     <section className="chat-evidence" aria-label="Original evidence">
-      <div>
+      <div className="evidence-heading">
         <h2>Original evidence</h2>
         <Button variant="ghost" disabled={saving} onClick={onClose}>
           Close evidence
@@ -150,6 +150,8 @@ export function EvidencePanel({
             <p>The original photo has been deleted. Derived text remains.</p>
           )}
         </div>
+      ) : source.document ? (
+        <p>Reviewed PDF text or correction · not independently verified</p>
       ) : (
         <p>Original statement · not independently verified</p>
       )}
