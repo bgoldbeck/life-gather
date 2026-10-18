@@ -4,6 +4,42 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { AssetActions } from './AssetActions'
 
 afterEach(() => vi.unstubAllGlobals())
+it('reports failed reloads, preserves the draft and allows a successful retry without writing', async () => {
+  const user = userEvent.setup()
+  const changed = vi
+    .fn()
+    .mockRejectedValueOnce(new Error('Synthetic connection failure'))
+    .mockResolvedValue(undefined)
+  const fetcher = vi.fn()
+  vi.stubGlobal('fetch', fetcher)
+  render(
+    <AssetActions
+      assetId="item"
+      head="head"
+      decisions={[]}
+      csrfToken="csrf"
+      onChanged={changed}
+    />,
+  )
+  await user.selectOptions(screen.getByLabelText('Ownership statement'), 'sold')
+  await user.type(
+    screen.getByLabelText('Why are you changing it?'),
+    'Keep this synthetic draft.',
+  )
+  await user.click(screen.getByRole('button', { name: 'Reload item' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Your draft is unchanged',
+  )
+  expect(screen.getByLabelText('Why are you changing it?')).toHaveValue(
+    'Keep this synthetic draft.',
+  )
+  expect(screen.getByLabelText('Ownership statement')).toHaveValue('sold')
+  await user.click(screen.getByRole('button', { name: 'Reload item' }))
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  expect(changed).toHaveBeenCalledTimes(2)
+  expect(fetcher).not.toHaveBeenCalled()
+})
+
 it('opens the exact decision source, compares targets without choosing, and clears hidden search selections', async () => {
   const user = userEvent.setup()
   const open = vi.fn().mockResolvedValue(undefined)
