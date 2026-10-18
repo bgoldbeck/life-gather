@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.12.0 — Sourced home and vehicle profiles
+
+- Add specifications, VIN/serial/model, filter dimensions, room paint and maintenance
+  statements to existing private asset/place records, or explicitly create a distinct
+  home/vehicle record. Creating a profile does not assert ownership or parts fitment.
+- Preserve exact source statements, stated/inferred/unknown status, optional world-valid
+  dates and correction history. Retry-safe atomic writes reuse the memory core.
+- Add private profile inspection to MCP, a responsive Profiles view, original evidence
+  inspection and graph navigation. No migration or external lookup is required.
+
 ## 0.11.0 — Interactive evidence-backed graph
 
 - Explore private records and their stored connections with keyboard-accessible nodes,

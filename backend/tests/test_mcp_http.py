@@ -14,6 +14,30 @@ META = {
 }
 
 
+def test_mcp_profile_read_uses_the_session_owner() -> None:
+    from lifegather.profiles.service import ProfileCreate, ProfileService
+
+    app = create_app()
+    with TestClient(app) as client:
+        alice, owner = signed_headers(app, "profile-alice")
+        bob, _ = signed_headers(app, "profile-bob")
+        item = ProfileService(app.state.auth_store.engine).create(
+            owner,
+            ProfileCreate(
+                name="Synthetic home",
+                kind="home",
+                text="Synthetic source",
+                operation_key="home",
+            ),
+        )
+        allowed = rpc(client, alice, "profile_get", {"entity_id": item.id}).json()
+        assert not allowed["result"].get("isError")
+        assert "Synthetic home" in str(allowed["result"])
+        denied = rpc(client, bob, "profile_get", {"entity_id": item.id}).json()
+        assert denied["result"]["isError"]
+        assert "Synthetic home" not in str(denied)
+
+
 def signed_headers(app: Any, subject: str) -> tuple[dict[str, str], Any]:
     import time
 

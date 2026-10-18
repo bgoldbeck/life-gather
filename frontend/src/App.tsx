@@ -27,6 +27,7 @@ import { AssetsPanel } from './AssetsPanel'
 import { BuildInfo, type Build } from './BuildInfo'
 import { AppearanceSettings } from './AppearanceSettings'
 import { GraphPanel } from './GraphPanel'
+import { ProfilesPanel } from './ProfilesPanel'
 import type { Theme } from './appearance'
 
 const navigation = [
@@ -44,6 +45,11 @@ const navigation = [
     name: 'Review',
     icon: CircleCheck,
     description: 'Review pending item details and uncertain identity matches.',
+  },
+  {
+    name: 'Profiles',
+    icon: Boxes,
+    description: 'Sourced home and vehicle details.',
   },
   { name: 'Overview', icon: LayoutDashboard, description: '' },
   {
@@ -186,6 +192,15 @@ export function Workspace({
             <PhotosPanel csrfToken={csrfToken} />
           ) : view === 'Chat' ? (
             <ChatPanel csrfToken={csrfToken} refreshSession={refreshSession} />
+          ) : view === 'Profiles' ? (
+            <ProfilesPanel
+              csrfToken={csrfToken}
+              refreshSession={refreshSession}
+              onOpenGraph={(id) => {
+                setGraphEntityId(id)
+                setView('Graph')
+              }}
+            />
           ) : view === 'Graph' ? (
             <GraphPanel
               csrfToken={csrfToken}
