@@ -188,7 +188,10 @@ print('Container health, UI, auth migration, user, and private storage verified.
     }
 
     # Keep registry credentials out of the user's persistent Docker configuration.
-    $endpoint = Get-CheckedOutput docker @('context', 'inspect', '--format', '{{(index .Endpoints "docker").Host}}')
+    # JSON avoids nested Go-template quotes being stripped by Windows PowerShell.
+    $contextJson = Get-CheckedOutput docker @('context', 'inspect')
+    $contexts = @(ConvertFrom-Json -InputObject $contextJson)
+    $endpoint = $contexts[0].Endpoints.docker.Host
     if ($env:DOCKER_HOST) { $endpoint = $env:DOCKER_HOST }
     $authDirectory = Join-Path ([IO.Path]::GetTempPath()) ('lifegather-registry-' + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $authDirectory | Out-Null
