@@ -8,4 +8,6 @@ User-supplied images saved on 2026-10-17 for LifeGather planning.
 - `purchase-reconciliation-graph.png`: Illustrative connections between a weed eater, purchase, retailer, receipt, and card payment after reconciliation. Relationship labels are conceptual design inspiration, not a finalized data model.
 - `lifegather-soft-green-light-theme.png`: Current LifeGather chat placeholder with a soft cream/sage palette and dark green accents. User finds the AI-generated design pleasant and likes its colors. Preserve that calm visual direction; develop an intentional dark palette rather than directly reusing light surfaces. Light and dark modes must be selectable in app Settings.
 
+- `lifegather-connections-orbit.png`: Leaf icon centered in a soft sage rounded square, surrounded by orbital rings and book, asset, and chat icons on a warm off-white background. The tagline reads “Every detail has a connection.” Reference for calm connection imagery, subtle linework, spacing, and muted green accents; adapt contrast for dark mode.
+
 These images are visual inspiration, not implemented screens or approved feature requirements. Names, records, dates, and amounts shown are illustrative, not real user data. The AdminCN image is a third-party reference; no ownership or reuse license is asserted.
