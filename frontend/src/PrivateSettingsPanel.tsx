@@ -260,9 +260,21 @@ export function PrivateSettingsPanel({
                         required
                         maxLength={64}
                         pattern="[a-z0-9][a-z0-9_-]*"
-                        placeholder="Provider identifier"
+                        placeholder={
+                          kind === 'ai'
+                            ? 'openai or anthropic (Claude)'
+                            : 'Provider identifier'
+                        }
                       />
                     </label>
+                    {kind === 'ai' && (
+                      <p>
+                        Chat and photo reading support provider “openai” for
+                        OpenAI or “anthropic” for Claude. Select a compatible
+                        model in Chat or Photos. Saving a key makes no provider
+                        request.
+                      </p>
+                    )}
                     <label>
                       Label
                       <input

@@ -124,3 +124,5 @@ The first [text memory chat increment](docs/TEXT_CHAT.md) provides private persi
 Private receipt/nameplate uploads, galleries and optional reviewed vision extraction are available; see [photo evidence and storage limits](docs/PHOTO_EVIDENCE.md).
 
 The [persistent review queue](docs/REVIEW_QUEUE.md) collects pending proposals and uncertain physical-item matches without requiring AI calls.
+
+[OpenAI and Claude connections](docs/AI_PROVIDERS.md) now share evidence-backed chat, reviewed extraction, photos, permission and usage limits. Live provider access has not been verified.

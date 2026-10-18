@@ -277,7 +277,9 @@ def test_provider_contract_bounds_and_redaction() -> None:
     assert "PRIVATE" not in str(error.value) and "secret" not in str(error.value)
 
 
+@pytest.mark.parametrize("provider_name", ["openai", "anthropic"])
 def test_cancel_stops_inflight_provider_without_another_call(
+    provider_name: str,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -307,7 +309,11 @@ def test_cancel_stops_inflight_provider_without_another_call(
 
     app = create_app()
     fake = SlowProvider()
-    app.state.chat_provider = fake
+    setattr(
+        app.state,
+        "chat_provider" if provider_name == "openai" else "claude_provider",
+        fake,
+    )
     with TestClient(app) as client:
         alice, _ = signed_headers(app, "alice")
         bob, _ = signed_headers(app, "bob")
@@ -319,7 +325,7 @@ def test_cancel_stops_inflight_provider_without_another_call(
             headers=alice,
             json={
                 "kind": "ai",
-                "provider": "openai",
+                "provider": provider_name,
                 "label": "Test",
                 "secret": "fake",
             },

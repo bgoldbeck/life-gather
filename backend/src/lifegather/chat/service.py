@@ -40,7 +40,7 @@ class TurnInput(BaseModel):
         if self.mode in {"ask", "extract", "extract_photo"} and (
             not self.credential_id or not self.model
         ):
-            raise ValueError("Choose an OpenAI credential and model")
+            raise ValueError("Choose an AI connection and model")
         if self.mode == "extract" and not self.source_id:
             raise ValueError("Choose a saved note first")
         if self.mode == "extract_photo" and not self.photo_id:
@@ -254,17 +254,24 @@ class ChatService:
             identifier = row.id
         return self.finish(actor, identifier, {"text": "Request stopped."}, "canceled")
 
+    def provider_name(
+        self, actor: Account, vault: PrivateSettings, credential_id: str
+    ) -> str:
+        with Session(self.engine) as db:
+            credential = vault._owned(db, actor, credential_id)
+            if credential.kind != "ai" or credential.provider not in {
+                "openai",
+                "anthropic",
+            }:
+                raise MemoryError("Select an OpenAI or Claude AI connection")
+            return credential.provider
+
     def reserve(
         self, actor: Account, vault: PrivateSettings, credential_id: str
     ) -> tuple[str, str]:
         if not vault.preferences(actor):
-            raise MemoryError(
-                "Enable external AI access in Settings before asking OpenAI"
-            )
-        with Session(self.engine) as db:
-            credential = vault._owned(db, actor, credential_id)
-            if credential.kind != "ai" or credential.provider != "openai":
-                raise MemoryError("Select an OpenAI AI credential")
+            raise MemoryError("Enable external AI access in Settings before asking AI")
+        self.provider_name(actor, vault, credential_id)
         secret = vault.read_secret(actor, credential_id)
         day = datetime.now(UTC).date().isoformat()
         with Session(self.engine) as db:

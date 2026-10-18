@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.0 — Claude alongside OpenAI
+
+- Select a private Claude (`anthropic`) or OpenAI connection for evidence-backed
+  answers, saved-note proposals and photo reading, with one shared memory store.
+- Route by owned credential metadata to fixed provider endpoints; no fallback,
+  arbitrary URLs or model write tools. Both providers share consent, daily budget,
+  per-call credential checks, cancellation, citation and source validation.
+- Add bounded Claude Messages JSON/vision adapter with local strict validation,
+  supported wire schema normalization, redacted failures and no retries.
+- New live-call result records retain provider/model labels. Switching a connection
+  clears the model field. No migration or new runtime dependency; live provider
+  access remains unverified (synthetic/mocked verification only).
+
+
 ## 0.8.0 — Persistent review queue
 
 - Add a private paginated Review inbox for pending item proposals and unresolved

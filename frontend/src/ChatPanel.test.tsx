@@ -5,6 +5,73 @@ import { ChatPanel } from './ChatPanel'
 
 afterEach(() => vi.unstubAllGlobals())
 
+it('offers Claude beside OpenAI and sends only the selected connection and model', async () => {
+  const user = userEvent.setup()
+  const fetcher = mockServer()
+  const original = fetcher.getMockImplementation()!
+  fetcher.mockImplementation(async (url, init) => {
+    if (url === '/api/settings')
+      return new Response(JSON.stringify({ allow_external_ai: true }))
+    if (url.startsWith('/api/credentials'))
+      return new Response(
+        JSON.stringify({
+          items: [
+            { id: 'openai', kind: 'ai', provider: 'openai', label: 'Primary' },
+            {
+              id: 'claude',
+              kind: 'ai',
+              provider: 'anthropic',
+              label: 'Alternative',
+            },
+            {
+              id: 'unsupported',
+              kind: 'ai',
+              provider: 'other',
+              label: 'Unsupported',
+            },
+          ],
+        }),
+      )
+    if (url.endsWith('/turns') && init?.method === 'POST')
+      return new Response(
+        JSON.stringify({
+          id: 'answer',
+          request_id: 'request',
+          mode: 'ask',
+          text: 'Filter?',
+          state: 'complete',
+          result: {
+            text: 'Synthetic Claude answer.',
+            provider: 'anthropic',
+            model: 'synthetic-claude',
+          },
+        }),
+      )
+    return original(url, init)
+  })
+  render(<ChatPanel csrfToken="csrf" />)
+  await screen.findByText('A place for the details')
+  await user.selectOptions(screen.getByLabelText('Action'), 'ask')
+  await user.selectOptions(screen.getByLabelText('AI connection'), 'openai')
+  await user.type(screen.getByLabelText('Model ID'), 'old-model')
+  await user.selectOptions(screen.getByLabelText('AI connection'), 'claude')
+  expect(screen.getByLabelText('Model ID')).toHaveValue('')
+  expect(screen.queryByRole('option', { name: /Unsupported/ })).toBeNull()
+  await user.type(screen.getByLabelText('Model ID'), 'synthetic-claude')
+  await user.type(screen.getByLabelText('Your question'), 'Filter?')
+  await user.click(screen.getByRole('button', { name: 'Ask AI' }))
+  await screen.findByText('Synthetic Claude answer.')
+  expect(screen.getByText('Claude · synthetic-claude')).toBeVisible()
+  const posted = fetcher.mock.calls.find(
+    ([url, init]) => url.endsWith('/turns') && init?.method === 'POST',
+  )!
+  expect(JSON.parse(String(posted[1]?.body))).toMatchObject({
+    credential_id: 'claude',
+    model: 'synthetic-claude',
+    mode: 'ask',
+  })
+})
+
 function mockServer() {
   const saved = {
     id: 'turn-1',
@@ -105,7 +172,7 @@ describe('private text memory chat', () => {
     expect(
       screen.getByText('Enable external AI access in Settings to continue.'),
     ).toBeVisible()
-    expect(screen.getByRole('button', { name: 'Ask OpenAI' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Ask AI' })).toBeDisabled()
   })
 
   it('retries a lost response using the same request ID', async () => {
@@ -234,10 +301,7 @@ it('starts extraction only from a selected saved note and renders the persisted 
   expect(screen.getByLabelText('Selected saved note')).toHaveAttribute(
     'readonly',
   )
-  await user.selectOptions(
-    screen.getByLabelText('OpenAI credential'),
-    'credential',
-  )
+  await user.selectOptions(screen.getByLabelText('AI connection'), 'credential')
   await user.type(screen.getByLabelText('Model ID'), 'fixture-model')
   await user.click(screen.getByRole('button', { name: 'Suggest asset' }))
   expect(await screen.findByLabelText('Item name')).toHaveValue('trimmer')
