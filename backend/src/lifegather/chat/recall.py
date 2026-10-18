@@ -144,7 +144,7 @@ class RecallTools:
                 records.append(record)
         for source in self.chat.evidence(actor, plan.query):
             if add_source(source["id"]):
-                for key in ("asset_context", "photo", "status"):
+                for key in ("asset_context", "photo", "document", "status"):
                     if key in source:
                         sources[source["id"]][key] = source[key]
         trace.append(

@@ -5,7 +5,7 @@
 
 Ordered continuation, 2026-10-18: [implementation ledger](docs/superpowers/plans/2026-10-18-ordered-roadmap.md).
 Per-user Light/Dark/System appearance is implemented in v0.10.0; the interactive
-graph is implemented in v0.11.0; sourced home/vehicle profiles are implemented in v0.12.0. Private saved chat choices are implemented in v0.13.0; streaming replies are implemented in v0.14.0; bounded sourced record/connection recall is implemented in v0.15.0. Google Gemini support is implemented in v0.16.0; managed Antigravity is deferred for documented API limitations. Broader extraction is next. Older milestone paragraphs below are historical context.
+graph is implemented in v0.11.0; sourced home/vehicle profiles are implemented in v0.12.0. Private saved chat choices are implemented in v0.13.0; streaming replies are implemented in v0.14.0; bounded sourced record/connection recall is implemented in v0.15.0. Google Gemini support is implemented in v0.16.0; managed Antigravity is deferred for documented API limitations. Private reviewed PDF evidence is implemented in v0.17.0; multi-item typed receipt extraction is next. Older milestone paragraphs below are historical context.
 
 Source increment: [text memory chat](docs/TEXT_CHAT.md) now provides persistent
 private conversations, explicit text capture, keyword recall, source inspection,

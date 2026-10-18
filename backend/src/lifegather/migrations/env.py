@@ -5,6 +5,7 @@ from lifegather.auth import email_models  # noqa: F401
 from lifegather.auth.models import Base
 from lifegather.chat import models as chat_models  # noqa: F401
 from lifegather.credentials import models as credential_models  # noqa: F401
+from lifegather.documents import models as document_models  # noqa: F401
 from lifegather.memory import models as memory_models  # noqa: F401
 from lifegather.photos import models as photo_models  # noqa: F401
 from lifegather.reconciliation import models as reconciliation_models  # noqa: F401

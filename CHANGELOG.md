@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.17.0 — Private PDF evidence and reviewed text
+
+- Upload owner-scoped PDF originals, inspect automatic text extraction and explicitly
+  save reviewed text to searchable memory. No automatic asset creation or provider call.
+- Preserve original downloads and source links through note corrections and graph
+  evidence inspection. Original deletion retains reviewed source history explicitly.
+- Bound uploads to 8 MiB / 10 pages, extraction to 4,000 characters, and private PDF
+  storage to 200 active files / 256 MiB per user. Use a separate local parser process
+  with decompression/time limits and Linux CPU/address-space limits. No inline PDF
+  execution or OCR. Migration `0013_private_documents`; add pinned pypdf dependency.
+
 ## 0.16.0 — Google Gemini alongside OpenAI and Claude
 
 - Add Google Gemini to private Chat, saved choices and photo reading using an

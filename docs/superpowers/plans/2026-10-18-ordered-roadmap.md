@@ -130,3 +130,17 @@ and production builds pass. Tests cover fixed stateless requests, private header
 keys, image input, thought exclusion, streaming, redacted failures, consent, saved
 choices and no provider fallback. Graphify refreshed 1572 nodes / 5433 edges.
 All Google testing is mocked; Antigravity managed-agent support remains deferred.
+
+Feature 5 Gemini merged v0.16.0 via PR #26; managed Antigravity remains explicitly
+deferred. Feature 6 is split into 6a private PDF originals/reviewed text (v0.17.0)
+and 6b multi-item typed receipt extraction. PDF text is untrusted and requires
+review before memory capture. Original links survive corrections/deletion as
+metadata; deletion retains reviewed source history. Migration 0013 and pinned
+pypdf 6.21.1. Separate parser process, bounded bytes/pages/text/decompression/time;
+Linux resource limits are implemented but not executed on this Windows host.
+
+PDF evidence verified: 190 backend / 58 frontend tests, lint/types/format checks
+and builds pass. Coverage includes owner isolation, exact original downloads,
+CSRF, idempotent uploads/review, corrected-source links, deletion retention,
+parse timeout, decompression caps, truncation and private MCP reads. Graphify
+refreshed 1650 nodes / 5715 edges. No external calls or Docker changes.

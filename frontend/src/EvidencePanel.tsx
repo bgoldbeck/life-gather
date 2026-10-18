@@ -6,6 +6,7 @@ export type EvidenceSource = {
   id: string
   text: string
   photo?: { id: string; deleted_at: number | null } | null
+  document?: { id: string; filename: string; deleted_at: number | null } | null
   asset_proposal_id?: string | null
   asset_context?: {
     asset_name: string
@@ -160,6 +161,23 @@ export function EvidencePanel({
         </p>
       )}
       <p className="chat-text">{source.text}</p>
+      {source.document && (
+        <div>
+          <p>
+            Reviewed PDF text: {source.document.filename}. Text may omit layout
+            or scanned content.
+          </p>
+          {source.document.deleted_at === null ? (
+            <a href={`/api/documents/${source.document.id}/original`} download>
+              Download original PDF
+            </a>
+          ) : (
+            <p>
+              The original PDF has been deleted; saved source history remains.
+            </p>
+          )}
+        </div>
+      )}
       {source.asset_context && (
         <p>
           Recorded against {source.asset_context.asset_name}. User-selected

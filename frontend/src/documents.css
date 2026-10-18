@@ -1,0 +1,61 @@
+.documents-panel,
+.document-editor {
+  display: grid;
+  gap: 1rem;
+  max-width: 65rem;
+}
+.documents-panel h1 {
+  font-size: 2rem;
+}
+.document-editor h2 {
+  font-size: 1.5rem;
+  overflow-wrap: anywhere;
+}
+.documents-panel form,
+.document-editor {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--card);
+}
+.documents-panel form {
+  display: grid;
+  gap: 1rem;
+}
+.documents-panel label {
+  display: grid;
+  gap: 0.5rem;
+}
+.documents-panel textarea {
+  min-height: 10rem;
+  width: 100%;
+  padding: 0.7rem;
+  background: var(--background);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+.documents-panel pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 20rem;
+  overflow: auto;
+  padding: 0.7rem;
+  background: var(--secondary);
+}
+.documents-panel a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.documents-panel li {
+  margin: 0.5rem 0;
+}
+.documents-panel li button {
+  white-space: normal;
+  height: auto;
+  min-height: 2.5rem;
+  text-align: left;
+}
+.documents-panel details {
+  padding: 0.5rem 0;
+}
