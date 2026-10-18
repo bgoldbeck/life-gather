@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { AuthGate } from './AuthGate'
 import { PrivateSettingsPanel } from './PrivateSettingsPanel'
+import { PasswordSettings } from './PasswordSettings'
 
 const navigation = [
   {
@@ -58,12 +59,16 @@ export function Workspace({
   signingOut = false,
   csrfToken = '',
   refreshSession,
+  passwordEnabled = false,
+  deliveryEnabled = false,
 }: {
   userName?: string
   onSignOut?: () => void
   signingOut?: boolean
   csrfToken?: string
   refreshSession?: () => Promise<void>
+  passwordEnabled?: boolean
+  deliveryEnabled?: boolean
 }) {
   const [view, setView] = useState<View>('Overview')
   const current = navigation.find((item) => item.name === view)!
@@ -136,10 +141,18 @@ export function Workspace({
         </header>
         <main id="main-content" className="main-content">
           {view === 'Settings' ? (
-            <PrivateSettingsPanel
-              csrfToken={csrfToken}
-              refreshSession={refreshSession}
-            />
+            <>
+              <PrivateSettingsPanel
+                csrfToken={csrfToken}
+                refreshSession={refreshSession}
+              />
+              <PasswordSettings
+                configured={passwordEnabled}
+                deliveryEnabled={deliveryEnabled}
+                csrfToken={csrfToken}
+                refreshSession={refreshSession}
+              />
+            </>
           ) : view === 'Overview' ? (
             <>
               <div className="section-label">
@@ -305,12 +318,22 @@ export function Workspace({
 export default function App() {
   return (
     <AuthGate>
-      {(user, signOut, busy, csrfToken, refreshSession) => (
+      {(
+        user,
+        signOut,
+        busy,
+        csrfToken,
+        refreshSession,
+        passwordEnabled,
+        deliveryEnabled,
+      ) => (
         <Workspace
           key={user.id}
           userName={user.name || user.email}
           onSignOut={signOut}
           signingOut={busy}
+          passwordEnabled={passwordEnabled}
+          deliveryEnabled={deliveryEnabled}
           csrfToken={csrfToken}
           refreshSession={refreshSession}
         />

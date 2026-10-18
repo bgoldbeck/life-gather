@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Self
 from urllib.parse import urlsplit
 
-from pydantic import SecretStr, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +20,41 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: SecretStr = SecretStr("")
     vault_key_file: Path | None = None
+    smtp_host: str = ""
+    smtp_port: int = Field(default=587, ge=1, le=65535)
+    smtp_username: str = ""
+    smtp_password: SecretStr = SecretStr("")
+    smtp_sender: str = ""
+    smtp_implicit_tls: bool = False
+
+    @property
+    def mail_enabled(self) -> bool:
+        return bool(
+            self.smtp_host
+            and self.smtp_username
+            and self.smtp_password.get_secret_value()
+            and self.smtp_sender
+        )
+
+    @model_validator(mode="after")
+    def validate_mail(self) -> Self:
+        supplied = [
+            bool(self.smtp_host),
+            bool(self.smtp_username),
+            bool(self.smtp_password.get_secret_value()),
+            bool(self.smtp_sender),
+        ]
+        if any(supplied) and not all(supplied):
+            raise ValueError(
+                "Configure SMTP host, username, password and sender together"
+            )
+        if self.smtp_sender:
+            from lifegather.auth.email_validation import email_key
+
+            self.smtp_sender = email_key(self.smtp_sender)
+        if any(c in self.smtp_host + self.smtp_username for c in "\r\n"):
+            raise ValueError("Invalid SMTP configuration")
+        return self
 
     @field_validator("vault_key_file", mode="before")
     @classmethod

@@ -9,18 +9,21 @@ class CredentialBodyLimit:
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if (
             scope["type"] != "http"
-            or not scope.get("path", "").startswith("/api/credentials")
+            or not scope.get("path", "").startswith(
+                ("/api/credentials", "/auth/email/")
+            )
             or scope.get("method") not in {"POST", "PUT"}
         ):
             await self.app(scope, receive, send)
             return
+        limit = 16384 if scope.get("path", "").startswith("/auth/email/") else 32768
         body = bytearray()
         while True:
             message = await receive()
             if message["type"] == "http.disconnect":
                 return
             chunk = message.get("body", b"")
-            if len(body) + len(chunk) > 32768:
+            if len(body) + len(chunk) > limit:
                 await JSONResponse(
                     {"detail": "Request too large"},
                     status_code=413,

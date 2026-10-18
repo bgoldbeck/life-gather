@@ -136,11 +136,26 @@ def test_migration_preserves_existing_accounts(tmp_path: Path) -> None:
     with store.engine.begin() as connection:
         config.attributes["connection"] = connection
         command.upgrade(config, "0001_accounts")
-    session = store.login("existing", "a@example.test", "Existing", now=100)
+    from sqlalchemy.orm import Session
+
+    from lifegather.auth.models import User
+
+    with Session(store.engine) as db, db.begin():
+        legacy = User(
+            id="legacy-user",
+            issuer="https://accounts.google.com",
+            subject="existing",
+            email="a@example.test",
+            name="Existing",
+            created_at=100,
+        )
+        db.add(legacy)
+        db.flush()
+        session = store.issue_session(db, legacy, 100)
     store.migrate()
     assert store.authenticate(session.token, now=101) is not None
     with store.engine.connect() as connection:
         assert (
             connection.scalar(text("SELECT version_num FROM alembic_version"))
-            == "0004_reconciliation"
+            == "0005_email_auth"
         )

@@ -233,6 +233,8 @@ def test_disabled_configuration_and_origin_validation() -> None:
     with TestClient(main.create_app()) as client:
         assert client.get("/auth/session").json() == {
             "configured": False,
+            "email_delivery_enabled": False,
+            "email_password_enabled": False,
             "user": None,
             "csrf_token": None,
         }

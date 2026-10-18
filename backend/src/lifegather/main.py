@@ -6,7 +6,11 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from lifegather.auth.email_routes import email_router
+from lifegather.auth.email_service import EmailAuth
+from lifegather.auth.email_validation import EmailAuthError
 from lifegather.auth.google import GoogleProvider
+from lifegather.auth.mail import MailSender, SmtpSender
 from lifegather.auth.routes import auth_router
 from lifegather.auth.store import AuthStore
 from lifegather.config import Settings
@@ -15,7 +19,7 @@ from lifegather.credentials.routes import private_router
 from lifegather.credentials.service import PrivateSettings, VaultError, read_key
 
 
-def create_app() -> FastAPI:
+def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     settings = Settings()
 
     @asynccontextmanager
@@ -24,6 +28,17 @@ def create_app() -> FastAPI:
         store = AuthStore(settings.data_dir / "auth.sqlite3")
         store.migrate()
         app.state.auth_store = store
+        sender = mail_sender
+        if sender is None and settings.mail_enabled:
+            sender = SmtpSender(
+                settings.smtp_host,
+                settings.smtp_port,
+                settings.smtp_username,
+                settings.smtp_password.get_secret_value(),
+                settings.smtp_sender,
+                settings.smtp_implicit_tls,
+            )
+        app.state.email_auth = EmailAuth(store, sender, settings.public_url)
         try:
             app.state.private_settings = PrivateSettings(
                 store.engine, read_key(settings.vault_key_file)
@@ -36,7 +51,12 @@ def create_app() -> FastAPI:
     app.state.settings = settings
     app.include_router(auth_router(settings, GoogleProvider(settings)))
     app.include_router(private_router())
+    app.include_router(email_router(settings))
     app.add_middleware(CredentialBodyLimit)
+
+    @app.exception_handler(EmailAuthError)
+    async def email_auth_error(request: Request, error: EmailAuthError) -> JSONResponse:
+        return JSONResponse({"detail": str(error)}, status_code=error.status)
 
     @app.exception_handler(VaultError)
     async def vault_error(request: Request, error: VaultError) -> JSONResponse:
@@ -57,6 +77,7 @@ def create_app() -> FastAPI:
         if request.url.path.startswith(("/auth/", "/api/")):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["Referrer-Policy"] = "no-referrer"
         return response
 
     @app.get("/health")

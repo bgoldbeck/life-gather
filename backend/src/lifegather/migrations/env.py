@@ -1,5 +1,6 @@
 from alembic import context
 
+from lifegather.auth import email_models  # noqa: F401
 from lifegather.auth.models import Base
 from lifegather.credentials import models as credential_models  # noqa: F401
 from lifegather.memory import models as memory_models  # noqa: F401

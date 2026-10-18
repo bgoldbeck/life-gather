@@ -450,7 +450,22 @@ def test_prior_memory_alias_prevents_duplicate_and_upgrade_preserves_data(
     with store.engine.begin() as connection:
         config.attributes["connection"] = connection
         command.upgrade(config, "0003_memory_core")
-    session = store.login("a", "a@example.test", "A", now=100)
+    from sqlalchemy.orm import Session
+
+    from lifegather.auth.models import User
+
+    with Session(store.engine) as db, db.begin():
+        legacy = User(
+            id="legacy-user",
+            issuer="https://accounts.google.com",
+            subject="a",
+            email="a@example.test",
+            name="A",
+            created_at=100,
+        )
+        db.add(legacy)
+        db.flush()
+        session = store.issue_session(db, legacy, 100)
     actor = session.user
     memory = MemoryService(store.engine)
     source = memory.ingest(actor, SourceInput(text="My weed eater is a trimmer."))
