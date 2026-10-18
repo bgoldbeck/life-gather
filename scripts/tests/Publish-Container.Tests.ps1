@@ -63,7 +63,12 @@ function global:docker {
             }
         }
         'rm' { }
-        'context' { 'npipe:////./pipe/dockerDesktopLinuxEngine' }
+        'context' {
+            if ($arguments -contains '--format') {
+                throw 'Use JSON context inspection to avoid Windows quote stripping'
+            }
+            '[{"Endpoints":{"docker":{"Host":"npipe:////./pipe/dockerDesktopLinuxEngine"}}}]'
+        }
         'login' { $null = $input | Out-String }
         'push' { $global:LifeGatherReleaseTest.Pushes++ }
         'tag' { }
