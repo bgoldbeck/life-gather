@@ -156,6 +156,15 @@ class AssetService:
                 ).limit(1)
             )
             result["action_head"] = latest.id if latest else ""
+            # Incoming history is read-only context. The write head remains this
+            # asset's own action chain, matching ActionService.latest.
+            actions_query = select(AssetAction).where(
+                AssetAction.user_id == actor.id,
+                or_(
+                    AssetAction.asset_id == asset.id,
+                    AssetAction.target_asset_id == asset.id,
+                ),
+            )
             if data.action_cursor:
                 old_action = db.scalar(
                     actions_query.where(AssetAction.id == data.action_cursor)
@@ -182,6 +191,17 @@ class AssetService:
                 {
                     "id": row.id,
                     "operation": row.operation,
+                    "direction": "recorded_here"
+                    if row.asset_id == asset.id
+                    else "incoming",
+                    "asset_id": row.asset_id,
+                    "asset_name": self.memory._entity(db, actor, row.asset_id).name,
+                    "target_asset_id": row.target_asset_id,
+                    "target_asset_name": self.memory._entity(
+                        db, actor, row.target_asset_id
+                    ).name
+                    if row.target_asset_id
+                    else None,
                     "recorded_at": row.recorded_at,
                     "source_id": row.source_id,
                     "note": self.memory._source(db, actor, row.source_id).text,

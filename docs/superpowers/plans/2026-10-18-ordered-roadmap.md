@@ -332,3 +332,12 @@ Finite active intervals block enrichment; future/ended statements do not. Explic
 buyback restores inventory. No schema, dependency or UI change.
 
 Inventory consistency verified: 293 backend / 88 frontend tests; lint, format, types, frontend and package builds pass. New coverage checks sold/returned/no-longer-owned exclusion, buyback, preserved history, current/future/ended intervals, inclusive starts/exclusive ends and private MCP pagination. Graphify unavailable; graph/HTML refresh could not run after shared predicate extraction. No schema/dependency/UI change.
+
+
+Evidence-move inspection v0.30.0: exact selected source, distinct decision/target
+IDs, source/target candidate comparison, and new-search target reset. Incoming
+correction history reads preserve the separate own-action write head; new actions
+retain actual created targets. Old targetless new-item actions remain on original
+history without speculative backfill. No migration/dependency/general consolidation.
+
+Evidence-move inspection verified: 295 backend / 90 frontend tests; lint, format, types, frontend and package builds pass. Tests cover incoming private HTTP/MCP reads/cursors, own write heads after incoming moves, actual new targets, exact source opening, nonselecting comparisons and hidden-target search reset. Browser compared source/target, moved a receipt unit and opened receiving correction with both names. Graphify unavailable; graph/HTML refresh could not run. No migration/dependency.

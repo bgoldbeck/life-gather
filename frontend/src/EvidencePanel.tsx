@@ -13,6 +13,7 @@ export type EvidenceSource = {
     asset_name: string
     operation: string
     user_selected_status: string | null
+    target_asset_name?: string | null
   } | null
   note?: {
     root_source_id: string
@@ -195,6 +196,9 @@ export function EvidencePanel({
           ).replaceAll('_', ' ')}
           .
         </p>
+      )}
+      {source.asset_context?.target_asset_name && (
+        <p>Receiving item: {source.asset_context.target_asset_name}.</p>
       )}
       {source.asset_proposal_id && onViewProposal && (
         <Button

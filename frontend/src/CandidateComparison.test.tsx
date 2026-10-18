@@ -29,6 +29,8 @@ function detail(id: string, serial: string) {
         note: 'I sold this item.',
         source_id: 'correction-' + id,
         recorded_at: 1792348800000000,
+        direction: 'incoming',
+        asset_name: 'Original item',
       },
     ],
     next_action_cursor: 'more',
@@ -69,6 +71,9 @@ it('loads only explicitly inspected bounded snapshots and opens exact evidence w
     within(first).getByRole('button', { name: 'Open identity evidence' }),
   )
   expect(onOpen).toHaveBeenCalledWith('evidence-asset-a')
+  expect(
+    within(first).getByText('Evidence received from Original item.'),
+  ).toBeVisible()
   expect(screen.getByText(/Outside current inventory/)).toBeVisible()
   expect(
     within(first).getByText('Synthetic evidence <script>untrusted()</script>'),

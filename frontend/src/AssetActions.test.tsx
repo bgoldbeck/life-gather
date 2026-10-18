@@ -4,6 +4,107 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { AssetActions } from './AssetActions'
 
 afterEach(() => vi.unstubAllGlobals())
+it('opens the exact decision source, compares targets without choosing, and clears hidden search selections', async () => {
+  const user = userEvent.setup()
+  const open = vi.fn().mockResolvedValue(undefined)
+  const writes: Record<string, unknown>[] = []
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.startsWith('/api/assets?'))
+        return new Response(
+          JSON.stringify({
+            items: [
+              {
+                id: url.includes('second') ? 'second' : 'first',
+                name: 'Same name',
+                recorded_at: 100,
+              },
+            ],
+            next_cursor: null,
+          }),
+        )
+      if (url.includes('?limit=3'))
+        return new Response(
+          JSON.stringify({
+            asset: {
+              id: 'first',
+              name: 'Same name',
+              source_id: 'target-source',
+            },
+            in_inventory: true,
+            decisions: [],
+          }),
+        )
+      writes.push(JSON.parse(String(init?.body)))
+      return new Response(JSON.stringify({ id: 'saved' }))
+    }),
+  )
+  render(
+    <AssetActions
+      assetId="item"
+      assetName="Source item"
+      head=""
+      decisions={[
+        {
+          id: 'decision',
+          name: 'Receipt item',
+          quote: 'Exact synthetic receipt passage.',
+          source_id: 'receipt-source',
+          recorded_at: 100,
+          superseded_at: null,
+        },
+      ]}
+      csrfToken="csrf"
+      onChanged={vi.fn()}
+      onOpen={open}
+    />,
+  )
+  await user.selectOptions(
+    screen.getByLabelText('Change to make'),
+    'reassociate',
+  )
+  await user.selectOptions(
+    screen.getByLabelText('Current decision'),
+    'decision',
+  )
+  expect(screen.getByText('Exact synthetic receipt passage.')).toBeVisible()
+  await user.click(
+    screen.getByRole('button', { name: 'Open selected decision source' }),
+  )
+  expect(open).toHaveBeenCalledWith('receipt-source')
+  await user.click(screen.getByRole('button', { name: 'Find target items' }))
+  await user.click(
+    screen.getByRole('button', { name: 'Inspect Same name (first)' }),
+  )
+  await screen.findByRole('button', { name: 'Open candidate original source' })
+  expect(screen.getByLabelText('Evidence belongs to')).toHaveValue('')
+  expect(writes).toHaveLength(0)
+  await user.selectOptions(
+    screen.getByLabelText('Evidence belongs to'),
+    'first',
+  )
+  await user.type(
+    screen.getByLabelText('Why are you changing it?'),
+    'Synthetic correction.',
+  )
+  expect(screen.getByRole('button', { name: 'Save correction' })).toBeEnabled()
+  await user.type(screen.getByLabelText('Find an existing item'), 'second')
+  expect(screen.getByLabelText('Evidence belongs to')).toHaveValue('')
+  expect(screen.getByRole('button', { name: 'Save correction' })).toBeDisabled()
+  await user.click(screen.getByRole('button', { name: 'Find target items' }))
+  await user.selectOptions(
+    screen.getByLabelText('Evidence belongs to'),
+    'second',
+  )
+  await user.click(screen.getByRole('button', { name: 'Save correction' }))
+  expect(writes).toHaveLength(1)
+  expect(writes[0]).toMatchObject({
+    target_asset_id: 'second',
+    decision_id: 'decision',
+  })
+})
+
 it('moves only the selected receipt unit to an explicit existing item and excludes multi-unit undo', async () => {
   const user = userEvent.setup()
   const fetcher = vi.fn(
