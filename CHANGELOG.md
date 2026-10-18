@@ -286,4 +286,3 @@
 
 This is the initial visible versioning baseline. Source completion does not imply
 that the corresponding Docker image has been published or deployed.
-
