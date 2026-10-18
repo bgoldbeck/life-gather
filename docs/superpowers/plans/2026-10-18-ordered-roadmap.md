@@ -314,3 +314,12 @@ unit creation or single-unit undo of a whole receipt. Existing atomic service an
 HTTP/MCP contracts, no migration/dependency.
 
 Unit correction verified: 276 backend / 86 frontend tests; lint, format, types, frontend/package builds pass. Coverage includes typed whole-line money, exact sibling mapping, explicit reversal, private HTTP/MCP, stale sibling races, rollback after derived writes and snapshot recovery. Browser moved unit 2 and verified its receipt on the target; fixed stale purchase cards after corrections. Graphify unavailable; graph/HTML refresh could not run. No migration or dependency.
+
+
+Automatic receipts v0.29.0: explicit per-line automatic identity from reviewed
+fields and purchase/possession. Entire selected batch creates/enriches only when
+clear; ambiguity returns fresh comparisons without writes/consuming request id.
+Cross-line identity changes roll back atomically. Manual new/link/skip remains;
+no partial draft state, unattended ingestion, money extraction or schema/dependency.
+
+Automatic receipt verification: 283 backend / 88 frontend tests; lint, format, types, production frontend and package builds passed. Coverage includes concurrent exact replay, ambiguity with no sources/entities/facts/audit writes, active serial enrichment, sold refusal, cross-line rollback, corrected sources, private HTTP/MCP and lost-response retry. Synthetic browser kept ambiguity pending, opened its candidate and completed a mixed automatic/manual three-unit receipt. Graphify unavailable; graph/HTML refresh could not run. No migration/dependency.
