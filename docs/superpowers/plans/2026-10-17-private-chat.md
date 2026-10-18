@@ -1,5 +1,11 @@
 # Private Chat Implementation Plan
 
+**Status, 2026-10-18:** Approved plan for the broader runtime, not a completed
+implementation report. The separate [text-memory chat increment](../../TEXT_CHAT.md)
+is implemented on `main`. Reconcile this plan with that increment's schema,
+migrations and APIs before executing remaining tasks; do not create conflicting
+migration revisions or replace existing user history.
+
 > **For agentic workers:** Use `superpowers:executing-plans` in the main/root
 > chat. The user forbids subagents, delegation, and parallel agent work. Implement
 > tasks sequentially and self-review each passing task.
@@ -17,8 +23,8 @@ v2 client, official OpenAI/Anthropic Python SDKs verified and locked at executio
 React/TypeScript, existing shadcn primitives and semantic theme variables.
 
 **Spec:** [Approved private chat design](../specs/2026-10-17-private-chat-design.md).
-The user approved the written design on 2026-10-17. This plan still needs review
-before implementation. Main/root execution is already selected by user policy.
+The user approved the written design and this plan on 2026-10-17.
+Main/root execution is already selected by user policy.
 
 ## Global constraints
 

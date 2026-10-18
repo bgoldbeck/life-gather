@@ -44,13 +44,6 @@ Use the source-code graph workflow below when code discovery is required.
 4. Add useful fixtures demonstrating ambiguity, temporal updates, duplicate ingestion and provenance.
 5. Stop at the acceptance criteria rather than opportunistically starting the next phase.
 
-## Completed-feature delivery
-- The user authorizes the following source-code workflow whenever a new feature is finished and its relevant tests, linters, and verification pass: commit the intended changes, push the feature branch, create a pull request against `main`, merge the pull request, and delete the merged feature branch locally and on GitHub. Merging closes the pull request; verify that it is merged and closed.
-- Local commits may capture verified implementation slices during development, but do not merge a partially implemented feature. Preserve unrelated edits and existing staging; never include them merely to complete this workflow.
-- Before merging, review the final diff and required checks. Resolve failures and merge conflicts, and do not bypass branch protections or force-push to complete delivery. If permissions, required reviews, or an external failure block delivery, report the exact blocker and preserve the branch.
-- After merging, verify that `main` contains the feature and report the pull request link, merge commit, verification results, and branch cleanup. Do not delete a branch or worktree that still contains unmerged work; update local `main` only when doing so preserves local edits.
-- This standing authorization covers source delivery only. The Docker rebuild/upload approval rules below still apply, and GitHub Actions must remain disabled as requested. Do not introduce paid GitHub services.
-
 ## Source-code searches and graph refresh
 - When locating code by behavior, tracing calls/imports, or identifying affected components, first consult Graphify with a scoped query. For an exact filename, identifier, or text search, reach first for `rg`/`rg --files`; consult the graph when relationship context is needed. Directly reading a known file does not require a graph query.
 - Verify graph findings against current source and relevant tests. Use `rg` to cover omissions, unsupported files, configuration, or inconclusive results. Never infer that code is absent solely because the graph has no match.

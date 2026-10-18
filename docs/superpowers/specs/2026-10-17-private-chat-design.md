@@ -1,5 +1,11 @@
 # Private chat with OpenAI and Claude
 
+**Status, 2026-10-18:** Approved design for the broader chat runtime. The first
+[text-memory chat increment](../../TEXT_CHAT.md) is now implemented on `main`:
+local capture/search and optional OpenAI answers. This design remains a target
+for further work, not a description of all currently shipped behavior. Reconcile
+it with the existing chat schema and APIs before continuing implementation.
+
 ## Intent and approved scope
 
 The user approved this scope on 2026-10-17: one shared conversation/tool runtime
@@ -13,8 +19,8 @@ watch the answer arrive, inspect its evidence, and return to the same conversati
 after a restart. Conversations belong to the user's stable workspace ID. A model
 is not the source of truth for possessions or graph facts.
 
-The user approved this written design on 2026-10-17. The implementation plan
-requires review before execution; no chat code has been implemented yet.
+The user approved this written design and its implementation plan on 2026-10-17.
+The broader runtime is not yet delivered; the current increment is linked above.
 
 ## Approach and alternatives
 
