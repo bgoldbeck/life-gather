@@ -88,6 +88,43 @@ class PurchaseDetails:
             "recorded_at": row.recorded_at,
         }
 
+    @staticmethod
+    def suggestions(text: str, item_quote: str) -> dict[str, str | None]:
+        """Copy uniquely labeled source passages; never infer or calculate."""
+        result: dict[str, str | None] = {
+            "line_total": None,
+            "money_quote": None,
+            "purchase_date": None,
+            "date_quote": None,
+        }
+        # Restrict money to the item's own printed line; never borrow another total.
+        lines = [line for line in text.splitlines() if item_quote in line]
+        if len(lines) == 1 and len(lines[0]) <= 500:
+            amounts = re.findall(
+                r"\bline total\s*:?\s*USD ([0-9]+\.[0-9]{2})(?![0-9.])",
+                lines[0],
+                re.I,
+            )
+            if len(amounts) == 1 and re.fullmatch(
+                r"(?:0|[1-9][0-9]{0,8})\.[0-9]{2}", amounts[0]
+            ):
+                result.update(line_total=amounts[0], money_quote=lines[0])
+        dates = list(
+            re.finditer(
+                r"\bpurchase date\s*:?\s*([0-9]{4}-[0-9]{2}-[0-9]{2})(?![0-9])",
+                text,
+                re.I,
+            )
+        )
+        if len(dates) == 1:
+            try:
+                date.fromisoformat(dates[0][1])
+            except ValueError:
+                pass
+            else:
+                result.update(purchase_date=dates[0][1], date_quote=dates[0][0])
+        return result
+
     def get(self, actor: Account, value: DetailRead) -> dict[str, Any]:
         data = DetailRead.model_validate(value)
         with Session(self.engine) as db:
@@ -100,8 +137,10 @@ class PurchaseDetails:
                 db.scalars(query.order_by(ReceiptDetail.revision.desc()).limit(6))
             )
             available = True
+            suggestions = None
             try:
-                self.receipts.source(db, actor, receipt.source_id)
+                text = self.receipts.source(db, actor, receipt.source_id)
+                suggestions = self.suggestions(text, choice.fields.quote)
             except MemoryError:
                 available = False
             return {
@@ -112,6 +151,7 @@ class PurchaseDetails:
                 "current_head": head.id if head else None,
                 "current": self.view(head) if head else None,
                 "can_edit": available,
+                "suggestions": suggestions,
                 "items": [self.view(r) for r in rows[:5]],
                 "next_revision": rows[4].revision if len(rows) > 5 else None,
             }

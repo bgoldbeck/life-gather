@@ -359,3 +359,51 @@ def test_upgrade_preserves_confirmed_receipt(tmp_path: Path) -> None:
     result = PurchaseDetails(auth.engine).save(actor, body(receipt))
     assert result["total_minor"] == 4990
     auth.engine.dispose()
+
+
+def test_purchase_read_suggests_exact_source_claims_without_writes(
+    tmp_path: Path,
+) -> None:
+    auth, actor, bob, _, _ = setup(tmp_path)
+    receipt = accepted(auth.engine, actor)
+    service = PurchaseDetails(auth.engine)
+    read = DetailRead(receipt_id=receipt["id"], index=0)
+    page = service.get(actor, read)
+    assert page["suggestions"] == {
+        "line_total": "49.90",
+        "money_quote": MONEY,
+        "purchase_date": "2026-10-18",
+        "date_quote": WHEN,
+    }
+    assert page["items"] == []
+    service.save(actor, body(receipt, **page["suggestions"]))
+    with pytest.raises(MemoryError):
+        service.get(bob, read)
+    NoteService(auth.engine).correct(
+        actor,
+        CorrectionInput(
+            source_id=receipt["source_id"], text="Corrected", request_id="changed"
+        ),
+    )
+    assert service.get(actor, read)["suggestions"] is None
+    auth.engine.dispose()
+
+
+@pytest.mark.parametrize(
+    "suffix",
+    [
+        "\nPurchase date: 2026-10-19",
+        "\nPurchase date: 2026-02-30",
+    ],
+)
+def test_ambiguous_or_invalid_dates_are_not_suggested(
+    tmp_path: Path, suffix: str
+) -> None:
+    auth, actor, _, _, _ = setup(tmp_path)
+    receipt = accepted(auth.engine, actor, SOURCE + suffix)
+    page = PurchaseDetails(auth.engine).get(
+        actor, DetailRead(receipt_id=receipt["id"], index=0)
+    )
+    assert page["suggestions"]["purchase_date"] is None
+    assert page["suggestions"]["date_quote"] is None
+    auth.engine.dispose()

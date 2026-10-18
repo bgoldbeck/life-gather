@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.21.0 — Source-backed purchase-detail suggestions
+
+- Find uniquely labeled USD line totals and ISO purchase dates in saved receipt sources without an AI request. Copy exact passages into an editable draft only on request; saving still uses owner-scoped validation and immutable revision history.
+- Ambiguous, invalid, unsupported or unavailable source values remain unknown. No accounting arithmetic, automatic inventory changes, schema migration or new dependency.
+- Add a linked source-version badge at the top of the README and a version consistency test. The badge does not describe an already running container.
+
 ## 0.20.0 â€” Source-backed receipt purchase details
 
 - Add explicit USD line totals and purchase dates to confirmed purchased receipt

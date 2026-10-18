@@ -37,3 +37,5 @@ or a deployment setting to customize.
 and digest identify an exact build. A short Git revision beside the app version
 distinguishes different builds of the same version. A source merge does not update
 an existing container; the release still needs a new image and explicit redeploy.
+
+The README source-version badge links to the changelog. Update its value with the single version source during releases; the backend version test checks synchronization. It describes source, not Docker deployment.
