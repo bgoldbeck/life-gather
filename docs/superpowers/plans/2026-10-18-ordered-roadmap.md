@@ -175,3 +175,21 @@ PDFs, snapshot restore and upgrade from confirmed v0.19 receipts. Synthetic brow
 QA saved/reloaded the line total/date with source passages. Fixed recorded-time
 display to convert stored microseconds correctly, with a regression assertion.
 Graphify is unavailable; graph/HTML refresh could not run. No external AI calls.
+
+
+Purchase browsing increment v0.21.0 closes the discovery gap in v0.20: optional
+receipt claims now appear on the currently linked physical asset, with direct
+source and receipt editor/history links. Bounded five-line HTTP/read-only MCP
+pages follow active reconciliation bindings, including reassignment, dismissal
+and undo. Unknown/withdrawn values and historical-source warnings remain explicit;
+whole line totals are never converted to unit prices or combined across receipts.
+No migration, dependency or AI recall expansion. Automatic discovery remains the
+next broader phase; this increment makes the completed receipt feature usable.
+
+Asset purchase browsing verified: 229 backend / 75 frontend tests; Ruff lint/format,
+mypy, TypeScript, Oxlint, Prettier, frontend build and source/wheel builds pass.
+Coverage includes owner boundaries, HTTP/MCP, latest/withdrawn claims, two physical
+units sharing a whole-line total, reassignment/dismissal/undo, corrected-source
+labels and non-overlapping bounded pages. Browser QA opened the asset summary,
+receipt editor/history and exact original evidence. Graphify remains unavailable;
+graph/HTML refresh could not run. No migration, external calls or new dependency.

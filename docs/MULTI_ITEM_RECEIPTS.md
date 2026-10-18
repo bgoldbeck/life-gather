@@ -97,3 +97,33 @@ Migration `0015_receipt_details` adds owner/receipt/source foreign keys, unique
 request/revision identities, bounded integer cents/currency constraints and
 immutable quote/date/reason history. It preserves old receipt reviews and snapshot
 restore. No new dependency, live ingestion, provider call or installation restart.
+
+
+## Find purchases from an asset (v0.21.0)
+
+Open **Assets**, choose an item and look under **Purchase records**. Each purchased
+receipt line shows its latest optional recorded total/date, exact source passages,
+recorded revision and this item's unit position within the line's full quantity.
+Unknown or withdrawn values are not replaced by an old revision. Open the source
+or **Open receipt and purchase history** to inspect/edit the original receipt.
+After editing, use **Refresh purchase records** to reload the summary.
+
+Reads follow current reconciliation decisions and physical-unit bindings. Moving
+or dismissing a receipt association removes it from the former item; undo restores
+it. The original receipt review still preserves its historical acceptance result.
+Only confirmed purchased receipt lines qualify; single-item proposals, possession
+statements and unrelated evidence remain in the existing sourced details view.
+Missing optional details appear as unknown and can be added in the receipt editor.
+
+A whole line total covers its full quantity. The same receipt total may therefore
+appear on several physical units; never add these appearances together or interpret
+them as individual unit prices. Separate receipts are not consolidated. A receipt
+supports a past purchase and does not establish current ownership. Corrected notes
+and deleted originals are explicitly historical; new edits remain blocked by the
+shared purchase-detail source checks.
+
+`AssetPurchases` supplies authenticated `GET /api/assets/{id}/purchases` and read-only
+MCP `asset_purchases`. Both verify asset ownership and return at most five receipt
+lines per page with an opaque receipt/line cursor. No model tool, write operation,
+provider request, new dependency or schema change. Typed purchase claims are still
+not automatically included in AI recall or financial reports.

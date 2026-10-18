@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from starlette.requests import Request
 
 from lifegather.assets.actions import ActionService, AssetChange
+from lifegather.assets.purchases import AssetPurchases, AssetPurchasesRead
 from lifegather.assets.service import AssetList, AssetRead, AssetService
 from lifegather.auth.store import Account, AuthStore
 from lifegather.chat.service import SaveText, save_text
@@ -586,6 +587,13 @@ def build_server() -> MCPServer:
         """Browse owned physical assets; inventory is inferred, never verified."""
         return read(
             ctx, lambda actor, memory, _: AssetService(memory.engine).list(actor, data)
+        )
+
+    @server.tool(annotations=annotation)
+    def asset_purchases(data: AssetPurchasesRead, ctx: ToolContext) -> dict[str, Any]:
+        """Read receipt claims through current physical-item evidence bindings."""
+        return read(
+            ctx, lambda actor, memory, _: AssetPurchases(memory.engine).get(actor, data)
         )
 
     @server.tool(annotations=annotation)

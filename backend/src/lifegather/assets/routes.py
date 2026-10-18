@@ -3,6 +3,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Path, Query, Request
 
 from lifegather.assets.actions import ActionService, AssetChange
+from lifegather.assets.purchases import AssetPurchases, AssetPurchasesRead
 from lifegather.assets.service import AssetList, AssetRead, AssetService
 from lifegather.auth.routes import require_session, require_write_session
 from lifegather.auth.store import CurrentSession
@@ -49,6 +50,21 @@ def asset_router() -> APIRouter:
                 action_cursor=action_cursor,
                 limit=limit,
             ),
+        )
+
+    @router.get("/{asset_id}/purchases")
+    def purchases(
+        request: Request,
+        asset_id: Annotated[str, Path(min_length=1, max_length=36)],
+        current: Authenticated,
+        cursor: Annotated[
+            str, Query(max_length=38, pattern=r"^(?:[a-f0-9-]{36}:[0-7])?$")
+        ] = "",
+        limit: Annotated[int, Query(ge=1, le=5)] = 5,
+    ) -> dict[str, Any]:
+        return AssetPurchases(request.app.state.auth_store.engine).get(
+            current.user,
+            AssetPurchasesRead(asset_id=asset_id, cursor=cursor, limit=limit),
         )
 
     @router.post("/actions")

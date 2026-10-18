@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.21.0 — Purchase records on asset details
+
+- Show linked receipt lines, latest USD line totals/purchase dates, exact quotes and
+  recorded revisions directly on each physical asset. Open original source or the
+  receipt editor/history without searching old conversations. Refresh summaries
+  after editing; unknown and withdrawn values remain explicit.
+- Follow current reconciliation bindings rather than the receipt's original
+  acceptance result, so reassignment/dismissal and undo update the correct item.
+  Flag corrected/deleted originals as historical sources; preserve source evidence.
+- Add bounded, owner-scoped HTTP and read-only MCP receipt-link pagination. Whole
+  line totals are never presented as per-unit prices or combined across receipts.
+  No migration, dependency, provider call or automatic financial aggregation.
+
 ## 0.20.0 — Source-backed receipt purchase details
 
 - Add explicit USD line totals and purchase dates to confirmed purchased receipt
