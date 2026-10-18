@@ -341,3 +341,12 @@ retain actual created targets. Old targetless new-item actions remain on origina
 history without speculative backfill. No migration/dependency/general consolidation.
 
 Evidence-move inspection verified: 295 backend / 90 frontend tests; lint, format, types, frontend and package builds pass. Tests cover incoming private HTTP/MCP reads/cursors, own write heads after incoming moves, actual new targets, exact source opening, nonselecting comparisons and hidden-target search reset. Browser compared source/target, moved a receipt unit and opened receiving correction with both names. Graphify unavailable; graph/HTML refresh could not run. No migration/dependency.
+
+
+Navigation correction v0.30.1: preserve the current asset intent when earlier
+reloads, saves or pagination complete late. Guard detail reload, list/history pages,
+errors and loading completion by the active request generation; avoid starting an
+old item's reload after the user has already moved on. Invalidate work on view
+change/unmount. No domain/API/migration/dependency change.
+
+Navigation verification: 296 backend / 95 frontend tests pass; lint, format, types, frontend/package builds pass. Five UI regressions cover late reload/save completion, stale list/history pages and loading-state recovery. Delayed synthetic browser stayed on Saw after the previous Drill reload. Added a composed receipt/JPY/unit correction/sale/recall/private snapshot-restore regression for this session's lifecycle. Graphify unavailable; graph/HTML refresh could not run. No migration/dependency/domain API change.

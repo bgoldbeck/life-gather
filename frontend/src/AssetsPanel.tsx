@@ -87,6 +87,11 @@ export function AssetsPanel({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const generation = useRef(0)
+  const selectedAsset = useRef('')
+  const selectAsset = useCallback((id: string) => {
+    selectedAsset.current = id
+    return ++generation.current
+  }, [])
   const request = useCallback(
     async (path: string, signal?: AbortSignal) => {
       const response = await fetch('/api/' + path, {
@@ -104,7 +109,7 @@ export function AssetsPanel({
 
   useEffect(() => {
     const controller = new AbortController()
-    generation.current++
+    selectAsset(initialAssetId)
     async function load() {
       setBusy(true)
       setError('')
@@ -133,26 +138,32 @@ export function AssetsPanel({
       }
     }
     void load()
-    return () => controller.abort()
-  }, [request, search, history, initialAssetId])
+    return () => {
+      controller.abort()
+      selectAsset('')
+    }
+  }, [request, search, history, initialAssetId, selectAsset])
 
   async function more() {
+    const version = ++generation.current
     setBusy(true)
     setError('')
     try {
       const page = await request(
         `assets?query=${encodeURIComponent(search)}&include_history=${history}&cursor=${cursor}`,
       )
+      if (version !== generation.current) return
       setItems((current) => [...current, ...page.items])
       setCursor(page.next_cursor)
     } catch (caught) {
-      setError((caught as Error).message)
+      if (version === generation.current) setError((caught as Error).message)
     } finally {
-      setBusy(false)
+      if (version === generation.current) setBusy(false)
     }
   }
   async function open(id: string, kind?: 'fact' | 'decision') {
-    const version = ++generation.current
+    if (kind && selectedAsset.current !== id) return
+    const version = selectAsset(id)
     setBusy(true)
     setError('')
     setSource(null)
@@ -234,37 +245,51 @@ export function AssetsPanel({
   }
 
   async function refreshed() {
-    if (!detail) return
-    const [row, page] = await Promise.all([
-      request(`assets/${detail.asset.id}`),
-      request(
-        `assets?query=${encodeURIComponent(search)}&include_history=${history}`,
-      ),
-    ])
-    setDetail(row)
-    setItems(page.items)
-    setCursor(page.next_cursor)
+    if (!detail || selectedAsset.current !== detail.asset.id) return
+    const version = ++generation.current
+    try {
+      const [row, page] = await Promise.all([
+        request(`assets/${detail.asset.id}`),
+        request(
+          `assets?query=${encodeURIComponent(search)}&include_history=${history}`,
+        ),
+      ])
+      if (version !== generation.current) return
+      setDetail(row)
+      setItems(page.items)
+      setCursor(page.next_cursor)
+    } finally {
+      if (version === generation.current) setBusy(false)
+    }
   }
   async function moreActions() {
-    if (!detail?.next_action_cursor) return
+    if (
+      !detail?.next_action_cursor ||
+      selectedAsset.current !== detail.asset.id
+    )
+      return
+    const version = ++generation.current
+    const id = detail.asset.id
     setBusy(true)
     setError('')
     try {
       const page: Detail = await request(
         `assets/${detail.asset.id}?action_cursor=${detail.next_action_cursor}`,
       )
-      setDetail(
-        (current) =>
-          current && {
-            ...current,
-            actions: [...(current.actions ?? []), ...(page.actions ?? [])],
-            next_action_cursor: page.next_action_cursor,
-          },
+      if (version !== generation.current) return
+      setDetail((current) =>
+        current && current.asset.id === id
+          ? {
+              ...current,
+              actions: [...(current.actions ?? []), ...(page.actions ?? [])],
+              next_action_cursor: page.next_action_cursor,
+            }
+          : current,
       )
     } catch (caught) {
-      setError((caught as Error).message)
+      if (version === generation.current) setError((caught as Error).message)
     } finally {
-      setBusy(false)
+      if (version === generation.current) setBusy(false)
     }
   }
 
