@@ -11,7 +11,7 @@ class CredentialBodyLimit:
         if (
             scope["type"] != "http"
             or not scope.get("path", "").startswith(
-                ("/api/credentials", "/auth/email/", "/api/chat")
+                ("/api/credentials", "/auth/email/", "/auth/test-login", "/api/chat")
             )
             or scope.get("method") not in {"POST", "PUT"}
         ):

@@ -155,6 +155,7 @@ with urllib.request.urlopen(base + '/brand/lifegather-icon.png') as r:
 with urllib.request.urlopen(base + '/auth/session') as r:
     assert json.load(r) == {
         'configured': False,
+        'test_login_enabled': False,
         'email_password_enabled': False,
         'email_delivery_enabled': False,
         'user': None,

@@ -5,6 +5,7 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def isolated_configuration(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LIFEGATHER_TEST_LOGIN_ENABLED", "false")
     monkeypatch.setenv("LIFEGATHER_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.setenv("LIFEGATHER_GOOGLE_CLIENT_ID", "")
     monkeypatch.setenv("LIFEGATHER_GOOGLE_CLIENT_SECRET", "")

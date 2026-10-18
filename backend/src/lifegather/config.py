@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     static_dir: Path | None = None
     public_url: str = "http://127.0.0.1:8787"
     google_client_id: str = ""
+    test_login_enabled: bool = False
     google_client_secret: SecretStr = SecretStr("")
     vault_key_file: Path | None = None
     smtp_host: str = ""
