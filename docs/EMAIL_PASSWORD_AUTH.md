@@ -36,6 +36,8 @@ Service and UI implementation is present; real delivery remains unverified. Test
 
 ## Installation-owner setup
 
+For a private testing account without Google or SMTP, use the [local account setup command](LOCAL_ACCOUNT_SETUP.md). This explicitly trusts the server owner's email choice and never replaces or links an existing account. Public registration and recovery retain the verification requirements below.
+
 Users only supply their email/password and click verification links. The server owner configures one sender for verification, password recovery and password-change notices. This is separate from Google OAuth and from personal mailbox connectors.
 
 Copy the SMTP settings in `backend/.env.example` to ignored `backend/.env` for source execution, or the root `.env.example` settings to ignored root `.env` for Compose:
