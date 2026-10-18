@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.26.0 — Record clear reviewed items automatically
+
+- Add a one-action identity decision for reviewed single-item proposals: record a
+  clear new item, enrich a unique active serial identity, or leave ambiguity pending
+  with its candidate comparison. Similar names never merge physical items.
+- Preserve source evidence, explicit reviewed purchase/possession, atomic replay,
+  current ownership corrections and conflicting/historical serial review gates.
+  Automatic decisions are labeled; manual same/different review stays available.
+- Fix single-item PDF proposals accepting evidence after original-file deletion;
+  both manual and automatic acceptance now refuse, while rejection/history remain.
+  No migration, dependency, provider call, new tool or background ingestion.
+
 ## 0.25.0 — Reviewed purchase recall in Chat
 
 - Include up to three currently linked receipt lines per matched asset in bounded

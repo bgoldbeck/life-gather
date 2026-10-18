@@ -280,3 +280,18 @@ provenance and cited two-call replies. Synthetic browser used reviewed EUR 49.90
 for two distinct units and opened its original citation. No real provider calls;
 answer instruction following remains unverified against a live model. Graphify is
 unavailable, so code graph/HTML refresh could not run. No migration or dependency.
+
+
+Automatic-discovery slice v0.26.0: explicitly reviewed single-item proposals can
+create/enrich when the deterministic matcher is clear. Names/weak identity,
+conflicts, excluded ownership and conflicting serial history remain pending with
+preserved edited fields and candidate comparison. Atomic existing review contracts,
+stable retries and source evidence retained; deleted-PDF single-proposal acceptance
+is fixed. No unattended AI writes, batch auto-import, migration or dependency.
+
+Clear-item discovery verified: 272 backend / 81 frontend tests; lint, types, format,
+production frontend and source/wheel builds pass. Browser QA recorded a synthetic
+reviewed purchase through the automatic identity action and cleared the queue.
+Tests cover concurrent replay, ambiguity without derived writes, unique serial
+enrichment, sold/conflicting serial refusal, stale/deleted PDF sources, private
+HTTP/MCP and stable UI retries. Graphify unavailable; graph/HTML not refreshed.

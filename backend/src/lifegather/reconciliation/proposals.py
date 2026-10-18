@@ -71,7 +71,7 @@ class ProposalPreview(ProposalRead):
 
 class ProposalReview(ProposalRead):
     request_id: str = Field(min_length=1, max_length=100)
-    action: Literal["new", "link", "reject"]
+    action: Literal["new", "link", "reject", "auto"]
     fields: AssetFields | None = None
     asset_id: str | None = Field(default=None, min_length=1, max_length=36)
     candidate_ids: list[str] = Field(default_factory=list, max_length=100)
@@ -119,6 +119,17 @@ class ProposalService:
         if photo and photo.deleted_at is not None:
             raise MemoryError(
                 "The original photo was deleted; this proposal cannot be accepted"
+            )
+        from lifegather.documents.models import Document
+
+        document = db.scalar(
+            select(Document).where(
+                Document.user_id == actor.id, Document.source_id == root
+            )
+        )
+        if document and document.deleted_at is not None:
+            raise MemoryError(
+                "The original PDF was deleted; this proposal cannot be accepted"
             )
         return source.text
 
@@ -202,9 +213,9 @@ class ProposalService:
         self.memory._audit(db, actor, "asset_proposed", row.id, now)
         return self._view(db, actor, row)
 
-    def _matches(
+    def _matching_observation(
         self, db: Session, actor: Account, data: DiscoveryInput
-    ) -> tuple[list[str], list[str]]:
+    ) -> Observation:
         product = (
             db.scalar(
                 select(Entity.id).where(
@@ -219,7 +230,7 @@ class ProposalService:
             if data.manufacturer and data.model
             else None
         )
-        observation = Observation(
+        return Observation(
             product_id=product,
             serial_key=fingerprint(
                 [normalized(data.manufacturer or ""), data.serial.strip()]
@@ -228,6 +239,11 @@ class ProposalService:
             else None,
             line_id=None,
         )
+
+    def _matches(
+        self, db: Session, actor: Account, data: DiscoveryInput
+    ) -> tuple[list[str], list[str]]:
+        observation = self._matching_observation(db, actor, data)
         outcome, _, targets, candidates = self.reconcile.matcher._choose(
             db, actor, observation, data, False
         )
@@ -356,27 +372,71 @@ class ProposalService:
                         "A mention does not establish possession or purchase"
                     )
                 candidates, reliable = self._matches(db, actor, discovery)
-                if sorted(data.candidate_ids) != candidates:
+                if data.action != "auto" and sorted(data.candidate_ids) != candidates:
                     raise NoteConflict(
                         "Possible duplicates changed. Check the details again."
                     )
-                if data.action == "new" and reliable:
+                action = data.action
+                asset_id = data.asset_id
+                automatic_outcome = None
+                if action == "auto":
+                    automatic_outcome, reason, targets, _ = (
+                        self.reconcile.matcher._choose(
+                            db,
+                            actor,
+                            self._matching_observation(db, actor, discovery),
+                            discovery,
+                            False,
+                        )
+                    )
+                    if automatic_outcome not in {"create", "enrich"} or (
+                        automatic_outcome == "enrich"
+                        and (len(targets) != 1 or len(reliable) != 1)
+                    ):
+                        if len(reliable) > 1:
+                            reason = (
+                                "Identifier history is ambiguous; choose explicitly"
+                            )
+                        return {
+                            **self._view(db, actor, row),
+                            "automatic_outcome": "review",
+                            "automatic_reason": reason,
+                            "automatic_check": {
+                                "candidates": [
+                                    {
+                                        "id": identifier,
+                                        "name": self.memory._entity(
+                                            db, actor, identifier
+                                        ).name,
+                                    }
+                                    for identifier in candidates
+                                ],
+                                "reliable_ids": reliable,
+                            },
+                        }
+                    action = "link" if automatic_outcome == "enrich" else "new"
+                    asset_id = targets[0] if action == "link" else None
+                if action == "new" and reliable:
                     raise NoteConflict(
                         "An existing item matches this identifier; review the same item"
                     )
-                if data.action == "link" and data.asset_id not in candidates:
+                if action == "link" and asset_id not in candidates:
                     raise NoteConflict(
                         "Selected item is no longer a candidate; reload the proposal"
                     )
                 result = self.reconcile._discover_in(db, actor, discovery)
-                if data.action == "link":
+                if automatic_outcome and result.outcome != automatic_outcome:
+                    raise NoteConflict(
+                        "Existing discovery history needs explicit review"
+                    )
+                if action == "link":
                     result = self.reconcile._change_in(
                         db,
                         actor,
                         result.id,
                         result.decision_id,
                         "resolve",
-                        [data.asset_id] if data.asset_id else None,
+                        [asset_id] if asset_id else None,
                     )
                 elif result.outcome == "review":
                     result = self.reconcile._change_in(
@@ -400,7 +460,10 @@ class ProposalService:
                 row.state = "accepted"
                 row.reviewed_json = data.fields.model_dump_json()
                 row.observation_id = result.id
-                row.result_json = result.model_dump_json()
+                result_data = result.model_dump(mode="json")
+                if automatic_outcome:
+                    result_data["automatic_outcome"] = automatic_outcome
+                row.result_json = json.dumps(result_data)
             row.request_id = data.request_id
             row.fingerprint = signature
             row.reviewed_at = self.memory.clock()

@@ -58,3 +58,29 @@ The existing adapter's strict output schema was checked against the
 Tests use fixed synthetic outputs and no live provider requests. They cover quote
 validation, isolation, CSRF, invalid output, durable usage, cancellation, concurrent
 review/replay, rollback, identity choices, stale notes, migration and snapshot restore.
+
+
+## Record if identity is clear (v0.26.0)
+
+After reviewing the exact fields/quote and selecting your purchase or possession
+statement, choose **Record if identity is clear**. The same transaction validates
+the current source, checks identities and either creates a new physical item or
+enriches one unique active manufacturer/serial identity. It requires no separate
+same/different selection when the identity check is clear. No new AI call occurs.
+
+A similar name/model, conflicting identifiers, prior exclusion/ownership correction
+or conflicting serial history stays pending. The card preserves your edited fields,
+shows candidates and a reason, and offers the existing explicit same/different
+review. It creates no intermediate graph observation when returning a pending draft.
+Repeated ambiguous checks are safe. Completed automatic actions are explicitly
+labeled; source evidence and original candidate history remain intact. Connection
+loss freezes the form and retries the same decision request.
+
+This is a bounded first automatic-discovery slice for explicitly reviewed one-item
+proposals, not unattended AI ingestion or multi-item auto-import. Selecting purchase
+or possession and invoking the action is your statement about the reviewed item;
+ownership remains inferred. Prices/dates are not inferred. Undo/correction uses
+existing asset evidence/ownership controls. Current-source, owner, origin/CSRF,
+request replay, receipt-overlap and original-file guards apply equally to `auto`
+on the existing review HTTP/MCP contracts. Deleted PDF originals now block manual
+single-item acceptance too, fixing the previous gap relative to receipt batches.

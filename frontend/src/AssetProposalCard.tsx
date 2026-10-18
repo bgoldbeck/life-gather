@@ -20,7 +20,10 @@ type Proposal = {
   stale: boolean
   proposed: { candidate: Fields | null; explanation: string }
   reviewed: Fields | null
-  result: { asset_ids?: string[] }
+  automatic_outcome?: 'review'
+  automatic_reason?: string
+  automatic_check?: Check
+  result: { asset_ids?: string[]; automatic_outcome?: string }
 }
 type Check = { candidates: Candidate[]; reliable_ids: string[] }
 
@@ -42,6 +45,7 @@ export function AssetProposalCard({
   const [busy, setBusy] = useState(false)
   const [retry, setRetry] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const pending = useRef<Record<string, unknown> | null>(null)
   useEffect(() => {
     const controller = new AbortController()
@@ -73,6 +77,7 @@ export function AssetProposalCard({
     setCheck(null)
     setChoice('')
     setError('')
+    setNotice('')
   }
 
   async function inspect() {
@@ -95,17 +100,25 @@ export function AssetProposalCard({
     }
   }
 
-  async function decide(reject = false) {
+  async function decide(reject = false, automatic = false) {
     if (busy) return
     setBusy(true)
     setError('')
+    setNotice('')
     const operation = pending.current ?? {
       proposal_id: id,
       request_id: crypto.randomUUID(),
-      action: reject ? 'reject' : choice === 'new' ? 'new' : 'link',
+      action: reject
+        ? 'reject'
+        : automatic
+          ? 'auto'
+          : choice === 'new'
+            ? 'new'
+            : 'link',
       fields: reject ? null : fields,
-      asset_id: reject || choice === 'new' ? null : choice,
-      candidate_ids: reject ? [] : (check?.candidates.map((c) => c.id) ?? []),
+      asset_id: reject || automatic || choice === 'new' ? null : choice,
+      candidate_ids:
+        reject || automatic ? [] : (check?.candidates.map((c) => c.id) ?? []),
     }
     pending.current = operation
     try {
@@ -114,11 +127,18 @@ export function AssetProposalCard({
         body: JSON.stringify(operation),
       })) as Proposal
       setProposal(row)
-      setFields(row.reviewed ?? row.proposed.candidate)
+      if (row.automatic_outcome === 'review') {
+        setCheck(row.automatic_check ?? null)
+        setChoice('')
+        setNotice(
+          'Identity needs your decision. ' +
+            (row.automatic_reason ?? 'Compare the possible items below.'),
+        )
+      } else setFields(row.reviewed ?? row.proposed.candidate)
       pending.current = null
       setRetry(false)
       try {
-        await onReviewed?.()
+        if (row.state !== 'proposed') await onReviewed?.()
       } catch {
         setError('Review saved. Refresh the queue to see updated records.')
       }
@@ -166,6 +186,7 @@ export function AssetProposalCard({
           )}
         </div>
       )}
+      {notice && <p role="status">{notice}</p>}
       {error && (
         <p role="alert" className="chat-error">
           {error}
@@ -204,6 +225,15 @@ export function AssetProposalCard({
               Saved to inventory with source evidence. Ownership is inferred,
               not independently verified.{' '}
               {proposal.result.asset_ids?.length ?? 0} item linked.
+            </p>
+          )}
+          {proposal.result.automatic_outcome && (
+            <p>
+              Recorded through a clear automatic identity check:{' '}
+              {proposal.result.automatic_outcome === 'create'
+                ? 'new physical item'
+                : 'reliable existing identity'}
+              . The source and your reviewed relationship are preserved.
             </p>
           )}
           {proposal.state === 'rejected' && (
@@ -286,6 +316,25 @@ export function AssetProposalCard({
                   >
                     Check details and possible duplicates
                   </Button>
+                  <Button
+                    variant="outline"
+                    disabled={
+                      busy ||
+                      retry ||
+                      fields.kind === 'mention' ||
+                      !fields.name.trim() ||
+                      !fields.quote.trim()
+                    }
+                    onClick={() => void decide(false, true)}
+                  >
+                    Record if identity is clear
+                  </Button>
+                  <p>
+                    This uses your reviewed fields and purchase/possession
+                    statement. Clear new items are recorded; reliable active
+                    identifiers enrich an existing item. Similar names,
+                    conflicts or previously excluded identities stay pending.
+                  </p>
                   {check && (
                     <div className="proposal-identity">
                       <p>
