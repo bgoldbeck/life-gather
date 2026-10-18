@@ -6,7 +6,7 @@ It aims to help organize possessions, events, documents, and relationships while
 
 ## Project status
 
-The source includes a responsive React shell, Google sign-in, and [email/password signup and recovery](docs/EMAIL_PASSWORD_AUTH.md) with persistent server-side sessions. Native registration/recovery need a configured installation email sender; real SMTP delivery has not been tested here. Follow [Google login setup](docs/GOOGLE_LOGIN.md) to configure an OAuth client; real Google sign-in needs installation credentials. The [evidence-backed memory core](docs/MEMORY_CORE.md) now provides private Python services for sources, graph facts, history, search, export, and database snapshots. The [reconciliation service](docs/RECONCILIATION.md) now distinguishes purchased units, enriches reliable matches, and preserves review/correction decisions. Memory UI adapters, MCP, and AI integration remain planned. LifeGather is a working name pending clearance. The previously published preview image does not gain source changes until a separately approved rebuild/upload.
+The source includes a responsive React shell, Google sign-in, and [email/password signup and recovery](docs/EMAIL_PASSWORD_AUTH.md) with persistent server-side sessions. Native registration/recovery need a configured installation email sender; real SMTP delivery has not been tested here. Follow [Google login setup](docs/GOOGLE_LOGIN.md) to configure an OAuth client; real Google sign-in needs installation credentials. The [evidence-backed memory core](docs/MEMORY_CORE.md) now provides private Python services for sources, graph facts, history, search, export, and database snapshots. The [reconciliation service](docs/RECONCILIATION.md) now distinguishes purchased units, enriches reliable matches, and preserves review/correction decisions. The [private MCP recall adapter](docs/PRIVATE_MCP.md) exposes authenticated read-only tools over those services. Memory UI adapters, writable tools, and AI chat integration remain planned. LifeGather is a working name pending clearance. The previously published preview image does not gain source changes until a separately approved rebuild/upload.
 
 ## Run with Docker
 
@@ -41,7 +41,7 @@ docker compose down
 
 The container runs as UID/GID 10001, with a read-only root filesystem, a writable `/data` volume, a temporary `/tmp`, and dropped Linux capabilities. The source-build Compose file publishes only on `127.0.0.1`; the image-only TrueNAS Compose file publishes on all IPv4 interfaces (`0.0.0.0`) for LAN access. Configure Google login using the documented public URL and credentials; non-loopback login requires HTTPS. Remote exposure remains deferred, and the old published preview is unauthenticated.
 
-This slice stores account identities and sessions only; personal memory endpoints and a general backup/restore interface remain later work. See the login guide for session expiry, revocation, private storage, and verification limits.
+The source includes private memory and reconciliation services plus a read-only MCP adapter; memory UI and a general backup/restore interface remain later work. See the login guide for session expiry, revocation, private storage, and verification limits.
 
 ## Backend development
 
@@ -72,7 +72,7 @@ uv run --locked ruff format --check .
 uv run --locked mypy
 ```
 
-`/health` reports process liveness only; it does not check database or model availability. The development server binds to localhost and has no authentication. Authentication is required before introducing personal-data endpoints or remote deployment.
+`/health` reports process liveness only; it does not check database or model availability. The development server binds to localhost. Private settings and MCP require authenticated sessions; `/health` remains public. Remote deployment requires the documented HTTPS and authentication configuration.
 
 ## Frontend development
 
