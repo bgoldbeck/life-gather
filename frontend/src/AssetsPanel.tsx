@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import './assets.css'
+import { AssetActions } from './AssetActions'
 
 type Asset = {
   id: string
@@ -42,14 +43,25 @@ type Detail = {
   facts: Fact[]
   next_fact_cursor: string | null
   next_decision_cursor: string | null
+  action_head?: string
+  next_action_cursor?: string | null
+  actions?: {
+    id: string
+    operation: string
+    note: string
+    source_id: string
+    recorded_at: number
+  }[]
 }
 type Source = { id: string; text: string; next_offset: number | null }
 const recorded = (stamp: number) => new Date(stamp / 1000).toLocaleString()
 
 export function AssetsPanel({
   refreshSession,
+  csrfToken = '',
 }: {
   refreshSession?: () => Promise<void>
+  csrfToken?: string
 }) {
   const [items, setItems] = useState<Asset[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
@@ -179,6 +191,41 @@ export function AssetsPanel({
     setSearch(query)
   }
 
+  async function refreshed() {
+    if (!detail) return
+    const [row, page] = await Promise.all([
+      request(`assets/${detail.asset.id}`),
+      request(
+        `assets?query=${encodeURIComponent(search)}&include_history=${history}`,
+      ),
+    ])
+    setDetail(row)
+    setItems(page.items)
+    setCursor(page.next_cursor)
+  }
+  async function moreActions() {
+    if (!detail?.next_action_cursor) return
+    setBusy(true)
+    setError('')
+    try {
+      const page: Detail = await request(
+        `assets/${detail.asset.id}?action_cursor=${detail.next_action_cursor}`,
+      )
+      setDetail(
+        (current) =>
+          current && {
+            ...current,
+            actions: [...(current.actions ?? []), ...(page.actions ?? [])],
+            next_action_cursor: page.next_action_cursor,
+          },
+      )
+    } catch (caught) {
+      setError((caught as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <section className="assets-panel" aria-label="Your assets">
       <h1>Assets</h1>
@@ -227,7 +274,7 @@ export function AssetsPanel({
             </Button>
             <span>
               {item.in_inventory
-                ? 'In inventory · ownership inferred'
+                ? 'In inventory · source-backed ownership'
                 : 'Historical record · not active inventory'}
             </span>
           </li>
@@ -258,6 +305,49 @@ export function AssetsPanel({
             View original evidence
           </Button>
           <h3>Sourced details and decisions</h3>
+          <details>
+            <summary>Make a correction</summary>
+            <AssetActions
+              key={`${detail.asset.id}:${detail.action_head ?? ''}`}
+              assetId={detail.asset.id}
+              head={detail.action_head ?? ''}
+              decisions={detail.decisions}
+              csrfToken={csrfToken}
+              onChanged={refreshed}
+            />
+          </details>
+          {!!detail.actions?.length && (
+            <section aria-label="Correction history">
+              <h3>Correction history</h3>
+              {detail.actions.map((action) => (
+                <article key={action.id}>
+                  <p>
+                    {(
+                      {
+                        ownership: 'Ownership statement',
+                        undo: 'Decision undone',
+                        reassociate: 'Evidence reassociated',
+                      } as Record<string, string>
+                    )[action.operation] ?? action.operation}{' '}
+                    · {recorded(action.recorded_at)}
+                  </p>
+                  <blockquote>{action.note}</blockquote>
+                  <Button
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => void evidence(action.source_id)}
+                  >
+                    View correction evidence
+                  </Button>
+                </article>
+              ))}
+              {detail.next_action_cursor && (
+                <Button disabled={busy} onClick={() => void moreActions()}>
+                  More corrections
+                </Button>
+              )}
+            </section>
+          )}
           {!detail.decisions.length && (
             <p>No reconciliation decisions for this item.</p>
           )}
@@ -265,8 +355,8 @@ export function AssetsPanel({
             <article key={decision.id}>
               <p>
                 {decision.superseded_at === null
-                  ? 'Active decision'
-                  : 'Earlier decision'}{' '}
+                  ? 'Current evidence association'
+                  : 'Earlier evidence association'}{' '}
                 ·{' '}
                 {(
                   {
@@ -278,7 +368,10 @@ export function AssetsPanel({
                 )[decision.outcome] ?? decision.outcome}{' '}
                 · recorded {recorded(decision.recorded_at)}
               </p>
-              <p>{decision.reason}</p>
+              <p>
+                <span>Reason recorded then: </span>
+                <span>{decision.reason}</span>
+              </p>
               <dl>
                 <dt>Manufacturer</dt>
                 <dd>{decision.manufacturer ?? 'Unknown'}</dd>
@@ -308,7 +401,8 @@ export function AssetsPanel({
           <h3>Facts and their history</h3>
           <p>
             Recorded time is when LifeGather saved a version; valid-world dates
-            describe the statement's real-world interval.
+            describe the statement's real-world interval. Sources can disagree;
+            an earlier purchase inference does not establish ownership today.
           </p>
           {detail.facts.map((fact) => (
             <article key={fact.id}>
@@ -319,7 +413,7 @@ export function AssetsPanel({
                   : JSON.stringify(fact.value)}{' '}
                 · {fact.status} ·{' '}
                 {fact.superseded_at === null
-                  ? 'current version'
+                  ? 'latest version of this statement'
                   : 'superseded version'}
               </p>
               <p>

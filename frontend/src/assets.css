@@ -84,3 +84,25 @@
   outline: 2px solid #3f6940;
   outline-offset: 3px;
 }
+.asset-correction {
+  display: grid;
+  gap: 0.65rem;
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #a4b59d;
+  border-radius: 0.7rem;
+}
+.asset-correction label {
+  display: grid;
+  gap: 0.3rem;
+}
+.asset-correction input,
+.asset-correction select,
+.asset-correction textarea {
+  min-width: 0;
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #a4b59d;
+  border-radius: 0.4rem;
+  background: #fffef9;
+}
