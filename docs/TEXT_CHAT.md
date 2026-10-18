@@ -155,3 +155,10 @@ owner and latest operation for each origin/target pair. Existing two-record,
 eight-source and 24 KiB context limits, omission flags, two provider calls and
 citation validation remain. Live model instruction following is not verified by
 the deterministic synthetic-provider tests.
+
+
+Citation inspection respects the active conversation and explicit evidence-close
+intent. Late source pages/errors are ignored after navigation, closing or unmount;
+a previous read cannot replace or stop the loading indicator for a newer one.
+Receipt and asset review panels close when selecting/starting another conversation.
+Draft text, completed turns and underlying reviewed records are preserved.
