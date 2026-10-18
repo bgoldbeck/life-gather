@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.30.1 — Keep asset navigation stable during slow requests
+
+- Ignore old reload and correction-completion callbacks after the user selects
+  another item. A late response cannot reopen the previous record.
+- Guard asset-list and correction-history pagination against graph navigation,
+  selection changes and unmounts. Stale pages, errors and loading completions cannot
+  replace the current view or append another item's history.
+- Preserve completed corrections and existing safe retry behavior. No backend
+  domain/API, migration, dependency or provider changes.
+
 ## 0.30.0 — Inspect evidence moves and receiving history
 
 - Show the exact selected decision passage and its source before a correction.
