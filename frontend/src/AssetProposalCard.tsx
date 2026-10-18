@@ -13,6 +13,7 @@ type Fields = {
 type Candidate = { id: string; name: string }
 type Proposal = {
   id: string
+  photo?: { id: string; deleted_at: number | null } | null
   source_id: string
   current_source_id: string
   state: 'proposed' | 'accepted' | 'rejected' | 'no_item'
@@ -138,6 +139,26 @@ export function AssetProposalCard({
     <section className="asset-proposal" aria-label="Asset proposal">
       <h3>Asset proposal</h3>
       {!proposal && !error && <p role="status">Loading proposal…</p>}
+      {proposal?.photo && (
+        <div>
+          <p>
+            AI-transcribed photo · unverified. Compare every detail with the
+            image. Selecting possession or purchase is your explicit statement;
+            ownership remains inferred.
+          </p>
+          {proposal.photo.deleted_at === null ? (
+            <img
+              className="photo-preview"
+              src={`/api/photos/${proposal.photo.id}/preview`}
+              alt="Photo supporting this proposal"
+            />
+          ) : (
+            <p>
+              The original photo was deleted. This proposal cannot be accepted.
+            </p>
+          )}
+        </div>
+      )}
       {error && (
         <p role="alert" className="chat-error">
           {error}
@@ -213,7 +234,9 @@ export function AssetProposalCard({
                   ),
                 )}
                 <label>
-                  What the note states
+                  {proposal.photo
+                    ? 'Your relationship to this item'
+                    : 'What the note states'}
                   <select
                     value={fields.kind}
                     disabled={!editable || busy || retry}

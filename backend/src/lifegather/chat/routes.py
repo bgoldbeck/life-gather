@@ -11,6 +11,7 @@ from lifegather.chat.runner import answer
 from lifegather.chat.service import ChatService, SaveText, TurnInput
 from lifegather.memory.notes import CorrectionInput, NoteService
 from lifegather.memory.service import MemoryError
+from lifegather.photos.service import PhotoService
 from lifegather.reconciliation.proposals import (
     ProposalPreview,
     ProposalReview,
@@ -62,6 +63,9 @@ def chat_router() -> APIRouter:
             "recorded_at": original.recorded_at,
             "event_date": original.event_date,
             "source_type": original.source_type,
+            "photo": PhotoService(service(request).engine).source_photo(
+                current.user, source_id
+            ),
             "asset_context": ActionService(service(request).engine).source_context(
                 current.user, source_id
             ),

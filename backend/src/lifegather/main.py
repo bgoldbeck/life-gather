@@ -28,6 +28,7 @@ from lifegather.mcp_api.tools import build_server
 from lifegather.mcp_api.transport import PrivateMCP
 from lifegather.memory.notes import NoteConflict
 from lifegather.memory.service import MemoryError
+from lifegather.photos.routes import photo_router
 from lifegather.version import __version__, build_info
 
 
@@ -77,6 +78,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.chat_provider = OpenAIProvider()
     app.state.chat_slots = asyncio.Semaphore(4)
+    app.state.photo_slots = asyncio.Semaphore(2)
     app.state.mcp_gate = PrivateMCP(mcp_app, app, settings)
     app.state.mcp_server = mcp_server
     app.router.routes.append(Route("/mcp", app.state.mcp_gate))
@@ -85,6 +87,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(email_router(settings))
     app.include_router(chat_router())
     app.include_router(asset_router())
+    app.include_router(photo_router())
     app.add_middleware(CredentialBodyLimit)
 
     @app.exception_handler(MemoryError)

@@ -21,6 +21,7 @@ import { AuthGate } from './AuthGate'
 import { PrivateSettingsPanel } from './PrivateSettingsPanel'
 import { PasswordSettings } from './PasswordSettings'
 import { ChatPanel } from './ChatPanel'
+import { PhotosPanel } from './PhotosPanel'
 import { AssetsPanel } from './AssetsPanel'
 import { BuildInfo, type Build } from './BuildInfo'
 
@@ -29,6 +30,11 @@ const navigation = [
     name: 'Chat',
     icon: MessageCircle,
     description: 'Ask questions and save memories through conversation.',
+  },
+  {
+    name: 'Photos',
+    icon: BookOpen,
+    description: 'Private receipt and nameplate photos.',
   },
   { name: 'Overview', icon: LayoutDashboard, description: '' },
   {
@@ -156,6 +162,8 @@ export function Workspace({
                 refreshSession={refreshSession}
               />
             </>
+          ) : view === 'Photos' ? (
+            <PhotosPanel csrfToken={csrfToken} />
           ) : view === 'Chat' ? (
             <ChatPanel csrfToken={csrfToken} refreshSession={refreshSession} />
           ) : view === 'Assets' ? (

@@ -12,7 +12,7 @@ from lifegather.memory.models import Episode, NoteRevision
 from lifegather.memory.schemas import SourceInput, SourceView
 from lifegather.memory.service import MemoryError, MemoryService, fingerprint
 
-NOTE_NAMESPACES = {"chat-memory", "chat-note-correction"}
+NOTE_NAMESPACES = {"chat-memory", "chat-note-correction", "photo-memory"}
 
 
 class NoteConflict(MemoryError):

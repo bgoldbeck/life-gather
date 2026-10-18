@@ -17,6 +17,7 @@ class CredentialBodyLimit:
                     "/auth/test-login",
                     "/api/chat",
                     "/api/assets",
+                    "/api/photos/delete",
                 )
             )
             or scope.get("method") not in {"POST", "PUT"}

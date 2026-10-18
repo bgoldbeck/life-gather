@@ -111,6 +111,15 @@ class ProposalService:
         root = NoteService._root(db, actor, source)
         if NoteService._head(db, actor, root) != source.id:
             raise NoteConflict("This note has changed. Open the current note first.")
+        from lifegather.photos.models import Photo
+
+        photo = db.scalar(
+            select(Photo).where(Photo.user_id == actor.id, Photo.source_id == root)
+        )
+        if photo and photo.deleted_at is not None:
+            raise MemoryError(
+                "The original photo was deleted; this proposal cannot be accepted"
+            )
         return source.text
 
     @staticmethod
@@ -152,38 +161,43 @@ class ProposalService:
     def create(
         self, actor: Account, source_id: str, value: AssetExtraction
     ) -> dict[str, Any]:
-        data = AssetExtraction.model_validate(value)
         with self.memory._write() as db:
-            self._source(db, actor, source_id)
-            existing = db.scalar(
-                select(AssetProposal).where(
-                    AssetProposal.user_id == actor.id,
-                    AssetProposal.source_id == source_id,
-                )
+            return self._create_in(db, actor, source_id, value)
+
+    def _create_in(
+        self, db: Session, actor: Account, source_id: str, value: AssetExtraction
+    ) -> dict[str, Any]:
+        data = AssetExtraction.model_validate(value)
+        self._source(db, actor, source_id)
+        existing = db.scalar(
+            select(AssetProposal).where(
+                AssetProposal.user_id == actor.id,
+                AssetProposal.source_id == source_id,
             )
-            if existing:
-                return self._view(db, actor, existing)
-            if data.candidate:
-                self._validate(db, actor, source_id, data.candidate)
-            now = self.memory.clock()
-            row = AssetProposal(
-                id=str(uuid4()),
-                user_id=actor.id,
-                source_id=source_id,
-                recorded_at=now,
-                state="proposed" if data.candidate else "no_item",
-                proposed_json=data.model_dump_json(),
-                reviewed_json=None,
-                observation_id=None,
-                request_id=None,
-                fingerprint=None,
-                result_json="{}",
-                reviewed_at=None,
-            )
-            db.add(row)
-            db.flush()
-            self.memory._audit(db, actor, "asset_proposed", row.id, now)
-            return self._view(db, actor, row)
+        )
+        if existing:
+            return self._view(db, actor, existing)
+        if data.candidate:
+            self._validate(db, actor, source_id, data.candidate)
+        now = self.memory.clock()
+        row = AssetProposal(
+            id=str(uuid4()),
+            user_id=actor.id,
+            source_id=source_id,
+            recorded_at=now,
+            state="proposed" if data.candidate else "no_item",
+            proposed_json=data.model_dump_json(),
+            reviewed_json=None,
+            observation_id=None,
+            request_id=None,
+            fingerprint=None,
+            result_json="{}",
+            reviewed_at=None,
+        )
+        db.add(row)
+        db.flush()
+        self.memory._audit(db, actor, "asset_proposed", row.id, now)
+        return self._view(db, actor, row)
 
     def _matches(
         self, db: Session, actor: Account, data: DiscoveryInput
@@ -245,7 +259,18 @@ class ProposalService:
             matches, _ = self._matches(
                 db, actor, self.discovery(row.source_id, proposed.candidate)
             )
+        from lifegather.photos.models import Photo
+
+        photo = db.scalar(
+            select(Photo).where(
+                Photo.user_id == actor.id,
+                Photo.source_id == NoteService._root(db, actor, source),
+            )
+        )
         return {
+            "photo": {"id": photo.id, "deleted_at": photo.deleted_at}
+            if photo
+            else None,
             "id": row.id,
             "source_id": row.source_id,
             "source_text": source.text,
@@ -351,6 +376,21 @@ class ProposalService:
                     result = self.reconcile._change_in(
                         db, actor, result.id, result.decision_id, "resolve", None
                     )
+                from lifegather.photos.models import Photo
+                from lifegather.photos.service import PhotoService
+
+                source = self.memory._source(db, actor, row.source_id)
+                root = NoteService._root(db, actor, source)
+                photo = db.scalar(
+                    select(Photo).where(
+                        Photo.user_id == actor.id, Photo.source_id == root
+                    )
+                )
+                if photo:
+                    photos = PhotoService(self.engine)
+                    for asset_id in result.asset_ids:
+                        photos.attach(db, actor, photo, asset_id)
+                    photo.updated_at = max(self.memory.clock(), photo.updated_at + 1)
                 row.state = "accepted"
                 row.reviewed_json = data.fields.model_dump_json()
                 row.observation_id = result.id

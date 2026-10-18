@@ -26,8 +26,9 @@ class TurnInput(BaseModel):
         extra="forbid", strict=True, revalidate_instances="always"
     )
     request_id: str = Field(min_length=1, max_length=100)
-    mode: Literal["save", "search", "ask", "extract"]
+    mode: Literal["save", "search", "ask", "extract", "extract_photo"]
     source_id: str = Field(default="", max_length=36)
+    photo_id: str = Field(default="", max_length=36)
     text: str = Field(min_length=1, max_length=4000)
     credential_id: str = Field(default="", max_length=36)
     model: str = Field(default="", max_length=100, pattern=r"^[a-zA-Z0-9._:-]*$")
@@ -36,12 +37,14 @@ class TurnInput(BaseModel):
     def valid_text(self) -> "TurnInput":
         if not self.text.strip():
             raise ValueError("Text cannot be blank")
-        if self.mode in {"ask", "extract"} and (
+        if self.mode in {"ask", "extract", "extract_photo"} and (
             not self.credential_id or not self.model
         ):
             raise ValueError("Choose an OpenAI credential and model")
         if self.mode == "extract" and not self.source_id:
             raise ValueError("Choose a saved note first")
+        if self.mode == "extract_photo" and not self.photo_id:
+            raise ValueError("Choose a photo first")
         return self
 
 
@@ -161,7 +164,8 @@ class ChatService:
                 [
                     conversation_id,
                     data.model_dump(
-                        exclude={"source_id"} if not data.source_id else set()
+                        exclude=({"source_id"} if not data.source_id else set())
+                        | ({"photo_id"} if not data.photo_id else set())
                     ),
                 ]
             )
@@ -343,6 +347,17 @@ class ChatService:
                 if source.namespace == "chat-note-correction"
                 else "original statement; not independently verified",
             }
+            from lifegather.photos.service import PhotoService
+
+            photo = PhotoService(self.engine).source_photo(actor, identifier)
+            if photo is not None:
+                sources[identifier]["status"] = (
+                    "AI transcription or user correction of a photo; unverified"
+                )
+                sources[identifier]["photo"] = {
+                    "id": photo["id"],
+                    "deleted": photo["deleted_at"] is not None,
+                }
             # Preserve exact user text; attach authenticated item-selection context
             # so short corrections such as "I sold it" remain attributable.
             context = actions.source_context(actor, identifier)

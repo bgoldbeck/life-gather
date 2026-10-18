@@ -30,6 +30,7 @@ from lifegather.mcp_api.schemas import (
 from lifegather.memory.notes import CorrectionInput, NoteHistoryInput, NoteService
 from lifegather.memory.schemas import FactView
 from lifegather.memory.service import MemoryError, MemoryService
+from lifegather.photos.service import PhotoList, PhotoRead, PhotoService
 from lifegather.reconciliation.proposals import (
     ProposalPreview,
     ProposalRead,
@@ -136,6 +137,23 @@ def build_server() -> MCPServer:
     )
 
     @server.tool(annotations=annotation)
+    def photo_list(data: PhotoList, ctx: ToolContext) -> dict[str, Any]:
+        """List owned photo metadata; attachments alone prove no claims."""
+        return read(
+            ctx, lambda actor, memory, _: PhotoService(memory.engine).list(actor, data)
+        )
+
+    @server.tool(annotations=annotation)
+    def photo_get(data: PhotoRead, ctx: ToolContext) -> dict[str, Any]:
+        """Read owned photo metadata without exposing bytes to model tools."""
+        return read(
+            ctx,
+            lambda actor, memory, _: PhotoService(memory.engine).get(
+                actor, data.photo_id
+            ),
+        )
+
+    @server.tool(annotations=annotation)
     def memory_search(data: Search, ctx: ToolContext) -> dict[str, Any]:
         """Find owned source text and entity names/aliases using literal words."""
         return read(
@@ -192,6 +210,9 @@ def build_server() -> MCPServer:
                 "text": source.text[data.offset : end],
                 "next_offset": end if end < len(source.text) else None,
                 "asset_context": ActionService(memory.engine).source_context(
+                    actor, data.source_id
+                ),
+                "photo": PhotoService(memory.engine).source_photo(
                     actor, data.source_id
                 ),
                 "note": NoteService(memory.engine).describe(actor, data.source_id),
