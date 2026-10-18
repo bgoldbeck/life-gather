@@ -6,6 +6,7 @@ type Decision = {
   recorded_at: number
   superseded_at: number | null
   quantity?: number
+  unit?: number
 }
 type Target = { id: string; name: string; recorded_at: number }
 
@@ -122,6 +123,8 @@ export function AssetActions({
     }
   }
   const frozen = busy || retry
+  const selectedDecision = decisions.find((item) => item.id === decision)
+  const multipleUnits = (selectedDecision?.quantity ?? 1) > 1
   return (
     <section aria-label="Correct this asset" className="asset-correction">
       <h3>Correct this asset</h3>
@@ -134,7 +137,11 @@ export function AssetActions({
         <select
           value={operation}
           disabled={frozen}
-          onChange={(e) => setOperation(e.target.value)}
+          onChange={(e) => {
+            setOperation(e.target.value)
+            setDecision('')
+            setTarget('')
+          }}
         >
           <option value="ownership">Update ownership</option>
           <option value="undo">Undo a confirmation or association</option>
@@ -174,16 +181,24 @@ export function AssetActions({
           <select
             value={decision}
             disabled={frozen}
-            onChange={(e) => setDecision(e.target.value)}
+            onChange={(e) => {
+              setDecision(e.target.value)
+              setTarget('')
+            }}
           >
             <option value="">Choose a decision</option>
             {decisions
               .filter(
-                (d) => d.superseded_at === null && (d.quantity ?? 1) === 1,
+                (d) =>
+                  d.superseded_at === null &&
+                  (operation === 'reassociate' || (d.quantity ?? 1) === 1),
               )
               .map((d) => (
                 <option key={d.id} value={d.id}>
                   Recorded {new Date(d.recorded_at / 1000).toLocaleString()}
+                  {(d.quantity ?? 1) > 1
+                    ? ` · this item is unit ${(d.unit ?? 0) + 1} of ${d.quantity}`
+                    : ''}
                 </option>
               ))}
           </select>
@@ -193,7 +208,9 @@ export function AssetActions({
         <>
           <p>
             Choose the physical item explicitly. Creating a different item does
-            not merge records. Multi-unit decisions need unit-aware review.
+            not merge records. For a multi-unit receipt, only this item's unit
+            moves; the other units keep their existing records. An existing
+            target is required for multi-unit corrections.
           </p>
           <label>
             Find an existing item
@@ -228,7 +245,7 @@ export function AssetActions({
               onChange={(e) => setTarget(e.target.value)}
             >
               <option value="">Choose an item</option>
-              <option value="new">
+              <option value="new" disabled={multipleUnits}>
                 A different physical item — create a record
               </option>
               {targets.map((t) => (
@@ -259,7 +276,8 @@ export function AssetActions({
             (!retry &&
               (!note.trim() ||
                 (operation === 'ownership' ? !status : !decision) ||
-                (operation === 'reassociate' && !target)))
+                (operation === 'reassociate' &&
+                  (!target || (multipleUnits && target === 'new')))))
           }
           onClick={() => void save()}
         >

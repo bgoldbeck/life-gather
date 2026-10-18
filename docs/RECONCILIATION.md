@@ -45,3 +45,21 @@ A serialized SQLite transaction covers the decision, purchase/unit metadata, mem
 The existing operator-only SQLite snapshot includes this ledger. Restore tests verify decisions and inventory survive reopening the snapshot. Keep the vault key separate as described in [private settings](PRIVATE_SETTINGS.md). No restore, build, image upload, or provider operation runs automatically.
 
 The [implementation plan](superpowers/plans/2026-10-17-reconciliation.md) records this slice. Tests use synthetic sources and cover source order, quantities, duplicate/concurrent ingestion, correction/undo, excluded identities, ownership conflicts, direct database owner constraints, private export, migration preservation, rollback, clock reversal, and snapshot restore.
+
+
+## Individual unit correction (v0.28.0)
+
+From Assets → Make a correction → Move evidence to a different item, choose a
+current decision and an existing target. For quantity 2–20, the displayed unit
+number identifies this asset’s binding. Only that unit changes target; all sibling
+ordinals and targets stay intact in the successor decision. Original source and
+predecessor decisions remain. A target already used by a sibling is refused.
+The typed line total remains the total for the entire line, never a per-unit price.
+
+Supply an explanation and the current action/decision versions. Competing sibling
+changes make the old decision stale. Safe retries return the recorded result, even
+after a later reversal. To reverse, open the new target and move its current unit
+back to the original historical asset. Whole-line undo and creating just one new
+unit within a multi-unit line remain outside this slice. This does not merge whole
+records or move unrelated evidence, photos, manual facts or ownership statements.
+No schema or request-field changes; existing private HTTP/MCP operation is reused.
