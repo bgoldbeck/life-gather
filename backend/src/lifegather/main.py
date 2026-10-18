@@ -44,7 +44,10 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings.data_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
-        store = AuthStore(settings.data_dir / "auth.sqlite3")
+        store = AuthStore(
+            settings.data_dir / "auth.sqlite3",
+            test_login_enabled=settings.test_login_enabled,
+        )
         store.migrate()
         app.state.auth_store = store
         sender = mail_sender

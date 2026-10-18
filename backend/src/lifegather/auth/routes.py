@@ -3,9 +3,11 @@ import time
 from collections import OrderedDict, deque
 from dataclasses import asdict
 from typing import Annotated
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse, Response
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from lifegather.auth.email_models import EmailCredential
@@ -21,6 +23,10 @@ from lifegather.config import Settings
 
 SESSION_COOKIE = "lifegather_session"
 FLOW_COOKIE = "lifegather_login"
+
+
+class TestLoginInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
 
 
 def store_for(request: Request) -> AuthStore:
@@ -54,6 +60,23 @@ def auth_router(settings: Settings, provider: GoogleProvider) -> APIRouter:
     router = APIRouter()
     attempts: OrderedDict[str, deque[float]] = OrderedDict()
 
+    def limit_attempts(request: Request) -> None:
+        # Use connection IP, never forwarded headers; bound memory and sessions.
+        host = request.client.host if request.client else "unknown"
+        now = time.monotonic()
+        if host not in attempts and len(attempts) >= 1024:
+            oldest = next(iter(attempts))
+            if attempts[oldest] and attempts[oldest][-1] > now - 60:
+                raise HTTPException(429, "Sign-in busy; try again shortly")
+            attempts.pop(oldest)
+        recent = attempts.setdefault(host, deque())
+        attempts.move_to_end(host)
+        while recent and recent[0] <= now - 60:
+            recent.popleft()
+        if len(recent) >= 10:
+            raise HTTPException(429, "Too many sign-in attempts; try again shortly")
+        recent.append(now)
+
     def cookie(response: Response, name: str, value: str, age: int) -> None:
         response.set_cookie(
             name,
@@ -78,12 +101,38 @@ def auth_router(settings: Settings, provider: GoogleProvider) -> APIRouter:
         return JSONResponse(
             {
                 "configured": settings.google_enabled,
+                "test_login_enabled": settings.test_login_enabled,
                 "email_password_enabled": has_password,
                 "email_delivery_enabled": request.app.state.email_auth.delivery_enabled,
                 "user": asdict(current.user) if current else None,
                 "csrf_token": current.csrf_token if current else None,
             }
         )
+
+    @router.post("/auth/test-login")
+    def test_login(request: Request, data: TestLoginInput) -> Response:
+        if not settings.test_login_enabled:
+            raise HTTPException(404, "Not found")
+        if (
+            request.headers.get("origin") != settings.public_url
+            or request.headers.get("host", "").lower()
+            != urlsplit(settings.public_url).netloc.lower()
+            or request.headers.get("sec-fetch-site") == "cross-site"
+        ):
+            raise HTTPException(403, "Open test login from LifeGather")
+        if (
+            request.headers.get("content-type", "").split(";", 1)[0].strip()
+            != "application/json"
+        ):
+            raise HTTPException(415, "Use a JSON request")
+        token = request.cookies.get(SESSION_COOKIE, "")
+        if store_for(request).authenticate(token, now=int(time.time())) is not None:
+            raise HTTPException(409, "Sign out before entering the test workspace")
+        limit_attempts(request)
+        signed = store_for(request).test_login(now=int(time.time()), old_token=token)
+        response = Response(status_code=204)
+        cookie(response, SESSION_COOKIE, signed.token, SESSION_SECONDS)
+        return response
 
     @router.get("/auth/google/start")
     async def start(request: Request) -> Response:
@@ -92,21 +141,7 @@ def auth_router(settings: Settings, provider: GoogleProvider) -> APIRouter:
         # Reject cross-site requests rather than replacing a user's active flow.
         if request.headers.get("sec-fetch-site") == "cross-site":
             raise HTTPException(403, "Open sign-in from LifeGather")
-        # Single-process limit. Use actual connection IP, never forwarded headers.
-        host = request.client.host if request.client else "unknown"
-        now = time.monotonic()
-        if host not in attempts and len(attempts) >= 1024:
-            oldest = next(iter(attempts))
-            if attempts[oldest] and attempts[oldest][-1] > now - 60:
-                raise HTTPException(429, "Sign-in busy; try again shortly")
-            attempts.pop(oldest)
-        recent = attempts.setdefault(host, deque())
-        attempts.move_to_end(host)
-        while recent and recent[0] <= now - 60:
-            recent.popleft()
-        if len(recent) >= 10:
-            raise HTTPException(429, "Too many sign-in attempts; try again shortly")
-        recent.append(now)
+        limit_attempts(request)
         browser, state, nonce, verifier = (secrets.token_urlsafe(32) for _ in range(4))
         try:
             url = await provider.authorization_url(state, nonce, verifier)

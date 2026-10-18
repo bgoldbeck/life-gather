@@ -274,3 +274,18 @@
 .password-settings p {
   margin-bottom: 1rem;
 }
+
+.test-mode-banner {
+  padding: 0.75rem 1rem;
+  background: #fff3cd;
+  color: #624400;
+  border-bottom: 1px solid #d6b75e;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.auth-card .test-mode-banner {
+  margin-bottom: 1rem;
+  border: 1px solid #d6b75e;
+  border-radius: 0.5rem;
+}

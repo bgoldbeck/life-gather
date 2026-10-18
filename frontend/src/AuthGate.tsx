@@ -5,6 +5,7 @@ import { readEmailLink } from './emailLink'
 
 type Account = { id: string; name: string; email: string }
 type Session = {
+  test_login_enabled?: boolean
   email_delivery_enabled?: boolean
   email_password_enabled?: boolean
   configured: boolean
@@ -96,9 +97,36 @@ export function AuthGate({
     await refresh()
   }
 
+  async function enterTestWorkspace() {
+    if (busy) return
+    setBusy(true)
+    try {
+      const response = await fetch('/auth/test-login', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      })
+      if (!response.ok) throw new Error('Test login failed')
+      await refresh()
+    } catch {
+      setError('Unable to enter the test workspace. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const testBanner = session?.test_login_enabled ? (
+    <aside className="test-mode-banner" aria-label="Test mode">
+      Test mode is enabled. Anyone who can reach this installation can enter the
+      shared test workspace. Use test data only.
+    </aside>
+  ) : null
+
   if (session && link) {
     return (
       <main className="auth-page">
+        {testBanner}
         <section className="auth-card">
           {link.purpose === 'link' && !session.user ? (
             <>
@@ -126,6 +154,7 @@ export function AuthGate({
   if (session?.user) {
     return (
       <>
+        {testBanner}
         {error && <p role="alert">{error}</p>}
         {children(
           session.user,
@@ -146,10 +175,16 @@ export function AuthGate({
   return (
     <main className="auth-page">
       <section className="auth-card" aria-labelledby="login-heading">
+        {testBanner}
         <img src="/brand/lifegather-icon.png" width="56" height="56" alt="" />
         <h1 id="login-heading">Your life, a little more connected.</h1>
         <p>Sign in to your private LifeGather workspace.</p>
         {notice && <p role="status">{notice}</p>}
+        {session?.test_login_enabled && !error && (
+          <Button disabled={busy} onClick={() => void enterTestWorkspace()}>
+            {busy ? 'Entering test workspace…' : 'Continue as test user'}
+          </Button>
+        )}
         {error ? (
           <>
             <p role="alert">{error}</p>

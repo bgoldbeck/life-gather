@@ -10,6 +10,8 @@ The source includes a responsive React shell, Google sign-in, and [email/passwor
 
 ## Run with Docker
 
+For local testing without account setup, explicitly enable [one-click test mode](docs/TEST_MODE.md). It is disabled by default and exposes a shared test workspace only when enabled.
+
 For testing without Google or email delivery, the installation owner can [create a private local sign-in account](docs/LOCAL_ACCOUNT_SETUP.md) using an interactive terminal command. It requires an updated image containing this feature.
 
 The source also includes [private settings and an encrypted credential vault](docs/PRIVATE_SETTINGS.md). Google login needs one-time OAuth setup by the installation owner; individual users only choose their Google account. The optional vault key is a separate server setting and is not a sign-in requirement.

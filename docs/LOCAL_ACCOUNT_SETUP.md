@@ -1,5 +1,8 @@
 # Local testing account
 
+For the easiest temporary testing experience, use [one-click test mode](TEST_MODE.md).
+The command below remains available for a separate password-protected account.
+
 The installation owner can create a private email/password account from the server terminal without Google OAuth or SMTP. There is no default password, administrator role, public provisioning endpoint, or access to other users' data.
 
 This command requires an image containing the local-account setup feature. Updating GitHub source does not update an existing container; rebuilding/publishing the image requires separate approval.
