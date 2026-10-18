@@ -58,8 +58,9 @@ policies still apply. See [official structured-output documentation](https://dev
 
 No tools, write authority, credentials, SQL, shell, or filesystem operations are
 given to the model. A typed `memory_save_text` MCP operation and chat capture use
-the same deterministic service. The thirteen-tool app-session MCP endpoint has
-eleven read operations and two explicit, idempotent note writes. External-client
+the same deterministic service. The sixteen-tool app-session MCP endpoint has
+thirteen read operations, two explicit note writes, and one human asset-review
+write. External-client
 OAuth remains unimplemented; never share application session cookies.
 
 ## Persistence, limits, and cancellation
@@ -103,8 +104,9 @@ citations, consent, durable reservations, cancellation, provider redaction, and
 snapshot restore. Frontend tests cover capture, recall configuration, evidence
 rendering, conversation reload, and retry identity.
 
-This is an initial usable text slice, not the whole chat milestone. Structured
-extraction, graph-fact correction/approval, discovery resolution UI, streaming
+Saved notes can now produce [reviewed asset proposals](ASSET_PROPOSALS.md). This is
+an initial text slice, not the whole chat milestone. Broader structured extraction,
+graph-fact correction/approval, the general discovery review queue, streaming
 tokens, persistent provider/model preferences, and per-user Light/Dark settings
 are still required in subsequent increments. Uploads and connectors remain later.
 Real OpenAI access and model compatibility have not been smoke-tested. Completed,

@@ -10,6 +10,11 @@ from lifegather.chat.runner import answer
 from lifegather.chat.service import ChatService, SaveText, TurnInput
 from lifegather.memory.notes import CorrectionInput, NoteService
 from lifegather.memory.service import MemoryError
+from lifegather.reconciliation.proposals import (
+    ProposalPreview,
+    ProposalReview,
+    ProposalService,
+)
 
 Authenticated = Annotated[CurrentSession, Depends(require_session)]
 Mutation = Annotated[CurrentSession, Depends(require_write_session)]
@@ -56,6 +61,9 @@ def chat_router() -> APIRouter:
             "recorded_at": original.recorded_at,
             "event_date": original.event_date,
             "source_type": original.source_type,
+            "asset_proposal_id": ProposalService(service(request).engine).for_source(
+                current.user, source_id
+            ),
             "note": NoteService(service(request).engine).describe(
                 current.user, source_id
             ),
@@ -83,6 +91,26 @@ def chat_router() -> APIRouter:
         return NoteService(service(request).engine).history(
             current.user, source_id, cursor, limit
         )
+
+    @router.get("/asset-proposals/{proposal_id}")
+    def asset_proposal(
+        request: Request,
+        proposal_id: Annotated[str, PathParam(min_length=1, max_length=36)],
+        current: Authenticated,
+    ) -> dict[str, Any]:
+        return ProposalService(service(request).engine).get(current.user, proposal_id)
+
+    @router.post("/asset-proposals/review")
+    def review_asset_proposal(
+        request: Request, body: ProposalReview, current: Mutation
+    ) -> dict[str, Any]:
+        return ProposalService(service(request).engine).review(current.user, body)
+
+    @router.post("/asset-proposals/preview")
+    def preview_asset_proposal(
+        request: Request, body: ProposalPreview, current: Mutation
+    ) -> dict[str, Any]:
+        return ProposalService(service(request).engine).preview(current.user, body)
 
     @router.get("/conversations/{conversation_id}/turns")
     def turns(

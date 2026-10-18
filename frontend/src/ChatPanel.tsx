@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import './chat.css'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
+import { AssetProposalCard } from './AssetProposalCard'
 import { ChatRequestError as RequestError } from './chatRequest'
 
 type Source = { id: string; text: string }
@@ -11,7 +12,7 @@ type Turn = {
   mode: string
   text: string
   state: string
-  result: { text?: string; sources?: Source[] }
+  result: { text?: string; sources?: Source[]; proposal_id?: string }
 }
 type Conversation = { id: string; title: string }
 type Page<T> = { items: T[]; next_cursor: string | null }
@@ -33,6 +34,8 @@ export function ChatPanel({
   const [turnCursor, setTurnCursor] = useState<string | null>(null)
   const [text, setText] = useState('')
   const [mode, setMode] = useState('save')
+  const [extractSource, setExtractSource] = useState('')
+  const [viewProposal, setViewProposal] = useState('')
   const [credentials, setCredentials] = useState<Credential[]>([])
   const [credential, setCredential] = useState('')
   const [model, setModel] = useState('')
@@ -124,6 +127,7 @@ export function ChatPanel({
     pending.current = null
     setRetryNeeded(false)
     setSource(null)
+    setViewProposal('')
     setSelected(id)
     setTurns([])
     setTurnCursor(null)
@@ -192,6 +196,7 @@ export function ChatPanel({
         text,
         credential_id: credential,
         model,
+        ...(mode === 'extract' ? { source_id: extractSource } : {}),
       }
       pending.current = { conversation: id, body }
       setRetryNeeded(true)
@@ -201,6 +206,7 @@ export function ChatPanel({
         signal: controller.signal,
       })
       setTurns((current) => [...current.filter((t) => t.id !== turn.id), turn])
+      if (turn.result.proposal_id) setViewProposal(turn.result.proposal_id)
       setConversations((current) =>
         current.map((c) =>
           c.id === id && c.title === 'New conversation'
@@ -340,7 +346,9 @@ export function ChatPanel({
                     ? 'Save memory'
                     : turn.mode === 'search'
                       ? 'Keyword search'
-                      : 'Ask OpenAI'}
+                      : turn.mode === 'extract'
+                        ? 'Suggest asset'
+                        : 'Ask OpenAI'}
                 </p>
                 <p className="chat-text">{turn.text}</p>
                 <div className="chat-response">
@@ -352,6 +360,14 @@ export function ChatPanel({
                   </p>
                   {turn.state === 'failed' && (
                     <p role="status">Request failed</p>
+                  )}
+                  {turn.result.proposal_id && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setViewProposal(turn.result.proposal_id!)}
+                    >
+                      View asset proposal
+                    </Button>
                   )}
                   {turn.result.sources?.map((s, i) => (
                     <Button
@@ -376,9 +392,11 @@ export function ChatPanel({
             )}
             {busy && (
               <p role="status">
-                {mode === 'ask'
-                  ? 'Searching your evidence and preparing an answer…'
-                  : 'Saving your request…'}
+                {mode === 'extract'
+                  ? 'Preparing a proposal for your review…'
+                  : mode === 'ask'
+                    ? 'Searching your evidence and preparing an answer…'
+                    : 'Saving your request…'}
               </p>
             )}
           </div>
@@ -391,6 +409,26 @@ export function ChatPanel({
               onOpen={openSource}
               onClose={() => setSource(null)}
               request={request}
+              onViewProposal={(id) => setViewProposal(id)}
+              onSuggest={
+                busy || retryNeeded
+                  ? undefined
+                  : () => {
+                      setExtractSource(source.id)
+                      setText(source.text)
+                      setMode('extract')
+                      setSource(null)
+                      setViewProposal('')
+                    }
+              }
+            />
+          )}
+          {viewProposal && (
+            <AssetProposalCard
+              key={viewProposal}
+              id={viewProposal}
+              request={request}
+              onOpen={openSource}
             />
           )}
           {error && (
@@ -409,14 +447,19 @@ export function ChatPanel({
                 <option value="save">Save memory</option>
                 <option value="search">Keyword search</option>
                 <option value="ask">Ask OpenAI</option>
+                <option value="extract" disabled={!extractSource}>
+                  Suggest asset from selected note
+                </option>
               </select>
             </label>
-            {mode === 'ask' && (
+            {(mode === 'ask' || mode === 'extract') && (
               <div className="chat-provider">
                 <p>
-                  OpenAI receives your question, up to four recent user
-                  messages, and matching evidence. {usage}/20 AI questions used
-                  today (UTC). Provider charges may apply.
+                  {mode === 'extract'
+                    ? 'OpenAI receives only the selected saved note to propose one item. Nothing enters inventory until you review and confirm.'
+                    : 'OpenAI receives your question, up to four recent user messages, and matching evidence.'}{' '}
+                  {usage}/20 AI requests used today (UTC). Provider charges may
+                  apply.
                 </p>
                 {!consent && (
                   <p>Enable external AI access in Settings to continue.</p>
@@ -458,20 +501,25 @@ export function ChatPanel({
                 ? 'Memory to save'
                 : mode === 'search'
                   ? 'Search keywords'
-                  : 'Your question'}
+                  : mode === 'extract'
+                    ? 'Selected saved note'
+                    : 'Your question'}
             </label>
             <textarea
               id="chat-text"
               value={text}
               maxLength={mode === 'search' ? 200 : 4000}
               disabled={busy || retryNeeded}
+              readOnly={mode === 'extract'}
               rows={3}
               onChange={(e) => setText(e.target.value)}
             />
             <p>
               {mode === 'search'
                 ? 'Use 1–12 keywords. Every word must match.'
-                : 'Only Save memory adds your original text to searchable memory.'}
+                : mode === 'extract'
+                  ? 'Review the proposal before creating an asset. Correct the saved note first if its text is wrong.'
+                  : 'Only Save memory adds your original text to searchable memory.'}
             </p>
             <div className="chat-send">
               <Button
@@ -481,7 +529,7 @@ export function ChatPanel({
                   loading ||
                   !!turnCursor ||
                   !text.trim() ||
-                  (mode === 'ask' &&
+                  ((mode === 'ask' || mode === 'extract') &&
                     (!consent || !credential || !model || usage >= 20))
                 }
               >
@@ -491,7 +539,9 @@ export function ChatPanel({
                     ? 'Save memory'
                     : mode === 'search'
                       ? 'Search memories'
-                      : 'Ask OpenAI'}
+                      : mode === 'extract'
+                        ? 'Suggest asset'
+                        : 'Ask OpenAI'}
               </Button>
               {busy && (
                 <Button

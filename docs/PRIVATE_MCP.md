@@ -1,9 +1,9 @@
 # Private MCP recall adapter
 
-LifeGather exposes eleven read-only tools and two explicit note-write tools over the official Python MCP SDK
+LifeGather exposes thirteen read-only tools, two explicit note-write tools and one human asset-review tool over the official Python MCP SDK
 v2 (`mcp==2.3.0` in the lockfile). This is the internal protocol foundation for
 chat. The first [text chat increment](TEXT_CHAT.md) adds a separate chat transport
-and optional OpenAI recall. The model receives neither note-write tool.
+and optional OpenAI recall. The app model receives none of these operational tools.
 
 ## Authentication and transport
 
@@ -35,6 +35,9 @@ coerced numbers, and out-of-range values are rejected before execution.
 
 | Tool | Result |
 | --- | --- |
+| `asset_proposal_get` | Read a private proposed item, its source and reviewed state |
+| `asset_proposal_preview` | Validate edited evidence and check owner-scoped duplicate candidates without writes |
+| `asset_proposal_review` | Explicit human confirmation/rejection with a replay-safe request ID; atomic reconciliation |
 | `memory_save_text` | Explicitly preserve original text with a retry-safe request ID; no extracted facts or inventory |
 | `memory_correct_note` | Append a correction to the current saved note with a retry-safe request ID; preserve all earlier text |
 | `memory_note_history` | Page through an owned saved note's original and correction versions |
@@ -52,9 +55,9 @@ coerced numbers, and out-of-range values are rejected before execution.
 For example, the arguments to `memory_search` are
 `{"data":{"query":"trimmer","limit":10}}`. Calls return structured JSON alongside
 normal MCP content. Read operations are annotated read-only; `memory_save_text`
-and `memory_correct_note` are explicitly annotated as writes. All are non-destructive, idempotent, and
-closed-world. No SQL, filesystem, export, backup, credential, provider, or graph
-mutation operations are exposed. Text capture requires an explicit user request;
+`memory_correct_note` and `asset_proposal_review` are explicitly annotated as writes. All are non-destructive, idempotent, and
+closed-world. No SQL, filesystem, export, backup, credential, or provider operations are exposed. Graph writes are limited to explicit human
+asset-proposal review; see [asset proposals](ASSET_PROPOSALS.md). Text capture requires an explicit user request;
 source content never authorizes a save or correction. Default source search excludes
 superseded note versions before applying its result limit. `memory_source` still
 returns the exact requested historical source and adds current-note metadata.
@@ -84,7 +87,8 @@ does not establish present ownership. See [memory semantics](MEMORY_CORE.md) and
   Validation/internal errors do not return raw arguments, SQL, or private text.
 
 The adapter delegates to owner-scoped services. Note corrections use migration
-`0007_note_corrections`; see [note semantics](TEXT_CHAT.md). The tools send no
+`0007_note_corrections`; asset proposals add `0008_asset_proposals`. See
+[note semantics](TEXT_CHAT.md) and [asset review](ASSET_PROPOSALS.md). The tools send no
 records to an external provider. Authentication still
 uses the existing session database; domain reads do not append graph audit events.
 

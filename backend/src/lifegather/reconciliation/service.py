@@ -194,77 +194,82 @@ class ReconciliationService:
         return line.id, False
 
     def discover(self, actor: Account, value: DiscoveryInput) -> DiscoveryView:
+        with self.memory._write() as db:
+            return self._discover_in(db, actor, value)
+
+    def _discover_in(
+        self, db: Session, actor: Account, value: DiscoveryInput
+    ) -> DiscoveryView:
         data = DiscoveryInput.model_validate(value)
         signature = fingerprint(data.model_dump(mode="json"))
-        with self.memory._write() as db:
-            source = self.memory._source(db, actor, data.source_id)
-            if data.quote not in source.text:
-                raise MemoryError("Discovery quote must appear in its source")
-            fields = [data.name, data.manufacturer, data.model, data.serial]
-            if data.order:
-                fields.extend(
-                    [data.order.retailer, data.order.order_id, data.order.line_id]
+        source = self.memory._source(db, actor, data.source_id)
+        if data.quote not in source.text:
+            raise MemoryError("Discovery quote must appear in its source")
+        fields = [data.name, data.manufacturer, data.model, data.serial]
+        if data.order:
+            fields.extend(
+                [data.order.retailer, data.order.order_id, data.order.line_id]
+            )
+        if any(
+            field and normalized(field) not in normalized(data.quote)
+            for field in fields
+        ):
+            raise MemoryError("Identity fields must appear in discovery evidence")
+        existing = db.scalar(
+            select(Observation)
+            .where(
+                Observation.user_id == actor.id,
+                Observation.source_id == data.source_id,
+                Observation.item_key == data.item_key,
+            )
+            .limit(1)
+        )
+        if existing:
+            if existing.fingerprint != signature:
+                raise MemoryError(
+                    "Discovery replay conflict; use a new source revision"
                 )
-            if any(
-                field and normalized(field) not in normalized(data.quote)
-                for field in fields
-            ):
-                raise MemoryError("Identity fields must appear in discovery evidence")
-            existing = db.scalar(
-                select(Observation)
-                .where(
-                    Observation.user_id == actor.id,
-                    Observation.source_id == data.source_id,
-                    Observation.item_key == data.item_key,
-                )
-                .limit(1)
+            return self._view(db, actor, self._current(db, actor, existing.id))
+        if source.source_type == "statement" and data.kind != "payment":
+            raise MemoryError("Bank statements cannot establish item contents")
+        product_id = (
+            self._product(db, actor, data)
+            if data.kind not in {"payment", "mention"}
+            else None
+        )
+        line_id, conflict = self._line(db, actor, data, product_id)
+        observation = Observation(
+            id=str(uuid4()),
+            user_id=actor.id,
+            recorded_at=max(self.memory.clock(), source.recorded_at),
+            source_id=data.source_id,
+            item_key=data.item_key,
+            payload=data.model_dump_json(),
+            fingerprint=signature,
+            product_id=product_id,
+            line_id=line_id,
+            serial_key=fingerprint(
+                [normalized(data.manufacturer or ""), data.serial.strip()]
             )
-            if existing:
-                if existing.fingerprint != signature:
-                    raise MemoryError(
-                        "Discovery replay conflict; use a new source revision"
-                    )
-                return self._view(db, actor, self._current(db, actor, existing.id))
-            if source.source_type == "statement" and data.kind != "payment":
-                raise MemoryError("Bank statements cannot establish item contents")
-            product_id = (
-                self._product(db, actor, data)
-                if data.kind not in {"payment", "mention"}
-                else None
-            )
-            line_id, conflict = self._line(db, actor, data, product_id)
-            observation = Observation(
-                id=str(uuid4()),
-                user_id=actor.id,
-                recorded_at=max(self.memory.clock(), source.recorded_at),
-                source_id=data.source_id,
-                item_key=data.item_key,
-                payload=data.model_dump_json(),
-                fingerprint=signature,
-                product_id=product_id,
-                line_id=line_id,
-                serial_key=fingerprint(
-                    [normalized(data.manufacturer or ""), data.serial.strip()]
-                )
-                if data.serial
-                else None,
-            )
-            db.add(observation)
-            db.flush()
-            outcome, reason, targets, candidates = self.matcher._choose(
-                db, actor, observation, data, conflict
-            )
-            return self._record(
-                db,
-                actor,
-                observation,
-                outcome,
-                reason,
-                targets,
-                candidates,
-                "discover",
-                None,
-            )
+            if data.serial
+            else None,
+        )
+        db.add(observation)
+        db.flush()
+        outcome, reason, targets, candidates = self.matcher._choose(
+            db, actor, observation, data, conflict
+        )
+        return self._record(
+            db,
+            actor,
+            observation,
+            outcome,
+            reason,
+            targets,
+            candidates,
+            "discover",
+            None,
+        )
 
     def _record(
         self,
@@ -393,90 +398,101 @@ class ReconciliationService:
         action: Literal["resolve", "dismiss", "undo"],
         asset_ids: list[str] | None,
     ) -> DiscoveryView:
+        with self.memory._write() as db:
+            return self._change_in(
+                db, actor, observation_id, expected, action, asset_ids
+            )
+
+    def _change_in(
+        self,
+        db: Session,
+        actor: Account,
+        observation_id: str,
+        expected: str,
+        action: Literal["resolve", "dismiss", "undo"],
+        asset_ids: list[str] | None,
+    ) -> DiscoveryView:
         if asset_ids is not None and (
             not 1 <= len(asset_ids) <= 20 or len(asset_ids) != len(set(asset_ids))
         ):
             raise MemoryError("Supply 1 to 20 distinct physical items")
         key = fingerprint([action, asset_ids])
-        with self.memory._write() as db:
-            observation = self._observation(db, actor, observation_id)
-            old = self._decision(db, actor, expected)
-            if old.observation_id != observation.id:
-                raise MemoryError("Decision does not belong to discovery")
-            successor = db.scalar(
-                select(Decision)
-                .where(Decision.user_id == actor.id, Decision.previous_id == old.id)
-                .limit(1)
+        observation = self._observation(db, actor, observation_id)
+        old = self._decision(db, actor, expected)
+        if old.observation_id != observation.id:
+            raise MemoryError("Decision does not belong to discovery")
+        successor = db.scalar(
+            select(Decision)
+            .where(Decision.user_id == actor.id, Decision.previous_id == old.id)
+            .limit(1)
+        )
+        if successor:
+            if successor.request_key == key:
+                return self._view(db, actor, successor)
+            raise MemoryError("Stale decision; reload discovery")
+        current = self._current(db, actor, observation_id)
+        if current.id != old.id:
+            raise MemoryError("Stale decision; reload discovery")
+        data = DiscoveryInput.model_validate_json(observation.payload)
+        if action == "undo":
+            predecessor = (
+                self._decision(db, actor, old.previous_id) if old.previous_id else None
             )
-            if successor:
-                if successor.request_key == key:
-                    return self._view(db, actor, successor)
-                raise MemoryError("Stale decision; reload discovery")
-            current = self._current(db, actor, observation_id)
-            if current.id != old.id:
-                raise MemoryError("Stale decision; reload discovery")
-            data = DiscoveryInput.model_validate_json(observation.payload)
-            if action == "undo":
-                predecessor = (
-                    self._decision(db, actor, old.previous_id)
-                    if old.previous_id
-                    else None
-                )
-                if predecessor:
-                    prior = self._view(db, actor, predecessor)
-                    return self._record(
-                        db,
-                        actor,
-                        observation,
-                        prior.outcome,
-                        "Restored preceding decision",
-                        prior.asset_ids,
-                        prior.candidate_ids,
-                        key,
-                        old,
-                    )
+            if predecessor:
+                prior = self._view(db, actor, predecessor)
                 return self._record(
                     db,
                     actor,
                     observation,
-                    "review",
-                    "Automatic decision undone; awaiting correction",
-                    [],
-                    [],
+                    prior.outcome,
+                    "Restored preceding decision",
+                    prior.asset_ids,
+                    prior.candidate_ids,
                     key,
                     old,
                 )
-            if action == "dismiss":
-                return self._record(
-                    db,
-                    actor,
-                    observation,
-                    "dismissed",
-                    "User excluded this discovery from inventory",
-                    [],
-                    [],
-                    key,
-                    old,
-                )
-            if data.kind in {"payment", "mention"}:
-                raise MemoryError(
-                    "Create a possession source before adding this to inventory"
-                )
-            if asset_ids is not None and len(asset_ids) != data.quantity:
-                raise MemoryError("Choose one distinct physical item for each unit")
-            for identifier in asset_ids or []:
-                self.memory._entity(db, actor, identifier)
             return self._record(
                 db,
                 actor,
                 observation,
-                "enrich" if asset_ids else "create",
-                "User resolved physical identity",
-                asset_ids or [],
+                "review",
+                "Automatic decision undone; awaiting correction",
+                [],
                 [],
                 key,
                 old,
             )
+        if action == "dismiss":
+            return self._record(
+                db,
+                actor,
+                observation,
+                "dismissed",
+                "User excluded this discovery from inventory",
+                [],
+                [],
+                key,
+                old,
+            )
+        if data.kind in {"payment", "mention"}:
+            raise MemoryError(
+                "Create a possession source before adding this to inventory"
+            )
+        if asset_ids is not None and len(asset_ids) != data.quantity:
+            raise MemoryError("Choose one distinct physical item for each unit")
+        for identifier in asset_ids or []:
+            self.memory._entity(db, actor, identifier)
+        return self._record(
+            db,
+            actor,
+            observation,
+            "enrich" if asset_ids else "create",
+            "User resolved physical identity",
+            asset_ids or [],
+            [],
+            key,
+            old,
+        )
 
     def resolve(
         self,

@@ -5,6 +5,7 @@ import { ChatRequestError } from './chatRequest'
 export type EvidenceSource = {
   id: string
   text: string
+  asset_proposal_id?: string | null
   note?: {
     root_source_id: string
     current_source_id: string
@@ -28,6 +29,8 @@ export function EvidencePanel({
   onOpen,
   onClose,
   request,
+  onSuggest,
+  onViewProposal,
 }: {
   source: EvidenceSource
   nextOffset: number | null
@@ -35,6 +38,8 @@ export function EvidencePanel({
   onOpen: (id: string, offset?: number) => Promise<void>
   onClose: () => void
   request: (path: string, init?: RequestInit) => Promise<unknown>
+  onSuggest?: () => void
+  onViewProposal?: (id: string) => void
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(source.text)
@@ -131,6 +136,24 @@ export function EvidencePanel({
         </p>
       )}
       <p className="chat-text">{source.text}</p>
+      {source.asset_proposal_id && onViewProposal && (
+        <Button
+          variant="outline"
+          disabled={saving}
+          onClick={() => onViewProposal(source.asset_proposal_id!)}
+        >
+          View asset proposal
+        </Button>
+      )}
+      {!source.asset_proposal_id && source.note?.is_current && onSuggest && (
+        <Button
+          variant="outline"
+          disabled={saving || opening || editing}
+          onClick={onSuggest}
+        >
+          Suggest an asset from this note
+        </Button>
+      )}
       {nextOffset !== null && (
         <Button
           disabled={opening || saving}
