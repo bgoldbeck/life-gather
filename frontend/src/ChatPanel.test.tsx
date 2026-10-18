@@ -85,6 +85,8 @@ function mockServer() {
     },
   }
   const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
+    if (url === '/api/chat/preferences')
+      return new Response(JSON.stringify({ credential_id: '', model: '' }))
     if (url === '/api/settings')
       return new Response(JSON.stringify({ allow_external_ai: false }))
     if (url.startsWith('/api/credentials'))
@@ -117,6 +119,66 @@ function mockServer() {
   vi.stubGlobal('fetch', fetcher)
   return fetcher
 }
+
+it('restores and explicitly saves a private model choice without enabling AI', async () => {
+  const fetcher = mockServer()
+  const original = fetcher.getMockImplementation()!
+  let choice = { credential_id: 'claude', model: 'synthetic-old' }
+  fetcher.mockImplementation(async (url, init) => {
+    if (url.startsWith('/api/credentials'))
+      return new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: 'claude',
+              kind: 'ai',
+              provider: 'anthropic',
+              label: 'Synthetic Claude',
+            },
+          ],
+        }),
+      )
+    if (url === '/api/chat/preferences') {
+      if (init?.method === 'PUT') {
+        choice = JSON.parse(String(init.body))
+        return new Response(null, { status: 204 })
+      }
+      return new Response(JSON.stringify(choice))
+    }
+    return original(url, init)
+  })
+  const mounted = render(<ChatPanel csrfToken="csrf" />)
+  await userEvent.selectOptions(screen.getByLabelText('Action'), 'ask')
+  await waitFor(() =>
+    expect(screen.getByLabelText('Model ID')).toHaveValue('synthetic-old'),
+  )
+  await userEvent.clear(screen.getByLabelText('Model ID'))
+  await userEvent.type(screen.getByLabelText('Model ID'), 'synthetic-new')
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Remember AI choice' }),
+  )
+  expect(
+    await screen.findByText('AI choice saved for your account.'),
+  ).toBeVisible()
+  expect(
+    screen.getByText('Enable external AI access in Settings to continue.'),
+  ).toBeVisible()
+  mounted.unmount()
+  render(<ChatPanel csrfToken="csrf" />)
+  await userEvent.selectOptions(screen.getByLabelText('Action'), 'ask')
+  await waitFor(() =>
+    expect(screen.getByLabelText('Model ID')).toHaveValue('synthetic-new'),
+  )
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Forget saved AI choice' }),
+  )
+  await waitFor(() => expect(screen.getByLabelText('Model ID')).toHaveValue(''))
+  expect(
+    fetcher.mock.calls.some(
+      ([url, init]) => url === '/api/settings' && init?.method === 'PUT',
+    ),
+  ).toBe(false)
+})
 
 describe('private text memory chat', () => {
   it('saves a note, opens evidence safely, and reloads persisted messages', async () => {

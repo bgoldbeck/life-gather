@@ -35,7 +35,7 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
 2. Interactive graph (merged v0.11.0, PR #21): reuse existing `memory_related` and entity/source reads;
    bounded authenticated graph service/adapter, selectable accessible nodes and
    explicit edge evidence, empty/error/limit states, no fabricated relationships.
-3. Home/vehicle profiles (v0.12.0, verified): sourced specifications and maintenance facts on existing
+3. Home/vehicle profiles (merged v0.12.0, PR #22): sourced specifications and maintenance facts on existing
    private entities; preserve unknowns, evidence and time. No unverified fitment.
 4. Richer chat: streaming and bounded read-tool orchestration; private persistent
    provider/model preferences, existing cancellation/usage/consent checks.
@@ -83,3 +83,14 @@ Profiles verified: 166 backend tests / 52 frontend tests, Ruff lint/format, mypy
 TypeScript, frontend lint/format, Vite and wheel builds pass. Isolated browser QA
 created a synthetic home, saved a sourced paint detail and followed it into the
 graph. No real records, model calls, migrations or Docker changes.
+
+Feature 4 is delivered in bounded releases: 4a saved provider/model choices
+(v0.13.0), 4b streaming replies, 4c bounded read-only tool orchestration. Preferences
+are explicit, owner-scoped and never imply permission to contact a provider.
+Migration 0012 adds only a private preference table; removing a connection clears
+the effective choice rather than selecting a different provider.
+
+Chat choices verified: full backend suite 167 passed, followed by both preference
+tests (including the newly added upgrade-preservation test) passing; frontend
+53 passed, all lint/type/format checks and builds pass. Graphify refreshed
+1461 nodes / 5178 edges. No provider calls or Docker publication.

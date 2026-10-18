@@ -7,6 +7,7 @@ from fastapi import Path as PathParam
 from lifegather.assets.actions import ActionService
 from lifegather.auth.routes import require_session, require_write_session
 from lifegather.auth.store import CurrentSession
+from lifegather.chat.preferences import ChatChoice, ChatPreferences
 from lifegather.chat.runner import answer
 from lifegather.chat.service import ChatService, SaveText, TurnInput
 from lifegather.memory.notes import CorrectionInput, NoteService
@@ -29,6 +30,14 @@ def service(request: Request) -> ChatService:
 
 def chat_router() -> APIRouter:
     router = APIRouter(prefix="/api/chat")
+
+    @router.get("/preferences")
+    def preferences(request: Request, current: Authenticated) -> ChatChoice:
+        return ChatPreferences(service(request).engine).get(current.user)
+
+    @router.put("/preferences", status_code=204)
+    def save_preferences(request: Request, current: Mutation, body: ChatChoice) -> None:
+        ChatPreferences(service(request).engine).set(current.user, body)
 
     @router.get("/conversations")
     def conversations(

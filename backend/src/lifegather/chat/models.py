@@ -41,3 +41,12 @@ class Usage(Base):
     requests: Mapped[int]
     input_tokens: Mapped[int]
     output_tokens: Mapped[int]
+
+
+class ChatPreference(Base):
+    __tablename__ = "chat_preferences"
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    credential_id: Mapped[str | None] = mapped_column(
+        ForeignKey("credentials.id", ondelete="SET NULL")
+    )
+    model: Mapped[str]
