@@ -32,10 +32,10 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
    in authenticated session metadata. React clears preference on sign-out, follows
    system changes, and applies semantic colors to all existing views. Test owner
    separation, migration defaults, invalid values, save failure and account switch.
-2. Interactive graph (v0.11.0, verified): reuse existing `memory_related` and entity/source reads;
+2. Interactive graph (merged v0.11.0, PR #21): reuse existing `memory_related` and entity/source reads;
    bounded authenticated graph service/adapter, selectable accessible nodes and
    explicit edge evidence, empty/error/limit states, no fabricated relationships.
-3. Home/vehicle profiles: sourced specifications and maintenance facts on existing
+3. Home/vehicle profiles (v0.12.0, verified): sourced specifications and maintenance facts on existing
    private entities; preserve unknowns, evidence and time. No unverified fitment.
 4. Richer chat: streaming and bounded read-tool orchestration; private persistent
    provider/model preferences, existing cancellation/usage/consent checks.
@@ -72,3 +72,14 @@ Graph verification: 163 backend tests and 50 frontend tests pass; Ruff, mypy,
 TypeScript, frontend lint/format and production builds pass. Graphify refreshed
 1389 nodes / 5002 edges; its existing partial AssetsPanel extractor warning remains
 (the TypeScript compiler passes). No migration or Docker deployment.
+
+Profile scope: existing asset/place details plus explicitly separate home/vehicle
+creation, exact sourced text, stated/inferred/unknown status, optional valid dates,
+immutable correction history, private MCP inspection and graph navigation. Original
+photo evidence can still be attached through asset photos; live VIN/fitment lookup
+and automatic maintenance reminders remain later work. No schema change.
+
+Profiles verified: 166 backend tests / 52 frontend tests, Ruff lint/format, mypy,
+TypeScript, frontend lint/format, Vite and wheel builds pass. Isolated browser QA
+created a synthetic home, saved a sourced paint detail and followed it into the
+graph. No real records, model calls, migrations or Docker changes.

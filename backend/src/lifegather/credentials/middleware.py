@@ -14,6 +14,7 @@ class CredentialBodyLimit:
                 (
                     "/api/credentials",
                     "/api/appearance",
+                    "/api/profiles",
                     "/auth/email/",
                     "/auth/test-login",
                     "/api/chat",

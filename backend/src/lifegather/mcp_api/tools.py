@@ -31,6 +31,7 @@ from lifegather.memory.notes import CorrectionInput, NoteHistoryInput, NoteServi
 from lifegather.memory.schemas import FactView
 from lifegather.memory.service import MemoryError, MemoryService
 from lifegather.photos.service import PhotoList, PhotoRead, PhotoService
+from lifegather.profiles.service import ProfileRead, ProfileService
 from lifegather.reconciliation.proposals import (
     ProposalPreview,
     ProposalRead,
@@ -141,6 +142,16 @@ def build_server() -> MCPServer:
         idempotent_hint=True,
         open_world_hint=False,
     )
+
+    @server.tool(annotations=annotation)
+    def profile_get(data: ProfileRead, ctx: ToolContext) -> dict[str, Any]:
+        """Read sourced home/vehicle details; specifications do not prove fitment."""
+        return read(
+            ctx,
+            lambda actor, memory, _: ProfileService(memory.engine).get(
+                actor, data.entity_id, history=data.history, cursor=data.cursor
+            ),
+        )
 
     @server.tool(annotations=annotation)
     def photo_list(data: PhotoList, ctx: ToolContext) -> dict[str, Any]:

@@ -1,0 +1,58 @@
+.profiles-panel,
+.profile-editor {
+  display: grid;
+  gap: 1rem;
+  max-width: 65rem;
+}
+.profiles-panel h1 {
+  font-size: 2rem;
+}
+.profile-editor h2 {
+  font-size: 1.5rem;
+}
+.profiles-panel form {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--card);
+}
+.profiles-panel label {
+  display: grid;
+  gap: 0.4rem;
+}
+.profiles-panel input,
+.profiles-panel select,
+.profiles-panel textarea {
+  background: var(--background);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.6rem;
+  width: 100%;
+}
+.profiles-panel input[type='checkbox'] {
+  width: auto;
+}
+.profiles-panel textarea {
+  min-height: 6rem;
+}
+.profile-facts {
+  display: grid;
+  gap: 1rem;
+}
+.profile-facts li {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  overflow-wrap: anywhere;
+}
+.profile-facts button {
+  margin: 0.3rem;
+}
+.profile-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}

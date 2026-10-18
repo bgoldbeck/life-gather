@@ -5,6 +5,7 @@ from lifegather.assets.service import AssetList, AssetRead
 from lifegather.chat.service import SaveText
 from lifegather.memory.notes import CorrectionInput, NoteHistoryInput
 from lifegather.photos.service import PhotoList, PhotoRead
+from lifegather.profiles.service import ProfileRead
 from lifegather.reconciliation.proposals import (
     ProposalPreview,
     ProposalRead,
@@ -60,6 +61,7 @@ class DiscoveryHistory(Page):
 
 
 INPUTS: dict[str, type[BaseModel]] = {
+    "profile_get": ProfileRead,
     "review_queue": ReviewPage,
     "review_identity": IdentityRead,
     "review_identity_resolve": IdentityReview,
