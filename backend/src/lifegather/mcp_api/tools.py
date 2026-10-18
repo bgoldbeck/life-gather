@@ -21,6 +21,11 @@ from lifegather.assets.batch import (
     EvidenceRestore,
 )
 from lifegather.assets.purchases import AssetPurchases, AssetPurchasesRead
+from lifegather.assets.replacements import (
+    ReplacementRecord,
+    ReplacementService,
+    ReplacementWithdraw,
+)
 from lifegather.assets.service import AssetList, AssetRead, AssetService
 from lifegather.auth.store import Account, AuthStore
 from lifegather.chat.service import SaveText, save_text
@@ -688,6 +693,44 @@ def build_server() -> MCPServer:
         return read(
             ctx,
             lambda actor, memory, _: EvidenceBatchService(memory.engine).restore(
+                actor, data
+            ),
+        )
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        )
+    )
+    def asset_replacement_record(
+        data: ReplacementRecord, ctx: ToolContext
+    ) -> dict[str, Any]:
+        """Record an explicit human replacement statement, preserving both items."""
+        return read(
+            ctx,
+            lambda actor, memory, _: ReplacementService(memory.engine).change(
+                actor, data
+            ),
+        )
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        )
+    )
+    def asset_replacement_withdraw(
+        data: ReplacementWithdraw, ctx: ToolContext
+    ) -> dict[str, Any]:
+        """Withdraw a replacement statement with a direct human explanation."""
+        return read(
+            ctx,
+            lambda actor, memory, _: ReplacementService(memory.engine).change(
                 actor, data
             ),
         )

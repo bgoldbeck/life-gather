@@ -199,9 +199,11 @@ export function EvidencePanel({
       )}
       {source.asset_context?.target_asset_name && (
         <p>
-          {source.asset_context.operation === 'batch_restore'
-            ? 'Evidence returned from'
-            : 'Receiving item'}
+          {source.asset_context.operation.startsWith('replacement')
+            ? 'Replacement item'
+            : source.asset_context.operation === 'batch_restore'
+              ? 'Evidence returned from'
+              : 'Receiving item'}
           : {source.asset_context.target_asset_name}.
         </p>
       )}

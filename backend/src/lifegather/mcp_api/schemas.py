@@ -3,6 +3,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from lifegather.assets.actions import AssetChange
 from lifegather.assets.batch import EvidenceMove, EvidenceMovePreview, EvidenceRestore
 from lifegather.assets.purchases import AssetPurchasesRead
+from lifegather.assets.replacements import ReplacementRecord, ReplacementWithdraw
 from lifegather.assets.service import AssetList, AssetRead
 from lifegather.chat.service import SaveText
 from lifegather.documents.service import DocumentPage, DocumentRead
@@ -91,6 +92,8 @@ INPUTS: dict[str, type[BaseModel]] = {
     "asset_evidence_preview": EvidenceMovePreview,
     "asset_evidence_move": EvidenceMove,
     "asset_evidence_restore": EvidenceRestore,
+    "asset_replacement_record": ReplacementRecord,
+    "asset_replacement_withdraw": ReplacementWithdraw,
     "asset_change": AssetChange,
     "assets_list": AssetList,
     "asset_purchases": AssetPurchasesRead,

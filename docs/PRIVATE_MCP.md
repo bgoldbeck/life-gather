@@ -117,3 +117,9 @@ These are not app-model tools. Preview 1–5 current associations, retain the
 returned fingerprint, then apply an explained direct user choice with a stable
 request ID. Reversal takes the recorded batch action ID and a new explained
 request ID. See [batch semantics and limits](EVIDENCE_BATCHES.md).
+
+
+Explicit human `asset_replacement_record` and `asset_replacement_withdraw` tools
+record or withdraw a sourced relationship between two existing private physical
+items. They do not move evidence, change ownership or run through the app model.
+See [replacement semantics](REPLACEMENTS.md).
