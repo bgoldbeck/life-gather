@@ -111,6 +111,7 @@ it('offers Claude beside OpenAI and sends only the selected connection and model
                 text: 'Synthetic Claude answer.',
                 provider: 'anthropic',
                 model: 'synthetic-claude',
+                records: [{ id: 'car', name: 'Synthetic car', kind: 'asset' }],
               },
             },
           }) +
@@ -119,7 +120,8 @@ it('offers Claude beside OpenAI and sends only the selected connection and model
       )
     return original(url, init)
   })
-  render(<ChatPanel csrfToken="csrf" />)
+  const openGraph = vi.fn()
+  render(<ChatPanel csrfToken="csrf" onOpenGraph={openGraph} />)
   await screen.findByText('A place for the details')
   await user.selectOptions(screen.getByLabelText('Action'), 'ask')
   await user.selectOptions(screen.getByLabelText('AI connection'), 'openai')
@@ -132,6 +134,12 @@ it('offers Claude beside OpenAI and sends only the selected connection and model
   await user.click(screen.getByRole('button', { name: 'Ask AI' }))
   await screen.findByText('Synthetic Claude answer.')
   expect(screen.getByText('Claude · synthetic-claude')).toBeVisible()
+  await user.click(
+    screen.getByRole('button', {
+      name: 'Open Synthetic car in graph (record 1)',
+    }),
+  )
+  expect(openGraph).toHaveBeenCalledWith('car')
   const posted = fetcher.mock.calls.find(
     ([url, init]) => url.endsWith('/stream') && init?.method === 'POST',
   )!

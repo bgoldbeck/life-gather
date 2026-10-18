@@ -71,3 +71,19 @@ Protocol references: [OpenAI streaming](https://developers.openai.com/api/docs/g
 and [Claude streaming](https://platform.claude.com/docs/en/build-with-claude/streaming),
 checked 2026-10-18. Synthetic streaming verification does not establish live account
 or model access.
+
+## Bounded record recall (v0.15.0)
+
+The existing planning call now supplies literal keywords, at most two exact record
+names/aliases and a connection-read flag. The host executes owner-scoped domain
+reads: at most two records, eight current facts per record, six direct connections
+per record, and eight source excerpts. Total tool context is capped at 24 KB and
+further reduced to fit the provider payload budget. The final answer still requires
+allowed source IDs. The assistant receives explicit ambiguity, time, status and
+source-correction metadata; omitted context is flagged. No physical identities are
+merged, and no app-model write tools or SQL operations are exposed.
+
+These are bounded host-orchestrated reads over the same services as private MCP;
+there is no unbounded agent loop or outbound MCP session. Existing per-call consent,
+credential, session, cancellation and daily usage checks remain in force. Reply
+record links open the owned graph for inspection.

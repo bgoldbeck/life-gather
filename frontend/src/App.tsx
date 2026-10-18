@@ -191,7 +191,14 @@ export function Workspace({
           ) : view === 'Photos' ? (
             <PhotosPanel csrfToken={csrfToken} />
           ) : view === 'Chat' ? (
-            <ChatPanel csrfToken={csrfToken} refreshSession={refreshSession} />
+            <ChatPanel
+              csrfToken={csrfToken}
+              refreshSession={refreshSession}
+              onOpenGraph={(id) => {
+                setGraphEntityId(id)
+                setView('Graph')
+              }}
+            />
           ) : view === 'Profiles' ? (
             <ProfilesPanel
               csrfToken={csrfToken}

@@ -20,6 +20,7 @@ from lifegather.chat.service import SaveText, save_text
 from lifegather.mcp_api.schemas import (
     DiscoveryHistory,
     DiscoveryRead,
+    EntityFind,
     EntityRead,
     GraphRead,
     HistoryRead,
@@ -211,6 +212,16 @@ def build_server() -> MCPServer:
             ctx,
             lambda actor, memory, _: {
                 "items": memory.search(actor, data.query, data.limit)
+            },
+        )
+
+    @server.tool(annotations=annotation)
+    def memory_find_entities(data: EntityFind, ctx: ToolContext) -> dict[str, Any]:
+        """Find exact owned names/aliases; same-named records remain distinct."""
+        return read(
+            ctx,
+            lambda actor, memory, _: {
+                "items": memory.find_entities(actor, data.name, data.limit)
             },
         )
 

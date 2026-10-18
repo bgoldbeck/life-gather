@@ -105,3 +105,15 @@ Streaming verified: 172 backend / 56 frontend tests; lint, types, formatting and
 production builds pass. Tests cover byte-split provider events, partial JSON escape
 boundaries, truncated streams, invalid citations, safe replay and cancellation.
 No live provider calls or Docker deployment.
+
+4b merged v0.14.0 via PR #24. 4c bounded read orchestration: the existing plan
+chooses up to two exact names and optional direct connections. Host executes the
+same private domain contracts as MCP; no model SQL/writes, extra planning call or
+unbounded loop. Preserve complete literal values, provenance, corrected-source
+metadata and ambiguous distinct records; cap total context and link replies to
+the graph. Version v0.15.0, no migration.
+
+Record recall verified: 174 backend / 56 frontend tests, all lint/type/format
+checks and builds pass. Coverage includes private ownership, same-name ambiguity,
+corrected sourced values, bounded context, private MCP lookup and reply graph links.
+No live calls, migrations or Docker changes.

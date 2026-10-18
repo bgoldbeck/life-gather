@@ -36,6 +36,14 @@ def test_mcp_profile_read_uses_the_session_owner() -> None:
         denied = rpc(client, bob, "profile_get", {"entity_id": item.id}).json()
         assert denied["result"]["isError"]
         assert "Synthetic home" not in str(denied)
+        found = rpc(
+            client, alice, "memory_find_entities", {"name": "Synthetic home"}
+        ).json()
+        assert "Synthetic home" in str(found["result"])
+        foreign = rpc(
+            client, bob, "memory_find_entities", {"name": "Synthetic home"}
+        ).json()
+        assert "Synthetic home" not in str(foreign["result"])
 
 
 def signed_headers(app: Any, subject: str) -> tuple[dict[str, str], Any]:
