@@ -277,16 +277,16 @@
 
 .test-mode-banner {
   padding: 0.75rem 1rem;
-  background: #fff3cd;
-  color: #624400;
-  border-bottom: 1px solid #d6b75e;
+  background: var(--warning-surface);
+  color: var(--warning-foreground);
+  border-bottom: 1px solid var(--warning-border);
   font-size: 0.875rem;
   text-align: center;
 }
 
 .auth-card .test-mode-banner {
   margin-bottom: 1rem;
-  border: 1px solid #d6b75e;
+  border: 1px solid var(--warning-border);
   border-radius: 0.5rem;
 }
 

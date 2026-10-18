@@ -13,6 +13,7 @@ class CredentialBodyLimit:
             or not scope.get("path", "").startswith(
                 (
                     "/api/credentials",
+                    "/api/appearance",
                     "/auth/email/",
                     "/auth/test-login",
                     "/api/chat",

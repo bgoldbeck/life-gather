@@ -100,6 +100,27 @@ class PrivateSettings:
                 )
             )
 
+    def theme(self, actor: Account) -> str:
+        with Session(self.engine) as db:
+            return (
+                db.scalar(
+                    select(UserSettings.theme).where(UserSettings.user_id == actor.id)
+                )
+                or "system"
+            )
+
+    def set_theme(self, actor: Account, theme: str) -> None:
+        if theme not in {"system", "light", "dark"}:
+            raise VaultError("Invalid appearance", 422)
+        with Session(self.engine) as db, db.begin():
+            db.execute(
+                insert(UserSettings)
+                .values(user_id=actor.id, allow_external_ai=False, theme=theme)
+                .on_conflict_do_update(
+                    index_elements=["user_id"], set_={"theme": theme}
+                )
+            )
+
     @staticmethod
     def _metadata(row: Credential) -> CredentialMetadata:
         return CredentialMetadata(

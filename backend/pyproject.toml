@@ -27,6 +27,9 @@ packages = ["src/lifegather"]
 [tool.hatch.version]
 path = "src/lifegather/version.py"
 
+[tool.uv]
+cache-keys = [{ file = "pyproject.toml" }, { file = "src/lifegather/version.py" }]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"

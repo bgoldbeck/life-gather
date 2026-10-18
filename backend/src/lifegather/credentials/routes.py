@@ -1,5 +1,5 @@
 from dataclasses import asdict
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse, Response
@@ -18,6 +18,11 @@ class PreferencesInput(BaseModel):
     allow_external_ai: StrictBool
 
 
+class AppearanceInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    theme: Literal["system", "light", "dark"]
+
+
 class ReplacementInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     secret: SecretStr = Field(min_length=1, max_length=8192)
@@ -30,6 +35,17 @@ def service_for(request: Request) -> PrivateSettings:
 
 def private_router() -> APIRouter:
     router = APIRouter(prefix="/api")
+
+    @router.get("/appearance")
+    def appearance(request: Request, current: Authenticated) -> dict[str, str]:
+        return {"theme": service_for(request).theme(current.user)}
+
+    @router.put("/appearance")
+    def update_appearance(
+        request: Request, body: AppearanceInput, current: Mutation
+    ) -> Response:
+        service_for(request).set_theme(current.user, body.theme)
+        return Response(status_code=204)
 
     @router.get("/settings")
     def settings(request: Request, current: Authenticated) -> dict[str, bool]:

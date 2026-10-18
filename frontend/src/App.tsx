@@ -25,6 +25,8 @@ import { ReviewPanel } from './ReviewPanel'
 import { PhotosPanel } from './PhotosPanel'
 import { AssetsPanel } from './AssetsPanel'
 import { BuildInfo, type Build } from './BuildInfo'
+import { AppearanceSettings } from './AppearanceSettings'
+import type { Theme } from './appearance'
 
 const navigation = [
   {
@@ -77,6 +79,7 @@ export function Workspace({
   passwordEnabled = false,
   deliveryEnabled = false,
   build,
+  appearance = 'system',
 }: {
   userName?: string
   onSignOut?: () => void
@@ -86,6 +89,7 @@ export function Workspace({
   passwordEnabled?: boolean
   deliveryEnabled?: boolean
   build?: Build
+  appearance?: Theme
 }) {
   const [view, setView] = useState<View>('Overview')
   const current = navigation.find((item) => item.name === view)!
@@ -157,6 +161,11 @@ export function Workspace({
         <main id="main-content" className="main-content">
           {view === 'Settings' ? (
             <>
+              <AppearanceSettings
+                theme={appearance}
+                csrfToken={csrfToken}
+                refreshSession={refreshSession}
+              />
               <PrivateSettingsPanel
                 csrfToken={csrfToken}
                 refreshSession={refreshSession}
@@ -353,6 +362,7 @@ export default function App() {
         passwordEnabled,
         deliveryEnabled,
         build,
+        appearance,
       ) => (
         <Workspace
           key={user.id}
@@ -362,6 +372,7 @@ export default function App() {
           passwordEnabled={passwordEnabled}
           deliveryEnabled={deliveryEnabled}
           build={build}
+          appearance={appearance}
           csrfToken={csrfToken}
           refreshSession={refreshSession}
         />

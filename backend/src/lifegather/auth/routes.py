@@ -20,6 +20,7 @@ from lifegather.auth.store import (
     InvalidFlow,
 )
 from lifegather.config import Settings
+from lifegather.credentials.service import PrivateSettings
 from lifegather.version import build_info
 
 SESSION_COOKIE = "lifegather_session"
@@ -99,6 +100,7 @@ def auth_router(settings: Settings, provider: GoogleProvider) -> APIRouter:
                 current is not None
                 and db.get(EmailCredential, current.user.id) is not None
             )
+        private: PrivateSettings = request.app.state.private_settings
         return JSONResponse(
             {
                 "configured": settings.google_enabled,
@@ -107,6 +109,7 @@ def auth_router(settings: Settings, provider: GoogleProvider) -> APIRouter:
                 "email_password_enabled": has_password,
                 "email_delivery_enabled": request.app.state.email_auth.delivery_enabled,
                 "user": asdict(current.user) if current else None,
+                **({"appearance": private.theme(current.user)} if current else {}),
                 "csrf_token": current.csrf_token if current else None,
             }
         )

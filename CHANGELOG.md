@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.0 — Per-user light and dark themes
+
+- Select Light, Dark or System in Settings; preserve the choice per user across
+  sessions without changing external-AI consent or credential storage.
+- Apply semantic cream/sage and dark forest palettes across existing views,
+  including chat, assets, photos, review/evidence controls and status banners.
+- Migration `0011_appearance` defaults existing preferences to System. Sign-out
+  and account changes clear the previous account's appearance; System follows
+  device changes without storing private preferences in browser storage.
+
 ## 0.9.0 — Claude alongside OpenAI
 
 - Select a private Claude (`anthropic`) or OpenAI connection for evidence-backed
