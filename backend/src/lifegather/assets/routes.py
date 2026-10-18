@@ -3,6 +3,12 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Path, Query, Request
 
 from lifegather.assets.actions import ActionService, AssetChange
+from lifegather.assets.batch import (
+    EvidenceBatchService,
+    EvidenceMove,
+    EvidenceMovePreview,
+    EvidenceRestore,
+)
 from lifegather.assets.purchases import AssetPurchases, AssetPurchasesRead
 from lifegather.assets.service import AssetList, AssetRead, AssetService
 from lifegather.auth.routes import require_session, require_write_session
@@ -74,6 +80,34 @@ def asset_router() -> APIRouter:
         current: Annotated[CurrentSession, Depends(require_write_session)],
     ) -> dict[str, Any]:
         return ActionService(request.app.state.auth_store.engine).apply(
+            current.user, body
+        )
+
+    @router.post("/evidence/preview")
+    def preview_move(
+        request: Request, body: EvidenceMovePreview, current: Authenticated
+    ) -> dict[str, Any]:
+        return EvidenceBatchService(request.app.state.auth_store.engine).preview(
+            current.user, body
+        )
+
+    @router.post("/evidence/move")
+    def move_evidence(
+        request: Request,
+        body: EvidenceMove,
+        current: Annotated[CurrentSession, Depends(require_write_session)],
+    ) -> dict[str, Any]:
+        return EvidenceBatchService(request.app.state.auth_store.engine).move(
+            current.user, body
+        )
+
+    @router.post("/evidence/restore")
+    def restore_evidence(
+        request: Request,
+        body: EvidenceRestore,
+        current: Annotated[CurrentSession, Depends(require_write_session)],
+    ) -> dict[str, Any]:
+        return EvidenceBatchService(request.app.state.auth_store.engine).restore(
             current.user, body
         )
 

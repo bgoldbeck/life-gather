@@ -198,7 +198,12 @@ export function EvidencePanel({
         </p>
       )}
       {source.asset_context?.target_asset_name && (
-        <p>Receiving item: {source.asset_context.target_asset_name}.</p>
+        <p>
+          {source.asset_context.operation === 'batch_restore'
+            ? 'Evidence returned from'
+            : 'Receiving item'}
+          : {source.asset_context.target_asset_name}.
+        </p>
       )}
       {source.asset_proposal_id && onViewProposal && (
         <Button

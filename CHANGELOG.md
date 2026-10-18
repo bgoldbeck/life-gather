@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.31.0 — Review and reverse discovery-evidence batches
+
+- Preview all 1–5 current discovery associations before explicitly moving them
+  to one existing physical item. Preserve other receipt units, exact original
+  sources, typed purchase claims and the earlier decision history. Refuse the
+  entire operation if the preview changes or two receipt units would collide.
+- Reverse an unchanged batch with one explained action; stale item corrections
+  or changed associations prevent reversal. Exact retries remain idempotent,
+  including after snapshot recovery. Private HTTP and MCP share the same service.
+- Notes, photos, aliases, manual facts and relationships stay on their original
+  records. This is evidence movement, not whole-record consolidation. Preview
+  passages are bounded excerpts with source links; browse history uses summaries.
+- No schema migration, dependency or live-provider change.
+
 ## 0.30.2 — Recover from failed correction-form reloads
 
 - Catch manual item-reload failures and show a retryable message while preserving

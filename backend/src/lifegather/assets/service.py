@@ -43,6 +43,19 @@ class AssetService:
     def active(actor: Account) -> Any:
         return current_inventory(actor)
 
+    @staticmethod
+    def action_result(row: AssetAction) -> dict[str, Any]:
+        result: dict[str, Any] = json.loads(row.result_json)
+        if row.operation in {"batch_move", "batch_restore"}:
+            # The durable ledger retains reversal snapshots. Browse results need
+            # only a summary, not repeated receipt passages and twenty-unit maps.
+            return {
+                "operation": row.operation,
+                "source_id": row.source_id,
+                "association_count": len(result["entries"]),
+            }
+        return result
+
     def list(self, actor: Account, value: AssetList) -> dict[str, Any]:
         data = AssetList.model_validate(value)
         with Session(self.engine) as db:
@@ -205,7 +218,7 @@ class AssetService:
                     "recorded_at": row.recorded_at,
                     "source_id": row.source_id,
                     "note": self.memory._source(db, actor, row.source_id).text,
-                    "result": json.loads(row.result_json),
+                    "result": self.action_result(row),
                 }
                 for row in action_rows[: data.limit]
             ]

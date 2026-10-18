@@ -109,3 +109,11 @@ consent checks, and bounded OpenAI usage. Saved-note correction/history is avail
 in Chat. Structured graph writes, graph-fact correction UI, and external-client
 OAuth remain separate milestones. Completed features follow the standing release
 rule; publishing an image does not redeploy an existing container.
+
+
+Discovery-evidence batches add `asset_evidence_preview` (read-only),
+`asset_evidence_move` and `asset_evidence_restore` (explicit human writes).
+These are not app-model tools. Preview 1–5 current associations, retain the
+returned fingerprint, then apply an explained direct user choice with a stable
+request ID. Reversal takes the recorded batch action ID and a new explained
+request ID. See [batch semantics and limits](EVIDENCE_BATCHES.md).
