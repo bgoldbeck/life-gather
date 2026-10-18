@@ -130,3 +130,5 @@ The [persistent review queue](docs/REVIEW_QUEUE.md) collects pending proposals a
 [Private PDF evidence](docs/DOCUMENTS.md) supports original downloads and reviewed
 text capture. Light/dark appearance, sourced home/vehicle profiles, streaming chat
 and an evidence-backed graph are implemented in source; deployment is separate.
+
+[Memories](docs/MEMORIES.md) provides private source browsing, literal search, correction history and direct note capture without an AI connection.

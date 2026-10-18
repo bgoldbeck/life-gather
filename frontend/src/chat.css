@@ -3,7 +3,7 @@
   margin: 0 auto;
 }
 .chat-heading,
-.chat-evidence > div {
+.evidence-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -89,7 +89,12 @@
   height: auto;
   text-align: left;
 }
+.evidence-heading {
+  flex-wrap: wrap;
+}
 .chat-evidence {
+  min-width: 0;
+  overflow-wrap: anywhere;
   border: 1px solid var(--border);
   background: var(--card);
   padding: 1rem;

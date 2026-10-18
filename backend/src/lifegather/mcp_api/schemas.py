@@ -4,6 +4,7 @@ from lifegather.assets.actions import AssetChange
 from lifegather.assets.service import AssetList, AssetRead
 from lifegather.chat.service import SaveText
 from lifegather.documents.service import DocumentPage, DocumentRead
+from lifegather.memory.library import LibraryPage
 from lifegather.memory.notes import CorrectionInput, NoteHistoryInput
 from lifegather.photos.service import PhotoList, PhotoRead
 from lifegather.profiles.service import ProfileRead
@@ -67,6 +68,7 @@ class DiscoveryHistory(Page):
 
 
 INPUTS: dict[str, type[BaseModel]] = {
+    "memory_library": LibraryPage,
     "document_list": DocumentPage,
     "document_get": DocumentRead,
     "profile_get": ProfileRead,
