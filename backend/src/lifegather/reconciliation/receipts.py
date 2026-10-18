@@ -63,7 +63,7 @@ class ReceiptChoice(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     index: int = Field(ge=0, le=7)
     fields: ReceiptFields
-    action: Literal["new", "link", "skip"]
+    action: Literal["new", "link", "skip", "auto"]
     asset_ids: list[Annotated[str, Field(min_length=1, max_length=36)]] = Field(
         default_factory=list, max_length=20
     )
@@ -389,12 +389,51 @@ class ReceiptService:
                         "A physical item cannot fill multiple receipt units"
                     )
                 # Preflight every line before any derived graph write.
+                automatic: dict[int, tuple[str, list[str]]] = {}
+                automatic_checks = []
+                needs_review = False
                 for choice in selected:
                     if choice.fields.kind == "mention":
                         raise MemoryError(
                             "State purchase or possession before adding inventory"
                         )
                     checked = self.check(db, actor, row, choice.index, choice.fields)
+                    if choice.action == "auto":
+                        if choice.asset_ids:
+                            raise MemoryError(
+                                "Automatic identity does not accept targets"
+                            )
+                        discovery = self.validate(
+                            db, actor, row.source_id, choice.fields, choice.index
+                        )
+                        outcome, reason, targets, _ = self.reconcile.matcher._choose(
+                            db,
+                            actor,
+                            self.proposals._matching_observation(db, actor, discovery),
+                            discovery,
+                            False,
+                        )
+                        clear = outcome in {"create", "enrich"} and (
+                            outcome != "enrich"
+                            or (
+                                len(targets) == choice.fields.quantity
+                                and len(checked["reliable_ids"])
+                                == choice.fields.quantity
+                            )
+                        )
+                        automatic[choice.index] = (outcome, targets)
+                        automatic_checks.append(
+                            {
+                                "index": choice.index,
+                                **checked,
+                                "reason": reason
+                                if clear or outcome == "review"
+                                else "Identifier history needs explicit review",
+                                "outcome": outcome if clear else "review",
+                            }
+                        )
+                        needs_review = needs_review or not clear
+                        continue
                     if checked["check"] != choice.check:
                         raise NoteConflict(
                             "Item details or possible duplicates changed; check again"
@@ -414,13 +453,35 @@ class ReceiptService:
                         raise MemoryError(
                             "Choose a distinct existing item for each unit"
                         )
+                if needs_review:
+                    return {
+                        **self.view(db, actor, row),
+                        "automatic_outcome": "review",
+                        "automatic_checks": automatic_checks,
+                    }
+                predicted = linked + [
+                    target for _, targets in automatic.values() for target in targets
+                ]
+                if len(set(predicted)) != len(predicted):
+                    raise MemoryError(
+                        "A physical item cannot fill multiple receipt units"
+                    )
                 results = []
                 for choice in selected:
                     discovery = self.validate(
                         db, actor, row.source_id, choice.fields, choice.index
                     )
                     result = self.reconcile._discover_in(db, actor, discovery)
-                    if choice.action == "link":
+                    if choice.action == "auto":
+                        outcome, targets = automatic[choice.index]
+                        if result.outcome != outcome or (
+                            outcome == "enrich" and result.asset_ids != targets
+                        ):
+                            raise NoteConflict(
+                                "Receipt lines affect each other's identity; "
+                                "choose explicitly"
+                            )
+                    elif choice.action == "link":
                         result = self.reconcile._change_in(
                             db,
                             actor,
@@ -451,9 +512,10 @@ class ReceiptService:
                         photo.updated_at = max(
                             self.memory.clock(), photo.updated_at + 1
                         )
-                    results.append(
-                        {"index": choice.index, **result.model_dump(mode="json")}
-                    )
+                    line = {"index": choice.index, **result.model_dump(mode="json")}
+                    if choice.action == "auto":
+                        line["automatic_outcome"] = result.outcome
+                    results.append(line)
                 row.state = "accepted"
                 row.reviewed_json = data.model_dump_json()
                 row.result_json = json.dumps({"lines": results})

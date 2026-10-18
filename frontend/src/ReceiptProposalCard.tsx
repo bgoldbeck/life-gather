@@ -23,14 +23,20 @@ type Receipt = {
   explanation: string
   items: Fields[]
   review_actions?: Choice[] | null
-  result: { lines?: { asset_ids: string[] }[] }
+  result: { lines?: { asset_ids: string[]; automatic_outcome?: string }[] }
+  automatic_outcome?: 'review'
+  automatic_checks?: (Check & {
+    index: number
+    reason: string
+    outcome: string
+  })[]
 }
 type Check = {
   check: string
   candidates: { id: string; name: string }[]
   reliable_ids: string[]
 }
-type Choice = { action: 'skip' | 'new' | 'link'; asset_ids: string[] }
+type Choice = { action: 'skip' | 'new' | 'link' | 'auto'; asset_ids: string[] }
 
 export function ReceiptProposalCard({
   id,
@@ -116,6 +122,15 @@ export function ReceiptProposalCard({
       ),
     )
     setChecks((current) => current.map((c, i) => (i === index ? null : c)))
+    setReceipt(
+      (current) =>
+        current && {
+          ...current,
+          automatic_checks: current.automatic_checks?.filter(
+            (check) => check.index !== index,
+          ),
+        },
+    )
     setError('')
     if (key === 'quantity')
       setChoices((current) =>
@@ -170,6 +185,21 @@ export function ReceiptProposalCard({
       })
       pending.current = null
       setRetry(false)
+      if (row.state === 'proposed' && row.automatic_outcome === 'review') {
+        setReceipt(row)
+        setChecks((current) =>
+          current.map(
+            (value, index) =>
+              row.automatic_checks?.find(
+                (check: Check & { index: number }) => check.index === index,
+              ) ?? value,
+          ),
+        )
+        setError(
+          'Nothing was recorded. Some identities need your decision. Compare the evidence and choose same or different items for those lines.',
+        )
+        return
+      }
       apply(row)
       try {
         await onReviewed?.()
@@ -199,7 +229,7 @@ export function ReceiptProposalCard({
     new Set(targets).size === targets.length &&
     selected.every(
       (i) =>
-        checks[i] &&
+        (choices[i].action === 'auto' || checks[i]) &&
         Number.isInteger(fields[i].quantity) &&
         fields[i].quantity > 0 &&
         fields[i].quantity <= 20 &&
@@ -257,6 +287,13 @@ export function ReceiptProposalCard({
               inferred.
             </p>
           )}
+          {receipt.state === 'accepted' &&
+            receipt.result.lines?.some((line) => line.automatic_outcome) && (
+              <p>
+                Clear identities were recorded automatically from your reviewed
+                fields. This does not independently verify ownership.
+              </p>
+            )}
           {receipt.state === 'rejected' && (
             <p role="status">
               Receipt rejected. Original evidence is preserved.
@@ -373,6 +410,7 @@ export function ReceiptProposalCard({
                   }
                 >
                   <option value="skip">Exclude this line</option>
+                  <option value="auto">Record if identity is clear</option>
                   <option
                     value="new"
                     disabled={!!checks[index]?.reliable_ids.length}
@@ -384,6 +422,26 @@ export function ReceiptProposalCard({
                   </option>
                 </select>
               </label>
+              {choices[index]?.action === 'auto' && (
+                <p>
+                  Uses these reviewed fields and your relationship statement.
+                  Clear new items are added; reliable active identities enrich
+                  existing records. If any selected automatic identity is
+                  ambiguous, nothing is recorded. Similar names never merge
+                  physical items.
+                </p>
+              )}
+              {receipt.automatic_checks?.find((check) => check.index === index)
+                ?.outcome === 'review' && (
+                <p role="status">
+                  Needs an explicit identity decision:{' '}
+                  {
+                    receipt.automatic_checks.find(
+                      (check) => check.index === index,
+                    )?.reason
+                  }
+                </p>
+              )}
               {editable && choices[index]?.action !== 'skip' && (
                 <Button
                   variant="outline"
@@ -468,8 +526,9 @@ export function ReceiptProposalCard({
           {editable && (
             <p>
               {selected.length} selected line(s), {total} physical unit(s).
-              Check every selected line before confirming. All selected lines
-              save together.
+              Review all selected fields. Manual identity choices require a
+              duplicate check; automatic choices are checked when saving. All
+              selected lines save together.
             </p>
           )}
           {editable && (

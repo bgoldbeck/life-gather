@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.29.0 — Record clear reviewed receipt identities together
+
+- Add an explicit automatic-identity choice per reviewed receipt line. Fresh
+  deterministic identity checks create clear new units or enrich reliable active
+  identifiers without asking the user to select a redundant target.
+- An ambiguous automatic choice leaves the entire receipt pending with fresh
+  candidate comparisons and preserved edited fields. No partial graph writes or
+  consumed retry identity. Matching names never identify physical items.
+- Preserve selected/excluded lines, explicit purchase/possession, exact source and
+  quantity validation, atomic concurrency and safe retries. Cross-line identity
+  changes roll back the batch and require manual review. Accepted results label
+  automatic decisions. No migration, dependency, provider call or unattended import.
+
 ## 0.28.0 — Correct one receipt unit without moving its siblings
 
 - Move one physical unit from a multi-unit source line to an explicitly chosen

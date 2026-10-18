@@ -168,3 +168,27 @@ back to the original historical asset. Whole-line undo and creating just one new
 unit within a multi-unit line remain outside this slice. This does not merge whole
 records or move unrelated evidence, photos, manual facts or ownership statements.
 No schema or request-field changes; existing private HTTP/MCP operation is reused.
+
+
+## Clear reviewed receipt identities (v0.29.0)
+
+After reviewing each exact item/quantity passage and stating purchase or possession,
+choose **Record if identity is clear** for a selected line. Confirming checks those
+identities freshly inside the review transaction; a separate preview is optional
+for automatic choices. Existing manual new/link choices still require their check.
+Clear new lines create distinct quantity units; reliable active identities can
+supply the exact existing targets. Names and models alone never identify units.
+
+If any automatic line needs review, no selected line is recorded, the receipt stays
+pending, edited fields and your relationship statement remain, and fresh candidate
+comparisons appear. Choose same/different explicitly for ambiguous lines or leave
+the receipt pending. Excluded lines remain excluded. Nothing is silently accepted
+on behalf of an ambiguous line. Up to eight lines / twenty units remain the bounds.
+
+All selected lines commit together. If earlier lines in the same transaction change
+later identity decisions, the entire batch rolls back and asks for explicit review.
+No partial receipt state is introduced. Stable retries preserve completed results;
+changing a consumed request is refused. Purchase details remain optional and exact,
+not automatically extracted or allocated across units. This extends the existing
+private HTTP/MCP review action enum with `auto`; no schema/dependency change or live
+provider call. Unattended source capture remains outside this increment.
