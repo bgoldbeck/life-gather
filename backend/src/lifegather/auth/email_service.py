@@ -58,6 +58,46 @@ class EmailAuth:
     def delivery_enabled(self) -> bool:
         return self.sender is not None
 
+    def provision_local_account(
+        self, name: str, email: str, password: str, *, now: int
+    ) -> Account:
+        """Server-owner attestation, invoked only by the local setup command.
+
+        The owner accepts this address without an email challenge. This grants
+        no administrator role and never links or replaces an existing identity.
+        """
+        key = email_key(email)
+        if not name.strip() or len(name) > 100 or any(ord(c) < 32 for c in name):
+            raise EmailAuthError("Enter a name between 1 and 100 characters")
+        hashed = hash_password(password)
+        with Session(self.store.engine) as db:
+            db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+            if self._collision(db, key):
+                raise EmailAuthError("An account with this email already exists", 409)
+            user_id = str(uuid4())
+            db.add(
+                User(
+                    id=user_id,
+                    issuer="lifegather:email",
+                    subject=user_id,
+                    email=key,
+                    name=name.strip(),
+                    created_at=now,
+                )
+            )
+            db.flush()
+            db.add(
+                EmailCredential(
+                    user_id=user_id,
+                    email_key=key,
+                    password_hash=hashed,
+                    generation=str(uuid4()),
+                    verified_at=now,
+                )
+            )
+            db.commit()
+        return Account(id=user_id, email=key, name=name.strip())
+
     def _limits(self, action: str, client: str, account: str | None, now: int) -> bool:
         mail = action == "mail"
         seconds = 3600 if mail else 900

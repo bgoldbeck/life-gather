@@ -10,6 +10,8 @@ The source includes a responsive React shell, Google sign-in, and [email/passwor
 
 ## Run with Docker
 
+For testing without Google or email delivery, the installation owner can [create a private local sign-in account](docs/LOCAL_ACCOUNT_SETUP.md) using an interactive terminal command. It requires an updated image containing this feature.
+
 The source also includes [private settings and an encrypted credential vault](docs/PRIVATE_SETTINGS.md). Google login needs one-time OAuth setup by the installation owner; individual users only choose their Google account. The optional vault key is a separate server setting and is not a sign-in requirement.
 
 For TrueNAS or an installation without a local source build, use the published image `ghcr.io/bgoldbeck/life-gather:latest`. See [TrueNAS installation and updates](docs/TRUENAS.md) and the [image-only Compose file](deploy/compose.image.yaml). GitHub Actions is disabled; maintainers verify releases locally and rebuild/upload images only with user approval.
