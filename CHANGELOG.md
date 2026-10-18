@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.15.0 — Recall sourced records and graph connections
+
+- Let the shared chat runtime plan up to two exact record-name lookups, inspect
+  current sourced facts and optionally read a bounded one-step neighborhood.
+  Same-named physical items remain separate and ambiguous matches stay explicit.
+- Preserve source corrections, assertion status, valid dates and original citations.
+  Cap records, facts, sources and total context; omit whole facts rather than
+  truncating their values. Add graph links for inspected records in replies.
+- Expose owner-scoped exact name/alias lookup through private MCP. The app runtime
+  uses the same domain services with no model writes, SQL access or extra provider
+  planning call. No migration; live-provider access remains unverified.
+
 ## 0.14.0 — Streaming evidence-backed replies
 
 - Stream OpenAI and Claude answer text into a marked, transient draft in Chat.

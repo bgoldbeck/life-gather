@@ -13,6 +13,7 @@ from test_photos import image_bytes, reading
 
 from lifegather.chat.claude import ClaudeProvider, wire_schema
 from lifegather.chat.provider import Completion, ProviderError, SearchPlan
+from lifegather.chat.recall import RecallPlan
 from lifegather.chat.runner import PhotoReading
 from lifegather.credentials.keygen import generate
 from lifegather.main import create_app
@@ -194,6 +195,16 @@ def test_provider_selection_shared_memory_consent_usage_isolation_and_photo(
         ) -> Completion:
             assert secret == self.expected_secret
             self.calls.append(payload)
+            if schema is RecallPlan:
+                return Completion(
+                    {
+                        "query": "filter",
+                        "entity_names": [],
+                        "include_connections": False,
+                    },
+                    10,
+                    5,
+                )
             if schema is SearchPlan:
                 return Completion({"query": "filter"}, 5, 2)
             if schema is PhotoReading:

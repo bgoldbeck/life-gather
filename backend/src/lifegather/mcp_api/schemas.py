@@ -28,6 +28,11 @@ class Search(Input):
     limit: int = Field(default=25, ge=1, le=50)
 
 
+class EntityFind(Input):
+    name: str = Field(min_length=1, max_length=200)
+    limit: int = Field(default=3, ge=1, le=5)
+
+
 class EntityRead(Input):
     entity_id: str = Field(min_length=1, max_length=36)
     cursor: str | None = Field(default=None, max_length=36)
@@ -75,6 +80,7 @@ INPUTS: dict[str, type[BaseModel]] = {
     "memory_note_history": NoteHistoryInput,
     "memory_save_text": SaveText,
     "memory_search": Search,
+    "memory_find_entities": EntityFind,
     "memory_get_entity": EntityRead,
     "memory_source": SourceRead,
     "memory_related": GraphRead,

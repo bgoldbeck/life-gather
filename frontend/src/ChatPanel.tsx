@@ -19,6 +19,8 @@ type Turn = {
     proposal_id?: string
     provider?: string
     model?: string
+    records?: { id: string; name: string; kind: string }[]
+    recall_limited?: boolean
   }
 }
 type Conversation = { id: string; title: string }
@@ -28,9 +30,11 @@ type Credential = { id: string; kind: string; provider: string; label: string }
 export function ChatPanel({
   csrfToken,
   refreshSession,
+  onOpenGraph,
 }: {
   csrfToken: string
   refreshSession?: () => Promise<void>
+  onOpenGraph?: (id: string) => void
 }) {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [conversationCursor, setConversationCursor] = useState<string | null>(
@@ -458,6 +462,33 @@ export function ChatPanel({
                   {turn.state === 'failed' && (
                     <p role="status">Request failed</p>
                   )}
+                  {!!turn.result.records?.length && (
+                    <div className="chat-records">
+                      <p>Records inspected</p>
+                      {turn.result.records.map((record, index) =>
+                        onOpenGraph ? (
+                          <Button
+                            key={record.id}
+                            variant="outline"
+                            onClick={() => onOpenGraph(record.id)}
+                            aria-label={`Open ${record.name} in graph (record ${index + 1})`}
+                          >
+                            {record.name} · {record.kind}
+                          </Button>
+                        ) : (
+                          <p key={record.id}>
+                            {record.name} · {record.kind}
+                          </p>
+                        ),
+                      )}
+                    </div>
+                  )}
+                  {turn.result.recall_limited && (
+                    <p>
+                      This reply used a limited selection of records. Other
+                      evidence may exist.
+                    </p>
+                  )}
                   {turn.result.proposal_id && (
                     <Button
                       variant="outline"
@@ -562,7 +593,7 @@ export function ChatPanel({
                 <p>
                   {mode === 'extract'
                     ? 'Your selected provider receives only the selected saved note to propose one item. Nothing enters inventory until you review and confirm.'
-                    : 'Your selected provider receives your question, up to four recent user messages, and matching evidence.'}{' '}
+                    : 'Your selected provider receives your question, up to four recent user messages, matching evidence, relevant records and requested graph connections.'}{' '}
                   {usage}/20 AI requests used today (UTC). Provider charges may
                   apply.
                 </p>

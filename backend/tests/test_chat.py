@@ -21,6 +21,7 @@ from lifegather.chat.provider import (
     ProviderError,
     SearchPlan,
 )
+from lifegather.chat.recall import RecallPlan
 from lifegather.chat.service import ChatService, TurnInput
 from lifegather.credentials.keygen import generate
 from lifegather.main import create_app
@@ -45,6 +46,12 @@ class FakeProvider:
         self.calls.append(payload)
         if self.fail:
             raise ValueError("PRIVATE PROVIDER BODY and synthetic-sensitive-token")
+        if schema is RecallPlan:
+            return Completion(
+                {"query": "filter", "entity_names": [], "include_connections": False},
+                10,
+                5,
+            )
         if schema is SearchPlan:
             return Completion({"query": "filter"}, 10, 5)
         return Completion(
