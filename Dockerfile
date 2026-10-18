@@ -15,6 +15,8 @@ COPY backend/src/ ./src/
 RUN uv sync --locked --no-dev --no-editable
 
 FROM python:3.13-slim-bookworm AS runtime
+ARG APP_REVISION=""
+ENV LIFEGATHER_BUILD_REVISION=$APP_REVISION
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/app/backend/.venv/bin:$PATH" \

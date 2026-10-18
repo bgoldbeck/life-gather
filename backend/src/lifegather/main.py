@@ -27,6 +27,7 @@ from lifegather.mcp_api.tools import build_server
 from lifegather.mcp_api.transport import PrivateMCP
 from lifegather.memory.notes import NoteConflict
 from lifegather.memory.service import MemoryError
+from lifegather.version import __version__, build_info
 
 
 def create_app(mail_sender: MailSender | None = None) -> FastAPI:
@@ -71,7 +72,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
         finally:
             store.engine.dispose()
 
-    app = FastAPI(title=settings.app_name, lifespan=lifespan)
+    app = FastAPI(title=settings.app_name, version=__version__, lifespan=lifespan)
     app.state.settings = settings
     app.state.chat_provider = OpenAIProvider()
     app.state.chat_slots = asyncio.Semaphore(4)
@@ -116,6 +117,10 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
             response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["Referrer-Policy"] = "no-referrer"
         return response
+
+    @app.get("/api/version")
+    def version_info() -> dict[str, str | None]:
+        return build_info(settings.build_revision)
 
     @app.get("/health")
     async def health() -> dict[str, str]:

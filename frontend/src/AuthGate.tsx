@@ -2,9 +2,11 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { EmailAccess } from './EmailAccess'
 import { readEmailLink } from './emailLink'
+import { BuildInfo, type Build } from './BuildInfo'
 
 type Account = { id: string; name: string; email: string }
 type Session = {
+  build?: Build
   test_login_enabled?: boolean
   email_delivery_enabled?: boolean
   email_password_enabled?: boolean
@@ -24,6 +26,7 @@ export function AuthGate({
     refreshSession: () => Promise<void>,
     passwordEnabled: boolean,
     deliveryEnabled: boolean,
+    build?: Build,
   ) => ReactNode
 }) {
   const [link, setLink] = useState(readEmailLink)
@@ -164,6 +167,7 @@ export function AuthGate({
           refresh,
           !!session.email_password_enabled,
           !!session.email_delivery_enabled,
+          session.build,
         )}
       </>
     )
@@ -216,6 +220,7 @@ export function AuthGate({
             onSignedIn={refresh}
           />
         )}
+        <BuildInfo build={session?.build} />
       </section>
     </main>
   )

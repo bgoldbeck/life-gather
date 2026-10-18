@@ -6,6 +6,9 @@ It aims to help organize possessions, events, documents, and relationships while
 
 ## Project status
 
+The app now reports its running version on the login screen and in the app header.
+See [versioning](docs/VERSIONING.md) and the [changelog](CHANGELOG.md) for release numbering; older Docker images need an update to display it.
+
 The source includes a responsive React shell, Google sign-in, and [email/password signup and recovery](docs/EMAIL_PASSWORD_AUTH.md) with persistent server-side sessions. Native registration/recovery need a configured installation email sender; real SMTP delivery has not been tested here. Follow [Google login setup](docs/GOOGLE_LOGIN.md) to configure an OAuth client; real Google sign-in needs installation credentials. The [evidence-backed memory core](docs/MEMORY_CORE.md) now provides private Python services for sources, graph facts, history, search, export, and database snapshots. The [reconciliation service](docs/RECONCILIATION.md) now distinguishes purchased units, enriches reliable matches, and preserves review/correction decisions. The [private MCP recall adapter](docs/PRIVATE_MCP.md) exposes authenticated recall and explicit note-write tools over those services. The first [text chat increment](docs/TEXT_CHAT.md) adds persistent conversations, explicit original-text capture, keyword recall, evidence inspection, saved-note correction/history, and optional OpenAI answers. Structured extraction, graph correction/review, and streaming remain planned. LifeGather is a working name pending clearance. Completed, tested features follow the standing source and container release rule in `AGENTS.md`; publishing does not redeploy existing installations.
 
 ## Run with Docker
