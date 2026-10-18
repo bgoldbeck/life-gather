@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.25.0 — Reviewed purchase recall in Chat
+
+- Include up to three currently linked receipt lines per matched asset in bounded
+  read-only Chat recall, using the same owner-scoped service as Assets. Preserve
+  exact currencies, whole-line quantities, latest revisions and withdrawn unknowns.
+- Mark receipt sources so absent/omitted reviewed details cannot be silently
+  replaced by older raw totals. Label historical corrected/deleted sources and
+  retain citations; never infer unit prices, combine currencies or sum duplicate
+  receipt-line appearances across physical units.
+- Fix named-record recall that lost photo/PDF provenance unless keyword search
+  independently found the same source. Share source labels across both paths.
+  No extra provider call, schema change, dependency or write/model tool.
+
 ## 0.24.0 — Purchase records on asset details
 
 - Show linked receipt lines, latest currency-preserving totals/dates,

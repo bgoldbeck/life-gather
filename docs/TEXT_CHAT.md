@@ -111,3 +111,32 @@ tokens, persistent provider/model preferences, and per-user Light/Dark settings
 are still required in subsequent increments. Uploads and connectors remain later.
 Real OpenAI access and model compatibility have not been smoke-tested. Completed,
 tested feature increments follow the standing release rule in `AGENTS.md`.
+
+
+## Reviewed receipt recall (v0.25.0)
+
+Ask about a named asset's receipt total or purchase date. The existing bounded
+recall plan finds up to two records and reads at most three currently linked
+purchased receipt lines per asset. It uses the same owner-scoped `AssetPurchases`
+contract as the Assets panel; no model write access or additional provider call.
+Current reconciliation reassignment/dismissal/undo controls these links.
+
+The answer context includes exact currency/amount strings and integer minor units,
+line quantity, physical-unit position, latest detail revision, exact quotes and
+source IDs. A shared receipt-line key identifies repeat appearances on multiple
+physical units. The answer instructions forbid treating a full-line total as a
+unit price, summing those repeated appearances, combining separate receipts or
+currencies, and restoring withdrawn details from older raw source text.
+
+Missing optional values remain unknown. Corrected/deleted sources are historical,
+not current verified claims. Receipt-source markers also cover keyword-only recall
+or context-budget omissions: if reviewed purchase entries are absent, instructions
+require an unknown/limited answer rather than substitution from raw receipt text.
+Literal amounts, dates and quotes are omitted as complete entries when the byte
+budget is reached; the existing limit notice and read trace expose omitted context.
+
+Original photo/PDF source labels and deletion metadata now survive named-record
+recall even when keyword search misses that source. Cited source inspection uses
+the existing evidence panel and receipt-review link. No database migration or new
+dependency. All provider tests use synthetic responses; live answer quality and
+instruction following have not been independently verified.

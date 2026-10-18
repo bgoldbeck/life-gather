@@ -331,6 +331,17 @@ async def answer(
             "conflicts and "
             "insufficient evidence. You have no write tools; never claim to "
             "save or correct records. Read results are bounded and may omit facts. "
+            "Purchase entries are latest reviewed source claims, not verified facts. "
+            "For sources with receipt_review_id, use supplied reviewed purchases "
+            "for totals/dates. If those entries are absent or omitted, explain "
+            "that reviewed details are unknown or limited; do not substitute "
+            "raw receipt text. "
+            "Withdrawn or not_recorded values remain unknown; never restore them "
+            "from older raw receipt text. source_current=false is historical "
+            "evidence, not a current supported claim. Cite its source and explain "
+            "the correction/deletion if discussing history. Whole-line totals "
+            "cover all quantity units; never infer a per-unit price, sum repeated "
+            "receipt_line_key entries or combine distinct receipts/currencies. "
             "Respect assertion status, valid dates and later source corrections; "
             "explain ambiguities instead of merging same-named physical items.",
             {

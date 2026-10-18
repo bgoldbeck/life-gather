@@ -5,6 +5,7 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from lifegather.assets.purchases import AssetPurchases, AssetPurchasesRead
 from lifegather.auth.store import Account
 from lifegather.chat.service import ChatService
 from lifegather.memory.notes import NoteService
@@ -54,7 +55,7 @@ class RecallTools:
                 "event_date": source.event_date.isoformat()
                 if source.event_date
                 else None,
-                "status": "original source; not independently verified",
+                **self.chat.source_metadata(actor, source),
                 "current_note_source_id": current.id,
                 "has_later_note_correction": current.id != source.id,
             }
@@ -112,6 +113,8 @@ class RecallTools:
                     "connections": [],
                     "nodes": [],
                     "connections_limited": False,
+                    "purchases": [],
+                    "purchases_limited": False,
                 }
                 record["facts_limited"] = record["facts_limited"] or len(
                     record["facts"]
@@ -123,6 +126,39 @@ class RecallTools:
                         "limited": record["facts_limited"],
                     }
                 )
+                if entity.kind == "asset":
+                    page = AssetPurchases(memory.engine).get(
+                        actor, AssetPurchasesRead(asset_id=entity.id, limit=3)
+                    )
+                    for purchase in page["items"]:
+                        if add_source(purchase["source_id"]):
+                            claim = purchase["claim"]
+                            record["purchases"].append(
+                                {
+                                    **purchase,
+                                    "detail_status": "not_recorded"
+                                    if claim is None
+                                    else "withdrawn"
+                                    if claim["line_total"] is None
+                                    and claim["purchase_date"] is None
+                                    else "recorded",
+                                    "scope": "whole line total; all units",
+                                    "receipt_line_key": purchase["key"],
+                                    "status": "unverified source claim"
+                                    if purchase["source_current"]
+                                    else "historical: corrected or deleted source",
+                                }
+                            )
+                    record["purchases_limited"] = page[
+                        "next_cursor"
+                    ] is not None or len(record["purchases"]) < len(page["items"])
+                    trace.append(
+                        {
+                            "tool": "asset_purchases",
+                            "count": len(record["purchases"]),
+                            "limited": record["purchases_limited"],
+                        }
+                    )
                 if plan.include_connections:
                     related = memory.related(actor, entity.id, depth=1, limit=6)
                     record["connections"] = [
@@ -161,7 +197,9 @@ class RecallTools:
             "truncated": truncated
             or len(sources) == 8
             or any(
-                record["facts_limited"] or record["connections_limited"]
+                record["facts_limited"]
+                or record["connections_limited"]
+                or record["purchases_limited"]
                 for record in records
             ),
         }
@@ -173,7 +211,7 @@ class RecallTools:
                 (
                     record
                     for record in reversed(records)
-                    if record["connections"] or record["facts"]
+                    if record["connections"] or record["facts"] or record["purchases"]
                 ),
                 None,
             )
@@ -181,11 +219,16 @@ class RecallTools:
                 if removable["connections"]:
                     removable["connections"].pop()
                     removable["connections_limited"] = True
-                else:
+                elif removable["facts"]:
                     removable["facts"].pop()
                     removable["facts_limited"] = True
+                else:
+                    removable["purchases"].pop()
+                    removable["purchases_limited"] = True
             elif records:
                 records.pop()
-            else:
+            elif result["evidence"]:
                 result["evidence"].pop()
+            else:
+                result["read_trace"].pop()
         return result

@@ -142,5 +142,5 @@ shared purchase-detail source checks.
 `AssetPurchases` supplies authenticated `GET /api/assets/{id}/purchases` and read-only
 MCP `asset_purchases`. Both verify asset ownership and return at most five receipt
 lines per page with an opaque receipt/line cursor. No model tool, write operation,
-provider request, new dependency or schema change. Typed purchase claims are still
-not automatically included in AI recall or financial reports.
+provider request, new dependency or schema change. Version 0.25.0 includes bounded latest purchase claims in named-asset Chat recall;
+financial reports and automatic aggregation remain separate work.
