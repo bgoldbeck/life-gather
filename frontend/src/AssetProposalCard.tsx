@@ -28,9 +28,11 @@ export function AssetProposalCard({
   id,
   request,
   onOpen,
+  onReviewed,
 }: {
   id: string
   request: (path: string, init?: RequestInit) => Promise<unknown>
+  onReviewed?: () => Promise<void>
   onOpen: (id: string) => Promise<void>
 }) {
   const [proposal, setProposal] = useState<Proposal | null>(null)
@@ -115,6 +117,11 @@ export function AssetProposalCard({
       setFields(row.reviewed ?? row.proposed.candidate)
       pending.current = null
       setRetry(false)
+      try {
+        await onReviewed?.()
+      } catch {
+        setError('Review saved. Refresh the queue to see updated records.')
+      }
     } catch (caught) {
       if (caught instanceof ChatRequestError && caught.status < 500) {
         pending.current = null

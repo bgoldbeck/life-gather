@@ -21,6 +21,7 @@ import { AuthGate } from './AuthGate'
 import { PrivateSettingsPanel } from './PrivateSettingsPanel'
 import { PasswordSettings } from './PasswordSettings'
 import { ChatPanel } from './ChatPanel'
+import { ReviewPanel } from './ReviewPanel'
 import { PhotosPanel } from './PhotosPanel'
 import { AssetsPanel } from './AssetsPanel'
 import { BuildInfo, type Build } from './BuildInfo'
@@ -35,6 +36,11 @@ const navigation = [
     name: 'Photos',
     icon: BookOpen,
     description: 'Private receipt and nameplate photos.',
+  },
+  {
+    name: 'Review',
+    icon: CircleCheck,
+    description: 'Review pending item details and uncertain identity matches.',
   },
   { name: 'Overview', icon: LayoutDashboard, description: '' },
   {
@@ -162,6 +168,8 @@ export function Workspace({
                 refreshSession={refreshSession}
               />
             </>
+          ) : view === 'Review' ? (
+            <ReviewPanel csrfToken={csrfToken} />
           ) : view === 'Photos' ? (
             <PhotosPanel csrfToken={csrfToken} />
           ) : view === 'Chat' ? (

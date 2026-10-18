@@ -10,6 +10,7 @@ from lifegather.reconciliation.proposals import (
     ProposalRead,
     ProposalReview,
 )
+from lifegather.reconciliation.queue import IdentityRead, IdentityReview, ReviewPage
 
 
 class Input(BaseModel):
@@ -59,6 +60,9 @@ class DiscoveryHistory(Page):
 
 
 INPUTS: dict[str, type[BaseModel]] = {
+    "review_queue": ReviewPage,
+    "review_identity": IdentityRead,
+    "review_identity_resolve": IdentityReview,
     "asset_change": AssetChange,
     "assets_list": AssetList,
     "asset_detail": AssetRead,
