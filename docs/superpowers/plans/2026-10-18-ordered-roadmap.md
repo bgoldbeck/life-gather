@@ -175,3 +175,25 @@ PDFs, snapshot restore and upgrade from confirmed v0.19 receipts. Synthetic brow
 QA saved/reloaded the line total/date with source passages. Fixed recorded-time
 display to convert stored microseconds correctly, with a regression assertion.
 Graphify is unavailable; graph/HTML refresh could not run. No external AI calls.
+
+## v0.21.0 — exact receipt-detail suggestions and source badge
+
+Bounded plan: expose no-write suggestions through existing owner-scoped purchase
+reads, copy uniquely labeled USD line totals from the item's own printed line and
+one real ISO purchase date, then let users explicitly copy/review/save the draft.
+Reuse existing validation, CSRF, immutable revisions and replay; no new schema,
+model request or inventory behavior. Ambiguous values remain unknown. Add a README
+source-version badge linked to CHANGELOG and enforce version synchronization.
+
+Preflight: purchase reads supply the UI and MCP; additive suggestions preserve
+existing consumers. Save still validates source availability and revision head.
+Root-only implementation and self-review respect the user's no-agent rule.
+Tests observed failing before implementation: missing suggestions keys (three
+backend cases), missing draft-copy button, missing README source-version badge.
+
+Verified v0.21.0: 229 backend / 73 frontend tests pass, Ruff lint/format,
+mypy, TypeScript, Oxlint, Prettier and wheel/frontend builds pass. Self-review
+confirmed additive read output, no automatic writes, stable revision checks and
+no source/model permission changes. Graphify refreshed 1792 nodes / 6813 edges and
+HTML; its pre-existing partial AssetsPanel extraction warning is covered by the
+passing TypeScript build. No migration, live provider call or Docker change.

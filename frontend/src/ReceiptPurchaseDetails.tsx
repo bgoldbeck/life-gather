@@ -20,6 +20,12 @@ type Page = {
   items: Revision[]
   next_revision: number | null
   quantity: number
+  suggestions?: {
+    line_total: string | null
+    money_quote: string | null
+    purchase_date: string | null
+    date_quote: string | null
+  } | null
 }
 export function ReceiptPurchaseDetails({
   id,
@@ -140,6 +146,7 @@ export function ReceiptPurchaseDetails({
           ...(page?.items ?? []).filter((item) => item.id !== row.id),
         ],
         next_revision: page?.next_revision ?? null,
+        suggestions: page?.suggestions,
       })
       setNotice(
         'Purchase details saved with source evidence. Earlier revisions are preserved.',
@@ -184,6 +191,32 @@ export function ReceiptPurchaseDetails({
       )}
       {page && (
         <>
+          {page.suggestions &&
+            (page.suggestions.line_total || page.suggestions.purchase_date) && (
+              <>
+                <p>
+                  Source suggestions are unverified. Review the draft before
+                  saving; using them replaces the draft fields.
+                </p>
+                <Button
+                  variant="outline"
+                  disabled={locked}
+                  onClick={() => {
+                    const suggested = page.suggestions!
+                    setTotal(suggested.line_total ?? '')
+                    setMoneyQuote(suggested.money_quote ?? '')
+                    setDate(suggested.purchase_date ?? '')
+                    setDateQuote(suggested.date_quote ?? '')
+                    setReason('Reviewed source suggestions')
+                    setNotice(
+                      'Suggestions copied into the draft. Nothing has been saved.',
+                    )
+                  }}
+                >
+                  Use source suggestions
+                </Button>
+              </>
+            )}
           <fieldset disabled={locked}>
             <label>
               USD line total
