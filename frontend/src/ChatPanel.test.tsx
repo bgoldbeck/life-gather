@@ -1,9 +1,73 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ChatPanel } from './ChatPanel'
 
 afterEach(() => vi.unstubAllGlobals())
+
+it('shows a transient draft and discards it when final validation fails', async () => {
+  const fetcher = mockServer()
+  const original = fetcher.getMockImplementation()!
+  let controller: ReadableStreamDefaultController<Uint8Array> | undefined
+  const encode = (value: unknown) =>
+    new TextEncoder().encode('data: ' + JSON.stringify(value) + '\n\n')
+  fetcher.mockImplementation(async (url, init) => {
+    if (url === '/api/settings')
+      return new Response(JSON.stringify({ allow_external_ai: true }))
+    if (url.startsWith('/api/credentials'))
+      return new Response(
+        JSON.stringify({
+          items: [
+            { id: 'ai', kind: 'ai', provider: 'openai', label: 'Synthetic' },
+          ],
+        }),
+      )
+    if (url.endsWith('/stream'))
+      return new Response(
+        new ReadableStream({
+          start(next) {
+            controller = next
+            next.enqueue(
+              encode({ type: 'draft', text: 'Unvalidated synthetic draft' }),
+            )
+          },
+        }),
+        { headers: { 'content-type': 'text/event-stream' } },
+      )
+    return original(url, init)
+  })
+  render(<ChatPanel csrfToken="csrf" />)
+  await screen.findByText('A place for the details')
+  await userEvent.selectOptions(screen.getByLabelText('Action'), 'ask')
+  await userEvent.selectOptions(screen.getByLabelText('AI connection'), 'ai')
+  await userEvent.type(screen.getByLabelText('Model ID'), 'synthetic-model')
+  await userEvent.type(screen.getByLabelText('Your question'), 'filter?')
+  await userEvent.click(screen.getByRole('button', { name: 'Ask AI' }))
+  expect(await screen.findByText('Unvalidated synthetic draft')).toBeVisible()
+  expect(
+    screen.getByText('Generating · draft not yet validated or saved'),
+  ).toBeVisible()
+  await act(async () => {
+    controller!.enqueue(
+      encode({
+        type: 'complete',
+        turn: {
+          id: 'failed-turn',
+          request_id: 'request',
+          mode: 'ask',
+          text: 'filter?',
+          state: 'failed',
+          result: { text: 'Unable to finish.' },
+        },
+      }),
+    )
+    controller!.close()
+  })
+  expect(await screen.findByText('Request failed')).toBeVisible()
+  expect(
+    screen.queryByText('Unvalidated synthetic draft'),
+  ).not.toBeInTheDocument()
+})
 
 it('offers Claude beside OpenAI and sends only the selected connection and model', async () => {
   const user = userEvent.setup()
@@ -32,20 +96,26 @@ it('offers Claude beside OpenAI and sends only the selected connection and model
           ],
         }),
       )
-    if (url.endsWith('/turns') && init?.method === 'POST')
+    if (url.endsWith('/stream') && init?.method === 'POST')
       return new Response(
-        JSON.stringify({
-          id: 'answer',
-          request_id: 'request',
-          mode: 'ask',
-          text: 'Filter?',
-          state: 'complete',
-          result: {
-            text: 'Synthetic Claude answer.',
-            provider: 'anthropic',
-            model: 'synthetic-claude',
-          },
-        }),
+        'data: ' +
+          JSON.stringify({
+            type: 'complete',
+            turn: {
+              id: 'answer',
+              request_id: 'request',
+              mode: 'ask',
+              text: 'Filter?',
+              state: 'complete',
+              result: {
+                text: 'Synthetic Claude answer.',
+                provider: 'anthropic',
+                model: 'synthetic-claude',
+              },
+            },
+          }) +
+          '\n\n',
+        { headers: { 'content-type': 'text/event-stream' } },
       )
     return original(url, init)
   })
@@ -63,7 +133,7 @@ it('offers Claude beside OpenAI and sends only the selected connection and model
   await screen.findByText('Synthetic Claude answer.')
   expect(screen.getByText('Claude · synthetic-claude')).toBeVisible()
   const posted = fetcher.mock.calls.find(
-    ([url, init]) => url.endsWith('/turns') && init?.method === 'POST',
+    ([url, init]) => url.endsWith('/stream') && init?.method === 'POST',
   )!
   expect(JSON.parse(String(posted[1]?.body))).toMatchObject({
     credential_id: 'claude',

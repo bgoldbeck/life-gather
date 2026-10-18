@@ -1,8 +1,11 @@
 import asyncio
+import json
+from collections.abc import AsyncIterator
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi import Path as PathParam
+from fastapi.responses import StreamingResponse
 
 from lifegather.assets.actions import ActionService
 from lifegather.auth.routes import require_session, require_write_session
@@ -10,6 +13,7 @@ from lifegather.auth.store import CurrentSession
 from lifegather.chat.preferences import ChatChoice, ChatPreferences
 from lifegather.chat.runner import answer
 from lifegather.chat.service import ChatService, SaveText, TurnInput
+from lifegather.chat.streaming import DeltaSink
 from lifegather.memory.notes import CorrectionInput, NoteService
 from lifegather.memory.service import MemoryError
 from lifegather.photos.service import PhotoService
@@ -142,12 +146,20 @@ def chat_router() -> APIRouter:
     def cancel(request: Request, request_id: str, current: Mutation) -> dict[str, Any]:
         return service(request).cancel(current.user, request_id)
 
-    @router.post("/conversations/{conversation_id}/turns")
-    async def send(
-        request: Request, conversation_id: str, body: TurnInput, current: Mutation
+    async def run(
+        request: Request,
+        conversation_id: str,
+        body: TurnInput,
+        current: CurrentSession,
+        emit: DeltaSink | None = None,
+        begun: tuple[dict[str, Any], bool] | None = None,
     ) -> dict[str, Any]:
         chat = service(request)
-        row, fresh = chat.begin(current.user, conversation_id, body)
+        row, fresh = (
+            begun
+            if begun is not None
+            else chat.begin(current.user, conversation_id, body)
+        )
         if not fresh:
             return row
         turn_id = row["id"]
@@ -185,6 +197,7 @@ def chat_router() -> APIRouter:
                     request.app.state.chat_provider,
                     active,
                     request.app.state.claude_provider,
+                    emit,
                 )
 
         task = asyncio.create_task(guarded())
@@ -214,5 +227,56 @@ def chat_router() -> APIRouter:
                 },
                 "failed",
             )
+
+    @router.post("/conversations/{conversation_id}/turns")
+    async def send(
+        request: Request, conversation_id: str, body: TurnInput, current: Mutation
+    ) -> dict[str, Any]:
+        return await run(request, conversation_id, body, current)
+
+    @router.post("/conversations/{conversation_id}/stream")
+    async def stream(
+        request: Request, conversation_id: str, body: TurnInput, current: Mutation
+    ) -> StreamingResponse:
+        if body.mode != "ask":
+            raise HTTPException(422, "Streaming is available for Ask AI")
+        begun = service(request).begin(current.user, conversation_id, body)
+
+        async def generate() -> AsyncIterator[bytes]:
+            queue: asyncio.Queue[str] = asyncio.Queue(maxsize=8)
+
+            async def emit(text: str) -> None:
+                await queue.put(text)
+
+            def event(value: dict[str, Any]) -> bytes:
+                return (
+                    "data: " + json.dumps(value, ensure_ascii=False) + "\n\n"
+                ).encode()
+
+            task = asyncio.create_task(
+                run(request, conversation_id, body, current, emit, begun)
+            )
+            try:
+                yield event({"type": "status", "text": "Finding supporting evidence…"})
+                while not task.done():
+                    try:
+                        text = await asyncio.wait_for(queue.get(), timeout=0.25)
+                        yield event({"type": "draft", "text": text})
+                    except TimeoutError:
+                        continue
+                while not queue.empty():
+                    yield event({"type": "draft", "text": queue.get_nowait()})
+                yield event({"type": "complete", "turn": await task})
+            finally:
+                if begun[1]:
+                    service(request).cancel(current.user, body.request_id)
+                task.cancel()
+                await asyncio.gather(task, return_exceptions=True)
+
+        return StreamingResponse(
+            generate(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+        )
 
     return router
