@@ -13,7 +13,7 @@ from lifegather.memory.models import Entity
 from lifegather.memory.notes import NoteConflict
 from lifegather.memory.schemas import FactInput, SourceInput
 from lifegather.memory.service import MemoryError, MemoryService, fingerprint
-from lifegather.reconciliation.models import Binding
+from lifegather.reconciliation.models import Binding, Decision
 from lifegather.reconciliation.schemas import DiscoveryInput
 from lifegather.reconciliation.service import ReconciliationService
 
@@ -298,12 +298,60 @@ class ActionService:
                 if row.target_asset_id
                 else None
             )
-            return {
+            result: dict[str, Any] = {
+                "action_id": row.id,
+                "asset_id": row.asset_id,
+                "target_asset_id": row.target_asset_id,
                 "asset_name": asset.name,
                 "target_asset_name": target.name if target else None,
                 "operation": row.operation,
                 "user_selected_status": json.loads(row.result_json).get("status"),
             }
+            if row.ownership_fact_id:
+                fact = self.memory._assertion(db, actor, row.ownership_fact_id)
+                result["ownership_statement_current_version"] = (
+                    fact.superseded_at is None
+                )
+                result["ownership_valid_from"] = (
+                    fact.valid_from.isoformat() if fact.valid_from else None
+                )
+                result["ownership_valid_to"] = (
+                    fact.valid_to.isoformat() if fact.valid_to else None
+                )
+            recorded = json.loads(row.result_json)
+            if row.operation in {"replacement", "replacement_withdrawn"}:
+                fact = self.memory._assertion(db, actor, recorded["fact_id"])
+                result["replacement_statement_current_version"] = (
+                    fact.superseded_at is None
+                )
+                result["replacement_event_date"] = (
+                    fact.valid_from.isoformat() if fact.valid_from else None
+                )
+            identifiers = []
+            if "decision" in recorded:
+                identifiers.append(recorded["decision"]["decision_id"])
+            elif row.operation in {"batch_move", "batch_restore"}:
+                key = (
+                    "restored_decision_id"
+                    if row.operation == "batch_restore"
+                    else "moved_decision_id"
+                )
+                identifiers = [entry[key] for entry in recorded["entries"]]
+            if identifiers:
+                current = list(
+                    db.scalars(
+                        select(Decision.id)
+                        .where(
+                            Decision.user_id == actor.id,
+                            Decision.id.in_(identifiers),
+                            Decision.superseded_at.is_(None),
+                        )
+                        .limit(5)
+                    )
+                )
+                result["association_versions_current"] = len(current)
+                result["association_versions_total"] = len(identifiers)
+            return result
 
     def related_sources(
         self, actor: Account, source_ids: list[str], entity_ids: list[str]
@@ -313,7 +361,13 @@ class ActionService:
             return list(
                 db.scalars(
                     select(AssetAction.source_id)
-                    .join(Entity, Entity.id == AssetAction.asset_id)
+                    .join(
+                        Entity,
+                        or_(
+                            Entity.id == AssetAction.asset_id,
+                            Entity.id == AssetAction.target_asset_id,
+                        ),
+                    )
                     .where(
                         AssetAction.user_id == actor.id,
                         Entity.user_id == actor.id,
@@ -324,11 +378,15 @@ class ActionService:
                             select(newer.id).where(
                                 newer.user_id == actor.id,
                                 newer.asset_id == AssetAction.asset_id,
+                                newer.target_asset_id.is_not_distinct_from(
+                                    AssetAction.target_asset_id
+                                ),
                                 newer.operation == AssetAction.operation,
                                 newer.recorded_at > AssetAction.recorded_at,
                             )
                         ),
                     )
+                    .distinct()
                     .order_by(AssetAction.recorded_at.desc())
                     .limit(8)
                 )

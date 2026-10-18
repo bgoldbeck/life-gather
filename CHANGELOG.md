@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.32.1 — Recall current corrections and incoming history
+
+- Include up to three own/incoming corrections and canonical inferred inventory
+  membership when recalling a named asset, independent of keyword matches. Retain
+  the existing two-record/eight-source/24 KiB context limits and citation checks.
+- Discover incoming correction sources by either linked item; a later move from
+  the same origin to another target no longer hides an earlier incoming action.
+- Attach current-versus-superseded ownership/replacement and association-version
+  metadata to named, keyword, HTTP and MCP source reads. Show historical-state
+  labels in evidence inspection; preserve original text and event dates.
+- Answer instructions distinguish moved evidence and withdrawn statements from
+  current claims. No additional provider call, schema migration or dependency.
+
 ## 0.32.0 — Record sourced replacement relationships
 
 - Explicitly choose an existing physical item that replaced another item, record

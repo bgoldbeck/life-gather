@@ -13,6 +13,10 @@ export type EvidenceSource = {
     asset_name: string
     operation: string
     user_selected_status: string | null
+    ownership_statement_current_version?: boolean
+    replacement_statement_current_version?: boolean
+    association_versions_current?: number
+    association_versions_total?: number
     target_asset_name?: string | null
   } | null
   note?: {
@@ -207,6 +211,28 @@ export function EvidencePanel({
           : {source.asset_context.target_asset_name}.
         </p>
       )}
+      {source.asset_context?.ownership_statement_current_version === false && (
+        <p>
+          This ownership statement has been superseded. Inspect the item's
+          current facts and history.
+        </p>
+      )}
+      {source.asset_context?.replacement_statement_current_version ===
+        false && (
+        <p>
+          The linked replacement statement has been superseded or withdrawn.
+        </p>
+      )}
+      {source.asset_context?.association_versions_total !== undefined &&
+        (source.asset_context.association_versions_current ?? 0) <
+          source.asset_context.association_versions_total && (
+          <p>
+            Only {source.asset_context.association_versions_current ?? 0} of{' '}
+            {source.asset_context.association_versions_total} recorded
+            association versions remain current. Inspect item history for the
+            current unit mappings.
+          </p>
+        )}
       {source.asset_proposal_id && onViewProposal && (
         <Button
           variant="outline"
