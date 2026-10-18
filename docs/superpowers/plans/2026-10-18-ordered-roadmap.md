@@ -220,3 +220,25 @@ ambiguous currencies, migration preservation, legacy replay and lossless-downgra
 refusal. Self-review confirmed the unchanged owner/source/revision gates and
 no floating point. Graphify refreshed 1806 nodes / 6865 edges and HTML. Migration
 0016 only; no provider call, image build/upload or running-container changes.
+
+
+## v0.23.0 — individual photo attachment correction
+
+Order decision: finish a small correction prerequisite before enabling broader
+automatic discovery. Remove one photo/asset gallery binding, preserving originals,
+other galleries and claim evidence. Reuse owner/session/CSRF adapters and photo
+version guards; no new schema. Audit both stable IDs. An absent link is safe replay;
+a reattached link changes the photo version, so an old request cannot remove it.
+The UI explains retention and reattachment through existing deduplicated upload.
+
+Observed failing tests for the missing service operation and UI action. Added
+owner/CSRF/MCP checks, multi-gallery preservation, original bytes, no duplicate
+audit on retry, stale reattachment protection and exact UI request checks.
+Root-only implementation and self-review, no delegated work.
+
+Verified v0.23.0: 253 backend / 75 frontend tests pass; Ruff lint/format,
+mypy, TypeScript, Oxlint, Prettier and wheel/frontend builds pass. Self-review
+found the new JSON action missing from request-size middleware; a regression test
+failed (401 rather than bounded 413), then passed after adding the route prefix.
+Full backend suite rerun after the fix. Graphify refreshed 1829 nodes / 6821 edges
+and HTML. No migration, provider call, Docker publication or deployment.

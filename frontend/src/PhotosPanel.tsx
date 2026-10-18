@@ -203,6 +203,35 @@ export function PhotosPanel({
       setBusy(false)
     }
   }
+  async function detach() {
+    if (!selected || !assetId || busy || retry) return
+    setBusy(true)
+    setError('')
+    setStatus('')
+    try {
+      await request('photos/detach', {
+        method: 'POST',
+        body: JSON.stringify({
+          photo_id: selected.id,
+          asset_id: assetId,
+          expected_updated_at: selected.updated_at,
+        }),
+      })
+      setSelected(null)
+      setSource(null)
+      setProposal('')
+      await load()
+      setStatus(
+        'Photo removed from this item. The original, other galleries and source evidence remain available.',
+      )
+    } catch {
+      setError(
+        'Unable to remove the link. Retry, or reopen this gallery if the photo changed.',
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
   async function remove() {
     if (!selected || !deleteAcknowledged) return
     setBusy(true)
@@ -386,6 +415,22 @@ export function PhotosPanel({
             >
               View saved transcription
             </Button>
+          )}
+          {assetId && (
+            <section aria-label="Remove gallery attachment">
+              <p>
+                Remove this gallery attachment while keeping the original, other
+                item attachments and any source evidence. You can attach it
+                again by uploading the same file to this item.
+              </p>
+              <Button
+                variant="outline"
+                disabled={busy || retry}
+                onClick={() => void detach()}
+              >
+                Remove photo from this item
+              </Button>
+            </section>
           )}
           <details>
             <summary>Delete this photo</summary>
