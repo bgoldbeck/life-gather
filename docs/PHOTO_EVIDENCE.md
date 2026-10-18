@@ -99,3 +99,28 @@ HTTP and MCP derive the owner from the session; the expected photo version block
 stale removal after reattachment. Retrying an already absent link is harmless.
 Upload the same original into the item gallery to reattach it with per-user byte
 deduplication. This adds no tables or external requests.
+
+
+## Link an existing private original (v0.33.0)
+
+In an item gallery, open **Use a photo already saved**, load the private library,
+choose a thumbnail/filename/record ID, and explicitly link it to this item. Load
+five records at a time; nothing is fetched until requested. The same retained
+original and metadata-free preview serve every gallery. Other links, transcriptions,
+receipt-unit mappings, typed prices and ownership facts do not change. General
+attachment is not claim evidence or ownership verification, and no model is called.
+
+`POST /api/photos/attach` and MCP `photo_attach` use the existing owner-scoped
+service with `photo_id`, `asset_id`, and `expected_updated_at`. HTTP writes need
+CSRF. A new link requires the current photo version; an already present link is
+a harmless retry without another mutation. If a later removal or original deletion
+occurred, a stale request cannot restore it. Refetch and explicitly select the
+current photo before a new attachment. Safe retries return current metadata rather
+than a historical fixed payload. New `photo_attached` audit entries include both
+IDs, matching link-removal audit scope; older entries are preserved as recorded.
+
+The chooser keeps an uncertain write frozen for an identical retry. After a
+confirmed write, a failed gallery reload offers only a read retry. Other photo
+mutation controls are disabled during linking. No tables, dependency, external
+request or original-deletion policy change. Chat attachment picking and event
+photo galleries remain separate roadmap work.

@@ -405,3 +405,25 @@ HTTP/MCP source metadata, context byte/source caps and cited two-call answers.
 Synthetic browser asked about a withdrawn link, cited incoming correction history
 and opened its historical-state label. No live provider call; actual model
 instruction following remains unverified. Graphify unavailable; graph/HTML not refreshed.
+
+
+Private photo reuse v0.33.0: deliberate five-item paged chooser links an existing
+private original into another physical item gallery, without file reupload or AI.
+Expected-version checks, harmless existing-link retries, stale removed-link and
+deleted-original refusal; coordinate gallery controls and preserve other galleries,
+receipt bindings, exact amounts, ownership and claim evidence. New attachment audit
+entries retain both IDs. No schema/dependency/original-deletion policy change.
+
+Verified: 323 backend / 120 frontend tests; lint, format, types and production/
+package builds pass. Tests cover concurrent link replay, one retained binary,
+owner/CSRF HTTP/MCP and body limits, no fact/entity writes, rollback, snapshot
+recovery, stale/deleted requests, loss/reload retries and parent-gallery refresh.
+Browser linked, removed, refused stale reattachment and deliberately reattached a
+synthetic original after refresh. Fixed stale parent removal feedback after relink.
+Graphify unavailable; source graph/HTML refresh could not run. General record
+consolidation, chat photo picking and event galleries remain separate work.
+
+Photo gallery regressions additionally cover delayed initial metadata after an
+upload, stale transcription success/error after selection, evidence-close intent
+and old pagination after a fresh upload reload. These reads now respect request
+generations and unmounts; no original data or correction is changed.

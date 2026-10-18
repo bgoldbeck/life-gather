@@ -4,6 +4,7 @@ import { isAIProvider, aiProviderLabel } from './aiProviders'
 import { AssetProposalCard } from './AssetProposalCard'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import { ChatRequestError } from './chatRequest'
+import { ExistingPhotoLink } from './ExistingPhotoLink'
 import './photos.css'
 
 type Photo = {
@@ -33,6 +34,7 @@ export function PhotosPanel({
   const [file, setFile] = useState<File | null>(null)
   const [purpose, setPurpose] = useState('photo')
   const [busy, setBusy] = useState(false)
+  const [linking, setLinking] = useState(false)
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
   const [credentials, setCredentials] = useState<Credential[]>([])
@@ -41,6 +43,9 @@ export function PhotosPanel({
   const [consent, setConsent] = useState(false)
   const [proposal, setProposal] = useState('')
   const [source, setSource] = useState<EvidenceSource | null>(null)
+  const [sourceOpening, setSourceOpening] = useState(false)
+  const sourceGeneration = useRef(0)
+  const listGeneration = useRef(0)
   const [deleteAcknowledged, setDeleteAcknowledged] = useState(false)
   const [retry, setRetry] = useState(false)
   const pending = useRef<Pending | null>(null)
@@ -72,16 +77,23 @@ export function PhotosPanel({
   )
   const load = useCallback(
     async (next = '') => {
-      const page = await request(
-        `photos?asset_id=${encodeURIComponent(assetId)}&cursor=${next}`,
-      )
-      setItems((current) => (next ? [...current, ...page.items] : page.items))
-      setCursor(page.next_cursor)
+      const generation = ++listGeneration.current
+      try {
+        const page = await request(
+          `photos?asset_id=${encodeURIComponent(assetId)}&cursor=${next}`,
+        )
+        if (generation !== listGeneration.current) return
+        setItems((current) => (next ? [...current, ...page.items] : page.items))
+        setCursor(page.next_cursor)
+      } catch (caught) {
+        if (generation === listGeneration.current) throw caught
+      }
     },
     [request, assetId],
   )
   useEffect(() => {
     let alive = true
+    const generation = ++listGeneration.current
     const controller = new AbortController()
     void Promise.all([
       request(`photos?asset_id=${encodeURIComponent(assetId)}`, {
@@ -92,8 +104,10 @@ export function PhotosPanel({
     ])
       .then(([page, entries, settings]) => {
         if (!alive) return
-        setItems(page.items)
-        setCursor(page.next_cursor)
+        if (generation === listGeneration.current) {
+          setItems(page.items)
+          setCursor(page.next_cursor)
+        }
         setCredentials(
           (entries.items ?? []).filter(
             (c: Credential) => c.kind === 'ai' && isAIProvider(c.provider),
@@ -102,7 +116,8 @@ export function PhotosPanel({
         setConsent(settings.allow_external_ai === true)
       })
       .catch(() => {
-        if (alive) setError('Unable to load photos. Reopen this view to retry.')
+        if (alive && generation === listGeneration.current)
+          setError('Unable to load photos. Reopen this view to retry.')
       })
     return () => {
       alive = false
@@ -110,9 +125,15 @@ export function PhotosPanel({
     }
   }, [request, assetId])
 
+  const invalidateReads = useCallback(() => {
+    ++listGeneration.current
+    ++sourceGeneration.current
+  }, [])
+  useEffect(() => invalidateReads, [invalidateReads])
+
   async function upload(event: FormEvent) {
     event.preventDefault()
-    if (!file || busy) return
+    if (!file || busy || retry || linking) return
     if (file.size > 8 * 1024 * 1024) {
       setError('Choose a photo no larger than 8 MiB.')
       return
@@ -135,7 +156,7 @@ export function PhotosPanel({
       setSelected(row)
       setDeleteAcknowledged(false)
       setProposal('')
-      setSource(null)
+      clearSource()
       setFile(null)
       if (uploadInput.current) uploadInput.current.value = ''
       await load()
@@ -146,16 +167,27 @@ export function PhotosPanel({
       setBusy(false)
     }
   }
+  function clearSource() {
+    ++sourceGeneration.current
+    setSource(null)
+    setSourceOpening(false)
+  }
   async function openSource(id: string) {
+    const generation = ++sourceGeneration.current
+    setSourceOpening(true)
     setError('')
     try {
-      setSource(await chatRequest('/sources/' + id))
+      const evidence = await chatRequest('/sources/' + id)
+      if (generation === sourceGeneration.current) setSource(evidence)
     } catch (caught) {
-      setError((caught as Error).message)
+      if (generation === sourceGeneration.current)
+        setError((caught as Error).message)
+    } finally {
+      if (generation === sourceGeneration.current) setSourceOpening(false)
     }
   }
   async function read() {
-    if (!selected || busy) return
+    if (!selected || busy || linking) return
     setBusy(true)
     setError('')
     setStatus('')
@@ -204,7 +236,7 @@ export function PhotosPanel({
     }
   }
   async function detach() {
-    if (!selected || !assetId || busy || retry) return
+    if (!selected || !assetId || busy || retry || linking) return
     setBusy(true)
     setError('')
     setStatus('')
@@ -218,7 +250,7 @@ export function PhotosPanel({
         }),
       })
       setSelected(null)
-      setSource(null)
+      clearSource()
       setProposal('')
       await load()
       setStatus(
@@ -233,7 +265,7 @@ export function PhotosPanel({
     }
   }
   async function remove() {
-    if (!selected || !deleteAcknowledged) return
+    if (!selected || !deleteAcknowledged || busy || retry || linking) return
     setBusy(true)
     setError('')
     try {
@@ -245,7 +277,7 @@ export function PhotosPanel({
         }),
       })
       setSelected(null)
-      setSource(null)
+      clearSource()
       setProposal('')
       setDeleteAcknowledged(false)
       await load()
@@ -275,7 +307,7 @@ export function PhotosPanel({
             ref={uploadInput}
             type="file"
             accept="image/jpeg,image/png,image/webp"
-            disabled={busy || retry}
+            disabled={busy || retry || linking}
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           />
         </label>
@@ -283,7 +315,7 @@ export function PhotosPanel({
           Photo purpose
           <select
             value={purpose}
-            disabled={busy || retry}
+            disabled={busy || retry || linking}
             onChange={(e) => setPurpose(e.target.value)}
           >
             <option value="photo">General photo</option>
@@ -295,10 +327,26 @@ export function PhotosPanel({
           JPEG, PNG or WebP · 8 MiB · 20 megapixels. Original retained
           privately; preview has metadata removed.
         </p>
-        <Button disabled={!file || busy || retry}>
+        <Button disabled={!file || busy || retry || linking}>
           Upload privately{assetId ? ' to this item' : ''}
         </Button>
       </form>
+      {assetId && (
+        <details>
+          <summary>Use a photo already saved</summary>
+          <ExistingPhotoLink
+            assetId={assetId}
+            csrfToken={csrfToken}
+            disabled={busy || retry}
+            onLinked={async () => {
+              setError('')
+              setStatus('')
+              await load()
+            }}
+            onLockedChange={setLinking}
+          />
+        </details>
+      )}
       {error && <p role="alert">{error}</p>}
       {status && <p role="status">{status}</p>}
       {!items.length && <p>No photos saved here yet.</p>}
@@ -307,11 +355,11 @@ export function PhotosPanel({
           <li key={row.id}>
             <button
               type="button"
-              disabled={busy || retry}
+              disabled={busy || retry || linking}
               onClick={() => {
                 setSelected(row)
                 setProposal('')
-                setSource(null)
+                clearSource()
                 setDeleteAcknowledged(false)
                 setStatus('')
               }}
@@ -329,7 +377,7 @@ export function PhotosPanel({
       </ul>
       {cursor && (
         <Button
-          disabled={busy}
+          disabled={busy || retry || linking}
           onClick={() =>
             void load(cursor).catch(() =>
               setError('Unable to load more photos.'),
@@ -369,7 +417,7 @@ export function PhotosPanel({
               AI connection
               <select
                 value={credential}
-                disabled={busy || retry}
+                disabled={busy || retry || linking}
                 onChange={(e) => {
                   setCredential(e.target.value)
                   setModel('')
@@ -388,7 +436,7 @@ export function PhotosPanel({
               <input
                 value={model}
                 maxLength={100}
-                disabled={busy || retry}
+                disabled={busy || retry || linking}
                 onChange={(e) => setModel(e.target.value)}
                 placeholder="Your provider model ID"
               />
@@ -398,7 +446,11 @@ export function PhotosPanel({
               is reused.
             </p>
             <Button
-              disabled={busy || (!retry && (!consent || !credential || !model))}
+              disabled={
+                busy ||
+                linking ||
+                (!retry && (!consent || !credential || !model))
+              }
               onClick={() => void read()}
             >
               {retry
@@ -410,7 +462,7 @@ export function PhotosPanel({
           </details>
           {selected.source_id && (
             <Button
-              disabled={busy}
+              disabled={busy || retry || linking || sourceOpening}
               onClick={() => void openSource(selected.source_id!)}
             >
               View saved transcription
@@ -421,11 +473,12 @@ export function PhotosPanel({
               <p>
                 Remove this gallery attachment while keeping the original, other
                 item attachments and any source evidence. You can attach it
-                again by uploading the same file to this item.
+                again by choosing the saved photo or uploading the same file to
+                this item.
               </p>
               <Button
                 variant="outline"
-                disabled={busy || retry}
+                disabled={busy || retry || linking}
                 onClick={() => void detach()}
               >
                 Remove photo from this item
@@ -443,14 +496,14 @@ export function PhotosPanel({
               <input
                 type="checkbox"
                 checked={deleteAcknowledged}
-                disabled={busy || retry}
+                disabled={busy || retry || linking}
                 onChange={(e) => setDeleteAcknowledged(e.target.checked)}
               />
               I understand what will be deleted and what remains.
             </label>
             <Button
               variant="outline"
-              disabled={!deleteAcknowledged || busy || retry}
+              disabled={!deleteAcknowledged || busy || retry || linking}
               onClick={() => void remove()}
             >
               Delete original and preview
@@ -463,10 +516,10 @@ export function PhotosPanel({
           key={source.id}
           source={source}
           nextOffset={null}
-          opening={busy}
+          opening={busy || sourceOpening}
           request={chatRequest}
           onOpen={openSource}
-          onClose={() => setSource(null)}
+          onClose={clearSource}
           onViewProposal={setProposal}
         />
       )}

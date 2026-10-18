@@ -18,6 +18,7 @@ from lifegather.auth.routes import require_session, require_write_session
 from lifegather.auth.store import CurrentSession
 from lifegather.photos.service import (
     MAX_BYTES,
+    PhotoAttach,
     PhotoDelete,
     PhotoDetach,
     PhotoList,
@@ -109,6 +110,10 @@ def photo_router() -> APIRouter:
                 "X-Content-Type-Options": "nosniff",
             },
         )
+
+    @router.post("/attach")
+    def attach(request: Request, body: PhotoAttach, current: Write) -> dict[str, Any]:
+        return service(request).link(current.user, body)
 
     @router.post("/detach")
     def detach(request: Request, body: PhotoDetach, current: Write) -> dict[str, Any]:

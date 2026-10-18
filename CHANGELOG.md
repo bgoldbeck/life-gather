@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.33.0 — Link existing private photos into item galleries
+
+- Deliberately load and choose a saved private photo from a paged gallery, then
+  link the same original into another physical item without uploading its bytes
+  again. Preserve other galleries, receipt mappings, ownership and claim evidence.
+- Private HTTP/MCP enforce owner, physical-item and expected-version checks.
+  Repeated existing links do not duplicate writes; stale retries cannot recreate
+  a later removed link, and deleted originals cannot be linked.
+- Keep uncertain-response retry identities and recover from gallery reload
+  failure without repeating a saved link. Coordinate gallery controls during
+  linking. New attachment audit events retain both photo and item IDs.
+- Ignore old gallery pages after a refresh and old transcription reads after
+  selection changes or closing evidence. Preserve new uploads when initial
+  metadata arrives late; stale errors cannot replace the current photo view.
+- No schema migration, dependency, model call or change to original deletion.
+
 ## 0.32.1 — Recall current corrections and incoming history
 
 - Include up to three own/incoming corrections and canonical inferred inventory
