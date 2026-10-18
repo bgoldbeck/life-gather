@@ -57,6 +57,10 @@ function global:docker {
         'exec' {
             $script = $input -join "`n"
             if ($script -notmatch '8787' -or $script -notmatch 'auth.sqlite3') { throw 'Smoke checks missing' }
+            if ($script -notmatch "'email_password_enabled': False" -or
+                $script -notmatch "'email_delivery_enabled': False") {
+                throw 'Smoke checks must verify unconfigured email authentication'
+            }
         }
         'rm' { }
         'context' { 'npipe:////./pipe/dockerDesktopLinuxEngine' }
