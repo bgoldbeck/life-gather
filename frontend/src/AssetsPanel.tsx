@@ -4,6 +4,7 @@ import './assets.css'
 import { PhotosPanel } from './PhotosPanel'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import { ChatRequestError } from './chatRequest'
+import { EvidenceBatch } from './EvidenceBatch'
 import { AssetActions } from './AssetActions'
 import { AssetPurchases } from './AssetPurchases'
 
@@ -407,6 +408,24 @@ export function AssetsPanel({
               assetName={detail.asset.name}
             />
           </details>
+          <details>
+            <summary>Move several discovery sources</summary>
+            <EvidenceBatch
+              key={`batch:${detail.asset.id}:${detail.action_head ?? ''}`}
+              assetId={detail.asset.id}
+              assetName={detail.asset.name}
+              restoreId={
+                detail.actions?.find(
+                  (action) =>
+                    action.id === detail.action_head &&
+                    action.operation === 'batch_move',
+                )?.id
+              }
+              csrfToken={csrfToken}
+              onChanged={refreshed}
+              onOpen={evidence}
+            />
+          </details>
           {!!detail.actions?.length && (
             <section aria-label="Correction history">
               <h3>Correction history</h3>
@@ -414,12 +433,17 @@ export function AssetsPanel({
                 <article key={action.id}>
                   <p>
                     {action.direction === 'incoming'
-                      ? `Evidence received from ${action.asset_name ?? 'another item'}`
+                      ? action.operation === 'batch_restore'
+                        ? `Evidence returned to ${action.asset_name ?? 'its earlier item'}`
+                        : `Evidence received from ${action.asset_name ?? 'another item'}`
                       : action.operation === 'reassociate' &&
                           action.target_asset_name
                         ? `Evidence moved to ${action.target_asset_name}`
                         : ((
                             {
+                              batch_move: 'Discovery evidence moved together',
+                              batch_restore:
+                                'Discovery evidence batch reversed',
                               ownership: 'Ownership statement',
                               undo: 'Decision undone',
                               reassociate: 'Evidence reassociated',

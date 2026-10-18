@@ -358,3 +358,18 @@ never submit a correction merely to reload. Navigation guards and completed-writ
 retry identities remain intact. No domain/API, migration or dependency change.
 
 Reload feedback verified: 296 backend / 96 frontend tests; lint, format, types and production/package builds pass. Regression checks failure feedback, preserved draft, successful retry and no write; existing delayed-navigation regressions still pass. Browser simulated a 503 reload failure and recovered with the unsaved statement/explanation intact. Graphify unavailable; graph/HTML refresh could not run. No migration/dependency/domain API change.
+
+
+Discovery-evidence batches v0.31.0: explicit preview/apply of all 1–5 current
+associations to one existing item, atomic stale/collision refusal, exact sibling
+unit mappings, append-only explanations and unchanged-batch reversal. Manual
+facts, notes, photos, aliases and relationships stay on their original records;
+whole-record consolidation remains ahead. No schema/dependency/live-provider change.
+
+Verified: 305 backend / 101 frontend tests; lint, format, types and production/
+package builds pass. New coverage checks concurrent exact replay, transaction
+rollback, owner/CSRF HTTP/MCP guards, snapshot reversal, stale source/target/
+evidence refusal, five-observation twenty-unit Unicode limits, preview source
+inspection, lost-response retry and saved-write reload recovery. Synthetic browser
+moved two associations and restored both, preserving USD 49.90 whole-line meaning
+and receipt unit 1 of 2. Graphify unavailable; graph/HTML refresh could not run.

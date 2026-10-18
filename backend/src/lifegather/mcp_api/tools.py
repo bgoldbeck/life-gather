@@ -14,6 +14,12 @@ from pydantic import BaseModel
 from starlette.requests import Request
 
 from lifegather.assets.actions import ActionService, AssetChange
+from lifegather.assets.batch import (
+    EvidenceBatchService,
+    EvidenceMove,
+    EvidenceMovePreview,
+    EvidenceRestore,
+)
 from lifegather.assets.purchases import AssetPurchases, AssetPurchasesRead
 from lifegather.assets.service import AssetList, AssetRead, AssetService
 from lifegather.auth.store import Account, AuthStore
@@ -636,6 +642,54 @@ def build_server() -> MCPServer:
         return read(
             ctx,
             lambda actor, memory, _: ActionService(memory.engine).apply(actor, data),
+        )
+
+    @server.tool(annotations=annotation)
+    def asset_evidence_preview(
+        data: EvidenceMovePreview, ctx: ToolContext
+    ) -> dict[str, Any]:
+        """Preview discovery associations without merging entire records."""
+        return read(
+            ctx,
+            lambda actor, memory, _: EvidenceBatchService(memory.engine).preview(
+                actor, data
+            ),
+        )
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        )
+    )
+    def asset_evidence_move(data: EvidenceMove, ctx: ToolContext) -> dict[str, Any]:
+        """Move the exact preview atomically. Direct human choice only."""
+        return read(
+            ctx,
+            lambda actor, memory, _: EvidenceBatchService(memory.engine).move(
+                actor, data
+            ),
+        )
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        )
+    )
+    def asset_evidence_restore(
+        data: EvidenceRestore, ctx: ToolContext
+    ) -> dict[str, Any]:
+        """Reverse an unchanged evidence batch. Direct human choice only."""
+        return read(
+            ctx,
+            lambda actor, memory, _: EvidenceBatchService(memory.engine).restore(
+                actor, data
+            ),
         )
 
     return server
