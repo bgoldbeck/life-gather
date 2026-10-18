@@ -120,7 +120,8 @@ def test_mcp_discovery_and_owner_scoped_memory_reads() -> None:
         assert tools and all(
             tool["annotations"]["readOnlyHint"]
             for tool in tools
-            if tool["name"] not in {"memory_save_text", "memory_correct_note"}
+            if tool["name"]
+            not in {"memory_save_text", "memory_correct_note", "asset_proposal_review"}
         )
         assert (
             next(t for t in tools if t["name"] == "memory_save_text")["annotations"][

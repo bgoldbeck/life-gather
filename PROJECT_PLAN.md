@@ -6,8 +6,9 @@
 Source increment: [text memory chat](docs/TEXT_CHAT.md) now provides persistent
 private conversations, explicit text capture, keyword recall, source inspection,
 saved-note corrections with preserved history,
-and optional bounded OpenAI answers. This is partial stage 4 progress; structured
-extraction, graph corrections/review, token streaming, and appearance preferences
+and optional bounded OpenAI answers. [Saved-note asset proposals](docs/ASSET_PROPOSALS.md)
+add a single-item extraction/review increment from stage 5. This is partial stage 4/5
+progress; broader extraction, graph corrections/review, token streaming, and appearance preferences
 remain ahead. Live OpenAI access is not yet verified. Earlier milestone descriptions
 below describe the broader release gates, not additional completed functionality.
 **Project name:** LifeGather (working brand; domain and trademark clearance not yet completed)  

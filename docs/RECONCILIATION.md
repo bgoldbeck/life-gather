@@ -1,6 +1,6 @@
 # Evidence reconciliation: first backend slice
 
-The framework-independent `ReconciliationService` accepts structured synthetic discoveries over existing private sources. It does not scan email, parse receipts, call an AI provider, or expose a new HTTP/MCP/UI endpoint. A later extractor will supply these validated inputs without write tools or credentials.
+The framework-independent `ReconciliationService` accepts structured synthetic discoveries over existing private sources. It does not scan email, parse receipts, call an AI provider, or expose a new HTTP/MCP/UI endpoint. The [saved-note asset proposal flow](ASSET_PROPOSALS.md) now supplies one human-reviewed item through thin HTTP/MCP adapters. Its extractor receives no operational tools or credential access.
 
 ## What is kept separate
 

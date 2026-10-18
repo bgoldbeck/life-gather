@@ -140,3 +140,118 @@ describe('private text memory chat', () => {
     )
   })
 })
+
+it('starts extraction only from a selected saved note and renders the persisted proposal', async () => {
+  const fetcher = mockServer()
+  const original = fetcher.getMockImplementation()!
+  fetcher.mockImplementation(async (url, init) => {
+    if (url === '/api/settings')
+      return new Response(JSON.stringify({ allow_external_ai: true }))
+    if (url.startsWith('/api/credentials'))
+      return new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: 'credential',
+              kind: 'ai',
+              provider: 'openai',
+              label: 'Private OpenAI',
+            },
+          ],
+        }),
+      )
+    if (url.startsWith('/api/chat/sources/'))
+      return new Response(
+        JSON.stringify({
+          id: 'source-1',
+          text: 'I own a trimmer.',
+          next_offset: null,
+          note: {
+            is_current: true,
+            can_correct: true,
+            current_source_id: 'source-1',
+            root_source_id: 'source-1',
+          },
+        }),
+      )
+    if (
+      url.endsWith('/turns') &&
+      init?.method === 'POST' &&
+      JSON.parse(init.body as string).mode === 'extract'
+    )
+      return new Response(
+        JSON.stringify({
+          id: 'extract-turn',
+          request_id: 'extract-key',
+          mode: 'extract',
+          state: 'complete',
+          text: 'I own a trimmer.',
+          result: {
+            text: 'Review before adding inventory.',
+            proposal_id: 'proposal',
+          },
+        }),
+      )
+    if (url === '/api/chat/asset-proposals/proposal')
+      return new Response(
+        JSON.stringify({
+          id: 'proposal',
+          source_id: 'source-1',
+          current_source_id: 'source-1',
+          stale: false,
+          state: 'proposed',
+          proposed: {
+            candidate: {
+              name: 'trimmer',
+              manufacturer: null,
+              model: null,
+              serial: null,
+              kind: 'possession',
+              quote: 'I own a trimmer.',
+            },
+            explanation: 'A stated possession.',
+          },
+          reviewed: null,
+          result: {},
+        }),
+      )
+    return original(url, init)
+  })
+  const user = userEvent.setup()
+  render(<ChatPanel csrfToken="csrf" />)
+  await screen.findByText('A place for the details')
+  await user.type(screen.getByLabelText('Memory to save'), 'I own a trimmer.')
+  await user.click(screen.getByRole('button', { name: 'Save memory' }))
+  await user.click(await screen.findByRole('button', { name: /Source 1/ }))
+  await user.click(
+    await screen.findByRole('button', {
+      name: 'Suggest an asset from this note',
+    }),
+  )
+  expect(screen.getByLabelText('Selected saved note')).toHaveValue(
+    'I own a trimmer.',
+  )
+  expect(screen.getByLabelText('Selected saved note')).toHaveAttribute(
+    'readonly',
+  )
+  await user.selectOptions(
+    screen.getByLabelText('OpenAI credential'),
+    'credential',
+  )
+  await user.type(screen.getByLabelText('Model ID'), 'fixture-model')
+  await user.click(screen.getByRole('button', { name: 'Suggest asset' }))
+  expect(await screen.findByLabelText('Item name')).toHaveValue('trimmer')
+  const posted = fetcher.mock.calls.find(
+    ([url, init]) =>
+      url.endsWith('/turns') &&
+      init?.method === 'POST' &&
+      JSON.parse(init.body as string).mode === 'extract',
+  )!
+  expect(JSON.parse(posted[1]!.body as string)).toMatchObject({
+    mode: 'extract',
+    source_id: 'source-1',
+    text: 'I own a trimmer.',
+    credential_id: 'credential',
+  })
+  expect(posted[1]!.headers).toMatchObject({ 'X-CSRF-Token': 'csrf' })
+})

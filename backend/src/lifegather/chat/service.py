@@ -25,7 +25,8 @@ class TurnInput(BaseModel):
         extra="forbid", strict=True, revalidate_instances="always"
     )
     request_id: str = Field(min_length=1, max_length=100)
-    mode: Literal["save", "search", "ask"]
+    mode: Literal["save", "search", "ask", "extract"]
+    source_id: str = Field(default="", max_length=36)
     text: str = Field(min_length=1, max_length=4000)
     credential_id: str = Field(default="", max_length=36)
     model: str = Field(default="", max_length=100, pattern=r"^[a-zA-Z0-9._:-]*$")
@@ -34,8 +35,12 @@ class TurnInput(BaseModel):
     def valid_text(self) -> "TurnInput":
         if not self.text.strip():
             raise ValueError("Text cannot be blank")
-        if self.mode == "ask" and (not self.credential_id or not self.model):
+        if self.mode in {"ask", "extract"} and (
+            not self.credential_id or not self.model
+        ):
             raise ValueError("Choose an OpenAI credential and model")
+        if self.mode == "extract" and not self.source_id:
+            raise ValueError("Choose a saved note first")
         return self
 
 
@@ -150,7 +155,15 @@ class ChatService:
         with Session(self.engine) as db:
             db.connection().exec_driver_sql("BEGIN IMMEDIATE")
             conversation = self.owned(db, actor, conversation_id)
-            key = fingerprint([conversation_id, data.model_dump()])
+            # Preserve replay fingerprints for turns saved before extraction existed.
+            key = fingerprint(
+                [
+                    conversation_id,
+                    data.model_dump(
+                        exclude={"source_id"} if not data.source_id else set()
+                    ),
+                ]
+            )
             existing = db.scalar(
                 select(Turn).where(
                     Turn.user_id == actor.id, Turn.request_id == data.request_id
