@@ -350,3 +350,11 @@ old item's reload after the user has already moved on. Invalidate work on view
 change/unmount. No domain/API/migration/dependency change.
 
 Navigation verification: 296 backend / 95 frontend tests pass; lint, format, types, frontend/package builds pass. Five UI regressions cover late reload/save completion, stale list/history pages and loading-state recovery. Delayed synthetic browser stayed on Saw after the previous Drill reload. Added a composed receipt/JPY/unit correction/sale/recall/private snapshot-restore regression for this session's lifecycle. Graphify unavailable; graph/HTML refresh could not run. No migration/dependency/domain API change.
+
+
+Reload feedback correction v0.30.2: catch manual correction-form reload failures,
+preserve draft fields and show a safe retry. Freeze the form during its reload;
+never submit a correction merely to reload. Navigation guards and completed-write
+retry identities remain intact. No domain/API, migration or dependency change.
+
+Reload feedback verified: 296 backend / 96 frontend tests; lint, format, types and production/package builds pass. Regression checks failure feedback, preserved draft, successful retry and no write; existing delayed-navigation regressions still pass. Browser simulated a 503 reload failure and recovered with the unsaved statement/explanation intact. Graphify unavailable; graph/HTML refresh could not run. No migration/dependency/domain API change.

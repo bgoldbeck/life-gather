@@ -42,6 +42,7 @@ export function AssetActions({
   const [targets, setTargets] = useState<Target[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [reloading, setReloading] = useState(false)
   const [retry, setRetry] = useState(false)
   const [error, setError] = useState('')
   const pending = useRef<Record<string, unknown> | null>(null)
@@ -131,7 +132,21 @@ export function AssetActions({
       }
     }
   }
-  const frozen = busy || retry
+  async function reload() {
+    if (busy || retry || reloading) return
+    setReloading(true)
+    setError('')
+    try {
+      await onChanged()
+    } catch {
+      setError(
+        'Unable to reload this item. Your draft is unchanged. Try again.',
+      )
+    } finally {
+      setReloading(false)
+    }
+  }
+  const frozen = busy || retry || reloading
   const selectedDecision = decisions.find((item) => item.id === decision)
   const multipleUnits = (selectedDecision?.quantity ?? 1) > 1
   return (
@@ -313,6 +328,7 @@ export function AssetActions({
         <Button
           disabled={
             busy ||
+            reloading ||
             (!retry &&
               (!note.trim() ||
                 (operation === 'ownership' ? !status : !decision) ||
@@ -330,9 +346,9 @@ export function AssetActions({
         <Button
           variant="outline"
           disabled={frozen}
-          onClick={() => void onChanged()}
+          onClick={() => void reload()}
         >
-          Reload item
+          {reloading ? 'Reloading item…' : 'Reload item'}
         </Button>
       </div>
     </section>

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.30.2 — Recover from failed correction-form reloads
+
+- Catch manual item-reload failures and show a retryable message while preserving
+  the correction draft. Prevent edits or writes during that reload, clear the
+  error after successful retry, and keep completed-write retry behavior unchanged.
+- Reloading never submits a correction. No domain/API, migration or dependency change.
+
 ## 0.30.1 — Keep asset navigation stable during slow requests
 
 - Ignore old reload and correction-completion callbacks after the user selects
