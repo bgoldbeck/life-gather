@@ -261,3 +261,22 @@ precision and photo-link correction. Extra EUR/JPY association tests pass; synth
 browser QA shows EUR 49.90 unchanged on the linked physical unit. Feature itself
 adds no migration or model call. Graphify remains unavailable, so graph/HTML refresh
 could not run. Version advanced to 0.24.0 after concurrent v0.21–0.23 merges.
+
+
+Reviewed purchase recall v0.25.0 closes the Chat gap left by asset purchase browsing:
+use current owner-scoped receipt links, latest detail revisions, exact currency,
+whole-line scope, withdrawal/historical flags and source citations. Bounded to two
+records / three receipt lines each under the existing byte budget and two-call
+provider flow. Receipt-source markers prevent missing/omitted reviewed details
+being replaced by stale raw totals in answer instructions. Shared source labels
+fix photo/PDF provenance on named-record recall. No new schema/dependency/tools.
+Automatic discovery remains the next broader phase after this receipt-loop fix.
+
+Purchase recall verified: 265 backend / 78 frontend tests; Ruff lint/format, mypy,
+TypeScript, Oxlint, Prettier, frontend and source/wheel builds pass. New coverage
+checks latest/unknown/withdrawn details, keyword-only receipt markers, byte-budget
+omissions, exact EUR/JPY precision, current association changes, deleted photo/PDF
+provenance and cited two-call replies. Synthetic browser used reviewed EUR 49.90
+for two distinct units and opened its original citation. No real provider calls;
+answer instruction following remains unverified against a live model. Graphify is
+unavailable, so code graph/HTML refresh could not run. No migration or dependency.

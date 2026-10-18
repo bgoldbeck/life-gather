@@ -319,6 +319,47 @@ class ChatService:
                 "output_tokens": row.output_tokens if row else 0,
             }
 
+    def source_metadata(self, actor: Account, source: SourceView) -> dict[str, Any]:
+        """Same derived-file labels for keyword and named-record recall."""
+        from lifegather.documents.service import DocumentService
+        from lifegather.photos.service import PhotoService
+
+        result: dict[str, Any] = {
+            "status": "corrected note; not independently verified"
+            if source.namespace == "chat-note-correction"
+            else "original statement; not independently verified"
+        }
+        photo = PhotoService(self.engine).source_photo(actor, source.id)
+        if photo is not None:
+            result["status"] = (
+                "AI transcription or user correction of a photo; unverified"
+            )
+            result["photo"] = {
+                "id": photo["id"],
+                "deleted": photo["deleted_at"] is not None,
+            }
+        document = DocumentService(self.engine).source_document(actor, source.id)
+        if document is not None:
+            result["status"] = (
+                "user-reviewed PDF text; extraction/layout may be incomplete"
+            )
+            result["document"] = {
+                "id": document["id"],
+                "deleted": document["deleted_at"] is not None,
+                "text_truncated": document["text_truncated"],
+            }
+        from lifegather.reconciliation.receipts import ReceiptService
+
+        receipts = ReceiptService(self.engine)
+        receipt_id = receipts.for_source(actor, source.id)
+        if receipt_id is None:
+            note = NoteService(self.engine).describe(actor, source.id)
+            if note:
+                receipt_id = receipts.for_source(actor, note["root_source_id"])
+        if receipt_id:
+            result["receipt_review_id"] = receipt_id
+        return result
+
     def evidence(self, actor: Account, query: str) -> list[dict[str, Any]]:
         matches = self.memory.search(actor, query, 8)
         actions = ActionService(self.engine)
@@ -357,29 +398,7 @@ class ChatService:
                 if source.namespace == "chat-note-correction"
                 else "original statement; not independently verified",
             }
-            from lifegather.photos.service import PhotoService
-
-            photo = PhotoService(self.engine).source_photo(actor, identifier)
-            if photo is not None:
-                sources[identifier]["status"] = (
-                    "AI transcription or user correction of a photo; unverified"
-                )
-                sources[identifier]["photo"] = {
-                    "id": photo["id"],
-                    "deleted": photo["deleted_at"] is not None,
-                }
-            from lifegather.documents.service import DocumentService
-
-            document = DocumentService(self.engine).source_document(actor, identifier)
-            if document is not None:
-                sources[identifier]["status"] = (
-                    "user-reviewed PDF text; extraction/layout may be incomplete"
-                )
-                sources[identifier]["document"] = {
-                    "id": document["id"],
-                    "deleted": document["deleted_at"] is not None,
-                    "text_truncated": document["text_truncated"],
-                }
+            sources[identifier].update(self.source_metadata(actor, source))
             # Preserve exact user text; attach authenticated item-selection context
             # so short corrections such as "I sold it" remain attributable.
             context = actions.source_context(actor, identifier)
