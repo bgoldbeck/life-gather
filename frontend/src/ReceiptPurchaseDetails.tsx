@@ -21,6 +21,7 @@ type Page = {
   next_revision: number | null
   quantity: number
   suggestions?: {
+    currency?: string | null
     line_total: string | null
     money_quote: string | null
     purchase_date: string | null
@@ -38,6 +39,7 @@ export function ReceiptPurchaseDetails({
 }) {
   const [page, setPage] = useState<Page | null>(null)
   const [total, setTotal] = useState('')
+  const [currency, setCurrency] = useState('USD')
   const [moneyQuote, setMoneyQuote] = useState('')
   const [date, setDate] = useState('')
   const [dateQuote, setDateQuote] = useState('')
@@ -72,6 +74,7 @@ export function ReceiptPurchaseDetails({
   const apply = useCallback((row: Page) => {
     setPage(row)
     setTotal(row.current?.line_total ?? '')
+    setCurrency(row.current?.currency ?? 'USD')
     setMoneyQuote(row.current?.money_quote ?? '')
     setDate(row.current?.purchase_date ?? '')
     setDateQuote(row.current?.date_quote ?? '')
@@ -126,6 +129,7 @@ export function ReceiptPurchaseDetails({
       expected_head: page?.current_head ?? null,
       request_id: crypto.randomUUID(),
       line_total: total || null,
+      currency,
       money_quote: moneyQuote || null,
       purchase_date: date || null,
       date_quote: dateQuote || null,
@@ -171,8 +175,10 @@ export function ReceiptPurchaseDetails({
       <p>
         Optional source claims, not verified accounting. The line total covers
         all {page?.quantity ?? 'selected'} units together; it is never
-        multiplied by quantity. Only explicit USD totals and YYYY-MM-DD purchase
-        dates are supported. Leave unknown values blank.
+        multiplied by quantity. Explicit USD/EUR/GBP/CAD/AUD/JPY totals and
+        YYYY-MM-DD purchase dates are supported. JPY uses whole yen; the others
+        use two decimal places. No currency conversion is performed. Leave
+        unknown values blank.
       </p>
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
@@ -204,6 +210,7 @@ export function ReceiptPurchaseDetails({
                   onClick={() => {
                     const suggested = page.suggestions!
                     setTotal(suggested.line_total ?? '')
+                    setCurrency(suggested.currency ?? 'USD')
                     setMoneyQuote(suggested.money_quote ?? '')
                     setDate(suggested.purchase_date ?? '')
                     setDateQuote(suggested.date_quote ?? '')
@@ -219,13 +226,27 @@ export function ReceiptPurchaseDetails({
             )}
           <fieldset disabled={locked}>
             <label>
-              USD line total
+              Currency
+              <select
+                aria-label={`Currency ${index + 1}`}
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+              >
+                {['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY'].map((code) => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {currency} line total
               <input
-                aria-label={`USD line total ${index + 1}`}
+                aria-label={`${currency} line total ${index + 1}`}
                 value={total}
                 inputMode="decimal"
-                maxLength={12}
-                placeholder="49.90"
+                maxLength={14}
+                placeholder={currency === 'JPY' ? '4990' : '49.90'}
                 onChange={(e) => setTotal(e.target.value)}
               />
             </label>
@@ -235,7 +256,7 @@ export function ReceiptPurchaseDetails({
                 aria-label={`Line-total passage ${index + 1}`}
                 value={moneyQuote}
                 maxLength={500}
-                placeholder="Copy the reviewed item quote and Line total: USD 49.90"
+                placeholder={`Copy the reviewed item quote and Line total: ${currency} ${currency === 'JPY' ? '4990' : '49.90'}`}
                 onChange={(e) => setMoneyQuote(e.target.value)}
               />
             </label>

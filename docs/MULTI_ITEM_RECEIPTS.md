@@ -101,3 +101,16 @@ restore. No new dependency, live ingestion, provider call or installation restar
 ## Purchase-detail suggestions (v0.21.0)
 
 The purchase-detail reader offers exact USD line totals from the reviewed item’s own printed line and a uniquely labeled YYYY-MM-DD purchase date. Use source suggestions copies these into an editable draft; review and save explicitly. Ambiguous/multiple dates, invalid dates, other currencies, multiline item quotes and non-labeled prices remain unknown. No AI call, financial arithmetic or automatic write occurs. Current-source and original-file availability checks still apply.
+
+## Explicit currencies (v0.22.0)
+
+Purchase-detail review and suggestions now support USD, EUR, GBP, CAD, AUD and JPY
+when the source prints the ISO currency code. JPY accepts whole yen; the other
+supported currencies require exactly two decimal digits. Store exact integer
+minor units, never convert currencies, round values, multiply totals by quantity,
+or infer currency from a dollar symbol. Unsupported formats remain unknown.
+
+Migration `0016_receipt_currencies` rebuilds the receipt-detail constraint while
+preserving every historical revision, owner boundary, index and USD request
+fingerprint. Old callers that omit currency retain USD behavior. Downgrade refuses
+when non-USD revisions exist rather than deleting or converting history.

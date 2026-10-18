@@ -51,7 +51,7 @@ class ReceiptDetail(Base):
         CheckConstraint("line_index BETWEEN 0 AND 7 AND revision >= 1"),
         CheckConstraint(
             "total_minor IS NULL OR (total_minor BETWEEN 0 AND 99999999999 "
-            "AND currency = 'USD')"
+            "AND currency IN ('USD','EUR','GBP','CAD','AUD','JPY'))"
         ),
         CheckConstraint("(total_minor IS NULL) = (currency IS NULL)"),
     )
