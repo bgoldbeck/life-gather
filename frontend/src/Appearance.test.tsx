@@ -88,7 +88,7 @@ it('saves the private appearance and applies it throughout the app', async () =>
   vi.stubGlobal('fetch', fetch)
   render(<App />)
   await screen.findByText('Alice')
-  expect(document.documentElement).toHaveClass('dark')
+  await waitFor(() => expect(document.documentElement).toHaveClass('dark'))
   await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
   await userEvent.selectOptions(screen.getByLabelText('Color theme'), 'light')
   await userEvent.click(screen.getByRole('button', { name: 'Save appearance' }))
@@ -127,12 +127,12 @@ it('clears a user theme after sign-out and when another account is loaded', asyn
   )
   render(<App />)
   await screen.findByText('Alice')
-  expect(document.documentElement).toHaveClass('dark')
+  await waitFor(() => expect(document.documentElement).toHaveClass('dark'))
   account = { id: 'bob', name: 'Bob', email: 'b@example.test' }
   appearance = 'light'
   await act(async () => window.dispatchEvent(new Event('focus')))
   await screen.findByText('Bob')
-  expect(document.documentElement).not.toHaveClass('dark')
+  await waitFor(() => expect(document.documentElement).not.toHaveClass('dark'))
   await userEvent.click(screen.getByRole('button', { name: 'Sign out' }))
   await screen.findByRole('button', { name: 'Sign in' })
   expect(document.documentElement).not.toHaveClass('dark')

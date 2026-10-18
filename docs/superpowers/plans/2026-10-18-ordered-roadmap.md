@@ -373,3 +373,19 @@ evidence refusal, five-observation twenty-unit Unicode limits, preview source
 inspection, lost-response retry and saved-write reload recovery. Synthetic browser
 moved two associations and restored both, preserving USD 49.90 whole-line meaning
 and receipt unit 1 of 2. Graphify unavailable; graph/HTML refresh could not run.
+
+
+Sourced replacement links v0.32.0: explicit existing original/replacement item
+choices, explained stated graph assertion and optional known event date; private
+incoming/own history and unchanged-latest-link withdrawal. Preserve all receipt
+units, typed amounts and explicit ownership, including sold/returned states.
+No identity merge, ownership inference, migration, dependency or provider change.
+
+Verified: 313 backend / 106 frontend tests; lint, format, types and production/
+package builds pass. Tests cover exact/concurrent replay, competing requests,
+source/target owner guards, HTTP/MCP/CSRF, snapshot recovery, historical dates,
+corrected-fact withdrawal refusal and atomic failed writes/withdrawals. Browser
+created the sourced graph edge and withdrew it while preserving the original
+statement and USD 49.90 line claim. Fixed an observed appearance-test timing race
+by awaiting the existing asynchronous theme effect. Graphify unavailable, so
+source graph/HTML refresh could not run. Whole-record consolidation remains ahead.

@@ -10,6 +10,11 @@ from lifegather.assets.batch import (
     EvidenceRestore,
 )
 from lifegather.assets.purchases import AssetPurchases, AssetPurchasesRead
+from lifegather.assets.replacements import (
+    ReplacementRecord,
+    ReplacementService,
+    ReplacementWithdraw,
+)
 from lifegather.assets.service import AssetList, AssetRead, AssetService
 from lifegather.auth.routes import require_session, require_write_session
 from lifegather.auth.store import CurrentSession
@@ -108,6 +113,26 @@ def asset_router() -> APIRouter:
         current: Annotated[CurrentSession, Depends(require_write_session)],
     ) -> dict[str, Any]:
         return EvidenceBatchService(request.app.state.auth_store.engine).restore(
+            current.user, body
+        )
+
+    @router.post("/replacements/record")
+    def record_replacement(
+        request: Request,
+        body: ReplacementRecord,
+        current: Annotated[CurrentSession, Depends(require_write_session)],
+    ) -> dict[str, Any]:
+        return ReplacementService(request.app.state.auth_store.engine).change(
+            current.user, body
+        )
+
+    @router.post("/replacements/withdraw")
+    def withdraw_replacement(
+        request: Request,
+        body: ReplacementWithdraw,
+        current: Annotated[CurrentSession, Depends(require_write_session)],
+    ) -> dict[str, Any]:
+        return ReplacementService(request.app.state.auth_store.engine).change(
             current.user, body
         )
 

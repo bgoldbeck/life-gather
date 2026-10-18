@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.32.0 — Record sourced replacement relationships
+
+- Explicitly choose an existing physical item that replaced another item, record
+  an explanation and optional known event date, and inspect the resulting stated
+  graph relationship from both private item histories.
+- Preserve distinct records, receipt units, exact purchase claims and ownership
+  states. A replacement never implies a sale, a verified event or merged identity.
+- Withdraw the latest unchanged replacement statement with a sourced explanation;
+  preserve original episodes and temporal history. Safe retries and transaction
+  rollback apply to both operations through private HTTP/MCP and the UI.
+- No schema migration, dependency or live-provider change.
+
 ## 0.31.0 — Review and reverse discovery-evidence batches
 
 - Preview all 1–5 current discovery associations before explicitly moving them

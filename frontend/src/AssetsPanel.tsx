@@ -4,6 +4,7 @@ import './assets.css'
 import { PhotosPanel } from './PhotosPanel'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import { ChatRequestError } from './chatRequest'
+import { AssetReplacement } from './AssetReplacement'
 import { EvidenceBatch } from './EvidenceBatch'
 import { AssetActions } from './AssetActions'
 import { AssetPurchases } from './AssetPurchases'
@@ -426,29 +427,55 @@ export function AssetsPanel({
               onOpen={evidence}
             />
           </details>
+          <details>
+            <summary>Connect a replacement item</summary>
+            <AssetReplacement
+              key={`replacement:${detail.asset.id}:${detail.action_head ?? ''}`}
+              assetId={detail.asset.id}
+              assetName={detail.asset.name}
+              head={detail.action_head ?? ''}
+              withdrawId={
+                detail.actions?.find(
+                  (action) =>
+                    action.id === detail.action_head &&
+                    action.operation === 'replacement',
+                )?.id
+              }
+              csrfToken={csrfToken}
+              onChanged={refreshed}
+              onOpen={evidence}
+            />
+          </details>
           {!!detail.actions?.length && (
             <section aria-label="Correction history">
               <h3>Correction history</h3>
               {detail.actions.map((action) => (
                 <article key={action.id}>
                   <p>
-                    {action.direction === 'incoming'
-                      ? action.operation === 'batch_restore'
-                        ? `Evidence returned to ${action.asset_name ?? 'its earlier item'}`
-                        : `Evidence received from ${action.asset_name ?? 'another item'}`
-                      : action.operation === 'reassociate' &&
-                          action.target_asset_name
-                        ? `Evidence moved to ${action.target_asset_name}`
-                        : ((
-                            {
-                              batch_move: 'Discovery evidence moved together',
-                              batch_restore:
-                                'Discovery evidence batch reversed',
-                              ownership: 'Ownership statement',
-                              undo: 'Decision undone',
-                              reassociate: 'Evidence reassociated',
-                            } as Record<string, string>
-                          )[action.operation] ?? action.operation)}{' '}
+                    {action.operation === 'replacement'
+                      ? action.direction === 'incoming'
+                        ? `Replacement for ${action.asset_name ?? 'another item'}`
+                        : `Replaced by ${action.target_asset_name ?? 'another item'}`
+                      : action.operation === 'replacement_withdrawn'
+                        ? 'Replacement relationship withdrawn'
+                        : action.direction === 'incoming'
+                          ? action.operation === 'batch_restore'
+                            ? `Evidence returned to ${action.asset_name ?? 'its earlier item'}`
+                            : `Evidence received from ${action.asset_name ?? 'another item'}`
+                          : action.operation === 'reassociate' &&
+                              action.target_asset_name
+                            ? `Evidence moved to ${action.target_asset_name}`
+                            : ((
+                                {
+                                  batch_move:
+                                    'Discovery evidence moved together',
+                                  batch_restore:
+                                    'Discovery evidence batch reversed',
+                                  ownership: 'Ownership statement',
+                                  undo: 'Decision undone',
+                                  reassociate: 'Evidence reassociated',
+                                } as Record<string, string>
+                              )[action.operation] ?? action.operation)}{' '}
                     · {recorded(action.recorded_at)}
                   </p>
                   <blockquote>{action.note}</blockquote>
