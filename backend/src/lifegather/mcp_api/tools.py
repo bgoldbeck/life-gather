@@ -41,6 +41,11 @@ from lifegather.reconciliation.proposals import (
     ProposalReview,
     ProposalService,
 )
+from lifegather.reconciliation.purchase_details import (
+    DetailRead,
+    DetailSave,
+    PurchaseDetails,
+)
 from lifegather.reconciliation.queue import (
     IdentityRead,
     IdentityReview,
@@ -151,6 +156,29 @@ def build_server() -> MCPServer:
         idempotent_hint=True,
         open_world_hint=False,
     )
+
+    @server.tool(annotations=annotation)
+    def receipt_details_get(data: DetailRead, ctx: ToolContext) -> dict[str, Any]:
+        """Read typed receipt purchase claims and five historical revisions."""
+        return read(
+            ctx,
+            lambda actor, memory, _: PurchaseDetails(memory.engine).get(actor, data),
+        )
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        )
+    )
+    def receipt_details_save(data: DetailSave, ctx: ToolContext) -> dict[str, Any]:
+        """Record human purchase details; unavailable to app models."""
+        return read(
+            ctx,
+            lambda actor, memory, _: PurchaseDetails(memory.engine).save(actor, data),
+        )
 
     @server.tool(annotations=annotation)
     def receipt_get(data: ReceiptRead, ctx: ToolContext) -> dict[str, Any]:

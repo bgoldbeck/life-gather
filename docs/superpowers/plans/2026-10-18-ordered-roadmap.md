@@ -158,3 +158,20 @@ frontend lint/format and production build passed. Synthetic browser QA followed
 Memories → Chat → persisted Review and confirmed three physical units together.
 Graphify executable is unavailable in this environment; graph/HTML refresh could
 not run. Source and tests were inspected directly. No real provider call.
+
+
+Purchase-detail increment v0.20.0: explicit human-entered USD line totals and
+purchase dates for confirmed purchased receipt lines. Exact labeled source quotes,
+integer cents, world/recorded time separation, immutable corrections/withdrawal,
+private HTTP/MCP, current-revision concurrency guard and lost-response replay.
+Migration 0015 preserves accepted receipts. This is bounded feature 6b progress;
+automatic price/date extraction, other currencies and accounting stay deferred.
+
+Purchase details verified: 225 backend / 72 frontend tests; Ruff lint/format, mypy,
+TypeScript, Oxlint, Prettier, frontend build and source/wheel builds pass. Tests
+include immutable withdrawal, exact cents including zero and upper bound, concurrent
+retry, stale-head conflicts, invalid dates/quotes, owner/CSRF/MCP boundaries, deleted
+PDFs, snapshot restore and upgrade from confirmed v0.19 receipts. Synthetic browser
+QA saved/reloaded the line total/date with source passages. Fixed recorded-time
+display to convert stored microseconds correctly, with a regression assertion.
+Graphify is unavailable; graph/HTML refresh could not run. No external AI calls.
