@@ -292,3 +292,35 @@
   color: var(--foreground);
   background: var(--background);
 }
+
+.receipt-purchase-details {
+  border-top: 1px solid var(--border);
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  min-width: 0;
+}
+.receipt-purchase-details fieldset {
+  display: grid;
+  gap: 0.75rem;
+  border: 0;
+  padding: 0;
+  margin: 1rem 0;
+}
+.receipt-purchase-details label {
+  display: grid;
+  gap: 0.3rem;
+}
+.receipt-purchase-details input,
+.receipt-purchase-details textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  background: var(--background);
+  color: var(--foreground);
+}
+.receipt-purchase-details blockquote {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

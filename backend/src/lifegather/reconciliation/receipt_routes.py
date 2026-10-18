@@ -4,6 +4,11 @@ from fastapi import APIRouter, Depends, Path, Request
 
 from lifegather.auth.routes import require_session, require_write_session
 from lifegather.auth.store import CurrentSession
+from lifegather.reconciliation.purchase_details import (
+    DetailRead,
+    DetailSave,
+    PurchaseDetails,
+)
 from lifegather.reconciliation.receipts import (
     ReceiptPreview,
     ReceiptReview,
@@ -40,5 +45,25 @@ def receipt_router() -> APIRouter:
         current: Annotated[CurrentSession, Depends(require_write_session)],
     ) -> dict[str, Any]:
         return service(request).review(current.user, body)
+
+    @router.post("/details/read")
+    def details_read(
+        request: Request,
+        body: DetailRead,
+        current: Annotated[CurrentSession, Depends(require_session)],
+    ) -> dict[str, Any]:
+        return PurchaseDetails(request.app.state.auth_store.engine).get(
+            current.user, body
+        )
+
+    @router.post("/details/save")
+    def details_save(
+        request: Request,
+        body: DetailSave,
+        current: Annotated[CurrentSession, Depends(require_write_session)],
+    ) -> dict[str, Any]:
+        return PurchaseDetails(request.app.state.auth_store.engine).save(
+            current.user, body
+        )
 
     return router

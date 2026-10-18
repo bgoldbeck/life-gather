@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ChatRequestError } from './chatRequest'
+import { ReceiptPurchaseDetails } from './ReceiptPurchaseDetails'
 
 type Fields = {
   name: string
@@ -219,8 +220,9 @@ export function ReceiptProposalCard({
           <p>{receipt.explanation}</p>
           <p>
             Check each exact quote and quantity against its original.
-            Suggestions are unverified. Prices, dates and accounting are not
-            inferred by this review.
+            Suggestions are unverified. Prices and dates are not inferred. After
+            confirming purchased items, you can record optional source-backed
+            purchase details.
           </p>
           <Button
             variant="outline"
@@ -442,6 +444,17 @@ export function ReceiptProposalCard({
                 )}
             </fieldset>
           ))}
+          {receipt.state === 'accepted' &&
+            fields.map((item, index) =>
+              item.kind === 'purchase' && choices[index]?.action !== 'skip' ? (
+                <ReceiptPurchaseDetails
+                  key={index}
+                  id={id}
+                  index={index}
+                  csrfToken={csrfToken}
+                />
+              ) : null,
+            )}
           {editable && (
             <p>
               {selected.length} selected line(s), {total} physical unit(s).

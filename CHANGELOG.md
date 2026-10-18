@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.20.0 — Source-backed receipt purchase details
+
+- Add explicit USD line totals and purchase dates to confirmed purchased receipt
+  lines without another AI request. Require exact item/total and labeled date
+  passages; leave ambiguous values unknown. Store line totals as integer cents,
+  once for all units; never infer a unit price or multiply by quantity.
+- Keep immutable revisions with source quotes, purchase-world date and recorded
+  time. Correct or withdraw claims without erasing history; guard concurrent edits
+  and preserve exact retries after a lost response. Source corrections/deleted
+  originals block new writes while historical claims remain readable.
+- Add private HTTP/MCP reads and writes, paginated history and a receipt editor.
+  Migration `0015_receipt_details` adds a constrained typed claim table; no new
+  dependency. No automatic financial extraction, accounting totals or redeployment.
+
 ## 0.19.0 — Review multiple receipt items and quantities
 
 - Suggest up to eight source-quoted receipt lines from a saved note, reviewed PDF

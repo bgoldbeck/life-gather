@@ -35,9 +35,10 @@ Live provider extraction remains unverified; synthetic adapters exercise the flo
   Original photo/PDF deletion also prevents acceptance. Rejection remains possible.
   Accepted facts retain source evidence, and photo attachments follow each unit.
 
-This increment does not extract prices, currencies, purchase dates, totals, taxes,
-refunds, warranties or accounting entries. Those typed financial/date records are
-later roadmap work; no monetary values are stored as free-form accounting facts.
+Receipt AI extraction does not infer prices, currencies, purchase dates, totals,
+taxes, refunds, warranties or accounting entries. Version 0.20.0 adds optional,
+human-entered typed purchase claims below; no monetary values are stored as
+free-form graph accounting facts.
 It does not automatically import email, OCR scanned PDFs or contact providers merely
 because a file was uploaded. Review establishes a stated relationship, not independent
 verification of present ownership.
@@ -54,3 +55,45 @@ Migration `0014_receipt_proposals` adds an owner/source-constrained private tabl
 for original drafts, reviewed values, request replay identity, result links and
 recorded/reviewed times. No existing graph/source rows are rewritten. Snapshot
 restore and migration head are tested. No new runtime dependency or deployment.
+
+
+## Purchase details (v0.20.0)
+
+After confirming a purchased receipt line, open its receipt review from source
+evidence. Each included purchase has an optional purchase-details editor. Possession
+statements and excluded lines do not qualify. This works without AI or provider
+permission and can be added to receipts confirmed before the upgrade.
+
+Enter a **USD line total** with exactly two decimal places, for example `49.90`,
+and copy a source passage containing the exact reviewed item quote plus one
+`Line total: USD 49.90` passage. USD must be explicit: `$` alone is ambiguous.
+Supported totals range from `0.00` to `999999999.99`. There is no float conversion:
+`49.90` becomes 4990 integer cents. This is the total for the entire line across
+its reviewed quantity; it is never multiplied or divided into a guessed unit price.
+
+Optionally enter a real `YYYY-MM-DD` purchase date and its exact labeled
+`Purchase date: YYYY-MM-DD` passage from the same saved source. Delivery dates,
+file timestamps, locale-dependent dates and unstated dates are not substituted.
+These conservative labels are the supported first slice; other currencies and
+receipt formats remain unknown until separately supported. If correcting source
+text, add only what you can support: a correction is itself a user statement.
+
+Every save requires a revision reason and the current revision ID. Competing edits
+fail rather than overwrite; reload before retrying a correction. A lost response
+freezes fields for an exact request retry. Clear both values and quotes to withdraw
+an earlier claim to unknown; earlier values remain in recorded history. History
+reads return five revisions per page. A source correction or original-file deletion
+blocks new revisions; old values stay labeled as historical source claims. The
+purchase date and system-recorded time remain separate. No asset ownership date
+or current market value is inferred from these details.
+
+`PurchaseDetails` owns the same validation for private HTTP
+`/api/receipts/details/read`, `/api/receipts/details/save` and MCP
+`receipt_details_get`, `receipt_details_save`. App-model tools cannot write or read
+these new operations. Existing source-text recall can still quote the original note;
+this release does not add typed claim aggregation or accounting reports.
+
+Migration `0015_receipt_details` adds owner/receipt/source foreign keys, unique
+request/revision identities, bounded integer cents/currency constraints and
+immutable quote/date/reason history. It preserves old receipt reviews and snapshot
+restore. No new dependency, live ingestion, provider call or installation restart.
