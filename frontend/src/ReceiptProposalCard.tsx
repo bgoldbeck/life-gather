@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ChatRequestError } from './chatRequest'
 import { ReceiptPurchaseDetails } from './ReceiptPurchaseDetails'
+import { CandidateComparison } from './CandidateComparison'
 
 type Fields = {
   name: string
@@ -397,6 +398,15 @@ export function ReceiptProposalCard({
                   Item {index + 1} checked. {checks[index]!.candidates.length}{' '}
                   possible match(es). Names alone do not prove identity.
                 </p>
+              )}
+              {checks[index] && (
+                <CandidateComparison
+                  key={JSON.stringify(checks[index]!.candidates)}
+                  candidates={checks[index]!.candidates}
+                  onOpen={onOpen}
+                  disabled={busy || retry}
+                  label={`Compare possible items for receipt line ${index + 1}`}
+                />
               )}
               {checks[index]?.reliable_ids.length ? (
                 <p>

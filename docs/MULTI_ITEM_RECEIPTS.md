@@ -144,3 +144,9 @@ MCP `asset_purchases`. Both verify asset ownership and return at most five recei
 lines per page with an opaque receipt/line cursor. No model tool, write operation,
 provider request, new dependency or schema change. Version 0.25.0 includes bounded latest purchase claims in named-asset Chat recall;
 financial reports and automatic aggregation remain separate work.
+
+
+Receipt duplicate checks also offer **Compare possible items** (v0.27.0): inspect
+up to two candidate records and their exact identity/correction evidence before
+choosing each physical unit. Inspection does not fill in or change your choices.
+The bounded read-only comparison is shared with single-item and identity review.

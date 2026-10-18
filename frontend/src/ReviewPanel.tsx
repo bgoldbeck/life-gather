@@ -4,6 +4,7 @@ import { ReceiptProposalCard } from './ReceiptProposalCard'
 import { AssetProposalCard } from './AssetProposalCard'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import { ChatRequestError } from './chatRequest'
+import { CandidateComparison } from './CandidateComparison'
 
 type Item = {
   key: string
@@ -311,6 +312,12 @@ export function ReviewPanel({ csrfToken }: { csrfToken: string }) {
                       possession note before adding inventory.
                     </p>
                   )}
+                  <CandidateComparison
+                    key={identity.decision_id}
+                    candidates={identity.candidates}
+                    onOpen={openSource}
+                    disabled={busy || retry}
+                  />
                   <fieldset disabled={busy || retry}>
                     <legend>
                       How should these physical items be recorded?

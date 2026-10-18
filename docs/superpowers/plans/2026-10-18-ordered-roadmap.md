@@ -295,3 +295,12 @@ reviewed purchase through the automatic identity action and cleared the queue.
 Tests cover concurrent replay, ambiguity without derived writes, unique serial
 enrichment, sold/conflicting serial refusal, stale/deleted PDF sources, private
 HTTP/MCP and stable UI retries. Graphify unavailable; graph/HTML not refreshed.
+
+
+Candidate comparison v0.27.0 improves ambiguous discovery decisions: explicit
+read-only, two-record source/identifier/correction snapshots in all three review
+flows. Existing bounded owner-scoped asset reads only; no eager fetch, automatic
+selection, merge or write. Candidate buttons page by five; late/closed reads are
+canceled/ignored. Explicit identity review remains required. No migration/API/tool.
+
+Comparison verified: 272 backend / 84 frontend tests; lint, format, types, frontend and source/wheel builds pass. Synthetic browser compared distinct serials S1/S2, showed sold ownership correction, opened its exact evidence and preserved the unselected identity choice. Graphify unavailable; graph/HTML refresh could not run. No schema/dependency/security boundary changes.
