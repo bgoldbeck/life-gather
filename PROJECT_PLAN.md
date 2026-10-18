@@ -5,17 +5,16 @@
 
 Ordered continuation, 2026-10-18: [implementation ledger](docs/superpowers/plans/2026-10-18-ordered-roadmap.md).
 Per-user Light/Dark/System appearance is implemented in v0.10.0; the interactive
-graph is next. Older milestone paragraphs below are historical context.
+graph is implemented in v0.11.0; home/vehicle profiles are next. Older milestone paragraphs below are historical context.
 
 Source increment: [text memory chat](docs/TEXT_CHAT.md) now provides persistent
 private conversations, explicit text capture, keyword recall, source inspection,
 saved-note corrections with preserved history,
 and optional bounded OpenAI answers. [Saved-note asset proposals](docs/ASSET_PROPOSALS.md)
 add a single-item extraction/review increment from stage 5. This is partial stage 4/5
-progress; broader extraction, graph corrections/review, token streaming, and appearance preferences
-remain ahead. Asset browsing/corrections, private photo uploads, a persistent review queue and
+progress; broader extraction, graph corrections/review, and token streaming remain ahead. Asset browsing/corrections, private photo uploads, a persistent review queue and
 [OpenAI/Claude adapters](docs/AI_PROVIDERS.md) are now implemented in source.
-Live provider access remains unverified; graph UI and broader ingestion remain ahead. Earlier milestone descriptions
+Live provider access remains unverified; broader ingestion remains ahead. Earlier milestone descriptions
 below describe the broader release gates, not additional completed functionality.
 **Project name:** LifeGather (working brand; domain and trademark clearance not yet completed)  
 **Deployment:** Private, self-hosted Linux server using Docker Compose  
@@ -173,7 +172,7 @@ Explicit deletion/export/backup operations should have their own guarded flows r
 
 **UX principle:** AI performs structured data entry; users can always inspect, verify, correct, and undo the results. Charts and graph visualizations are *views* over validated records, not parallel stores of truth.
 
-**Appearance requirement (2026-10-17):** Provide Light and Dark choices in app Settings, preserving each user's preference. The cream/sage/green reference in `.references/lifegather-soft-green-light-theme.png` is the approved visual direction for color and mood; adapt surfaces, text, borders, focus states, charts, and graph colors for readable contrast in each mode. Include theme support with the early usable UI, not as a late dashboard feature. This is planned, not implemented.
+**Appearance requirement (2026-10-17):** Provide Light and Dark choices in app Settings, preserving each user's preference. The cream/sage/green reference in `.references/lifegather-soft-green-light-theme.png` is the approved visual direction for color and mood; adapt surfaces, text, borders, focus states, charts, and graph colors for readable contrast in each mode. Include theme support with the early usable UI, not as a late dashboard feature. Implemented in v0.10.0.
 
 ## 9. Development sequence and acceptance gates
 
