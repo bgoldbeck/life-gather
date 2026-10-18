@@ -49,4 +49,8 @@ Offline publisher tests run without Docker/network/registry operations:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\tests\Publish-Container.Tests.ps1
 ```
 
-The script was syntax-checked and exercised with mocked commands for nine success/refusal/failure paths. A real build/push has not been run for this script; do not mistake offline tests for verified registry publication.
+The script was syntax-checked and exercised with mocked commands for nine success/refusal/failure paths. A real local build, isolated container smoke test, and public GHCR publication passed on 2026-10-17 from main revision `c5d4a73c944843b34cbeb355e84a5aaf0e1b09e4`. Both `latest` and the commit tag resolve to manifest `sha256:46d97058daf97bb83b7298e52d6c90357cde06f97be23837fd5d700b330310d5`; anonymous registry access and the revision label were verified afterward.
+
+That release has 71,719,325 bytes of compressed runtime layers (about 71.7 MB), approximately 306 MB on disk. Compared with the prior published image, two new layers totaled 25,233,301 bytes (about 25.2 MB), plus small configuration/manifest/provenance metadata. These are measurements of this release, not a promise for later updates. The first upload attempt stopped before transfer because Windows PowerShell stripped quotes from a Docker-context template; the JSON context lookup now avoids that issue.
+
+Publication does not update an already running container. Pull and recreate/redeploy explicitly. Locally source-built images may lack revision/version labels; the published release carries its Git revision label. Real Google/SMTP/model interactions are not part of the isolated container smoke test.
