@@ -106,3 +106,24 @@
   border-radius: 0.4rem;
   background: var(--card);
 }
+
+.asset-purchases {
+  min-width: 0;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.asset-purchases li {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  min-width: 0;
+}
+.asset-purchases blockquote {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.asset-purchases button {
+  margin: 0.3rem 0.5rem 0.3rem 0;
+}

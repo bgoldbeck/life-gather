@@ -5,6 +5,7 @@ import { PhotosPanel } from './PhotosPanel'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import { ChatRequestError } from './chatRequest'
 import { AssetActions } from './AssetActions'
+import { AssetPurchases } from './AssetPurchases'
 
 type Asset = {
   id: string
@@ -352,6 +353,12 @@ export function AssetsPanel({
             key={detail.asset.id}
             assetId={detail.asset.id}
             csrfToken={csrfToken}
+          />
+          <AssetPurchases
+            key={detail.asset.id}
+            assetId={detail.asset.id}
+            csrfToken={csrfToken}
+            onOpen={evidence}
           />
           <h3>Sourced details and decisions</h3>
           <details>

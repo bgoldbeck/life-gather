@@ -1,16 +1,31 @@
 # Changelog
 
-## 0.23.0 — Correct individual photo attachments
+## 0.24.0 â€” Purchase records on asset details
+
+- Show linked receipt lines, latest currency-preserving totals/dates,
+  exact quotes and
+  recorded revisions directly on each physical asset. Open original source or the
+  receipt editor/history without searching old conversations. Refresh summaries
+  after editing; unknown and withdrawn values remain explicit.
+- Follow current reconciliation bindings rather than the receipt's original
+  acceptance result, so reassignment/dismissal and undo update the correct item.
+  Flag corrected/deleted originals as historical sources; preserve source evidence.
+- Add bounded, owner-scoped HTTP and read-only MCP receipt-link pagination. Whole
+  line totals are never presented as per-unit prices or combined across receipts.
+  No migration, dependency, provider call or automatic financial aggregation.
+
+
+## 0.23.0 â€” Correct individual photo attachments
 
 - Remove a photo from one asset gallery while preserving its private original, other gallery attachments, transcriptions and claim evidence. Reattach by uploading the same file to that item.
 - Add owner-scoped HTTP/MCP correction and gallery action, audited with both photo and asset IDs. Safe retries do not repeat removal; stale actions cannot remove a newly reattached link. No migration or dependency change.
 
-## 0.22.0 — Explicit receipt currencies
+## 0.22.0 â€” Explicit receipt currencies
 
 - Support printed USD, EUR, GBP, CAD, AUD and JPY line totals in suggestions, review and immutable history. Store exact integer minor units; use whole yen for JPY and two decimals for the others. Never convert currencies or infer them from symbols.
 - Migration `0016_receipt_currencies` preserves existing USD history and request replay. Downgrade refuses to discard non-USD claims. Existing API callers default to USD for compatibility.
 
-## 0.21.0 — Source-backed purchase-detail suggestions
+## 0.21.0 â€” Source-backed purchase-detail suggestions
 
 - Find uniquely labeled USD line totals and ISO purchase dates in saved receipt sources without an AI request. Copy exact passages into an editable draft only on request; saving still uses owner-scoped validation and immutable revision history.
 - Ambiguous, invalid, unsupported or unavailable source values remain unknown. No accounting arithmetic, automatic inventory changes, schema migration or new dependency.

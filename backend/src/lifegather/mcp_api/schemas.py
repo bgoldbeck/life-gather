@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 from lifegather.assets.actions import AssetChange
+from lifegather.assets.purchases import AssetPurchasesRead
 from lifegather.assets.service import AssetList, AssetRead
 from lifegather.chat.service import SaveText
 from lifegather.documents.service import DocumentPage, DocumentRead
@@ -88,6 +89,7 @@ INPUTS: dict[str, type[BaseModel]] = {
     "review_identity_resolve": IdentityReview,
     "asset_change": AssetChange,
     "assets_list": AssetList,
+    "asset_purchases": AssetPurchasesRead,
     "asset_detail": AssetRead,
     "asset_proposal_preview": ProposalPreview,
     "asset_proposal_get": ProposalRead,

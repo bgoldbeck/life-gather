@@ -222,7 +222,7 @@ no floating point. Graphify refreshed 1806 nodes / 6865 edges and HTML. Migratio
 0016 only; no provider call, image build/upload or running-container changes.
 
 
-## v0.23.0 � individual photo attachment correction
+## v0.23.0 — individual photo attachment correction
 
 Order decision: finish a small correction prerequisite before enabling broader
 automatic discovery. Remove one photo/asset gallery binding, preserving originals,
@@ -242,3 +242,22 @@ found the new JSON action missing from request-size middleware; a regression tes
 failed (401 rather than bounded 413), then passed after adding the route prefix.
 Full backend suite rerun after the fix. Graphify refreshed 1829 nodes / 6821 edges
 and HTML. No migration, provider call, Docker publication or deployment.
+
+
+Purchase browsing increment v0.24.0 closes the discovery gap in v0.20: optional
+receipt claims now appear on the currently linked physical asset, with direct
+source and receipt editor/history links. Bounded five-line HTTP/read-only MCP
+pages follow active reconciliation bindings, including reassignment, dismissal
+and undo. Unknown/withdrawn values and historical-source warnings remain explicit;
+whole line totals are never converted to unit prices or combined across receipts.
+No migration, dependency or AI recall expansion. Automatic discovery remains the
+next broader phase; this increment makes the completed receipt feature usable.
+
+
+Integrated asset purchase browsing verified against main 5309fa2: 259 backend /
+78 frontend tests; Ruff lint/format, mypy, TypeScript, Oxlint, Prettier, Vite and
+source/wheel builds pass. Preserve newer receipt suggestions, explicit currency
+precision and photo-link correction. Extra EUR/JPY association tests pass; synthetic
+browser QA shows EUR 49.90 unchanged on the linked physical unit. Feature itself
+adds no migration or model call. Graphify remains unavailable, so graph/HTML refresh
+could not run. Version advanced to 0.24.0 after concurrent v0.21–0.23 merges.
