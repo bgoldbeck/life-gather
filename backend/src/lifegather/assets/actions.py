@@ -261,6 +261,10 @@ class ActionService:
                     "undo" if data.operation == "undo" else "resolve",
                     targets,
                 )
+                if data.operation == "reassociate":
+                    # Retain the actual new target as well as explicitly supplied
+                    # targets, so the receiving record can inspect this correction.
+                    row.target_asset_id = changed.asset_ids[bound.unit]
                 result = {
                     "operation": data.operation,
                     "source_id": source.id,
@@ -289,8 +293,14 @@ class ActionService:
             if row is None:
                 return None
             asset = self.memory._entity(db, actor, row.asset_id)
+            target = (
+                self.memory._entity(db, actor, row.target_asset_id)
+                if row.target_asset_id
+                else None
+            )
             return {
                 "asset_name": asset.name,
+                "target_asset_name": target.name if target else None,
                 "operation": row.operation,
                 "user_selected_status": json.loads(row.result_json).get("status"),
             }

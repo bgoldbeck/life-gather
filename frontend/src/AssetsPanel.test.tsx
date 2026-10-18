@@ -212,6 +212,18 @@ it('browses private assets, details, original evidence and history pages safely'
         facts: [],
         next_fact_cursor: null,
         next_decision_cursor: url.includes('decision_cursor') ? null : 'd1',
+        actions: [
+          {
+            id: 'incoming',
+            operation: 'reassociate',
+            recorded_at: 100,
+            source_id: 'correction',
+            note: 'Exact movement explanation.',
+            direction: 'incoming',
+            asset_name: 'Original drill',
+            target_asset_name: 'Synthetic drill',
+          },
+        ],
       }
     return new Response(JSON.stringify(value))
   })
@@ -224,6 +236,9 @@ it('browses private assets, details, original evidence and history pages safely'
     await screen.findByRole('heading', { name: 'Synthetic drill' }),
   ).toBeVisible()
   expect(screen.getAllByText('Unknown')).toHaveLength(3)
+  expect(
+    screen.getByText(/Evidence received from Original drill/),
+  ).toBeVisible()
   await user.click(screen.getByRole('button', { name: 'More decisions' }))
   expect(await screen.findAllByText('Stated possession')).toHaveLength(2)
   await user.click(

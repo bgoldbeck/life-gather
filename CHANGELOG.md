@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.30.0 — Inspect evidence moves and receiving history
+
+- Show the exact selected decision passage and its source before a correction.
+  Distinguish decisions and targets by record ID and unit; compare source/target
+  evidence without selecting or merging items. A new search clears old targets.
+- Show incoming reassociation explanations in the receiving item's correction
+  history with private pagination and original/receiving names in source context.
+  Incoming reads preserve each item's independent correction write-version chain.
+- Retain actual newly created targets on new correction actions so their receiving
+  history is discoverable. Older new-target actions without target metadata are
+  unchanged; they remain accessible on the original item's history. No migration,
+  dependency, provider call or automatic whole-record consolidation.
+
 ## 0.29.1 — Keep current inventory and matching consistent
 
 - Exclude valid negative ownership statements from reconciliation/MCP discovery

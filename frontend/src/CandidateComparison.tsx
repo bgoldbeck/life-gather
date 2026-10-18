@@ -19,6 +19,8 @@ type Detail = {
     note: string
     source_id: string
     recorded_at: number
+    direction?: string
+    asset_name?: string
   }[]
   next_decision_cursor?: string | null
   next_action_cursor?: string | null
@@ -238,6 +240,12 @@ export function CandidateComparison({
                     <h6>Latest recorded corrections</h6>
                     {slot.detail.actions.map((action) => (
                       <div key={action.id}>
+                        {action.direction === 'incoming' && (
+                          <p>
+                            Evidence received from{' '}
+                            {action.asset_name ?? 'another item'}.
+                          </p>
+                        )}
                         <p>
                           Recorded{' '}
                           {new Date(action.recorded_at / 1000).toLocaleString()}

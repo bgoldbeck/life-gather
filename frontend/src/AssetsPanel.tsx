@@ -57,6 +57,9 @@ type Detail = {
     note: string
     source_id: string
     recorded_at: number
+    direction?: string
+    asset_name?: string
+    target_asset_name?: string | null
   }[]
 }
 type Source = EvidenceSource & { next_offset: number | null }
@@ -375,6 +378,8 @@ export function AssetsPanel({
               decisions={detail.decisions}
               csrfToken={csrfToken}
               onChanged={refreshed}
+              onOpen={evidence}
+              assetName={detail.asset.name}
             />
           </details>
           {!!detail.actions?.length && (
@@ -383,13 +388,18 @@ export function AssetsPanel({
               {detail.actions.map((action) => (
                 <article key={action.id}>
                   <p>
-                    {(
-                      {
-                        ownership: 'Ownership statement',
-                        undo: 'Decision undone',
-                        reassociate: 'Evidence reassociated',
-                      } as Record<string, string>
-                    )[action.operation] ?? action.operation}{' '}
+                    {action.direction === 'incoming'
+                      ? `Evidence received from ${action.asset_name ?? 'another item'}`
+                      : action.operation === 'reassociate' &&
+                          action.target_asset_name
+                        ? `Evidence moved to ${action.target_asset_name}`
+                        : ((
+                            {
+                              ownership: 'Ownership statement',
+                              undo: 'Decision undone',
+                              reassociate: 'Evidence reassociated',
+                            } as Record<string, string>
+                          )[action.operation] ?? action.operation)}{' '}
                     · {recorded(action.recorded_at)}
                   </p>
                   <blockquote>{action.note}</blockquote>

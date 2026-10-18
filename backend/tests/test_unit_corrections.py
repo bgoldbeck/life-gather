@@ -232,6 +232,17 @@ def test_unit_http_and_mcp_private_shared_contract() -> None:
         ]
         assert result["unit"] == 2
         assert result["decision"]["asset_ids"] == [line["asset_ids"][0], target.id]
+        incoming = client.get(f"/api/assets/{target.id}", headers=headers).json()
+        assert incoming["action_head"] == ""
+        assert incoming["actions"][0]["id"] == result["id"]
+        assert incoming["actions"][0]["direction"] == "incoming"
+        through_mcp = rpc(
+            client, headers, "asset_detail", {"asset_id": target.id}
+        ).json()["result"]["structuredContent"]
+        assert through_mcp["actions"] == incoming["actions"]
+        assert rpc(
+            client, foreign_headers, "asset_detail", {"asset_id": target.id}
+        ).json()["result"]["isError"]
         assert client.post(path, headers=headers, json=request).json() == result
         assert (
             client.post(

@@ -15,6 +15,30 @@ const current: EvidenceSource = {
   },
 }
 
+it('names both items when inspecting a sourced reassociation correction', () => {
+  render(
+    <EvidencePanel
+      source={{
+        id: 'move-source',
+        text: 'Exact correction explanation.',
+        asset_context: {
+          asset_name: 'Original drill',
+          operation: 'reassociate',
+          user_selected_status: null,
+          target_asset_name: 'Replacement drill',
+        },
+      }}
+      nextOffset={null}
+      opening={false}
+      onOpen={vi.fn()}
+      onClose={vi.fn()}
+      request={vi.fn()}
+    />,
+  )
+  expect(screen.getByText('Receiving item: Replacement drill.')).toBeVisible()
+  expect(screen.getByText(/Recorded against Original drill/)).toBeVisible()
+})
+
 describe('saved note correction and history', () => {
   it('submits a correction and opens its new source without rewriting original text', async () => {
     const user = userEvent.setup()

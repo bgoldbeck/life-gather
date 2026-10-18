@@ -76,3 +76,26 @@ when it has an end date; a future or ended interval does not block current match
 Historical bindings and facts are retained; explicit buyback corrections restore
 current inventory. Discovery inventory remains discovery-bound, while Assets can
 also include separate explicit stated ownership. Filtering occurs before paging.
+
+
+## Inspect evidence moves (v0.30.0)
+
+The asset correction form distinguishes decisions by ID, observed name and unit,
+shows the exact selected source passage, and opens its original evidence. Search
+for targets, then inspect up to two records, including the source or possible targets, using
+the same bounded candidate snapshots as Review. Inspection never chooses a target;
+changing a search or replacing results clears the previous selection.
+
+Both original and receiving items show reassociation explanations in correction
+history. Incoming entries name the original item, link to the exact correction,
+and support private history pagination. These entries are historical movements,
+not claims that the association is still current. Use current sourced decisions to
+inspect present associations. Incoming reads do not advance the receiving item's
+own action head, so later ownership corrections retain their normal version guard.
+
+New actions retain actual targets even when the user creates a different single
+item. Existing actions with explicit targets work immediately. Older actions that
+created a new target without storing its ID are not backfilled; inspect them from
+the original item's preserved history. No historical source is rewritten and no
+migration is needed. Whole-record merging, photo/manual-fact relocation and a bulk
+consolidation operation remain outside this increment.

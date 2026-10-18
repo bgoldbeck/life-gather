@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { CandidateComparison } from './CandidateComparison'
 
 type Decision = {
   id: string
@@ -7,6 +8,9 @@ type Decision = {
   superseded_at: number | null
   quantity?: number
   unit?: number
+  name?: string
+  quote?: string
+  source_id?: string
 }
 type Target = { id: string; name: string; recorded_at: number }
 
@@ -16,12 +20,16 @@ export function AssetActions({
   decisions,
   csrfToken,
   onChanged,
+  onOpen,
+  assetName = 'Current item',
 }: {
   assetId: string
   head: string
   decisions: Decision[]
   csrfToken: string
   onChanged: () => Promise<void>
+  onOpen?: (id: string) => Promise<void>
+  assetName?: string
 }) {
   const [operation, setOperation] = useState('ownership')
   const [status, setStatus] = useState('')
@@ -47,6 +55,7 @@ export function AssetActions({
       )
       if (!response.ok) throw new Error()
       const page = await response.json()
+      if (!more) setTarget('')
       setTargets((current) =>
         more
           ? [
@@ -196,6 +205,7 @@ export function AssetActions({
               .map((d) => (
                 <option key={d.id} value={d.id}>
                   Recorded {new Date(d.recorded_at / 1000).toLocaleString()}
+                  {` · ${d.id.slice(0, 8)}${d.name ? ' · ' + d.name : ''}`}
                   {(d.quantity ?? 1) > 1
                     ? ` · this item is unit ${(d.unit ?? 0) + 1} of ${d.quantity}`
                     : ''}
@@ -203,6 +213,21 @@ export function AssetActions({
               ))}
           </select>
         </label>
+      )}
+      {operation !== 'ownership' && selectedDecision?.quote && (
+        <section aria-label="Selected correction evidence">
+          <p>Exact source passage for the selected decision:</p>
+          <blockquote>{selectedDecision.quote}</blockquote>
+          {onOpen && selectedDecision.source_id && (
+            <Button
+              variant="outline"
+              disabled={frozen}
+              onClick={() => void onOpen(selectedDecision.source_id!)}
+            >
+              Open selected decision source
+            </Button>
+          )}
+        </section>
       )}
       {operation === 'reassociate' && (
         <>
@@ -218,7 +243,12 @@ export function AssetActions({
               value={query}
               maxLength={200}
               disabled={frozen}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value)
+                setTarget('')
+                setTargets([])
+                setCursor(null)
+              }}
             />
           </label>
           <Button
@@ -237,6 +267,15 @@ export function AssetActions({
               More target items
             </Button>
           )}
+          {onOpen && targets.length > 0 && (
+            <CandidateComparison
+              key={`${assetId}:${targets.map((item) => item.id).join(',')}`}
+              candidates={[{ id: assetId, name: assetName }, ...targets]}
+              onOpen={onOpen}
+              disabled={frozen}
+              label="Compare before moving evidence"
+            />
+          )}
           <label>
             Evidence belongs to
             <select
@@ -251,7 +290,8 @@ export function AssetActions({
               {targets.map((t) => (
                 <option value={t.id} key={t.id}>
                   {t.name} · recorded{' '}
-                  {new Date(t.recorded_at / 1000).toLocaleString()}
+                  {new Date(t.recorded_at / 1000).toLocaleString()} ·{' '}
+                  {t.id.slice(0, 8)}
                 </option>
               ))}
             </select>
