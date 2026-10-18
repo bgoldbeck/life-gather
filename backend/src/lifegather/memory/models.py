@@ -139,3 +139,34 @@ class Audit(Base):
     operation: Mapped[str]
     target_id: Mapped[str]
     recorded_at: Mapped[int]
+
+
+class NoteRevision(Base):
+    __tablename__ = "memory_note_revisions"
+    __table_args__ = (
+        UniqueConstraint("user_id", "request_id"),
+        UniqueConstraint("user_id", "previous_source_id"),
+        UniqueConstraint("user_id", "source_id"),
+        ForeignKeyConstraint(
+            ["user_id", "root_source_id"],
+            ["memory_sources.user_id", "memory_sources.id"],
+        ),
+        ForeignKeyConstraint(
+            ["user_id", "previous_source_id"],
+            ["memory_sources.user_id", "memory_sources.id"],
+        ),
+        ForeignKeyConstraint(
+            ["user_id", "source_id"], ["memory_sources.user_id", "memory_sources.id"]
+        ),
+        CheckConstraint(
+            "source_id != previous_source_id AND source_id != root_source_id"
+        ),
+    )
+    id: Mapped[str] = mapped_column(primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    root_source_id: Mapped[str] = mapped_column(index=True)
+    previous_source_id: Mapped[str]
+    source_id: Mapped[str]
+    request_id: Mapped[str]
+    fingerprint: Mapped[str]
+    recorded_at: Mapped[int]

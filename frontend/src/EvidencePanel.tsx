@@ -1,0 +1,265 @@
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Button } from '@/components/ui/button'
+import { ChatRequestError } from './chatRequest'
+
+export type EvidenceSource = {
+  id: string
+  text: string
+  note?: {
+    root_source_id: string
+    current_source_id: string
+    is_current: boolean
+    can_correct: boolean
+  } | null
+}
+type Version = {
+  id: string
+  text: string
+  recorded_at: number
+  is_current: boolean
+  is_original: boolean
+}
+type HistoryPage = { items: Version[]; next_cursor: string | null }
+
+export function EvidencePanel({
+  source,
+  nextOffset,
+  opening,
+  onOpen,
+  onClose,
+  request,
+}: {
+  source: EvidenceSource
+  nextOffset: number | null
+  opening: boolean
+  onOpen: (id: string, offset?: number) => Promise<void>
+  onClose: () => void
+  request: (path: string, init?: RequestInit) => Promise<unknown>
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(source.text)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [retrying, setRetrying] = useState(false)
+  const [history, setHistory] = useState<HistoryPage | null>(null)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const pending = useRef<{ request_id: string; text: string } | null>(null)
+  const controller = useRef<AbortController | null>(null)
+  useEffect(() => () => controller.current?.abort(), [])
+
+  async function loadHistory(cursor?: string) {
+    setHistoryLoading(true)
+    setError('')
+    try {
+      const page = (await request(
+        `/sources/${source.id}/history${cursor ? '?cursor=' + cursor : ''}`,
+      )) as HistoryPage
+      setHistory((current) => ({
+        items:
+          cursor && current ? [...current.items, ...page.items] : page.items,
+        next_cursor: page.next_cursor,
+      }))
+    } catch {
+      setError('Unable to load note history. Please try again.')
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  async function save(event: FormEvent) {
+    event.preventDefault()
+    if (saving || !draft.trim() || draft === source.text) return
+    setSaving(true)
+    setError('')
+    const operation = pending.current ?? {
+      request_id: crypto.randomUUID(),
+      text: draft,
+    }
+    pending.current = operation
+    const abort = new AbortController()
+    controller.current = abort
+    try {
+      const result = (await request(`/sources/${source.id}/corrections`, {
+        method: 'POST',
+        body: JSON.stringify(operation),
+        signal: abort.signal,
+      })) as { source: { id: string } }
+      pending.current = null
+      setRetrying(false)
+      setEditing(false)
+      await onOpen(result.source.id)
+    } catch (caught) {
+      if (caught instanceof ChatRequestError) {
+        pending.current = null
+        setRetrying(false)
+        if (caught.status === 409) {
+          setError(
+            'This note changed in another request. Open its current version before correcting it.',
+          )
+          setEditing(false)
+          await onOpen(source.id)
+        } else
+          setError(
+            'Unable to save the correction. Your original note is preserved.',
+          )
+      } else if ((caught as Error).name !== 'AbortError') {
+        setRetrying(true)
+        setError(
+          'Connection lost. Retry safely checks this correction without creating another version.',
+        )
+      }
+    } finally {
+      setSaving(false)
+      controller.current = null
+    }
+  }
+
+  return (
+    <section className="chat-evidence" aria-label="Original evidence">
+      <div>
+        <h2>Original evidence</h2>
+        <Button variant="ghost" disabled={saving} onClick={onClose}>
+          Close evidence
+        </Button>
+      </div>
+      <p>Original statement · not independently verified</p>
+      {source.note && (
+        <p role="status">
+          {source.note.is_current
+            ? 'Current saved note'
+            : 'Earlier version — a newer correction is available.'}
+        </p>
+      )}
+      <p className="chat-text">{source.text}</p>
+      {nextOffset !== null && (
+        <Button
+          disabled={opening || saving}
+          onClick={() => void onOpen(source.id, nextOffset)}
+        >
+          Next source page
+        </Button>
+      )}
+      {source.note && (
+        <div className="note-actions">
+          {!source.note.is_current && (
+            <Button
+              disabled={opening || saving}
+              variant="outline"
+              onClick={() => void onOpen(source.note!.current_source_id)}
+            >
+              View current note
+            </Button>
+          )}
+          {source.note.can_correct && !editing && (
+            <Button
+              variant="outline"
+              disabled={opening}
+              onClick={() => {
+                setDraft(source.text)
+                setEditing(true)
+                setError('')
+              }}
+            >
+              Correct note
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            disabled={historyLoading || saving}
+            onClick={() => void loadHistory()}
+          >
+            View note history
+          </Button>
+        </div>
+      )}
+      {editing && source.note?.can_correct && (
+        <form
+          className="note-correction"
+          onSubmit={(event) => void save(event)}
+        >
+          <label htmlFor="note-correction">Corrected note</label>
+          <textarea
+            id="note-correction"
+            value={draft}
+            maxLength={4000}
+            rows={4}
+            disabled={saving || retrying}
+            onChange={(event) => setDraft(event.target.value)}
+          />
+          <p>
+            The previous text stays in history. This changes your saved note; it
+            does not change inventory or graph facts.
+          </p>
+          <div className="note-actions">
+            <Button
+              type="submit"
+              disabled={saving || !draft.trim() || draft === source.text}
+            >
+              {saving
+                ? 'Saving correction…'
+                : retrying
+                  ? 'Retry correction'
+                  : 'Save correction'}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={saving}
+              onClick={() => {
+                setEditing(false)
+                pending.current = null
+                setRetrying(false)
+                setError('')
+              }}
+            >
+              Cancel correction
+            </Button>
+          </div>
+        </form>
+      )}
+      {error && (
+        <p className="chat-error" role="alert">
+          {error}
+        </p>
+      )}
+      {historyLoading && <p role="status">Loading note history…</p>}
+      {history && (
+        <section className="note-history" aria-label="Note history">
+          <h3>Note history</h3>
+          <p>
+            Saved order shows when a correction was recorded, not when a fact
+            became true.
+          </p>
+          <ol>
+            {history.items.map((version) => (
+              <li key={version.id}>
+                <Button
+                  variant="ghost"
+                  disabled={opening || saving}
+                  onClick={() => void onOpen(version.id)}
+                >
+                  <span>
+                    {version.is_original ? 'Original' : 'Correction'}
+                    {version.is_current ? ' · Current' : ''} ·{' '}
+                    {new Date(version.recorded_at / 1000).toLocaleString()}
+                    <br />
+                    {version.text}
+                  </span>
+                </Button>
+              </li>
+            ))}
+          </ol>
+          {history.next_cursor && (
+            <Button
+              variant="outline"
+              disabled={historyLoading}
+              onClick={() => void loadHistory(history.next_cursor!)}
+            >
+              More note history
+            </Button>
+          )}
+        </section>
+      )}
+    </section>
+  )
+}

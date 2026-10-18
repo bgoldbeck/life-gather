@@ -1,4 +1,4 @@
-"""Read-only MCP adapters. Request authority never comes from tool arguments."""
+"""Private MCP adapters. Request authority never comes from tool arguments."""
 
 import json
 import logging
@@ -25,6 +25,7 @@ from lifegather.mcp_api.schemas import (
     Search,
     SourceRead,
 )
+from lifegather.memory.notes import CorrectionInput, NoteHistoryInput, NoteService
 from lifegather.memory.schemas import FactView
 from lifegather.memory.service import MemoryError, MemoryService
 from lifegather.reconciliation.service import ReconciliationService
@@ -181,6 +182,7 @@ def build_server() -> MCPServer:
                 "source": source.model_dump(mode="json", exclude={"text"}),
                 "text": source.text[data.offset : end],
                 "next_offset": end if end < len(source.text) else None,
+                "note": NoteService(memory.engine).describe(actor, data.source_id),
             }
 
         return read(ctx, operation)
@@ -309,6 +311,38 @@ def build_server() -> MCPServer:
             lambda actor, memory, _: {
                 "source": save_text(memory, actor, data),
             },
+        )
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        )
+    )
+    def memory_correct_note(data: CorrectionInput, ctx: ToolContext) -> dict[str, Any]:
+        """Explicitly correct the current saved note, preserving original text/history.
+
+        Requires a direct user correction request. No graph facts or inventory
+        change. The conversational model in the app never receives this tool.
+        """
+        return read(
+            ctx,
+            lambda actor, memory, _: NoteService(memory.engine).correct(actor, data),
+        )
+
+    @server.tool(annotations=annotation)
+    def memory_note_history(data: NoteHistoryInput, ctx: ToolContext) -> dict[str, Any]:
+        """Read owned saved-note versions, including superseded original evidence."""
+        return read(
+            ctx,
+            lambda actor, memory, _: NoteService(memory.engine).history(
+                actor,
+                data.source_id,
+                data.cursor,
+                data.limit,
+            ),
         )
 
     return server

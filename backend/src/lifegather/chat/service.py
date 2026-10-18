@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from lifegather.auth.store import Account
 from lifegather.chat.models import Conversation, Turn, Usage
 from lifegather.credentials.service import PrivateSettings
+from lifegather.memory.notes import NoteService
 from lifegather.memory.schemas import SourceInput, SourceView
 from lifegather.memory.service import MemoryError, MemoryService, fingerprint
 
@@ -297,11 +298,14 @@ class ChatService:
             identifier = match["id"]
             if match["kind"] == "entity":
                 identifier = self.memory.get_entity(actor, identifier).source_id
-            source = self.memory.get_source(actor, identifier)
+            source = NoteService(self.engine).current(actor, identifier)
+            identifier = source.id
             sources[identifier] = {
                 "id": identifier,
                 "text": source.text[:2000],
                 "recorded_at": source.recorded_at,
-                "status": "original statement; not independently verified",
+                "status": "corrected note; not independently verified"
+                if source.namespace == "chat-note-correction"
+                else "original statement; not independently verified",
             }
         return list(sources.values())

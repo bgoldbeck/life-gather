@@ -25,6 +25,7 @@ from lifegather.credentials.routes import private_router
 from lifegather.credentials.service import PrivateSettings, VaultError, read_key
 from lifegather.mcp_api.tools import build_server
 from lifegather.mcp_api.transport import PrivateMCP
+from lifegather.memory.notes import NoteConflict
 from lifegather.memory.service import MemoryError
 
 
@@ -85,7 +86,10 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
 
     @app.exception_handler(MemoryError)
     async def memory_error(request: Request, error: MemoryError) -> JSONResponse:
-        return JSONResponse({"detail": str(error)}, status_code=400)
+        return JSONResponse(
+            {"detail": str(error)},
+            status_code=409 if isinstance(error, NoteConflict) else 400,
+        )
 
     @app.exception_handler(EmailAuthError)
     async def email_auth_error(request: Request, error: EmailAuthError) -> JSONResponse:
