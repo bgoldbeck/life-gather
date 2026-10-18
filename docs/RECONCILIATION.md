@@ -63,3 +63,16 @@ back to the original historical asset. Whole-line undo and creating just one new
 unit within a multi-unit line remain outside this slice. This does not merge whole
 records or move unrelated evidence, photos, manual facts or ownership statements.
 No schema or request-field changes; existing private HTTP/MCP operation is reused.
+
+
+## Current inventory and ownership dates (v0.29.1)
+
+`inventory` / MCP `discovery_inventory` lists active discovery bindings after
+filtering currently valid negative ownership statements. The asset screen and
+automatic matcher share the same current-world date conditions: valid-from is
+inclusive, valid-to is exclusive, null boundaries are open, and superseded facts
+are excluded. A currently valid negative statement requires identity review even
+when it has an end date; a future or ended interval does not block current matching.
+Historical bindings and facts are retained; explicit buyback corrections restore
+current inventory. Discovery inventory remains discovery-bound, while Assets can
+also include separate explicit stated ownership. Filtering occurs before paging.

@@ -468,9 +468,10 @@ def build_server() -> MCPServer:
 
     @server.tool(annotations=annotation)
     def discovery_inventory(data: Page, ctx: ToolContext) -> dict[str, Any]:
-        """List actively bound private discovery asset IDs.
+        """List current private discovery inventory asset IDs.
 
-        Inferred ownership is not confirmation.
+        Excludes currently valid negative ownership statements. Inferred ownership
+        is not confirmation; original decisions remain in discovery history.
         """
 
         def operation(

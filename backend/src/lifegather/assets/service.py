@@ -1,18 +1,18 @@
 """Bounded private asset browsing without changing evidence or ownership."""
 
 import json
-from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import Engine, and_, exists, or_, select
+from sqlalchemy import Engine, and_, or_, select
 from sqlalchemy.orm import Session
 
 from lifegather.assets.models import AssetAction
 from lifegather.auth.store import Account
-from lifegather.memory.models import Assertion, Entity
+from lifegather.memory.models import Entity
 from lifegather.memory.schemas import EntityView
 from lifegather.memory.service import MemoryError, MemoryService, normalized
+from lifegather.reconciliation.inventory import current_inventory
 from lifegather.reconciliation.models import Binding, Decision, Observation
 from lifegather.reconciliation.schemas import DiscoveryInput
 
@@ -41,41 +41,7 @@ class AssetService:
 
     @staticmethod
     def active(actor: Account) -> Any:
-        bound = exists(
-            select(Binding.id)
-            .join(Decision, Decision.id == Binding.decision_id)
-            .where(
-                Binding.user_id == actor.id,
-                Binding.asset_id == Entity.id,
-                Decision.superseded_at.is_(None),
-                Decision.outcome.in_(["create", "enrich"]),
-            )
-        )
-        today = datetime.now(UTC).date()
-        stated = exists(
-            select(Assertion.id).where(
-                Assertion.user_id == actor.id,
-                Assertion.subject_id == Entity.id,
-                Assertion.predicate == "owned",
-                Assertion.status == "stated",
-                Assertion.value_json == "true",
-                Assertion.superseded_at.is_(None),
-                or_(Assertion.valid_from.is_(None), Assertion.valid_from <= today),
-                or_(Assertion.valid_to.is_(None), Assertion.valid_to > today),
-            )
-        )
-        excluded = exists(
-            select(Assertion.id).where(
-                Assertion.user_id == actor.id,
-                Assertion.subject_id == Entity.id,
-                Assertion.predicate == "owned",
-                Assertion.value_json == "false",
-                Assertion.superseded_at.is_(None),
-                or_(Assertion.valid_from.is_(None), Assertion.valid_from <= today),
-                or_(Assertion.valid_to.is_(None), Assertion.valid_to > today),
-            )
-        )
-        return and_(or_(bound, stated), ~excluded)
+        return current_inventory(actor)
 
     def list(self, actor: Account, value: AssetList) -> dict[str, Any]:
         data = AssetList.model_validate(value)

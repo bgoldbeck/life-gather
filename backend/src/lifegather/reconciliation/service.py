@@ -16,6 +16,7 @@ from lifegather.memory.service import (
     fingerprint,
     normalized,
 )
+from lifegather.reconciliation.inventory import current_inventory
 from lifegather.reconciliation.matching import IdentityMatcher
 from lifegather.reconciliation.models import (
     Binding,
@@ -528,7 +529,11 @@ class ReconciliationService:
                 db.scalars(
                     self.matcher._active_bindings(actor)
                     .with_only_columns(Binding.asset_id)
-                    .where(Binding.asset_id > cursor)
+                    .join(
+                        Entity,
+                        and_(Entity.user_id == actor.id, Entity.id == Binding.asset_id),
+                    )
+                    .where(Binding.asset_id > cursor, current_inventory(actor))
                     .distinct()
                     .order_by(Binding.asset_id)
                     .limit(limit)
