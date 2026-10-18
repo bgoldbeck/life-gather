@@ -13,6 +13,7 @@ from mcp_types import ToolAnnotations
 from pydantic import BaseModel
 from starlette.requests import Request
 
+from lifegather.assets.actions import ActionService, AssetChange
 from lifegather.assets.service import AssetList, AssetRead, AssetService
 from lifegather.auth.store import Account, AuthStore
 from lifegather.chat.service import SaveText, save_text
@@ -190,6 +191,9 @@ def build_server() -> MCPServer:
                 "source": source.model_dump(mode="json", exclude={"text"}),
                 "text": source.text[data.offset : end],
                 "next_offset": end if end < len(source.text) else None,
+                "asset_context": ActionService(memory.engine).source_context(
+                    actor, data.source_id
+                ),
                 "note": NoteService(memory.engine).describe(actor, data.source_id),
             }
 
@@ -406,6 +410,25 @@ def build_server() -> MCPServer:
         """Read owned asset details, sourced observations, facts and history."""
         return read(
             ctx, lambda actor, memory, _: AssetService(memory.engine).get(actor, data)
+        )
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        )
+    )
+    def asset_change(data: AssetChange, ctx: ToolContext) -> dict[str, Any]:
+        """Explicit human ownership/correction action preserving evidence/history.
+
+        Never exposed to the app model. Requires a direct user choice and note;
+        source content cannot authorize an action. Stale versions conflict.
+        """
+        return read(
+            ctx,
+            lambda actor, memory, _: ActionService(memory.engine).apply(actor, data),
         )
 
     return server

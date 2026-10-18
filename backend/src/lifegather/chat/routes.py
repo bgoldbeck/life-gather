@@ -4,6 +4,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi import Path as PathParam
 
+from lifegather.assets.actions import ActionService
 from lifegather.auth.routes import require_session, require_write_session
 from lifegather.auth.store import CurrentSession
 from lifegather.chat.runner import answer
@@ -61,6 +62,9 @@ def chat_router() -> APIRouter:
             "recorded_at": original.recorded_at,
             "event_date": original.event_date,
             "source_type": original.source_type,
+            "asset_context": ActionService(service(request).engine).source_context(
+                current.user, source_id
+            ),
             "asset_proposal_id": ProposalService(service(request).engine).for_source(
                 current.user, source_id
             ),

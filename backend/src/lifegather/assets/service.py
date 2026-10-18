@@ -1,11 +1,14 @@
 """Bounded private asset browsing without changing evidence or ownership."""
 
+import json
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Engine, and_, exists, or_, select
 from sqlalchemy.orm import Session
 
+from lifegather.assets.models import AssetAction
 from lifegather.auth.store import Account
 from lifegather.memory.models import Assertion, Entity
 from lifegather.memory.schemas import EntityView
@@ -27,6 +30,7 @@ class AssetRead(BaseModel):
     asset_id: str = Field(min_length=1, max_length=36)
     fact_cursor: str = Field(default="", max_length=36)
     decision_cursor: str = Field(default="", max_length=36)
+    action_cursor: str = Field(default="", max_length=36)
     limit: int = Field(default=25, ge=1, le=25)
 
 
@@ -47,6 +51,19 @@ class AssetService:
                 Decision.outcome.in_(["create", "enrich"]),
             )
         )
+        today = datetime.now(UTC).date()
+        stated = exists(
+            select(Assertion.id).where(
+                Assertion.user_id == actor.id,
+                Assertion.subject_id == Entity.id,
+                Assertion.predicate == "owned",
+                Assertion.status == "stated",
+                Assertion.value_json == "true",
+                Assertion.superseded_at.is_(None),
+                or_(Assertion.valid_from.is_(None), Assertion.valid_from <= today),
+                or_(Assertion.valid_to.is_(None), Assertion.valid_to > today),
+            )
+        )
         excluded = exists(
             select(Assertion.id).where(
                 Assertion.user_id == actor.id,
@@ -54,10 +71,11 @@ class AssetService:
                 Assertion.predicate == "owned",
                 Assertion.value_json == "false",
                 Assertion.superseded_at.is_(None),
-                Assertion.valid_to.is_(None),
+                or_(Assertion.valid_from.is_(None), Assertion.valid_from <= today),
+                or_(Assertion.valid_to.is_(None), Assertion.valid_to > today),
             )
         )
-        return and_(bound, ~excluded)
+        return and_(or_(bound, stated), ~excluded)
 
     def list(self, actor: Account, value: AssetList) -> dict[str, Any]:
         data = AssetList.model_validate(value)
@@ -146,6 +164,7 @@ class AssetService:
                         "superseded_at": decision.superseded_at,
                         "source_id": observation.source_id,
                         "unit": unit,
+                        "quantity": evidence.quantity,
                         "name": evidence.name,
                         "manufacturer": evidence.manufacturer,
                         "model": evidence.model,
@@ -162,6 +181,53 @@ class AssetService:
                 if len(rows) > data.limit
                 else None,
             }
+            actions_query = select(AssetAction).where(
+                AssetAction.user_id == actor.id, AssetAction.asset_id == asset.id
+            )
+            latest = db.scalar(
+                actions_query.order_by(
+                    AssetAction.recorded_at.desc(), AssetAction.id.desc()
+                ).limit(1)
+            )
+            result["action_head"] = latest.id if latest else ""
+            if data.action_cursor:
+                old_action = db.scalar(
+                    actions_query.where(AssetAction.id == data.action_cursor)
+                )
+                if old_action is None:
+                    raise MemoryError("Invalid asset action cursor")
+                actions_query = actions_query.where(
+                    or_(
+                        AssetAction.recorded_at < old_action.recorded_at,
+                        and_(
+                            AssetAction.recorded_at == old_action.recorded_at,
+                            AssetAction.id < old_action.id,
+                        ),
+                    )
+                )
+            action_rows = list(
+                db.scalars(
+                    actions_query.order_by(
+                        AssetAction.recorded_at.desc(), AssetAction.id.desc()
+                    ).limit(data.limit + 1)
+                )
+            )
+            result["actions"] = [
+                {
+                    "id": row.id,
+                    "operation": row.operation,
+                    "recorded_at": row.recorded_at,
+                    "source_id": row.source_id,
+                    "note": self.memory._source(db, actor, row.source_id).text,
+                    "result": json.loads(row.result_json),
+                }
+                for row in action_rows[: data.limit]
+            ]
+            result["next_action_cursor"] = (
+                action_rows[data.limit - 1].id
+                if len(action_rows) > data.limit
+                else None
+            )
         facts = self.memory.timeline(
             actor, data.asset_id, data.limit + 1, cursor=data.fact_cursor or None
         )

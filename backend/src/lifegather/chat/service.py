@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session
 
+from lifegather.assets.actions import ActionService
 from lifegather.auth.store import Account
 from lifegather.chat.models import Conversation, Turn, Usage
 from lifegather.credentials.service import PrivateSettings
@@ -306,6 +307,24 @@ class ChatService:
 
     def evidence(self, actor: Account, query: str) -> list[dict[str, Any]]:
         matches = self.memory.search(actor, query, 8)
+        actions = ActionService(self.engine)
+        original_ids = []
+        entity_ids = []
+        for match in matches:
+            if match["kind"] == "entity":
+                entity_ids.append(match["id"])
+                original_ids.append(
+                    self.memory.get_entity(actor, match["id"]).source_id
+                )
+            else:
+                original_ids.append(match["id"])
+                metadata = NoteService(self.engine).describe(actor, match["id"])
+                if metadata:
+                    original_ids.append(metadata["root_source_id"])
+        action_ids = actions.related_sources(actor, original_ids, entity_ids)
+        matches = [
+            {"kind": "source", "id": identifier} for identifier in action_ids
+        ] + matches
         sources: dict[str, Any] = {}
         for match in matches:
             identifier = match["id"]
@@ -317,8 +336,16 @@ class ChatService:
                 "id": identifier,
                 "text": source.text[:2000],
                 "recorded_at": source.recorded_at,
+                "event_date": source.event_date.isoformat()
+                if source.event_date
+                else None,
                 "status": "corrected note; not independently verified"
                 if source.namespace == "chat-note-correction"
                 else "original statement; not independently verified",
             }
-        return list(sources.values())
+            # Preserve exact user text; attach authenticated item-selection context
+            # so short corrections such as "I sold it" remain attributable.
+            context = actions.source_context(actor, identifier)
+            if context is not None:
+                sources[identifier]["asset_context"] = context
+        return list(sources.values())[:8]

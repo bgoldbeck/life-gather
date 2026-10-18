@@ -159,7 +159,10 @@ export function Workspace({
           ) : view === 'Chat' ? (
             <ChatPanel csrfToken={csrfToken} refreshSession={refreshSession} />
           ) : view === 'Assets' ? (
-            <AssetsPanel refreshSession={refreshSession} />
+            <AssetsPanel
+              refreshSession={refreshSession}
+              csrfToken={csrfToken}
+            />
           ) : view === 'Overview' ? (
             <>
               <div className="section-label">

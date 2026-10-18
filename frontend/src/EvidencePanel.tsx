@@ -6,6 +6,11 @@ export type EvidenceSource = {
   id: string
   text: string
   asset_proposal_id?: string | null
+  asset_context?: {
+    asset_name: string
+    operation: string
+    user_selected_status: string | null
+  } | null
   note?: {
     root_source_id: string
     current_source_id: string
@@ -136,6 +141,17 @@ export function EvidencePanel({
         </p>
       )}
       <p className="chat-text">{source.text}</p>
+      {source.asset_context && (
+        <p>
+          Recorded against {source.asset_context.asset_name}. User-selected
+          statement:{' '}
+          {(
+            source.asset_context.user_selected_status ??
+            source.asset_context.operation
+          ).replaceAll('_', ' ')}
+          .
+        </p>
+      )}
       {source.asset_proposal_id && onViewProposal && (
         <Button
           variant="outline"

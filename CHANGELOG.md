@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0 — 2026-10-18
+
+- Add sourced ownership updates (owned, sold, returned, no longer owned),
+  single-item confirmation undo and explicit evidence reassociation.
+- Keep correction explanations, original evidence, prior decisions and dated
+  ownership intervals; reject stale/concurrent conflicting actions.
+- Migration 0009 adds private action history without rewriting existing data.
+
 ## 0.5.0 — 2026-10-18
 
 - Browse/search private inventory and include historical asset records.

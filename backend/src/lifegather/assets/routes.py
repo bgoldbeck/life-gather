@@ -2,8 +2,9 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Path, Query, Request
 
+from lifegather.assets.actions import ActionService, AssetChange
 from lifegather.assets.service import AssetList, AssetRead, AssetService
-from lifegather.auth.routes import require_session
+from lifegather.auth.routes import require_session, require_write_session
 from lifegather.auth.store import CurrentSession
 
 Authenticated = Annotated[CurrentSession, Depends(require_session)]
@@ -36,6 +37,7 @@ def asset_router() -> APIRouter:
         current: Authenticated,
         fact_cursor: Cursor = "",
         decision_cursor: Cursor = "",
+        action_cursor: Cursor = "",
         limit: Annotated[int, Query(ge=1, le=25)] = 25,
     ) -> dict[str, Any]:
         return AssetService(request.app.state.auth_store.engine).get(
@@ -44,8 +46,19 @@ def asset_router() -> APIRouter:
                 asset_id=asset_id,
                 fact_cursor=fact_cursor,
                 decision_cursor=decision_cursor,
+                action_cursor=action_cursor,
                 limit=limit,
             ),
+        )
+
+    @router.post("/actions")
+    def change(
+        request: Request,
+        body: AssetChange,
+        current: Annotated[CurrentSession, Depends(require_write_session)],
+    ) -> dict[str, Any]:
+        return ActionService(request.app.state.auth_store.engine).apply(
+            current.user, body
         )
 
     return router

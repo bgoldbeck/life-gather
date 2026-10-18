@@ -58,9 +58,9 @@ policies still apply. See [official structured-output documentation](https://dev
 
 No tools, write authority, credentials, SQL, shell, or filesystem operations are
 given to the model. A typed `memory_save_text` MCP operation and chat capture use
-the same deterministic service. The sixteen-tool app-session MCP endpoint has
-thirteen read operations, two explicit note writes, and one human asset-review
-write. External-client
+the same deterministic service. The nineteen-tool app-session MCP endpoint has
+fifteen read operations, two explicit note writes, and two human asset-review/
+correction writes. External-client
 OAuth remains unimplemented; never share application session cookies.
 
 ## Persistence, limits, and cancellation
