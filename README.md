@@ -6,7 +6,7 @@ It aims to help organize possessions, events, documents, and relationships while
 
 ## Project status
 
-The source includes a responsive React shell and Google registration/login with persistent server-side sessions. Follow [Google login setup](docs/GOOGLE_LOGIN.md) to configure an OAuth client; real Google sign-in needs installation credentials. The [evidence-backed memory core](docs/MEMORY_CORE.md) now provides private Python services for sources, graph facts, history, search, export, and database snapshots. Memory UI adapters, MCP, and AI integration remain planned. LifeGather is a working name pending clearance. The previously published preview image does not gain source changes until a separately approved rebuild/upload.
+The source includes a responsive React shell and Google registration/login with persistent server-side sessions. Follow [Google login setup](docs/GOOGLE_LOGIN.md) to configure an OAuth client; real Google sign-in needs installation credentials. The [evidence-backed memory core](docs/MEMORY_CORE.md) now provides private Python services for sources, graph facts, history, search, export, and database snapshots. The [reconciliation service](docs/RECONCILIATION.md) now distinguishes purchased units, enriches reliable matches, and preserves review/correction decisions. Memory UI adapters, MCP, and AI integration remain planned. LifeGather is a working name pending clearance. The previously published preview image does not gain source changes until a separately approved rebuild/upload.
 
 ## Run with Docker
 

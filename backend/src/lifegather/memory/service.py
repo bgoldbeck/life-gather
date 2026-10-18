@@ -177,35 +177,47 @@ class MemoryService:
 
     def create_entity(self, actor: Account, value: EntityInput) -> EntityView:
         data = EntityInput.model_validate(value)
-        signature = fingerprint(data.model_dump(mode="json"))
         with self._write() as db:
-            self._source(db, actor, data.source_id)
-            existing = db.scalar(
-                select(Entity)
-                .where(
-                    Entity.user_id == actor.id,
-                    Entity.operation_key == data.operation_key,
-                )
-                .limit(1)
+            return self._create_entity_in(db, actor, data)
+
+    def _create_entity_in(
+        self,
+        db: Session,
+        actor: Account,
+        data: EntityInput,
+        *,
+        recorded_at: int | None = None,
+    ) -> EntityView:
+        signature = fingerprint(data.model_dump(mode="json"))
+        source = self._source(db, actor, data.source_id)
+        existing = db.scalar(
+            select(Entity)
+            .where(
+                Entity.user_id == actor.id,
+                Entity.operation_key == data.operation_key,
             )
-            if existing is not None:
-                if existing.fingerprint != signature:
-                    raise MemoryError("Entity operation conflict")
-                return EntityView.model_validate(existing)
-            now = self.clock()
-            entity = Entity(
-                id=str(uuid4()),
-                user_id=actor.id,
-                normalized_name=normalized(data.name),
-                fingerprint=signature,
-                recorded_at=now,
-                **data.model_dump(),
-            )
-            db.add(entity)
-            db.flush()
-            self._index(db, actor, entity.id, "entity", entity.name)
-            self._audit(db, actor, "entity_created", entity.id, now)
-            return EntityView.model_validate(entity)
+            .limit(1)
+        )
+        if existing is not None:
+            if existing.fingerprint != signature:
+                raise MemoryError("Entity operation conflict")
+            return EntityView.model_validate(existing)
+        now = max(
+            self.clock() if recorded_at is None else recorded_at, source.recorded_at
+        )
+        entity = Entity(
+            id=str(uuid4()),
+            user_id=actor.id,
+            normalized_name=normalized(data.name),
+            fingerprint=signature,
+            recorded_at=now,
+            **data.model_dump(),
+        )
+        db.add(entity)
+        db.flush()
+        self._index(db, actor, entity.id, "entity", entity.name)
+        self._audit(db, actor, "entity_created", entity.id, now)
+        return EntityView.model_validate(entity)
 
     def get_entity(self, actor: Account, identifier: str) -> EntityView:
         with Session(self.engine) as db:
@@ -388,96 +400,105 @@ class MemoryService:
         self, actor: Account, value: FactInput, replaces: str | None
     ) -> FactView:
         data = FactInput.model_validate(value)
-        signature = fingerprint([data.model_dump(mode="json"), replaces])
         with self._write() as db:
-            self._entity(db, actor, data.subject_id)
-            source = self._source(db, actor, data.source_id)
-            if data.object_id is not None:
-                self._entity(db, actor, data.object_id)
-            if data.quote is not None and data.quote not in source.text:
-                raise MemoryError(
-                    "Evidence quote is not present in the original source"
-                )
-            previous = self._assertion(db, actor, replaces) if replaces else None
-            existing = db.scalar(
-                select(Assertion)
-                .where(
-                    Assertion.user_id == actor.id,
-                    Assertion.operation_key == data.operation_key,
-                )
-                .limit(1)
+            return self._put_fact_in(db, actor, data, replaces)
+
+    def _put_fact_in(
+        self,
+        db: Session,
+        actor: Account,
+        data: FactInput,
+        replaces: str | None,
+        *,
+        recorded_at: int | None = None,
+    ) -> FactView:
+        signature = fingerprint([data.model_dump(mode="json"), replaces])
+        self._entity(db, actor, data.subject_id)
+        source = self._source(db, actor, data.source_id)
+        if data.object_id is not None:
+            self._entity(db, actor, data.object_id)
+        if data.quote is not None and data.quote not in source.text:
+            raise MemoryError("Evidence quote is not present in the original source")
+        previous = self._assertion(db, actor, replaces) if replaces else None
+        existing = db.scalar(
+            select(Assertion)
+            .where(
+                Assertion.user_id == actor.id,
+                Assertion.operation_key == data.operation_key,
             )
-            if existing is not None:
-                if existing.fingerprint != signature:
-                    raise MemoryError("Fact operation conflict")
-                return self._view(db, actor, existing)
-            now = self.clock()
-            if previous is not None:
-                if previous.superseded_at is not None:
-                    raise MemoryError(
-                        "Fact already corrected; correct the current version"
+            .limit(1)
+        )
+        if existing is not None:
+            if existing.fingerprint != signature:
+                raise MemoryError("Fact operation conflict")
+            return self._view(db, actor, existing)
+        now = max(
+            self.clock() if recorded_at is None else recorded_at, source.recorded_at
+        )
+        if previous is not None:
+            if previous.superseded_at is not None:
+                raise MemoryError("Fact already corrected; correct the current version")
+            if (
+                previous.subject_id != data.subject_id
+                or previous.predicate != data.predicate
+            ):
+                raise MemoryError("Correction must preserve subject and predicate")
+            now = max(now, previous.recorded_at + 1)
+            previous.superseded_at = now
+        fact = Assertion(
+            id=str(uuid4()),
+            user_id=actor.id,
+            subject_id=data.subject_id,
+            predicate=data.predicate,
+            object_id=data.object_id,
+            value_json=json.dumps(data.value) if data.object_id is None else None,
+            status=data.status,
+            valid_from=data.valid_from,
+            valid_to=data.valid_to,
+            recorded_at=now,
+            superseded_at=None,
+            replaces_id=replaces,
+            operation_key=data.operation_key,
+            fingerprint=signature,
+        )
+        db.add(fact)
+        db.flush()
+        sources: dict[str, str | None] = {}
+        if previous is not None:
+            old_evidence = list(
+                db.scalars(
+                    select(Evidence)
+                    .where(
+                        Evidence.user_id == actor.id,
+                        Evidence.fact_id == previous.id,
                     )
-                if (
-                    previous.subject_id != data.subject_id
-                    or previous.predicate != data.predicate
-                ):
-                    raise MemoryError("Correction must preserve subject and predicate")
-                now = max(now, previous.recorded_at + 1)
-                previous.superseded_at = now
-            fact = Assertion(
-                id=str(uuid4()),
-                user_id=actor.id,
-                subject_id=data.subject_id,
-                predicate=data.predicate,
-                object_id=data.object_id,
-                value_json=json.dumps(data.value) if data.object_id is None else None,
-                status=data.status,
-                valid_from=data.valid_from,
-                valid_to=data.valid_to,
-                recorded_at=now,
-                superseded_at=None,
-                replaces_id=replaces,
-                operation_key=data.operation_key,
-                fingerprint=signature,
-            )
-            db.add(fact)
-            db.flush()
-            sources: dict[str, str | None] = {}
-            if previous is not None:
-                old_evidence = list(
-                    db.scalars(
-                        select(Evidence)
-                        .where(
-                            Evidence.user_id == actor.id,
-                            Evidence.fact_id == previous.id,
-                        )
-                        .limit(100)
-                    )
+                    .limit(100)
                 )
-                sources.update({item.source_id: item.quote for item in old_evidence})
-            sources[source.id] = data.quote
-            if len(sources) > 100:
-                raise MemoryError("Evidence limit reached")
-            for source_id, quote in sources.items():
-                db.add(
-                    Evidence(
-                        id=str(uuid4()),
-                        user_id=actor.id,
-                        fact_id=fact.id,
-                        source_id=source_id,
-                        quote=quote,
-                        recorded_at=now,
-                    )
-                )
-            self._audit(
-                db,
-                actor,
-                "fact_corrected" if previous else "fact_asserted",
-                fact.id,
-                now,
             )
-            db.flush()
-            return self._view(db, actor, fact)
+            sources.update({item.source_id: item.quote for item in old_evidence})
+        sources[source.id] = data.quote
+        if len(sources) > 100:
+            raise MemoryError("Evidence limit reached")
+        for source_id, quote in sources.items():
+            db.add(
+                Evidence(
+                    id=str(uuid4()),
+                    user_id=actor.id,
+                    fact_id=fact.id,
+                    source_id=source_id,
+                    quote=quote,
+                    recorded_at=now,
+                )
+            )
+        self._audit(
+            db,
+            actor,
+            "fact_corrected" if previous else "fact_asserted",
+            fact.id,
+            now,
+        )
+        db.flush()
+        return self._view(db, actor, fact)
 
     def facts(
         self,
