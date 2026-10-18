@@ -40,6 +40,10 @@ class PhotoDetach(PhotoRead):
     expected_updated_at: int = Field(ge=0)
 
 
+class PhotoAttach(PhotoDetach):
+    pass
+
+
 class PhotoDelete(PhotoRead):
     expected_updated_at: int = Field(ge=0)
 
@@ -183,7 +187,9 @@ class PhotoService:
                 )
             )
             row.updated_at = max(now, row.updated_at + 1)
-            self.memory._audit(db, actor, "photo_attached", row.id, now)
+            self.memory._audit(
+                db, actor, "photo_attached", f"{row.id}:{asset.id}", row.updated_at
+            )
 
     def upload(
         self,
@@ -276,6 +282,29 @@ class PhotoService:
                 db, actor, "photo_detached", f"{row.id}:{asset.id}", row.updated_at
             )
             db.flush()
+            return self.view(row)
+
+    def link(self, actor: Account, value: PhotoAttach) -> dict[str, Any]:
+        data = PhotoAttach.model_validate(value)
+        with self.memory._write() as db:
+            row = self.owned(db, actor, data.photo_id)
+            asset = self.memory._entity(db, actor, data.asset_id)
+            if asset.kind != "asset":
+                raise MemoryError("Choose a physical asset")
+            if row.deleted_at is not None:
+                raise MemoryError("Photo was deleted")
+            existing = db.scalar(
+                select(PhotoAsset.id).where(
+                    PhotoAsset.user_id == actor.id,
+                    PhotoAsset.photo_id == row.id,
+                    PhotoAsset.asset_id == asset.id,
+                )
+            )
+            if existing is None:
+                if row.updated_at != data.expected_updated_at:
+                    raise NoteConflict("Photo changed. Reload before linking it.")
+                self.attach(db, actor, row, asset.id)
+                db.flush()
             return self.view(row)
 
     def delete(self, actor: Account, value: PhotoDelete) -> dict[str, Any]:

@@ -123,3 +123,10 @@ Explicit human `asset_replacement_record` and `asset_replacement_withdraw` tools
 record or withdraw a sourced relationship between two existing private physical
 items. They do not move evidence, change ownership or run through the app model.
 See [replacement semantics](REPLACEMENTS.md).
+
+
+`photo_attach` explicitly links a current existing private original to a physical
+item with `photo_id`, `asset_id` and `expected_updated_at`. Attachment supports no
+claim and transfers no image bytes to the tool/model. An existing link is a safe
+retry; stale removed links and deleted originals are refused. See
+[photo gallery semantics](PHOTO_EVIDENCE.md).

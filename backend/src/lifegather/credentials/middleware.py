@@ -24,6 +24,7 @@ class CredentialBodyLimit:
                     "/api/assets",
                     "/api/photos/delete",
                     "/api/photos/detach",
+                    "/api/photos/attach",
                     "/api/reviews",
                     "/api/receipts",
                 )

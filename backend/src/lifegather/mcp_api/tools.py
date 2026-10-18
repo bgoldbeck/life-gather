@@ -45,7 +45,13 @@ from lifegather.memory.library import LibraryPage, MemoryLibrary
 from lifegather.memory.notes import CorrectionInput, NoteHistoryInput, NoteService
 from lifegather.memory.schemas import FactView
 from lifegather.memory.service import MemoryError, MemoryService
-from lifegather.photos.service import PhotoDetach, PhotoList, PhotoRead, PhotoService
+from lifegather.photos.service import (
+    PhotoAttach,
+    PhotoDetach,
+    PhotoList,
+    PhotoRead,
+    PhotoService,
+)
 from lifegather.profiles.service import ProfileRead, ProfileService
 from lifegather.reconciliation.proposals import (
     ProposalPreview,
@@ -280,6 +286,20 @@ def build_server() -> MCPServer:
         return read(
             ctx,
             lambda actor, memory, _: PhotoService(memory.engine).detach(actor, data),
+        )
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        )
+    )
+    def photo_attach(data: PhotoAttach, ctx: ToolContext) -> dict[str, Any]:
+        """Link an existing private photo; attachment alone proves no claim."""
+        return read(
+            ctx, lambda actor, memory, _: PhotoService(memory.engine).link(actor, data)
         )
 
     @server.tool(annotations=annotation)

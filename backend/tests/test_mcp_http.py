@@ -166,6 +166,7 @@ def test_mcp_discovery_and_owner_scoped_memory_reads() -> None:
                 "receipt_review",
                 "receipt_details_save",
                 "photo_detach",
+                "photo_attach",
             }
         )
         assert (
