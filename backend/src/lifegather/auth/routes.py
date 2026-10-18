@@ -20,6 +20,7 @@ from lifegather.auth.store import (
     InvalidFlow,
 )
 from lifegather.config import Settings
+from lifegather.version import build_info
 
 SESSION_COOKIE = "lifegather_session"
 FLOW_COOKIE = "lifegather_login"
@@ -101,6 +102,7 @@ def auth_router(settings: Settings, provider: GoogleProvider) -> APIRouter:
         return JSONResponse(
             {
                 "configured": settings.google_enabled,
+                "build": build_info(settings.build_revision),
                 "test_login_enabled": settings.test_login_enabled,
                 "email_password_enabled": has_password,
                 "email_delivery_enabled": request.app.state.email_auth.delivery_enabled,

@@ -289,3 +289,17 @@
   border: 1px solid #d6b75e;
   border-radius: 0.5rem;
 }
+
+.build-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.auth-card > .build-info {
+  justify-content: center;
+  margin-top: 1.25rem;
+}

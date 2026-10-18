@@ -62,6 +62,10 @@ try {
     if ($dirty) { throw 'Commit or safely stash your changes first. Nothing was built or uploaded.' }
     $revision = Get-CheckedOutput git @('rev-parse', 'HEAD')
     if ($revision -notmatch '^[0-9a-f]{40}$') { throw 'Expected a full Git commit SHA.' }
+    $versionSource = Get-Content -LiteralPath (Join-Path $repoRoot 'backend/src/lifegather/version.py') -Raw
+    $versionMatch = [regex]::Match($versionSource, '__version__ = "([0-9]+\.[0-9]+\.[0-9]+)"')
+    if (-not $versionMatch.Success) { throw 'Expected a valid application version.' }
+    $appVersion = $versionMatch.Groups[1].Value
     $branch = Get-CheckedOutput git @('branch', '--show-current')
     $commitTag = "${imageName}:sha-$revision"
     $latestTag = "${imageName}:latest"
@@ -121,6 +125,8 @@ try {
         'build', '--platform', 'linux/amd64',
         '--label', 'org.opencontainers.image.source=https://github.com/bgoldbeck/life-gather',
         '--label', "org.opencontainers.image.revision=$revision",
+        '--label', "org.opencontainers.image.version=$appVersion",
+        '--build-arg', "APP_REVISION=$revision",
         '--tag', $commitTag, '.'
     )
     Show-ImageSize $commitTag
@@ -153,7 +159,9 @@ with urllib.request.urlopen(base + '/') as r:
 with urllib.request.urlopen(base + '/brand/lifegather-icon.png') as r:
     assert r.read(8) == b'\x89PNG\r\n\x1a\n'
 with urllib.request.urlopen(base + '/auth/session') as r:
-    assert json.load(r) == {
+    status = json.load(r)
+    build = status.pop('build')
+    assert status == {
         'configured': False,
         'test_login_enabled': False,
         'email_password_enabled': False,
@@ -161,12 +169,17 @@ with urllib.request.urlopen(base + '/auth/session') as r:
         'user': None,
         'csrf_token': None,
     }
+with urllib.request.urlopen(base + '/api/version') as r:
+    assert json.load(r) == build
+assert build['version'] == '__RELEASE_VERSION__'
+assert build['revision'] == '__RELEASE_REVISION__'
 assert Path('/data/auth.sqlite3').is_file()
 probe = Path('/data/.release-probe')
 probe.write_text('synthetic check')
 probe.unlink()
 print('Container health, UI, auth migration, user, and private storage verified.')
 '@
+    $smoke = $smoke.Replace('__RELEASE_VERSION__', $appVersion).Replace('__RELEASE_REVISION__', $revision)
     $smoke | & docker exec --interactive $probeName python -
     if ($LASTEXITCODE -ne 0) { throw 'Container smoke test failed. Nothing uploaded.' }
     Invoke-Checked docker @('rm', '--force', $probeName)

@@ -49,6 +49,10 @@ function global:docker {
         }
         'compose' { }
         'build' {
+            if ($arguments -notcontains ('APP_REVISION=' + ('a' * 40)) -or
+                -not ($arguments | Where-Object { $_ -match '^org.opencontainers.image.version=\d+\.\d+\.\d+$' })) {
+                throw 'Build must embed the revision and application version label'
+            }
             $global:LifeGatherReleaseTest.Builds++
             if ($global:LifeGatherReleaseTest.BuildFailure) { $global:LASTEXITCODE = 1 }
         }
