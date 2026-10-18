@@ -37,6 +37,12 @@ from lifegather.reconciliation.proposals import (
     ProposalReview,
     ProposalService,
 )
+from lifegather.reconciliation.queue import (
+    IdentityRead,
+    IdentityReview,
+    ReviewPage,
+    ReviewService,
+)
 from lifegather.reconciliation.service import ReconciliationService
 
 logger = logging.getLogger(__name__)
@@ -151,6 +157,40 @@ def build_server() -> MCPServer:
             lambda actor, memory, _: PhotoService(memory.engine).get(
                 actor, data.photo_id
             ),
+        )
+
+    @server.tool(annotations=annotation)
+    def review_queue(data: ReviewPage, ctx: ToolContext) -> dict[str, Any]:
+        """List private pending proposals and unresolved physical identities."""
+        return read(
+            ctx, lambda actor, memory, _: ReviewService(memory.engine).list(actor, data)
+        )
+
+    @server.tool(annotations=annotation)
+    def review_identity(data: IdentityRead, ctx: ToolContext) -> dict[str, Any]:
+        """Inspect an unresolved identity with exact sourced details and candidates."""
+        return read(
+            ctx,
+            lambda actor, memory, _: ReviewService(memory.engine).detail(
+                actor, data.observation_id
+            ),
+        )
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        )
+    )
+    def review_identity_resolve(
+        data: IdentityReview, ctx: ToolContext
+    ) -> dict[str, Any]:
+        """Apply an explicit human identity review. No app-model write access."""
+        return read(
+            ctx,
+            lambda actor, memory, _: ReviewService(memory.engine).review(actor, data),
         )
 
     @server.tool(annotations=annotation)

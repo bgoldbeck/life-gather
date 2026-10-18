@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.0 — Persistent review queue
+
+- Add a private paginated Review inbox for pending item proposals and unresolved
+  identity matches, with filters, exact evidence and shared Chat review state.
+- Resolve same/different items or exclude a discovery with stale-head/candidate
+  checks and safe replay. Not sure leaves the record pending; multi-unit linking
+  requires a distinct existing item for every unit. Names never auto-merge items.
+- Typed authenticated HTTP/MCP adapters reuse existing durable proposal/decision
+  records; no migration or model calls are required by this feature.
+
+
 ## 0.7.0 — Private receipt and nameplate photos
 
 - Add authenticated JPEG/PNG/WebP upload, private originals, metadata-free previews,
