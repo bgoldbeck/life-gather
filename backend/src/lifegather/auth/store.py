@@ -11,6 +11,7 @@ from sqlalchemy import create_engine, delete, event, select
 from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.orm import Session
 
+from lifegather.auth.email_models import EmailCredential, ExternalIdentity
 from lifegather.auth.models import LoginFlow, LoginSession, User
 
 ISSUER = "https://accounts.google.com"
@@ -135,13 +136,43 @@ class AuthStore:
                 raise InvalidFlow("Invalid, expired, or already used sign-in")
             return Flow(nonce=row[0], verifier=row[1])
 
-    def login(self, subject: str, email: str, name: str, *, now: int) -> SignedIn:
+    @staticmethod
+    def issue_session(db: Session, user: User, now: int) -> SignedIn:
         token = secrets.token_urlsafe(32)
-        with Session(self.engine) as db, db.begin():
+        db.add(
+            LoginSession(
+                token_hash=digest(token),
+                user_id=user.id,
+                csrf_token=secrets.token_urlsafe(32),
+                expires_at=now + SESSION_SECONDS,
+            )
+        )
+        return SignedIn(Account(user.id, user.email, user.name), token)
+
+    def login(self, subject: str, email: str, name: str, *, now: int) -> SignedIn:
+        with Session(self.engine) as db:
+            db.connection().exec_driver_sql("BEGIN IMMEDIATE")
             self._cleanup(db, now)
-            db.execute(
-                insert(User)
-                .values(
+            user = db.scalar(
+                select(User)
+                .join(ExternalIdentity, ExternalIdentity.user_id == User.id)
+                .where(
+                    ExternalIdentity.issuer == ISSUER,
+                    ExternalIdentity.subject == subject,
+                )
+                .limit(1)
+            )
+            if user is None:
+                if db.scalar(
+                    select(EmailCredential.user_id)
+                    .where(EmailCredential.email_key == email.strip().casefold())
+                    .limit(1)
+                ):
+                    raise InvalidFlow(
+                        "Sign in with your existing method; "
+                        "automatic linking is disabled"
+                    )
+                user = User(
                     id=str(uuid4()),
                     issuer=ISSUER,
                     subject=subject,
@@ -149,24 +180,18 @@ class AuthStore:
                     name=name,
                     created_at=now,
                 )
-                .on_conflict_do_update(
-                    index_elements=["issuer", "subject"],
-                    set_={"email": email, "name": name},
+                db.add(user)
+                db.flush()
+                db.add(
+                    ExternalIdentity(
+                        id=str(uuid4()), user_id=user.id, issuer=ISSUER, subject=subject
+                    )
                 )
-            )
-            user = db.scalar(
-                select(User).where(User.issuer == ISSUER, User.subject == subject)
-            )
-            assert user is not None
-            db.add(
-                LoginSession(
-                    token_hash=digest(token),
-                    user_id=user.id,
-                    csrf_token=secrets.token_urlsafe(32),
-                    expires_at=now + SESSION_SECONDS,
-                )
-            )
-            return SignedIn(Account(user.id, user.email, user.name), token)
+            else:
+                user.email, user.name = email, name
+            signed = self.issue_session(db, user, now)
+            db.commit()
+            return signed
 
     def authenticate(self, token: str, *, now: int) -> CurrentSession | None:
         with Session(self.engine) as db:

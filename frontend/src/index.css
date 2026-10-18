@@ -224,3 +224,53 @@
     @apply font-sans;
   }
 }
+
+.email-access {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1.25rem;
+  text-align: left;
+}
+.email-access h2,
+.password-settings h2 {
+  font-size: 1.15rem;
+  margin-bottom: 1rem;
+}
+.email-access form {
+  display: grid;
+  gap: 1rem;
+}
+.email-access label {
+  display: grid;
+  gap: 0.4rem;
+  font-weight: 500;
+}
+.email-access input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  background: var(--background);
+  color: var(--foreground);
+}
+.email-access input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.email-access-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+}
+.password-settings {
+  max-width: 62rem;
+  margin: 1.5rem auto;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  background: var(--card);
+}
+.password-settings p {
+  margin-bottom: 1rem;
+}

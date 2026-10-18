@@ -153,7 +153,13 @@ with urllib.request.urlopen(base + '/') as r:
 with urllib.request.urlopen(base + '/brand/lifegather-icon.png') as r:
     assert r.read(8) == b'\x89PNG\r\n\x1a\n'
 with urllib.request.urlopen(base + '/auth/session') as r:
-    assert json.load(r) == {'configured': False, 'user': None, 'csrf_token': None}
+    assert json.load(r) == {
+        'configured': False,
+        'email_password_enabled': False,
+        'email_delivery_enabled': False,
+        'user': None,
+        'csrf_token': None,
+    }
 assert Path('/data/auth.sqlite3').is_file()
 probe = Path('/data/.release-probe')
 probe.write_text('synthetic check')

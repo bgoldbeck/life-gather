@@ -1,6 +1,6 @@
 # LifeGather — Product and Engineering Plan
 
-**Status:** Revised product direction; detailed design awaiting user review
+**Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
 **Date:** Updated 2026-10-17
 **Project name:** LifeGather (working brand; domain and trademark clearance not yet completed)  
 **Deployment:** Private, self-hosted Linux server using Docker Compose  
@@ -22,7 +22,7 @@ The consolidated design is [Personal discovery and recall](docs/superpowers/spec
 
 First release: Google sign-in → configure a personal AI connection → upload a receipt or nameplate photo → automatically reconcile an item → inspect its evidence and graph connections → recall a useful fact in a later conversation.
 
-Phone-app planning, dedicated camera capture, PWA/share-menu features, and remote-access/domain/tunnel setup are deferred by user decision on 2026-10-17. Basic responsive UI and ordinary image/file uploads remain in scope. Google authentication, private settings, and the deterministic memory-service foundation are implemented in source. Reconciliation is the next milestone; chat and memory UI adapters follow later.
+Phone-app planning, dedicated camera capture, PWA/share-menu features, and remote-access/domain/tunnel setup are deferred by user decision on 2026-10-17. Basic responsive UI and ordinary image/file uploads remain in scope. Google authentication, private settings, and the deterministic memory-service foundation are implemented in source. The first reconciliation service slice now supports create/enrich/review and reversible evidence reassociation. Email/password signup, verification and recovery now complement Google in source. Chat and authenticated memory adapters follow, then upload and review UI.
 
 - Any Google account can register; every workspace, credential, connector, record, and background job is private to its user. No shared spaces.
 - Chat is the primary interface, with one provider initially behind replaceable interfaces. Keep direct correction, export, and recovery usable without AI.
@@ -162,7 +162,9 @@ Explicit deletion/export/backup operations should have their own guarded flows r
 
 ## 9. Development sequence and acceptance gates
 
-Source progress, 2026-10-17: Google login/session code, private settings/encrypted credentials, and the deterministic evidence-backed memory services are implemented with offline and two-user tests. The user reported local Google sign-in working. Credential storage needs an optional server key; it is not part of end-user login. Memory services include provenance, temporal corrections, search, bounded traversal, export, and tested database snapshots. HTTP/MCP memory adapters, chat, files, connectors, and jobs remain later work with their own authorization tests. See `docs/GOOGLE_LOGIN.md`, `docs/PRIVATE_SETTINGS.md`, and `docs/MEMORY_CORE.md`. Container builds/publication remain separately approved operations.
+User addition, 2026-10-17: provide email/password signup and sign-in alongside Google, with email verification and password recovery. This authentication milestone is implemented in source with fake-sender tests; real SMTP configuration/delivery remains pending. See [email authentication requirements](docs/EMAIL_PASSWORD_AUTH.md).
+
+Source progress, 2026-10-17: Google login/session code, private settings/encrypted credentials, and the deterministic evidence-backed memory services are implemented with offline and two-user tests. The user reported local Google sign-in working. Credential storage needs an optional server key; it is not part of end-user login. Memory services include provenance, temporal corrections, search, bounded traversal, export, and tested database snapshots. Migration 0004 adds source-independent reconciliation with distinct product/purchase/unit identities, persistent review decisions, atomic retries, and reversible evidence reassociation. See `docs/RECONCILIATION.md` for the first slice and remaining limits. The private read-only MCP adapter now exposes owner-scoped recall and discovery inspection with protocol, concurrency, and authorization tests; see `docs/PRIVATE_MCP.md`. Writable tools, memory UI/HTTP adapters, chat, files, connectors, and jobs remain later work with their own authorization tests. See `docs/GOOGLE_LOGIN.md`, `docs/PRIVATE_SETTINGS.md`, and `docs/MEMORY_CORE.md`. Container builds/publication remain separately approved operations.
 
 The original Phase 0 produced the frontend/backend Docker preview. Authentication, migrations, private memory services, and database snapshot/restore now have source-level acceptance tests. The preview does not provide a working memory UI or chat yet; future file storage also requires coordinated backup/restore coverage.
 
@@ -211,7 +213,7 @@ Each stage needs a bounded implementation plan, relevant tests, migrations where
 6. Keep models/provider SDKs behind adapters; upgrade dependencies deliberately and lock working versions.
 7. Commit at each passing acceptance gate. Avoid large speculative abstractions and autogenerated endpoints that bypass the domain layer.
 
-**Next planning step:** Write a bounded implementation plan for deterministic reconciliation using synthetic sources, before introducing live connectors. `docs/FIRST_TASK.md` is historical Phase 0 kickoff material, not the current assignment.
+**Next planning step:** Configure/test an installation email sender when the user selects one, or continue to the one-provider chat and authenticated MCP plan over the tested services. Email/password verification and recovery are implemented in source. See `docs/EMAIL_PASSWORD_AUTH.md`; outbound email delivery still needs an installation choice and real smoke test. Preserve stable private workspace IDs and never automatically link accounts by matching email. The read-only app-session MCP adapter is implemented with the verified official Python SDK v2. One-provider chat, scoped writes, provider permissions/usage limits, and external-client OAuth remain ahead; see `docs/PRIVATE_MCP.md`. General entity consolidation, partial shipments, return workflows, extraction, and review UI remain later scoped work; do not introduce live connectors yet. `docs/FIRST_TASK.md` is historical Phase 0 kickoff material, not the current assignment.
 
 ## 13. References
 

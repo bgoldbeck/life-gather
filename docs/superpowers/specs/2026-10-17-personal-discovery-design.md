@@ -1,6 +1,6 @@
 # LifeGather personal discovery and recall design
 
-Status: consolidated design for user review; implementation has not started.
+Status: design baseline; implemented source milestones and remaining work are tracked in `PROJECT_PLAN.md`.
 
 ## Purpose and first useful release
 

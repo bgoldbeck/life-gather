@@ -1,22 +1,41 @@
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from urllib.parse import urlsplit
 
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from mcp.server.transport_security import TransportSecuritySettings
+from starlette.routing import Route
 
+from lifegather.auth.email_routes import email_router
+from lifegather.auth.email_service import EmailAuth
+from lifegather.auth.email_validation import EmailAuthError
 from lifegather.auth.google import GoogleProvider
+from lifegather.auth.mail import MailSender, SmtpSender
 from lifegather.auth.routes import auth_router
 from lifegather.auth.store import AuthStore
 from lifegather.config import Settings
 from lifegather.credentials.middleware import CredentialBodyLimit
 from lifegather.credentials.routes import private_router
 from lifegather.credentials.service import PrivateSettings, VaultError, read_key
+from lifegather.mcp_api.tools import build_server
+from lifegather.mcp_api.transport import PrivateMCP
 
 
-def create_app() -> FastAPI:
+def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     settings = Settings()
+    mcp_server = build_server()
+    mcp_app = mcp_server.streamable_http_app(
+        json_response=True,
+        stateless_http=True,
+        max_request_body_size=16384,
+        transport_security=TransportSecuritySettings(
+            allowed_hosts=[urlsplit(settings.public_url).netloc],
+            allowed_origins=[settings.public_url],
+        ),
+    )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -24,19 +43,39 @@ def create_app() -> FastAPI:
         store = AuthStore(settings.data_dir / "auth.sqlite3")
         store.migrate()
         app.state.auth_store = store
+        sender = mail_sender
+        if sender is None and settings.mail_enabled:
+            sender = SmtpSender(
+                settings.smtp_host,
+                settings.smtp_port,
+                settings.smtp_username,
+                settings.smtp_password.get_secret_value(),
+                settings.smtp_sender,
+                settings.smtp_implicit_tls,
+            )
+        app.state.email_auth = EmailAuth(store, sender, settings.public_url)
         try:
             app.state.private_settings = PrivateSettings(
                 store.engine, read_key(settings.vault_key_file)
             )
-            yield
+            async with mcp_server.session_manager.run():
+                yield
         finally:
             store.engine.dispose()
 
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
     app.state.settings = settings
+    app.state.mcp_gate = PrivateMCP(mcp_app, app, settings)
+    app.state.mcp_server = mcp_server
+    app.router.routes.append(Route("/mcp", app.state.mcp_gate))
     app.include_router(auth_router(settings, GoogleProvider(settings)))
     app.include_router(private_router())
+    app.include_router(email_router(settings))
     app.add_middleware(CredentialBodyLimit)
+
+    @app.exception_handler(EmailAuthError)
+    async def email_auth_error(request: Request, error: EmailAuthError) -> JSONResponse:
+        return JSONResponse({"detail": str(error)}, status_code=error.status)
 
     @app.exception_handler(VaultError)
     async def vault_error(request: Request, error: VaultError) -> JSONResponse:
@@ -57,6 +96,7 @@ def create_app() -> FastAPI:
         if request.url.path.startswith(("/auth/", "/api/")):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["Referrer-Policy"] = "no-referrer"
         return response
 
     @app.get("/health")

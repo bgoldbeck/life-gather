@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
+import { EmailAccess } from './EmailAccess'
+import { readEmailLink } from './emailLink'
 
 type Account = { id: string; name: string; email: string }
 type Session = {
+  email_delivery_enabled?: boolean
+  email_password_enabled?: boolean
   configured: boolean
   user: Account | null
   csrf_token: string | null
@@ -17,8 +21,25 @@ export function AuthGate({
     busy: boolean,
     csrfToken: string,
     refreshSession: () => Promise<void>,
+    passwordEnabled: boolean,
+    deliveryEnabled: boolean,
   ) => ReactNode
 }) {
+  const [link, setLink] = useState(readEmailLink)
+  const [notice, setNotice] = useState(() =>
+    new URLSearchParams(window.location.hash.slice(1)).has('auth') && !link
+      ? 'This email link is invalid. Request a new verification or reset link.'
+      : '',
+  )
+  useEffect(() => {
+    if (new URLSearchParams(window.location.hash.slice(1)).has('auth')) {
+      window.history.replaceState(
+        null,
+        '',
+        window.location.pathname + window.location.search,
+      )
+    }
+  }, [])
   const [session, setSession] = useState<Session | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -69,6 +90,39 @@ export function AuthGate({
     }
   }
 
+  async function completed() {
+    setLink(null)
+    setNotice('Your password is saved. Sign in to continue.')
+    await refresh()
+  }
+
+  if (session && link) {
+    return (
+      <main className="auth-page">
+        <section className="auth-card">
+          {link.purpose === 'link' && !session.user ? (
+            <>
+              <p role="alert">
+                Sign in to the account that requested setup, then request a
+                fresh link from Settings in this browser.
+              </p>
+              <Button onClick={() => setLink(null)}>Back to sign in</Button>
+            </>
+          ) : (
+            <EmailAccess
+              deliveryEnabled={!!session.email_delivery_enabled}
+              onSignedIn={refresh}
+              link={link}
+              csrfToken={session.csrf_token || ''}
+              onCompleted={completed}
+              onCancel={() => setLink(null)}
+            />
+          )}
+        </section>
+      </main>
+    )
+  }
+
   if (session?.user) {
     return (
       <>
@@ -79,6 +133,8 @@ export function AuthGate({
           busy,
           session.csrf_token || '',
           refresh,
+          !!session.email_password_enabled,
+          !!session.email_delivery_enabled,
         )}
       </>
     )
@@ -93,6 +149,7 @@ export function AuthGate({
         <img src="/brand/lifegather-icon.png" width="56" height="56" alt="" />
         <h1 id="login-heading">Your life, a little more connected.</h1>
         <p>Sign in to your private LifeGather workspace.</p>
+        {notice && <p role="status">{notice}</p>}
         {error ? (
           <>
             <p role="alert">{error}</p>
@@ -113,10 +170,16 @@ export function AuthGate({
               connections are separate and are not enabled by signing in.
             </p>
           </>
-        ) : (
+        ) : !session.email_delivery_enabled ? (
           <p role="status">
             Google sign-in needs to be configured by the installation owner.
           </p>
+        ) : null}
+        {session && !error && (
+          <EmailAccess
+            deliveryEnabled={!!session.email_delivery_enabled}
+            onSignedIn={refresh}
+          />
         )}
       </section>
     </main>

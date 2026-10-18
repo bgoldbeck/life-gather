@@ -6,7 +6,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse, Response
+from sqlalchemy.orm import Session
 
+from lifegather.auth.email_models import EmailCredential
 from lifegather.auth.google import GoogleFailure, GoogleProvider
 from lifegather.auth.store import (
     FLOW_SECONDS,
@@ -68,9 +70,16 @@ def auth_router(settings: Settings, provider: GoogleProvider) -> APIRouter:
         current = store_for(request).authenticate(
             request.cookies.get(SESSION_COOKIE, ""), now=int(time.time())
         )
+        with Session(store_for(request).engine) as db:
+            has_password = (
+                current is not None
+                and db.get(EmailCredential, current.user.id) is not None
+            )
         return JSONResponse(
             {
                 "configured": settings.google_enabled,
+                "email_password_enabled": has_password,
+                "email_delivery_enabled": request.app.state.email_auth.delivery_enabled,
                 "user": asdict(current.user) if current else None,
                 "csrf_token": current.csrf_token if current else None,
             }
