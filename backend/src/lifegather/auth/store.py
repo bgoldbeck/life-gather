@@ -15,6 +15,7 @@ from lifegather.auth.email_models import EmailCredential, ExternalIdentity
 from lifegather.auth.models import LoginFlow, LoginSession, User
 
 ISSUER = "https://accounts.google.com"
+TEST_ISSUER = "lifegather:test"
 SESSION_SECONDS = 604800
 FLOW_SECONDS = 600
 
@@ -55,8 +56,9 @@ class Flow:
 class AuthStore:
     """Framework-independent identity and opaque session storage."""
 
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, *, test_login_enabled: bool = False) -> None:
         self.path = path
+        self.test_login_enabled = test_login_enabled
         self.engine = create_engine(
             "sqlite:///" + path.resolve().as_posix(),
             connect_args={"check_same_thread": False, "timeout": 15},
@@ -193,6 +195,39 @@ class AuthStore:
             db.commit()
             return signed
 
+    def test_login(self, *, now: int, old_token: str = "") -> SignedIn:
+        """An explicit installation opt-in grants access to one shared test user."""
+        if not self.test_login_enabled:
+            raise InvalidFlow("Test login is disabled")
+        with Session(self.engine) as db:
+            db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+            self._cleanup(db, now)
+            user = db.scalar(
+                select(User)
+                .where(User.issuer == TEST_ISSUER, User.subject == "test-workspace")
+                .limit(1)
+            )
+            if user is None:
+                user = User(
+                    id=str(uuid4()),
+                    issuer=TEST_ISSUER,
+                    subject="test-workspace",
+                    name="Test user",
+                    email="test@lifegather.invalid",
+                    created_at=now,
+                )
+                db.add(user)
+                db.flush()
+            if old_token:
+                db.execute(
+                    delete(LoginSession).where(
+                        LoginSession.token_hash == digest(old_token)
+                    )
+                )
+            signed = self.issue_session(db, user, now)
+            db.commit()
+            return signed
+
     def authenticate(self, token: str, *, now: int) -> CurrentSession | None:
         with Session(self.engine) as db:
             row = db.execute(
@@ -207,6 +242,8 @@ class AuthStore:
             if row is None:
                 return None
             user, session = row
+            if user.issuer == TEST_ISSUER and not self.test_login_enabled:
+                return None
             return CurrentSession(
                 Account(user.id, user.email, user.name), session.csrf_token
             )
