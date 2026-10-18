@@ -6,7 +6,7 @@ from lifegather.chat.service import SaveText
 from lifegather.documents.service import DocumentPage, DocumentRead
 from lifegather.memory.library import LibraryPage
 from lifegather.memory.notes import CorrectionInput, NoteHistoryInput
-from lifegather.photos.service import PhotoList, PhotoRead
+from lifegather.photos.service import PhotoDetach, PhotoList, PhotoRead
 from lifegather.profiles.service import ProfileRead
 from lifegather.reconciliation.proposals import (
     ProposalPreview,
@@ -110,3 +110,5 @@ INPUTS: dict[str, type[BaseModel]] = {
 
 INPUTS["photo_list"] = PhotoList
 INPUTS["photo_get"] = PhotoRead
+
+INPUTS["photo_detach"] = PhotoDetach

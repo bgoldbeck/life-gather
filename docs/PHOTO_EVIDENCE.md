@@ -85,3 +85,17 @@ navigation are deferred beyond this slice.
 Wire references verified for this release: [OpenAI Responses image inputs](https://developers.openai.com/api/docs/guides/images-vision?api-mode=responses)
 and [Pillow image API](https://pillow.readthedocs.io/en/stable/reference/Image.html).
 No live provider calls or personal images were used in verification.
+
+## Implemented gallery correction (v0.23.0)
+
+An asset gallery offers **Remove photo from this item** separately from deleting
+the original. This removes only that photo/asset attachment; the private photo
+library, original bytes, other asset galleries, transcriptions and source-backed
+facts remain. A gallery attachment is not a claim-level evidence link. Correct a
+claim separately through its source/fact workflow if its evidence is mistaken.
+
+The transaction records an immutable `photo_detached` audit entry with both IDs.
+HTTP and MCP derive the owner from the session; the expected photo version blocks
+stale removal after reattachment. Retrying an already absent link is harmless.
+Upload the same original into the item gallery to reattach it with per-user byte
+deduplication. This adds no tables or external requests.

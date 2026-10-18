@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.23.0 — Correct individual photo attachments
+
+- Remove a photo from one asset gallery while preserving its private original, other gallery attachments, transcriptions and claim evidence. Reattach by uploading the same file to that item.
+- Add owner-scoped HTTP/MCP correction and gallery action, audited with both photo and asset IDs. Safe retries do not repeat removal; stale actions cannot remove a newly reattached link. No migration or dependency change.
+
 ## 0.22.0 — Explicit receipt currencies
 
 - Support printed USD, EUR, GBP, CAD, AUD and JPY line totals in suggestions, review and immutable history. Store exact integer minor units; use whole yen for JPY and two decimals for the others. Never convert currencies or infer them from symbols.

@@ -23,6 +23,7 @@ class CredentialBodyLimit:
                     "/api/memories",
                     "/api/assets",
                     "/api/photos/delete",
+                    "/api/photos/detach",
                     "/api/reviews",
                     "/api/receipts",
                 )
