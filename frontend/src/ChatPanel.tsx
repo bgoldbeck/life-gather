@@ -77,6 +77,7 @@ export function ChatPanel({
     body: Record<string, string>
   } | null>(null)
   const generation = useRef(0)
+  const sourceGeneration = useRef(0)
 
   const request = useCallback(
     async (path: string, init?: RequestInit) => {
@@ -223,8 +224,9 @@ export function ChatPanel({
     const version = ++generation.current
     pending.current = null
     setRetryNeeded(false)
-    setSource(null)
+    clearEvidence()
     setViewProposal('')
+    setViewReceipt('')
     setSelected(id)
     setTurns([])
     setTurnCursor(null)
@@ -361,17 +363,35 @@ export function ChatPanel({
     }
   }
 
+  function clearEvidence() {
+    ++sourceGeneration.current
+    setSource(null)
+    setSourceOffset(null)
+    setOpening(false)
+  }
+  const invalidateEvidence = useCallback(() => {
+    ++sourceGeneration.current
+  }, [])
+  useEffect(() => invalidateEvidence, [invalidateEvidence])
+
   async function openSource(id: string, offset = 0) {
+    if (loading) return
+    const conversationVersion = generation.current
+    const sourceVersion = ++sourceGeneration.current
+    const current = () =>
+      conversationVersion === generation.current &&
+      sourceVersion === sourceGeneration.current
     setOpening(true)
     setError('')
     try {
       const original = await request(`/sources/${id}?offset=${offset}`)
+      if (!current()) return
       setSource(original)
       setSourceOffset(original.next_offset)
     } catch (caught) {
-      setError((caught as Error).message)
+      if (current()) setError((caught as Error).message)
     } finally {
-      setOpening(false)
+      if (current()) setOpening(false)
     }
   }
 
@@ -406,7 +426,9 @@ export function ChatPanel({
             setSelected('')
             setTurns([])
             setTurnCursor(null)
-            setSource(null)
+            clearEvidence()
+            setViewProposal('')
+            setViewReceipt('')
             pending.current = null
             setRetryNeeded(false)
             setError('')
@@ -546,7 +568,7 @@ export function ChatPanel({
                     <Button
                       key={s.id}
                       variant="outline"
-                      disabled={opening}
+                      disabled={opening || loading}
                       onClick={() => void openSource(s.id)}
                     >
                       Source {i + 1}: {s.text.slice(0, 55)}
@@ -588,7 +610,7 @@ export function ChatPanel({
               nextOffset={sourceOffset}
               opening={opening}
               onOpen={openSource}
-              onClose={() => setSource(null)}
+              onClose={clearEvidence}
               request={request}
               onViewReceipt={setViewReceipt}
               onSuggestReceipt={
@@ -598,7 +620,7 @@ export function ChatPanel({
                       setExtractSource(source.id)
                       setText(source.text)
                       setMode('extract_receipt')
-                      setSource(null)
+                      clearEvidence()
                       setViewReceipt('')
                     }
               }
@@ -610,7 +632,7 @@ export function ChatPanel({
                       setExtractSource(source.id)
                       setText(source.text)
                       setMode('extract')
-                      setSource(null)
+                      clearEvidence()
                       setViewProposal('')
                     }
               }

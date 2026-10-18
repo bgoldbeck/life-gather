@@ -427,3 +427,19 @@ Photo gallery regressions additionally cover delayed initial metadata after an
 upload, stale transcription success/error after selection, evidence-close intent
 and old pagination after a fresh upload reload. These reads now respect request
 generations and unmounts; no original data or correction is changed.
+
+
+Chat evidence navigation v0.33.1: source/conversation generation guards preserve
+closed evidence and the current conversation when older pages or errors arrive.
+A prior read cannot clear a newer source's loading state. Conversation changes
+clear old receipt and asset review panels; drafts and completed records remain.
+No domain API, migration, dependency or provider change.
+
+Verified: 324 backend / 126 frontend tests; lint, format, types and production/
+package builds pass. Six Chat regressions cover late source success/error after
+new conversation, navigation with a newer read, close-during-page intent and both
+review panels across new/existing conversation changes. A composed backend
+regression joins this session's batches, photo reuse, replacement withdrawal,
+strict reversal refusal, explicit unit recovery, bounded private recall and
+snapshot replay. Browser used a four-second delayed citation and retained the
+new-conversation view after completion. Graphify unavailable; graph/HTML not refreshed.

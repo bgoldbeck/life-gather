@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.33.1 — Keep Chat evidence with the current conversation
+
+- Ignore late citation pages and errors after closing evidence, selecting another
+  conversation, starting a new conversation or unmounting Chat. Old completion
+  cannot clear a newer citation read's loading state.
+- Clear old receipt/asset review panels when changing conversations, and prevent
+  opening citations from a conversation while its messages are loading. Preserve
+  conversation drafts, completed turns, existing review/write and retry behavior.
+- No domain API, schema migration, dependency or provider change.
+
 ## 0.33.0 — Link existing private photos into item galleries
 
 - Deliberately load and choose a saved private photo from a paged gallery, then
