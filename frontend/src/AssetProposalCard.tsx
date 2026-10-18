@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ChatRequestError } from './chatRequest'
+import { CandidateComparison } from './CandidateComparison'
 
 type Fields = {
   name: string
@@ -337,6 +338,12 @@ export function AssetProposalCard({
                   </p>
                   {check && (
                     <div className="proposal-identity">
+                      <CandidateComparison
+                        key={JSON.stringify(check.candidates)}
+                        candidates={check.candidates}
+                        onOpen={onOpen}
+                        disabled={busy || retry}
+                      />
                       <p>
                         {check.candidates.length
                           ? 'Possible existing items — a similar name or model does not prove identity. Choose explicitly.'

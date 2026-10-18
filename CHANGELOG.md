@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.27.0 — Compare ambiguous physical items before choosing
+
+- Add read-only candidate inspection to single-item proposals, receipt-line review
+  and identity review. Compare two records side by side, including sourced
+  manufacturer/model/serial passages, current inventory status and latest corrections.
+- Open exact observation/correction evidence without selecting or merging items.
+  Page five candidate buttons at a time; load only on request using existing
+  authenticated, bounded asset reads. Closed/evicted requests are canceled and late
+  responses cannot replace a different comparison. Errors support retry.
+- Keep final identity selection explicit and preserve all review/source guards.
+  No migration, backend API/tool, dependency, AI call or graph write added.
+
 ## 0.26.0 — Record clear reviewed items automatically
 
 - Add a one-action identity decision for reviewed single-item proposals: record a

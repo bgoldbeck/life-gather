@@ -84,3 +84,27 @@ existing asset evidence/ownership controls. Current-source, owner, origin/CSRF,
 request replay, receipt-overlap and original-file guards apply equally to `auto`
 on the existing review HTTP/MCP contracts. Deleted PDF originals now block manual
 single-item acceptance too, fixing the previous gap relative to receipt batches.
+
+
+## Compare possible items (v0.27.0)
+
+After a duplicate check, choose **Inspect** beside a candidate to view its private
+source-backed identifiers and latest recorded corrections. Open a second candidate
+to compare them side by side; opening a third replaces the oldest comparison.
+Inspecting never selects an identity, edits records, merges items or calls AI.
+Your explicit same/different decision and the server's current checks still apply.
+
+The same comparison is available on receipt-line checks and identity review. Each
+snapshot requests three sourced observations and three correction records through
+the existing authenticated asset-detail read. It labels earlier/current evidence
+associations, original quotes, unknown identifiers and current inventory status
+without treating a past purchase as proof of ownership. Open the original,
+identity or correction evidence directly. A notice identifies omitted history;
+use Assets for the complete paged history. These are snapshots, so inspect again
+if another operation changes the record before your final review.
+
+Candidate buttons page in groups of five, with at most two open snapshots. Closing
+or replacing a pending snapshot cancels its read, and late responses are ignored.
+The component resets when the parent review/candidate context changes. Read errors
+can be retried. Existing session/owner isolation applies; no new backend contract,
+model tool, permission, migration, dependency or financial operation.

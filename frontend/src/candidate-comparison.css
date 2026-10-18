@@ -1,0 +1,55 @@
+.candidate-comparison {
+  min-width: 0;
+  margin: 1rem 0;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+.candidate-comparison h4,
+.candidate-comparison h5,
+.candidate-comparison h6 {
+  font-weight: 600;
+  margin: 0.6rem 0;
+}
+.candidate-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.candidate-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 0.8rem;
+}
+.candidate-grid article {
+  min-width: 0;
+  padding: 0.8rem;
+  margin-top: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  background: var(--card);
+  overflow-wrap: anywhere;
+}
+.candidate-grid dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.3rem;
+}
+.candidate-grid blockquote {
+  margin: 0.7rem 0;
+  border-left: 2px solid var(--border);
+  padding-left: 0.6rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.candidate-grid button,
+.candidate-buttons button {
+  white-space: normal;
+  height: auto;
+}
+.candidate-observation {
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+  margin-top: 0.8rem;
+}
