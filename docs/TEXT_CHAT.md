@@ -140,3 +140,18 @@ recall even when keyword search misses that source. Cited source inspection uses
 the existing evidence panel and receipt-review link. No database migration or new
 dependency. All provider tests use synthetic responses; live answer quality and
 instruction following have not been independently verified.
+
+
+Named asset recall includes canonical inferred inventory membership and up to
+three recent own or incoming correction records, even when their explanations
+do not match the question's search text. This is bounded history, not ownership
+verification. Original source metadata identifies superseded ownership and
+replacement statement versions, preserves their known dates and reports how
+many recorded association versions remain current after later moves. Source
+inspection shows historical-state labels. Current purchase bindings remain the
+basis for receipt claims; original episodes are never silently reassigned.
+Incoming keyword history matches either linked item, scoped to the authenticated
+owner and latest operation for each origin/target pair. Existing two-record,
+eight-source and 24 KiB context limits, omission flags, two provider calls and
+citation validation remain. Live model instruction following is not verified by
+the deterministic synthetic-provider tests.

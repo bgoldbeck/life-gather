@@ -389,3 +389,19 @@ created the sourced graph edge and withdrew it while preserving the original
 statement and USD 49.90 line claim. Fixed an observed appearance-test timing race
 by awaiting the existing asynchronous theme effect. Graphify unavailable, so
 source graph/HTML refresh could not run. Whole-record consolidation remains ahead.
+
+
+Correction recall v0.32.1: bounded named-asset own/incoming history and canonical
+inferred inventory membership independent of keyword matches; correction source
+metadata identifies superseded ownership/replacement and changed association
+versions. Incoming keyword lookup includes either linked item and preserves
+separate origin/target pairs. Current purchase bindings and original text remain.
+No new provider call, migration, dependency or model write capability.
+
+Verified: 319 backend / 109 frontend tests; lint, format, types and production/
+package builds pass. Coverage includes moved/reversed receipt associations,
+separate incoming targets, buyback history, withdrawn replacement dates, private
+HTTP/MCP source metadata, context byte/source caps and cited two-call answers.
+Synthetic browser asked about a withdrawn link, cited incoming correction history
+and opened its historical-state label. No live provider call; actual model
+instruction following remains unverified. Graphify unavailable; graph/HTML not refreshed.

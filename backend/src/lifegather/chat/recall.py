@@ -6,6 +6,7 @@ from typing import Annotated, Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from lifegather.assets.purchases import AssetPurchases, AssetPurchasesRead
+from lifegather.assets.service import AssetRead, AssetService
 from lifegather.auth.store import Account
 from lifegather.chat.service import ChatService
 from lifegather.memory.notes import NoteService
@@ -101,6 +102,26 @@ class RecallTools:
                     truncated = True
                     break
                 seen.add(entity.id)
+                detail = (
+                    AssetService(memory.engine).get(
+                        actor, AssetRead(asset_id=entity.id, limit=3)
+                    )
+                    if entity.kind == "asset"
+                    else None
+                )
+                corrections = []
+                if detail is not None:
+                    for action in detail["actions"]:
+                        if add_source(action["source_id"]):
+                            corrections.append(
+                                {
+                                    "action_id": action["id"],
+                                    "source_id": action["source_id"],
+                                    "operation": action["operation"],
+                                    "direction": action["direction"],
+                                    "recorded_at": action["recorded_at"],
+                                }
+                            )
                 add_source(entity.source_id)
                 facts = memory.facts(actor, entity.id, limit=8)
                 record: dict[str, Any] = {
@@ -115,7 +136,27 @@ class RecallTools:
                     "connections_limited": False,
                     "purchases": [],
                     "purchases_limited": False,
+                    "corrections": corrections,
+                    "corrections_limited": bool(
+                        detail
+                        and (
+                            detail["next_action_cursor"]
+                            or len(corrections) < len(detail["actions"])
+                        )
+                    ),
                 }
+                if detail is not None:
+                    record["in_inventory"] = detail["in_inventory"]
+                    record["inventory_status"] = (
+                        "inferred membership; not verified ownership"
+                    )
+                    trace.append(
+                        {
+                            "tool": "asset_detail",
+                            "count": len(corrections),
+                            "limited": record["corrections_limited"],
+                        }
+                    )
                 record["facts_limited"] = record["facts_limited"] or len(
                     record["facts"]
                 ) < len(facts)
@@ -200,6 +241,7 @@ class RecallTools:
                 record["facts_limited"]
                 or record["connections_limited"]
                 or record["purchases_limited"]
+                or record["corrections_limited"]
                 for record in records
             ),
         }
@@ -211,7 +253,10 @@ class RecallTools:
                 (
                     record
                     for record in reversed(records)
-                    if record["connections"] or record["facts"] or record["purchases"]
+                    if record["connections"]
+                    or record["facts"]
+                    or record["purchases"]
+                    or record["corrections"]
                 ),
                 None,
             )
@@ -222,9 +267,12 @@ class RecallTools:
                 elif removable["facts"]:
                     removable["facts"].pop()
                     removable["facts_limited"] = True
-                else:
+                elif removable["purchases"]:
                     removable["purchases"].pop()
                     removable["purchases_limited"] = True
+                else:
+                    removable["corrections"].pop()
+                    removable["corrections_limited"] = True
             elif records:
                 records.pop()
             elif result["evidence"]:

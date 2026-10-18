@@ -15,6 +15,46 @@ const current: EvidenceSource = {
   },
 }
 
+it.each([
+  [
+    { ownership_statement_current_version: false },
+    'This ownership statement has been superseded.',
+  ],
+  [
+    { replacement_statement_current_version: false },
+    'The linked replacement statement has been superseded or withdrawn.',
+  ],
+  [
+    { association_versions_current: 1, association_versions_total: 2 },
+    'Only 1 of 2 recorded association versions remain current.',
+  ],
+])(
+  'labels historical correction evidence with its current version state',
+  (state, message) => {
+    render(
+      <EvidencePanel
+        source={{
+          id: 'historical-correction',
+          text: 'Exact earlier explanation.',
+          asset_context: {
+            asset_name: 'Original item',
+            operation: 'reassociate',
+            user_selected_status: null,
+            ...state,
+          },
+        }}
+        nextOffset={null}
+        opening={false}
+        onOpen={vi.fn()}
+        onClose={vi.fn()}
+        request={vi.fn()}
+      />,
+    )
+    expect(screen.getByText(message, { exact: false })).toBeVisible()
+    expect(screen.getByText('Exact earlier explanation.')).toBeVisible()
+  },
+)
+
 it('names both items when inspecting a sourced reassociation correction', () => {
   render(
     <EvidencePanel

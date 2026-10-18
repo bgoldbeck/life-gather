@@ -320,7 +320,7 @@ class ChatService:
             }
 
     def source_metadata(self, actor: Account, source: SourceView) -> dict[str, Any]:
-        """Same derived-file labels for keyword and named-record recall."""
+        """Shared provenance and current correction state for all recall paths."""
         from lifegather.documents.service import DocumentService
         from lifegather.photos.service import PhotoService
 
@@ -358,6 +358,9 @@ class ChatService:
                 receipt_id = receipts.for_source(actor, note["root_source_id"])
         if receipt_id:
             result["receipt_review_id"] = receipt_id
+        context = ActionService(self.engine).source_context(actor, source.id)
+        if context is not None:
+            result["asset_context"] = context
         return result
 
     def evidence(self, actor: Account, query: str) -> list[dict[str, Any]]:
@@ -399,9 +402,4 @@ class ChatService:
                 else "original statement; not independently verified",
             }
             sources[identifier].update(self.source_metadata(actor, source))
-            # Preserve exact user text; attach authenticated item-selection context
-            # so short corrections such as "I sold it" remain attributable.
-            context = actions.source_context(actor, identifier)
-            if context is not None:
-                sources[identifier]["asset_context"] = context
         return list(sources.values())[:8]
