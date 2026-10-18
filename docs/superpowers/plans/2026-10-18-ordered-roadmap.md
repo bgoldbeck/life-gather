@@ -323,3 +323,12 @@ Cross-line identity changes roll back atomically. Manual new/link/skip remains;
 no partial draft state, unattended ingestion, money extraction or schema/dependency.
 
 Automatic receipt verification: 283 backend / 88 frontend tests; lint, format, types, production frontend and package builds passed. Coverage includes concurrent exact replay, ambiguity with no sources/entities/facts/audit writes, active serial enrichment, sold refusal, cross-line rollback, corrected sources, private HTTP/MCP and lost-response retry. Synthetic browser kept ambiguity pending, opened its candidate and completed a mixed automatic/manual three-unit receipt. Graphify unavailable; graph/HTML refresh could not run. No migration/dependency.
+
+
+Inventory correction v0.29.1: share current-world ownership predicates for the
+asset screen, discovery/MCP inventory and automatic matching. Exclude sold/returned/
+no-longer-owned current statements before paging; preserve historical bindings.
+Finite active intervals block enrichment; future/ended statements do not. Explicit
+buyback restores inventory. No schema, dependency or UI change.
+
+Inventory consistency verified: 293 backend / 88 frontend tests; lint, format, types, frontend and package builds pass. New coverage checks sold/returned/no-longer-owned exclusion, buyback, preserved history, current/future/ended intervals, inclusive starts/exclusive ends and private MCP pagination. Graphify unavailable; graph/HTML refresh could not run after shared predicate extraction. No schema/dependency/UI change.

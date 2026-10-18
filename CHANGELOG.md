@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.29.1 — Keep current inventory and matching consistent
+
+- Exclude valid negative ownership statements from reconciliation/MCP discovery
+  inventory, matching the asset screen. Apply exclusions before pagination; retain
+  original bindings and history. An explicit buyback restores current inventory.
+- Share current-world ownership predicates across Assets, discovery inventory and
+  identity matching. A negative interval blocks automatic enrichment while valid;
+  future or ended intervals do not. Start dates are inclusive and end dates exclusive.
+- Preserve owner isolation, explicit corrections and evidence. Discovery inventory
+  remains limited to discovery-bound assets. No migration, dependency or UI change.
+
 ## 0.29.0 — Record clear reviewed receipt identities together
 
 - Add an explicit automatic-identity choice per reviewed receipt line. Fresh

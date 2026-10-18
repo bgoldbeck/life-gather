@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from lifegather.auth.store import Account
 from lifegather.memory.models import Alias, Assertion, Entity
 from lifegather.memory.service import normalized
+from lifegather.reconciliation.inventory import current_ownership
 from lifegather.reconciliation.models import Binding, Decision, Observation
 from lifegather.reconciliation.schemas import DiscoveryInput
 
@@ -176,14 +177,11 @@ class IdentityMatcher:
                     candidates[:100],
                 )
             excluded = db.scalar(
-                select(Assertion.id)
+                select(Entity.id)
                 .where(
-                    Assertion.user_id == actor.id,
-                    Assertion.subject_id.in_(targets),
-                    Assertion.predicate == "owned",
-                    Assertion.value_json == "false",
-                    Assertion.superseded_at.is_(None),
-                    Assertion.valid_to.is_(None),
+                    Entity.user_id == actor.id,
+                    Entity.id.in_(targets),
+                    current_ownership(actor, False),
                 )
                 .limit(1)
             )
