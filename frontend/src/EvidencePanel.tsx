@@ -7,6 +7,7 @@ export type EvidenceSource = {
   text: string
   photo?: { id: string; deleted_at: number | null } | null
   document?: { id: string; filename: string; deleted_at: number | null } | null
+  receipt_proposal_id?: string | null
   asset_proposal_id?: string | null
   asset_context?: {
     asset_name: string
@@ -38,6 +39,8 @@ export function EvidencePanel({
   request,
   onSuggest,
   onViewProposal,
+  onSuggestReceipt,
+  onViewReceipt,
 }: {
   source: EvidenceSource
   nextOffset: number | null
@@ -45,6 +48,8 @@ export function EvidencePanel({
   onOpen: (id: string, offset?: number) => Promise<void>
   onClose: () => void
   request: (path: string, init?: RequestInit) => Promise<unknown>
+  onSuggestReceipt?: () => void
+  onViewReceipt?: (id: string) => void
   onSuggest?: () => void
   onViewProposal?: (id: string) => void
 }) {
@@ -209,6 +214,26 @@ export function EvidencePanel({
           Suggest an asset from this note
         </Button>
       )}
+      {source.receipt_proposal_id && onViewReceipt && (
+        <Button
+          variant="outline"
+          disabled={saving}
+          onClick={() => onViewReceipt(source.receipt_proposal_id!)}
+        >
+          View receipt review
+        </Button>
+      )}
+      {source.note?.is_current &&
+        onSuggestReceipt &&
+        !source.receipt_proposal_id && (
+          <Button
+            variant="outline"
+            disabled={opening || saving}
+            onClick={onSuggestReceipt}
+          >
+            Review multiple items from this note
+          </Button>
+        )}
       {nextOffset !== null && (
         <Button
           disabled={opening || saving}

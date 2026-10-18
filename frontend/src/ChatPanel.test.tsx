@@ -524,3 +524,78 @@ it('starts extraction only from a selected saved note and renders the persisted 
   })
   expect(posted[1]!.headers).toMatchObject({ 'X-CSRF-Token': 'csrf' })
 })
+
+it('loads a selected memory as read-only receipt input and waits for explicit submission', async () => {
+  const user = userEvent.setup()
+  const fetcher = mockServer()
+  const original = fetcher.getMockImplementation()!
+  fetcher.mockImplementation(async (url, init) => {
+    if (url === '/api/chat/sources/receipt-source')
+      return new Response(
+        JSON.stringify({
+          id: 'receipt-source',
+          text: 'Acme Drill Qty: 2',
+          note: { is_current: true },
+        }),
+      )
+    if (url === '/api/settings')
+      return new Response(JSON.stringify({ allow_external_ai: true }))
+    if (url.startsWith('/api/credentials'))
+      return new Response(
+        JSON.stringify({
+          items: [
+            { id: 'ai', kind: 'ai', provider: 'openai', label: 'Synthetic' },
+          ],
+        }),
+      )
+    if (url.endsWith('/turns') && init?.method === 'POST')
+      return new Response(
+        JSON.stringify({
+          id: 'receipt-turn',
+          mode: 'extract_receipt',
+          text: 'Acme Drill Qty: 2',
+          state: 'complete',
+          result: { text: 'Ready for review', receipt_proposal_id: 'receipt' },
+        }),
+      )
+    if (url === '/api/receipts/receipt')
+      return new Response(
+        JSON.stringify({
+          id: 'receipt',
+          source_id: 'receipt-source',
+          current_source_id: 'receipt-source',
+          stale: false,
+          state: 'no_items',
+          items: [],
+          explanation: 'Synthetic test',
+          result: {},
+        }),
+      )
+    return original(url, init)
+  })
+  render(<ChatPanel csrfToken="csrf" initialReceiptSourceId="receipt-source" />)
+  const input = await screen.findByLabelText('Selected saved note')
+  await waitFor(() => expect(input).toHaveValue('Acme Drill Qty: 2'))
+  expect(input).toHaveAttribute('readonly')
+  expect(
+    fetcher.mock.calls.some(
+      ([url, init]) => url.endsWith('/turns') && init?.method === 'POST',
+    ),
+  ).toBe(false)
+  await user.selectOptions(screen.getByLabelText('AI connection'), 'ai')
+  await user.type(screen.getByLabelText('Model ID'), 'synthetic')
+  await user.click(
+    screen.getByRole('button', { name: 'Suggest receipt items' }),
+  )
+  await screen.findByText('Synthetic test')
+  const [, init] = fetcher.mock.calls.find(
+    ([url, init]) => url.endsWith('/turns') && init?.method === 'POST',
+  )!
+  expect(JSON.parse(String(init?.body))).toMatchObject({
+    mode: 'extract_receipt',
+    source_id: 'receipt-source',
+    text: 'Acme Drill Qty: 2',
+    credential_id: 'ai',
+    model: 'synthetic',
+  })
+})

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
+import { ReceiptProposalCard } from './ReceiptProposalCard'
 import { AssetProposalCard } from './AssetProposalCard'
 import { ChatRequestError } from './chatRequest'
 import './memories.css'
@@ -24,8 +25,10 @@ const label: Record<string, string> = {
 export function MemoriesPanel({
   csrfToken,
   refreshSession,
+  onProposeReceipt,
 }: {
   csrfToken: string
+  onProposeReceipt?: (sourceId: string) => void
   refreshSession?: () => Promise<void>
 }) {
   const [items, setItems] = useState<Item[]>([])
@@ -40,6 +43,7 @@ export function MemoriesPanel({
   const [source, setSource] = useState<Source | null>(null)
   const [opening, setOpening] = useState(false)
   const [proposal, setProposal] = useState('')
+  const [receipt, setReceipt] = useState('')
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
   const [retry, setRetry] = useState(false)
@@ -320,6 +324,18 @@ export function MemoriesPanel({
             setOpening(false)
           }}
           onViewProposal={setProposal}
+          onViewReceipt={setReceipt}
+          onSuggestReceipt={
+            onProposeReceipt ? () => onProposeReceipt(source.id) : undefined
+          }
+        />
+      )}
+      {receipt && (
+        <ReceiptProposalCard
+          key={receipt}
+          id={receipt}
+          csrfToken={csrfToken}
+          onOpen={open}
         />
       )}
       {proposal && (

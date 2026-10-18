@@ -108,6 +108,7 @@ export function Workspace({
   const [view, setView] = useState<View>('Overview')
   const [graphEntityId, setGraphEntityId] = useState('')
   const [assetId, setAssetId] = useState('')
+  const [receiptSourceId, setReceiptSourceId] = useState('')
   const current = navigation.find((item) => item.name === view)!
 
   return (
@@ -135,7 +136,10 @@ export function Workspace({
               variant="ghost"
               className="nav-button"
               aria-current={view === name ? 'page' : undefined}
-              onClick={() => setView(name)}
+              onClick={() => {
+                if (name === 'Chat') setReceiptSourceId('')
+                setView(name)
+              }}
             >
               <Icon aria-hidden="true" size={18} />
               <span>{name}</span>
@@ -204,6 +208,8 @@ export function Workspace({
             <PhotosPanel csrfToken={csrfToken} />
           ) : view === 'Chat' ? (
             <ChatPanel
+              key={receiptSourceId}
+              initialReceiptSourceId={receiptSourceId}
               csrfToken={csrfToken}
               refreshSession={refreshSession}
               onOpenGraph={(id) => {
@@ -232,6 +238,10 @@ export function Workspace({
             />
           ) : view === 'Memories' ? (
             <MemoriesPanel
+              onProposeReceipt={(id) => {
+                setReceiptSourceId(id)
+                setView('Chat')
+              }}
               csrfToken={csrfToken}
               refreshSession={refreshSession}
             />
@@ -263,7 +273,10 @@ export function Workspace({
                   </p>
                   <Button
                     className="explore-button"
-                    onClick={() => setView('Chat')}
+                    onClick={() => {
+                      setReceiptSourceId('')
+                      setView('Chat')
+                    }}
                   >
                     Explore your workspace{' '}
                     <ArrowUpRight aria-hidden="true" size={17} />

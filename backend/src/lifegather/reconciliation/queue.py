@@ -12,14 +12,18 @@ from lifegather.memory.service import MemoryError, MemoryService, fingerprint
 from lifegather.reconciliation.models import Decision
 from lifegather.reconciliation.proposal_models import AssetProposal
 from lifegather.reconciliation.proposals import AssetExtraction, ProposalService
+from lifegather.reconciliation.receipt_models import ReceiptProposal
+from lifegather.reconciliation.receipts import ReceiptService
 from lifegather.reconciliation.schemas import DiscoveryInput
 from lifegather.reconciliation.service import ReconciliationService
 
 
 class ReviewPage(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
-    kind: Literal["all", "proposals", "identities"] = "all"
-    cursor: str = Field(default="", max_length=38, pattern=r"^(?:[dp]:[a-f0-9-]{36})?$")
+    kind: Literal["all", "proposals", "identities", "receipts"] = "all"
+    cursor: str = Field(
+        default="", max_length=38, pattern=r"^(?:[dpr]:[a-f0-9-]{36})?$"
+    )
     limit: int = Field(default=25, ge=1, le=25)
 
 
@@ -67,12 +71,17 @@ class ReviewService:
             Decision.outcome == "review",
             Decision.superseded_at.is_(None),
         )
+        receipts = select((literal("r:") + ReceiptProposal.id).label("key")).where(
+            ReceiptProposal.user_id == actor.id, ReceiptProposal.state == "proposed"
+        )
         query = (
-            proposals
+            receipts
+            if data.kind == "receipts"
+            else proposals
             if data.kind == "proposals"
             else identities
             if data.kind == "identities"
-            else union_all(identities, proposals)
+            else union_all(identities, proposals, receipts)
         ).subquery()
         with Session(self.engine) as db:
             keys = list(
@@ -85,7 +94,21 @@ class ReviewService:
             )
             items = []
             for key in keys[: data.limit]:
-                if key.startswith("p:"):
+                if key.startswith("r:"):
+                    receipt = ReceiptService.owned(db, actor, key[2:])
+                    source = self.memory._source(db, actor, receipt.source_id)
+                    items.append(
+                        {
+                            "key": key,
+                            "kind": "receipt",
+                            "id": receipt.id,
+                            "name": "Receipt: " + source.text[:100],
+                            "reason": "Check item lines, quantities and duplicates",
+                            "source_id": source.id,
+                            "recorded_at": receipt.recorded_at,
+                        }
+                    )
+                elif key.startswith("p:"):
                     row = self.proposals._owned(db, actor, key[2:])
                     proposed = AssetExtraction.model_validate_json(row.proposed_json)
                     source = self.memory._source(db, actor, row.source_id)

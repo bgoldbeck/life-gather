@@ -23,6 +23,7 @@ from lifegather.reconciliation.proposals import (
     ProposalReview,
     ProposalService,
 )
+from lifegather.reconciliation.receipts import ReceiptService
 
 Authenticated = Annotated[CurrentSession, Depends(require_session)]
 Mutation = Annotated[CurrentSession, Depends(require_write_session)]
@@ -87,6 +88,9 @@ def chat_router() -> APIRouter:
                 current.user, source_id
             ),
             "document": DocumentService(service(request).engine).source_document(
+                current.user, source_id
+            ),
+            "receipt_proposal_id": ReceiptService(service(request).engine).for_source(
                 current.user, source_id
             ),
             "note": NoteService(service(request).engine).describe(

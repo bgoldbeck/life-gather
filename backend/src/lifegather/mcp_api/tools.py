@@ -47,6 +47,12 @@ from lifegather.reconciliation.queue import (
     ReviewPage,
     ReviewService,
 )
+from lifegather.reconciliation.receipts import (
+    ReceiptPreview,
+    ReceiptRead,
+    ReceiptReview,
+    ReceiptService,
+)
 from lifegather.reconciliation.service import ReconciliationService
 
 logger = logging.getLogger(__name__)
@@ -145,6 +151,39 @@ def build_server() -> MCPServer:
         idempotent_hint=True,
         open_world_hint=False,
     )
+
+    @server.tool(annotations=annotation)
+    def receipt_get(data: ReceiptRead, ctx: ToolContext) -> dict[str, Any]:
+        """Inspect an owned multi-item receipt draft and completed decisions."""
+        return read(
+            ctx,
+            lambda actor, memory, _: ReceiptService(memory.engine).get(
+                actor, data.receipt_id
+            ),
+        )
+
+    @server.tool(annotations=annotation)
+    def receipt_preview(data: ReceiptPreview, ctx: ToolContext) -> dict[str, Any]:
+        """Validate one sourced receipt line and check existing physical identities."""
+        return read(
+            ctx,
+            lambda actor, memory, _: ReceiptService(memory.engine).preview(actor, data),
+        )
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        )
+    )
+    def receipt_review(data: ReceiptReview, ctx: ToolContext) -> dict[str, Any]:
+        """Apply an explicit human review atomically. Not available to app models."""
+        return read(
+            ctx,
+            lambda actor, memory, _: ReceiptService(memory.engine).review(actor, data),
+        )
 
     @server.tool(annotations=annotation)
     def memory_library(data: LibraryPage, ctx: ToolContext) -> dict[str, Any]:
@@ -305,6 +344,9 @@ def build_server() -> MCPServer:
                     actor, data.source_id
                 ),
                 "document": DocumentService(memory.engine).source_document(
+                    actor, data.source_id
+                ),
+                "receipt_proposal_id": ReceiptService(memory.engine).for_source(
                     actor, data.source_id
                 ),
                 "note": NoteService(memory.engine).describe(actor, data.source_id),

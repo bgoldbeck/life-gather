@@ -14,6 +14,11 @@ from lifegather.reconciliation.proposals import (
     ProposalReview,
 )
 from lifegather.reconciliation.queue import IdentityRead, IdentityReview, ReviewPage
+from lifegather.reconciliation.receipts import (
+    ReceiptPreview,
+    ReceiptRead,
+    ReceiptReview,
+)
 
 
 class Input(BaseModel):
@@ -68,6 +73,9 @@ class DiscoveryHistory(Page):
 
 
 INPUTS: dict[str, type[BaseModel]] = {
+    "receipt_get": ReceiptRead,
+    "receipt_preview": ReceiptPreview,
+    "receipt_review": ReceiptReview,
     "memory_library": LibraryPage,
     "document_list": DocumentPage,
     "document_get": DocumentRead,
