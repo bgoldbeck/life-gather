@@ -50,7 +50,7 @@ class NoteService:
     def is_note(source: Episode) -> bool:
         return (
             source.source_type == "conversation" and source.namespace in NOTE_NAMESPACES
-        )
+        ) or (source.source_type == "import" and source.namespace == "pdf-memory")
 
     @staticmethod
     def _root(db: Session, actor: Account, source: Episode) -> str:

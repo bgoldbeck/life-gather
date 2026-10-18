@@ -28,6 +28,7 @@ import { BuildInfo, type Build } from './BuildInfo'
 import { AppearanceSettings } from './AppearanceSettings'
 import { GraphPanel } from './GraphPanel'
 import { ProfilesPanel } from './ProfilesPanel'
+import { DocumentsPanel } from './DocumentsPanel'
 import type { Theme } from './appearance'
 
 const navigation = [
@@ -40,6 +41,11 @@ const navigation = [
     name: 'Photos',
     icon: BookOpen,
     description: 'Private receipt and nameplate photos.',
+  },
+  {
+    name: 'Documents',
+    icon: BookOpen,
+    description: 'Private PDF evidence and reviewed text.',
   },
   {
     name: 'Review',
@@ -188,6 +194,11 @@ export function Workspace({
             </>
           ) : view === 'Review' ? (
             <ReviewPanel csrfToken={csrfToken} />
+          ) : view === 'Documents' ? (
+            <DocumentsPanel
+              csrfToken={csrfToken}
+              refreshSession={refreshSession}
+            />
           ) : view === 'Photos' ? (
             <PhotosPanel csrfToken={csrfToken} />
           ) : view === 'Chat' ? (

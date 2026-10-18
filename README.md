@@ -125,4 +125,8 @@ Private receipt/nameplate uploads, galleries and optional reviewed vision extrac
 
 The [persistent review queue](docs/REVIEW_QUEUE.md) collects pending proposals and uncertain physical-item matches without requiring AI calls.
 
-[OpenAI and Claude connections](docs/AI_PROVIDERS.md) now share evidence-backed chat, reviewed extraction, photos, permission and usage limits. Live provider access has not been verified.
+[OpenAI, Claude and Google Gemini connections](docs/AI_PROVIDERS.md) now share evidence-backed chat, reviewed extraction, photos, permission and usage limits. Live provider access has not been verified.
+
+[Private PDF evidence](docs/DOCUMENTS.md) supports original downloads and reviewed
+text capture. Light/dark appearance, sourced home/vehicle profiles, streaming chat
+and an evidence-backed graph are implemented in source; deployment is separate.

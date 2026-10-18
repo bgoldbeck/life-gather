@@ -366,6 +366,18 @@ class ChatService:
                     "id": photo["id"],
                     "deleted": photo["deleted_at"] is not None,
                 }
+            from lifegather.documents.service import DocumentService
+
+            document = DocumentService(self.engine).source_document(actor, identifier)
+            if document is not None:
+                sources[identifier]["status"] = (
+                    "user-reviewed PDF text; extraction/layout may be incomplete"
+                )
+                sources[identifier]["document"] = {
+                    "id": document["id"],
+                    "deleted": document["deleted_at"] is not None,
+                    "text_truncated": document["text_truncated"],
+                }
             # Preserve exact user text; attach authenticated item-selection context
             # so short corrections such as "I sold it" remain attributable.
             context = actions.source_context(actor, identifier)

@@ -26,6 +26,7 @@ from lifegather.config import Settings
 from lifegather.credentials.middleware import CredentialBodyLimit
 from lifegather.credentials.routes import private_router
 from lifegather.credentials.service import PrivateSettings, VaultError, read_key
+from lifegather.documents.routes import document_router
 from lifegather.mcp_api.tools import build_server
 from lifegather.mcp_api.transport import PrivateMCP
 from lifegather.memory.notes import NoteConflict
@@ -86,6 +87,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.state.google_provider = GeminiProvider()
     app.state.chat_slots = asyncio.Semaphore(4)
     app.state.photo_slots = asyncio.Semaphore(2)
+    app.state.document_slots = asyncio.Semaphore(1)
     app.state.mcp_gate = PrivateMCP(mcp_app, app, settings)
     app.state.mcp_server = mcp_server
     app.router.routes.append(Route("/mcp", app.state.mcp_gate))
@@ -98,6 +100,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(review_router())
     app.include_router(graph_router())
     app.include_router(profile_router())
+    app.include_router(document_router())
     app.add_middleware(CredentialBodyLimit)
 
     @app.exception_handler(MemoryError)

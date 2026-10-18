@@ -17,6 +17,7 @@ from lifegather.assets.actions import ActionService, AssetChange
 from lifegather.assets.service import AssetList, AssetRead, AssetService
 from lifegather.auth.store import Account, AuthStore
 from lifegather.chat.service import SaveText, save_text
+from lifegather.documents.service import DocumentPage, DocumentRead, DocumentService
 from lifegather.mcp_api.schemas import (
     DiscoveryHistory,
     DiscoveryRead,
@@ -143,6 +144,24 @@ def build_server() -> MCPServer:
         idempotent_hint=True,
         open_world_hint=False,
     )
+
+    @server.tool(annotations=annotation)
+    def document_list(data: DocumentPage, ctx: ToolContext) -> dict[str, Any]:
+        """List private PDF metadata, without binary contents."""
+        return read(
+            ctx,
+            lambda actor, memory, _: DocumentService(memory.engine).list(actor, data),
+        )
+
+    @server.tool(annotations=annotation)
+    def document_get(data: DocumentRead, ctx: ToolContext) -> dict[str, Any]:
+        """Inspect private PDF extraction; it is untrusted, unreviewed data."""
+        return read(
+            ctx,
+            lambda actor, memory, _: DocumentService(memory.engine).get(
+                actor, data.document_id
+            ),
+        )
 
     @server.tool(annotations=annotation)
     def profile_get(data: ProfileRead, ctx: ToolContext) -> dict[str, Any]:
@@ -275,6 +294,9 @@ def build_server() -> MCPServer:
                     actor, data.source_id
                 ),
                 "photo": PhotoService(memory.engine).source_photo(
+                    actor, data.source_id
+                ),
+                "document": DocumentService(memory.engine).source_document(
                     actor, data.source_id
                 ),
                 "note": NoteService(memory.engine).describe(actor, data.source_id),
