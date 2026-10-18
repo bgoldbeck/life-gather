@@ -4,8 +4,9 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from lifegather.auth.store import Account
-from lifegather.chat.provider import Answer, Provider, SearchPlan
+from lifegather.chat.provider import Answer, Completion, Provider, SearchPlan
 from lifegather.chat.service import ChatService, SaveText, TurnInput, save_text
+from lifegather.chat.streaming import AnswerPreview, DeltaSink
 from lifegather.credentials.service import PrivateSettings
 from lifegather.memory.notes import NoteService
 from lifegather.memory.service import MemoryError
@@ -33,6 +34,7 @@ async def answer(
     provider: Provider,
     active: Callable[[], None],
     claude_provider: Provider | None = None,
+    emit: DeltaSink | None = None,
 ) -> dict[str, Any]:
     if body.mode == "save":
         original = save_text(
@@ -104,9 +106,28 @@ async def answer(
         if chat.provider_name(actor, vault, body.credential_id) != selected_provider:
             raise MemoryError("Selected AI connection changed")
         secret = vault.read_secret(actor, body.credential_id)
-        result = await provider.complete(
-            secret, body.model, instruction, payload, schema
-        )
+        result: Completion
+        streaming = getattr(provider, "stream_complete", None)
+        if emit is not None and schema is Answer and streaming is not None:
+            preview = AnswerPreview(emit)
+
+            async def delta(text: str) -> None:
+                active()
+                if (
+                    not vault.preferences(actor)
+                    or chat.provider_name(actor, vault, body.credential_id)
+                    != selected_provider
+                ):
+                    raise MemoryError("AI connection or permission changed")
+                await preview.append(text)
+
+            result = await streaming(
+                secret, body.model, instruction, payload, schema, delta
+            )
+        else:
+            result = await provider.complete(
+                secret, body.model, instruction, payload, schema
+            )
         chat.record_usage(actor, day, result.input_tokens, result.output_tokens)
         active()
         return result.value

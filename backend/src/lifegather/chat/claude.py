@@ -8,6 +8,7 @@ import httpx2
 from pydantic import BaseModel
 
 from lifegather.chat.provider import Completion, ProviderError
+from lifegather.chat.streaming import DeltaSink, claude_response
 
 
 def wire_schema(value: Any) -> Any:
@@ -69,6 +70,28 @@ class ClaudeProvider:
         payload: dict[str, Any],
         schema: type[BaseModel],
     ) -> Completion:
+        return await self._complete(secret, model, instruction, payload, schema)
+
+    async def stream_complete(
+        self,
+        secret: str,
+        model: str,
+        instruction: str,
+        payload: dict[str, Any],
+        schema: type[BaseModel],
+        emit: DeltaSink,
+    ) -> Completion:
+        return await self._complete(secret, model, instruction, payload, schema, emit)
+
+    async def _complete(
+        self,
+        secret: str,
+        model: str,
+        instruction: str,
+        payload: dict[str, Any],
+        schema: type[BaseModel],
+        emit: DeltaSink | None = None,
+    ) -> Completion:
         payload = dict(payload)
         image = payload.pop("_image_jpeg", None)
         text = json.dumps(payload, ensure_ascii=False)
@@ -106,6 +129,7 @@ class ClaudeProvider:
                     headers={"x-api-key": secret, "anthropic-version": "2023-06-01"},
                     json={
                         "model": model,
+                        **({"stream": True} if emit else {}),
                         "max_tokens": 1500,
                         "system": instruction,
                         "messages": [{"role": "user", "content": content}],
@@ -121,12 +145,17 @@ class ClaudeProvider:
                         raise ProviderError(
                             "Claude request failed; check access and model"
                         )
-                    raw = bytearray()
-                    async for chunk in response.aiter_bytes():
-                        if len(raw) + len(chunk) > 131072:
-                            raise ProviderError("Claude response exceeded the limit")
-                        raw.extend(chunk)
-            data = json.loads(raw)
+                    if emit:
+                        data = await claude_response(response, emit)
+                    else:
+                        raw = bytearray()
+                        async for chunk in response.aiter_bytes():
+                            if len(raw) + len(chunk) > 131072:
+                                raise ProviderError(
+                                    "Claude response exceeded the limit"
+                                )
+                            raw.extend(chunk)
+                        data = json.loads(raw)
             if data.get("type") != "message" or data.get("stop_reason") != "end_turn":
                 raise ProviderError("Claude did not complete the answer")
             parts = data.get("content", [])

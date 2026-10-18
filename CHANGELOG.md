@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.14.0 — Streaming evidence-backed replies
+
+- Stream OpenAI and Claude answer text into a marked, transient draft in Chat.
+  Validate the completed structure and source citations before saving the reply.
+- Drop drafts on failure, cancellation or disconnect; preserve the saved request
+  and existing idempotent retry behavior. Bound provider events, output, queue size
+  and browser stream parsing; cancel pending work when the stream closes.
+- Keep per-call consent, credential/session checks, usage limits and fixed endpoints.
+  No schema change. Provider streaming is verified with synthetic mocked events;
+  configured live-provider access remains unverified.
+
 ## 0.13.0 — Remember private chat model choices
 
 - Explicitly remember or forget an owned AI connection and model from Chat; restore

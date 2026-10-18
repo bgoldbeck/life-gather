@@ -248,3 +248,10 @@
     align-items: flex-start;
   }
 }
+
+.chat-draft {
+  border: 1px dashed var(--border);
+  border-radius: 1rem;
+  padding: 1rem;
+  background: var(--card);
+}

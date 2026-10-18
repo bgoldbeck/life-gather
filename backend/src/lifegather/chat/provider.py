@@ -8,6 +8,8 @@ from typing import Any, Protocol
 import httpx2
 from pydantic import BaseModel, ConfigDict, Field
 
+from lifegather.chat.streaming import DeltaSink, openai_response
+
 
 class SearchPlan(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
@@ -54,6 +56,28 @@ class OpenAIProvider:
         payload: dict[str, Any],
         schema: type[BaseModel],
     ) -> Completion:
+        return await self._complete(secret, model, instruction, payload, schema)
+
+    async def stream_complete(
+        self,
+        secret: str,
+        model: str,
+        instruction: str,
+        payload: dict[str, Any],
+        schema: type[BaseModel],
+        emit: DeltaSink,
+    ) -> Completion:
+        return await self._complete(secret, model, instruction, payload, schema, emit)
+
+    async def _complete(
+        self,
+        secret: str,
+        model: str,
+        instruction: str,
+        payload: dict[str, Any],
+        schema: type[BaseModel],
+        emit: DeltaSink | None = None,
+    ) -> Completion:
         payload = dict(payload)
         image = payload.pop("_image_jpeg", None)
         content = json.dumps(payload, ensure_ascii=False)
@@ -94,6 +118,7 @@ class OpenAIProvider:
                     headers={"Authorization": "Bearer " + secret},
                     json={
                         "model": model,
+                        **({"stream": True} if emit else {}),
                         "store": False,
                         "max_output_tokens": 1500,
                         "instructions": instruction,
@@ -112,12 +137,17 @@ class OpenAIProvider:
                         raise ProviderError(
                             "OpenAI request failed; check access and model"
                         )
-                    body = bytearray()
-                    async for chunk in response.aiter_bytes():
-                        if len(body) + len(chunk) > 131072:
-                            raise ProviderError("OpenAI response exceeded the limit")
-                        body.extend(chunk)
-            data = json.loads(body)
+                    if emit:
+                        data = await openai_response(response, emit)
+                    else:
+                        body = bytearray()
+                        async for chunk in response.aiter_bytes():
+                            if len(body) + len(chunk) > 131072:
+                                raise ProviderError(
+                                    "OpenAI response exceeded the limit"
+                                )
+                            body.extend(chunk)
+                        data = json.loads(body)
             if data.get("status") != "completed":
                 raise ProviderError("OpenAI did not complete the answer")
             output = "".join(

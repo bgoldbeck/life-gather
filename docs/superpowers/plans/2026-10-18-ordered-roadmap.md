@@ -94,3 +94,14 @@ Chat choices verified: full backend suite 167 passed, followed by both preferenc
 tests (including the newly added upgrade-preservation test) passing; frontend
 53 passed, all lint/type/format checks and builds pass. Graphify refreshed
 1461 nodes / 5178 edges. No provider calls or Docker publication.
+
+4a merged v0.13.0 via PR #23. 4b streaming implementation: direct bounded SSE
+adapters for OpenAI and Claude, shared transient JSON-text preview, private POST
+transport, explicit draft labeling and validation before persistence. Final schema
+and citations still gate the durable reply. Disconnects cancel only the fresh
+request, preserving retry identities and completed responses. No schema change.
+
+Streaming verified: 172 backend / 56 frontend tests; lint, types, formatting and
+production builds pass. Tests cover byte-split provider events, partial JSON escape
+boundaries, truncated streams, invalid citations, safe replay and cancellation.
+No live provider calls or Docker deployment.

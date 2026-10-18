@@ -4,6 +4,7 @@ import './chat.css'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import { AssetProposalCard } from './AssetProposalCard'
 import { ChatRequestError as RequestError } from './chatRequest'
+import { readChatStream } from './chatStream'
 
 type Source = { id: string; text: string }
 type Turn = {
@@ -51,6 +52,7 @@ export function ChatPanel({
   const [consent, setConsent] = useState(false)
   const [usage, setUsage] = useState(0)
   const [busy, setBusy] = useState(false)
+  const [draft, setDraft] = useState('')
   const [retryNeeded, setRetryNeeded] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -237,6 +239,7 @@ export function ChatPanel({
     event?.preventDefault()
     if (busy || savingChoice || turnCursor || !text.trim()) return
     setBusy(true)
+    setDraft('')
     setError('')
     const controller = new AbortController()
     abort.current = controller
@@ -261,11 +264,33 @@ export function ChatPanel({
       }
       pending.current = { conversation: id, body }
       setRetryNeeded(true)
-      const turn: Turn = await request(`/conversations/${id}/turns`, {
-        method: 'POST',
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      })
+      let turn: Turn
+      if (body.mode === 'ask') {
+        const response = await fetch(`/api/chat/conversations/${id}/stream`, {
+          method: 'POST',
+          credentials: 'same-origin',
+          cache: 'no-store',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
+          },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        })
+        if (response.status === 401) await refreshSession?.()
+        if (!response.ok)
+          throw new RequestError(
+            'Unable to start this reply. Please try again.',
+            response.status,
+          )
+        turn = await readChatStream<Turn>(response, setDraft)
+      } else {
+        turn = await request(`/conversations/${id}/turns`, {
+          method: 'POST',
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        })
+      }
       setTurns((current) => [...current.filter((t) => t.id !== turn.id), turn])
       if (turn.result.proposal_id) setViewProposal(turn.result.proposal_id)
       setConversations((current) =>
@@ -294,6 +319,7 @@ export function ChatPanel({
     } finally {
       setBusy(false)
       abort.current = null
+      setDraft('')
     }
   }
 
@@ -453,6 +479,14 @@ export function ChatPanel({
                 </div>
               </article>
             ))}
+            {draft && (
+              <section className="chat-draft" aria-label="Reply draft">
+                <p className="chat-label">
+                  Generating · draft not yet validated or saved
+                </p>
+                <p className="chat-text">{draft}</p>
+              </section>
+            )}
             {turnCursor && (
               <Button
                 disabled={loading || busy}

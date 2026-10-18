@@ -58,3 +58,16 @@ Verification uses mock HTTP transports and synthetic browser providers. No live 
 key, personal memory/image, paid call or production redeployment was used. Account
 access and model availability require a separate explicitly authorized live check.
 Graphify was unavailable on the verification host; source/tests were inspected.
+
+## Streaming replies (v0.14.0)
+
+Ask AI uses a private POST/SSE transport. OpenAI Responses text deltas and Claude
+Messages text deltas produce a transient draft; structural and citation checks
+still gate the saved answer. Cancellation, failure or disconnect removes the draft.
+No retries or provider-side conversation state are enabled. Note/photo extraction
+continues to use complete structured results before review.
+
+Protocol references: [OpenAI streaming](https://developers.openai.com/api/docs/guides/streaming-responses)
+and [Claude streaming](https://platform.claude.com/docs/en/build-with-claude/streaming),
+checked 2026-10-18. Synthetic streaming verification does not establish live account
+or model access.
