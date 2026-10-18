@@ -20,6 +20,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { AuthGate } from './AuthGate'
 import { PrivateSettingsPanel } from './PrivateSettingsPanel'
 import { PasswordSettings } from './PasswordSettings'
+import { ChatPanel } from './ChatPanel'
 
 const navigation = [
   {
@@ -153,6 +154,8 @@ export function Workspace({
                 refreshSession={refreshSession}
               />
             </>
+          ) : view === 'Chat' ? (
+            <ChatPanel csrfToken={csrfToken} refreshSession={refreshSession} />
           ) : view === 'Overview' ? (
             <>
               <div className="section-label">
@@ -177,7 +180,7 @@ export function Workspace({
                     <ArrowUpRight aria-hidden="true" size={17} />
                   </Button>
                   <span className="preview-note">
-                    Your account is ready. Memory features are coming next.
+                    Your account is ready. Save a memory or find it in Chat.
                   </span>
                 </div>
                 <div className="memory-illustration" aria-hidden="true">
