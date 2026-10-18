@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 
+from lifegather.assets.service import AssetList, AssetRead
 from lifegather.chat.service import SaveText
 from lifegather.memory.notes import CorrectionInput, NoteHistoryInput
 from lifegather.reconciliation.proposals import (
@@ -56,6 +57,8 @@ class DiscoveryHistory(Page):
 
 
 INPUTS: dict[str, type[BaseModel]] = {
+    "assets_list": AssetList,
+    "asset_detail": AssetRead,
     "asset_proposal_preview": ProposalPreview,
     "asset_proposal_get": ProposalRead,
     "asset_proposal_review": ProposalReview,

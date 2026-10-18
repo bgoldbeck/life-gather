@@ -21,6 +21,7 @@ import { AuthGate } from './AuthGate'
 import { PrivateSettingsPanel } from './PrivateSettingsPanel'
 import { PasswordSettings } from './PasswordSettings'
 import { ChatPanel } from './ChatPanel'
+import { AssetsPanel } from './AssetsPanel'
 import { BuildInfo, type Build } from './BuildInfo'
 
 const navigation = [
@@ -157,6 +158,8 @@ export function Workspace({
             </>
           ) : view === 'Chat' ? (
             <ChatPanel csrfToken={csrfToken} refreshSession={refreshSession} />
+          ) : view === 'Assets' ? (
+            <AssetsPanel refreshSession={refreshSession} />
           ) : view === 'Overview' ? (
             <>
               <div className="section-label">

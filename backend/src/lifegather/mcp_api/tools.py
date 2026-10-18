@@ -13,6 +13,7 @@ from mcp_types import ToolAnnotations
 from pydantic import BaseModel
 from starlette.requests import Request
 
+from lifegather.assets.service import AssetList, AssetRead, AssetService
 from lifegather.auth.store import Account, AuthStore
 from lifegather.chat.service import SaveText, save_text
 from lifegather.mcp_api.schemas import (
@@ -391,6 +392,20 @@ def build_server() -> MCPServer:
         return read(
             ctx,
             lambda actor, memory, _: ProposalService(memory.engine).review(actor, data),
+        )
+
+    @server.tool(annotations=annotation)
+    def assets_list(data: AssetList, ctx: ToolContext) -> dict[str, Any]:
+        """Browse owned physical assets; inventory is inferred, never verified."""
+        return read(
+            ctx, lambda actor, memory, _: AssetService(memory.engine).list(actor, data)
+        )
+
+    @server.tool(annotations=annotation)
+    def asset_detail(data: AssetRead, ctx: ToolContext) -> dict[str, Any]:
+        """Read owned asset details, sourced observations, facts and history."""
+        return read(
+            ctx, lambda actor, memory, _: AssetService(memory.engine).get(actor, data)
         )
 
     return server

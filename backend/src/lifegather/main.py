@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from mcp.server.transport_security import TransportSecuritySettings
 from starlette.routing import Route
 
+from lifegather.assets.routes import asset_router
 from lifegather.auth.email_routes import email_router
 from lifegather.auth.email_service import EmailAuth
 from lifegather.auth.email_validation import EmailAuthError
@@ -83,6 +84,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(private_router())
     app.include_router(email_router(settings))
     app.include_router(chat_router())
+    app.include_router(asset_router())
     app.add_middleware(CredentialBodyLimit)
 
     @app.exception_handler(MemoryError)
