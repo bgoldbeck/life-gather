@@ -176,8 +176,75 @@ QA saved/reloaded the line total/date with source passages. Fixed recorded-time
 display to convert stored microseconds correctly, with a regression assertion.
 Graphify is unavailable; graph/HTML refresh could not run. No external AI calls.
 
+## v0.21.0 — exact receipt-detail suggestions and source badge
 
-Purchase browsing increment v0.21.0 closes the discovery gap in v0.20: optional
+Bounded plan: expose no-write suggestions through existing owner-scoped purchase
+reads, copy uniquely labeled USD line totals from the item's own printed line and
+one real ISO purchase date, then let users explicitly copy/review/save the draft.
+Reuse existing validation, CSRF, immutable revisions and replay; no new schema,
+model request or inventory behavior. Ambiguous values remain unknown. Add a README
+source-version badge linked to CHANGELOG and enforce version synchronization.
+
+Preflight: purchase reads supply the UI and MCP; additive suggestions preserve
+existing consumers. Save still validates source availability and revision head.
+Root-only implementation and self-review respect the user's no-agent rule.
+Tests observed failing before implementation: missing suggestions keys (three
+backend cases), missing draft-copy button, missing README source-version badge.
+
+Verified v0.21.0: 229 backend / 73 frontend tests pass, Ruff lint/format,
+mypy, TypeScript, Oxlint, Prettier and wheel/frontend builds pass. Self-review
+confirmed additive read output, no automatic writes, stable revision checks and
+no source/model permission changes. Graphify refreshed 1792 nodes / 6813 edges and
+HTML; its pre-existing partial AssetsPanel extraction warning is covered by the
+passing TypeScript build. No migration, live provider call or Docker change.
+
+## v0.22.0 — explicit receipt currencies
+
+Bounded plan: extend existing typed claims and source suggestions to printed
+USD/EUR/GBP/CAD/AUD/JPY; exact integer minor units, no conversion or rounding.
+Use whole yen for JPY, two decimals otherwise. Add a currency selector and retain
+exact source validation. Migration 0016 replaces only the currency constraint,
+preserving every old revision/index and rejecting lossy downgrade. Preserve old
+USD request fingerprints so upgrading cannot break a lost-response replay.
+
+Preflight: schema, domain reader/writer, MCP typed schemas and receipt UI share
+DetailSave; default USD is backward compatible, explicit non-USD is source-checked.
+Observed failing tests: missing currency suggestions, rejected currency input and
+missing frontend currency selector before implementation. Existing history/privacy,
+source correction and retry tests remain required. Root-only self-review.
+
+Verified v0.22.0: 250 backend / 74 frontend tests pass; Ruff lint/format,
+mypy, TypeScript, Oxlint, Prettier and production/wheel builds pass. Tests cover
+exact values, source/currency mismatch, invalid precision/exponents/signs,
+ambiguous currencies, migration preservation, legacy replay and lossless-downgrade
+refusal. Self-review confirmed the unchanged owner/source/revision gates and
+no floating point. Graphify refreshed 1806 nodes / 6865 edges and HTML. Migration
+0016 only; no provider call, image build/upload or running-container changes.
+
+
+## v0.23.0 — individual photo attachment correction
+
+Order decision: finish a small correction prerequisite before enabling broader
+automatic discovery. Remove one photo/asset gallery binding, preserving originals,
+other galleries and claim evidence. Reuse owner/session/CSRF adapters and photo
+version guards; no new schema. Audit both stable IDs. An absent link is safe replay;
+a reattached link changes the photo version, so an old request cannot remove it.
+The UI explains retention and reattachment through existing deduplicated upload.
+
+Observed failing tests for the missing service operation and UI action. Added
+owner/CSRF/MCP checks, multi-gallery preservation, original bytes, no duplicate
+audit on retry, stale reattachment protection and exact UI request checks.
+Root-only implementation and self-review, no delegated work.
+
+Verified v0.23.0: 253 backend / 75 frontend tests pass; Ruff lint/format,
+mypy, TypeScript, Oxlint, Prettier and wheel/frontend builds pass. Self-review
+found the new JSON action missing from request-size middleware; a regression test
+failed (401 rather than bounded 413), then passed after adding the route prefix.
+Full backend suite rerun after the fix. Graphify refreshed 1829 nodes / 6821 edges
+and HTML. No migration, provider call, Docker publication or deployment.
+
+
+Purchase browsing increment v0.24.0 closes the discovery gap in v0.20: optional
 receipt claims now appear on the currently linked physical asset, with direct
 source and receipt editor/history links. Bounded five-line HTTP/read-only MCP
 pages follow active reconciliation bindings, including reassignment, dismissal
@@ -186,10 +253,11 @@ whole line totals are never converted to unit prices or combined across receipts
 No migration, dependency or AI recall expansion. Automatic discovery remains the
 next broader phase; this increment makes the completed receipt feature usable.
 
-Asset purchase browsing verified: 229 backend / 75 frontend tests; Ruff lint/format,
-mypy, TypeScript, Oxlint, Prettier, frontend build and source/wheel builds pass.
-Coverage includes owner boundaries, HTTP/MCP, latest/withdrawn claims, two physical
-units sharing a whole-line total, reassignment/dismissal/undo, corrected-source
-labels and non-overlapping bounded pages. Browser QA opened the asset summary,
-receipt editor/history and exact original evidence. Graphify remains unavailable;
-graph/HTML refresh could not run. No migration, external calls or new dependency.
+
+Integrated asset purchase browsing verified against main 5309fa2: 259 backend /
+78 frontend tests; Ruff lint/format, mypy, TypeScript, Oxlint, Prettier, Vite and
+source/wheel builds pass. Preserve newer receipt suggestions, explicit currency
+precision and photo-link correction. Extra EUR/JPY association tests pass; synthetic
+browser QA shows EUR 49.90 unchanged on the linked physical unit. Feature itself
+adds no migration or model call. Graphify remains unavailable, so graph/HTML refresh
+could not run. Version advanced to 0.24.0 after concurrent v0.21–0.23 merges.

@@ -19,6 +19,7 @@ from lifegather.auth.store import CurrentSession
 from lifegather.photos.service import (
     MAX_BYTES,
     PhotoDelete,
+    PhotoDetach,
     PhotoList,
     PhotoService,
     Purpose,
@@ -108,6 +109,10 @@ def photo_router() -> APIRouter:
                 "X-Content-Type-Options": "nosniff",
             },
         )
+
+    @router.post("/detach")
+    def detach(request: Request, body: PhotoDetach, current: Write) -> dict[str, Any]:
+        return service(request).detach(current.user, body)
 
     @router.post("/delete")
     def delete(request: Request, body: PhotoDelete, current: Write) -> dict[str, Any]:

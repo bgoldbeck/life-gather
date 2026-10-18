@@ -182,3 +182,31 @@ def test_asset_purchase_http_and_mcp_are_private_read_only() -> None:
             .json()["result"]
             .get("isError")
         )
+
+
+@pytest.mark.parametrize(
+    "currency,amount,minor", [("JPY", "1234", 1234), ("EUR", "12.34", 1234)]
+)
+def test_asset_purchase_preserves_current_currency_precision(
+    tmp_path: Path, currency: str, amount: str, minor: int
+) -> None:
+    auth, actor, _, _, _ = setup(tmp_path)
+    text = SOURCE.replace("USD 49.90", f"{currency} {amount}")
+    receipt = accepted(auth.engine, actor, text)
+    PurchaseDetails(auth.engine).save(
+        actor,
+        body(
+            receipt,
+            currency=currency,
+            line_total=amount,
+            money_quote=text.split("\n")[0],
+        ),
+    )
+    item = AssetPurchases(auth.engine).get(
+        actor, AssetPurchasesRead(asset_id=assets(receipt)[0])
+    )["items"][0]
+    assert (
+        item["claim"]["currency"] == currency and item["claim"]["line_total"] == amount
+    )
+    assert item["claim"]["total_minor"] == minor
+    auth.engine.dispose()

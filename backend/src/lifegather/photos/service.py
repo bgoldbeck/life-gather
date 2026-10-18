@@ -35,6 +35,11 @@ class PhotoRead(BaseModel):
     photo_id: str = Field(min_length=1, max_length=36)
 
 
+class PhotoDetach(PhotoRead):
+    asset_id: str = Field(min_length=1, max_length=36)
+    expected_updated_at: int = Field(ge=0)
+
+
 class PhotoDelete(PhotoRead):
     expected_updated_at: int = Field(ge=0)
 
@@ -243,6 +248,33 @@ class PhotoService:
                 self.memory._audit(db, actor, "photo_uploaded", row.id, now)
             if asset_id:
                 self.attach(db, actor, row, asset_id)
+            db.flush()
+            return self.view(row)
+
+    def detach(self, actor: Account, value: PhotoDetach) -> dict[str, Any]:
+        data = PhotoDetach.model_validate(value)
+        with self.memory._write() as db:
+            row = self.owned(db, actor, data.photo_id)
+            asset = self.memory._entity(db, actor, data.asset_id)
+            if asset.kind != "asset":
+                raise MemoryError("Choose a physical asset")
+            link = db.scalar(
+                select(PhotoAsset).where(
+                    PhotoAsset.user_id == actor.id,
+                    PhotoAsset.photo_id == row.id,
+                    PhotoAsset.asset_id == asset.id,
+                )
+            )
+            # An already absent link is a safe replay, even after a lost response.
+            if link is None:
+                return self.view(row)
+            if row.updated_at != data.expected_updated_at:
+                raise NoteConflict("Photo changed. Reload before removing its link.")
+            db.delete(link)
+            row.updated_at = max(self.memory.clock(), row.updated_at + 1)
+            self.memory._audit(
+                db, actor, "photo_detached", f"{row.id}:{asset.id}", row.updated_at
+            )
             db.flush()
             return self.view(row)
 

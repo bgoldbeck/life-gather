@@ -28,7 +28,7 @@ Live provider extraction remains unverified; synthetic adapters exercise the flo
   writing anything and commits the entire selection in one transaction. Repeating
   the same confirmation returns the same result. A lost response freezes the review
   for an exact retry; later edits require fresh duplicate checks.
-- Drafts persist in Review → Receipts. The source links back to the receipt review.
+- Drafts persist in Review â†’ Receipts. The source links back to the receipt review.
   Single-item and receipt reviews cannot accept the same source twice. A rejected
   draft stays in history; use a corrected note version to propose revised content.
 - Corrections retain the original source, stale the draft and prevent acceptance.
@@ -98,8 +98,25 @@ request/revision identities, bounded integer cents/currency constraints and
 immutable quote/date/reason history. It preserves old receipt reviews and snapshot
 restore. No new dependency, live ingestion, provider call or installation restart.
 
+## Purchase-detail suggestions (v0.21.0)
 
-## Find purchases from an asset (v0.21.0)
+The purchase-detail reader offers exact USD line totals from the reviewed item’s own printed line and a uniquely labeled YYYY-MM-DD purchase date. Use source suggestions copies these into an editable draft; review and save explicitly. Ambiguous/multiple dates, invalid dates, other currencies, multiline item quotes and non-labeled prices remain unknown. No AI call, financial arithmetic or automatic write occurs. Current-source and original-file availability checks still apply.
+
+## Explicit currencies (v0.22.0)
+
+Purchase-detail review and suggestions now support USD, EUR, GBP, CAD, AUD and JPY
+when the source prints the ISO currency code. JPY accepts whole yen; the other
+supported currencies require exactly two decimal digits. Store exact integer
+minor units, never convert currencies, round values, multiply totals by quantity,
+or infer currency from a dollar symbol. Unsupported formats remain unknown.
+
+Migration `0016_receipt_currencies` rebuilds the receipt-detail constraint while
+preserving every historical revision, owner boundary, index and USD request
+fingerprint. Old callers that omit currency retain USD behavior. Downgrade refuses
+when non-USD revisions exist rather than deleting or converting history.
+
+
+## Find purchases from an asset (v0.24.0)
 
 Open **Assets**, choose an item and look under **Purchase records**. Each purchased
 receipt line shows its latest optional recorded total/date, exact source passages,

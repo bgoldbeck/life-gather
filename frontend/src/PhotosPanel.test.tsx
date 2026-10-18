@@ -121,3 +121,41 @@ it('requires a deliberate selected connection and preserves the same AI request 
     expect(screen.getByLabelText('AI connection')).toBeEnabled(),
   )
 })
+
+it('removes only a gallery link and keeps the original photo private', async () => {
+  const user = userEvent.setup()
+  const calls: { url: string; init?: RequestInit }[] = []
+  let detached = false
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url, init })
+      if (url === '/api/photos/detach') {
+        detached = true
+        return new Response(JSON.stringify({ ...photo, updated_at: 6 }))
+      }
+      if (url === '/api/settings')
+        return new Response(JSON.stringify({ allow_external_ai: false }))
+      return new Response(
+        JSON.stringify({ items: detached ? [] : [photo], next_cursor: null }),
+      )
+    }),
+  )
+  render(<PhotosPanel csrfToken="csrf" assetId="asset" />)
+  await user.click(await screen.findByRole('button', { name: /plate.jpg/ }))
+  await user.click(
+    screen.getByRole('button', { name: 'Remove photo from this item' }),
+  )
+  await screen.findByText(/Photo removed from this item. The original/)
+  const detach = calls.find((c) => c.url === '/api/photos/detach')!
+  expect(JSON.parse(String(detach.init?.body))).toEqual({
+    photo_id: 'photo',
+    asset_id: 'asset',
+    expected_updated_at: 5,
+  })
+  expect(detach.init?.headers).toMatchObject({ 'X-CSRF-Token': 'csrf' })
+  expect(calls.some((c) => c.url.includes('/delete'))).toBe(false)
+  expect(
+    screen.queryByRole('button', { name: /plate.jpg/ }),
+  ).not.toBeInTheDocument()
+})

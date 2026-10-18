@@ -192,3 +192,70 @@ it('preserves history but disables changes for a corrected or deleted source', a
     screen.getByText(/The original source changed or was deleted/),
   ).toBeVisible()
 })
+it('copies source suggestions into an editable draft without saving until review', async () => {
+  const user = userEvent.setup()
+  const saves: unknown[] = []
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/save')) {
+        saves.push(JSON.parse(String(init?.body)))
+        return new Response(JSON.stringify(revision))
+      }
+      return new Response(
+        JSON.stringify({
+          ...empty,
+          suggestions: {
+            line_total: revision.line_total,
+            money_quote: revision.money_quote,
+            purchase_date: revision.purchase_date,
+            date_quote: revision.date_quote,
+          },
+        }),
+      )
+    }),
+  )
+  render(<ReceiptPurchaseDetails id="receipt" index={0} csrfToken="csrf" />)
+  await user.click(
+    await screen.findByRole('button', { name: 'Use source suggestions' }),
+  )
+  expect(screen.getByLabelText('USD line total 1')).toHaveValue('49.90')
+  expect(screen.getByLabelText('Purchase date 1')).toHaveValue('2026-10-18')
+  expect(saves).toHaveLength(0)
+  await user.click(
+    screen.getByRole('button', { name: 'Save purchase details' }),
+  )
+  expect(saves).toEqual([
+    expect.objectContaining({ line_total: '49.90', expected_head: null }),
+  ])
+})
+it('preserves an explicit non-USD currency in suggestions and saved history', async () => {
+  const user = userEvent.setup()
+  const saves: Record<string, unknown>[] = []
+  const euro = {
+    ...revision,
+    currency: 'EUR',
+    money_quote: revision.money_quote.replace('USD', 'EUR'),
+  }
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/save')) {
+        saves.push(JSON.parse(String(init?.body)))
+        return new Response(JSON.stringify(euro))
+      }
+      return new Response(JSON.stringify({ ...empty, suggestions: euro }))
+    }),
+  )
+  render(<ReceiptPurchaseDetails id="receipt" index={0} csrfToken="csrf" />)
+  await user.click(
+    await screen.findByRole('button', { name: 'Use source suggestions' }),
+  )
+  expect(screen.getByLabelText('Currency 1')).toHaveValue('EUR')
+  expect(screen.getByLabelText('EUR line total 1')).toHaveValue('49.90')
+  await user.click(
+    screen.getByRole('button', { name: 'Save purchase details' }),
+  )
+  await screen.findByText('Line total: EUR 49.90 · Purchase date: 2026-10-18')
+  expect(saves[0]).toMatchObject({ currency: 'EUR', line_total: '49.90' })
+})

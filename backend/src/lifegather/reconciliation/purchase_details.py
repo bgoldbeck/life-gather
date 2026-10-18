@@ -2,10 +2,10 @@
 
 import re
 from datetime import date
-from typing import Any
+from typing import Any, Literal, Self
 from uuid import uuid4
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from sqlalchemy import Engine, Select, select
 from sqlalchemy.orm import Session
 
@@ -20,6 +20,27 @@ from lifegather.reconciliation.receipts import (
     ReceiptService,
 )
 
+Currency = Literal["USD", "EUR", "GBP", "CAD", "AUD", "JPY"]
+MONEY_PATTERN = re.compile(
+    r"\bline total\s*:?\s*(USD|EUR|GBP|CAD|AUD|JPY) "
+    r"([0-9]+(?:\.[0-9]{2})?)(?![0-9A-Za-z_.,+\-])",
+    re.I,
+)
+
+
+def minor_amount(amount: str, currency: str) -> int:
+    pattern = (
+        r"(?:0|[1-9][0-9]{0,10})"
+        if currency == "JPY"
+        else r"(?:0|[1-9][0-9]{0,8})\.[0-9]{2}"
+    )
+    if not re.fullmatch(pattern, amount):
+        raise ValueError("Use an exact nonnegative amount with currency precision")
+    value = int(amount) if currency == "JPY" else int(amount.replace(".", ""))
+    if value > 99999999999:
+        raise ValueError("Receipt total exceeds the supported limit")
+    return value
+
 
 class DetailRead(ReceiptRead):
     index: int = Field(ge=0, le=7)
@@ -30,15 +51,20 @@ class DetailSave(ReceiptRead):
     index: int = Field(ge=0, le=7)
     expected_head: str | None = Field(default=None, min_length=1, max_length=36)
     request_id: str = Field(min_length=1, max_length=100)
-    line_total: str | None = Field(
-        default=None, pattern=r"^(?:0|[1-9][0-9]{0,8})\.[0-9]{2}$"
-    )
+    currency: Currency = "USD"
+    line_total: str | None = Field(default=None, min_length=1, max_length=14)
     money_quote: str | None = Field(default=None, min_length=1, max_length=500)
     purchase_date: str | None = Field(
         default=None, pattern=r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
     )
     date_quote: str | None = Field(default=None, min_length=1, max_length=200)
     reason: str = Field(min_length=1, max_length=300)
+
+    @model_validator(mode="after")
+    def exact_money(self) -> Self:
+        if self.line_total is not None:
+            minor_amount(self.line_total, self.currency)
+        return self
 
 
 class PurchaseDetails:
@@ -76,7 +102,11 @@ class PurchaseDetails:
             "id": row.id,
             "revision": row.revision,
             "source_id": row.source_id,
-            "line_total": f"{row.total_minor // 100}.{row.total_minor % 100:02d}"
+            "line_total": (
+                str(row.total_minor)
+                if row.currency == "JPY"
+                else f"{row.total_minor // 100}.{row.total_minor % 100:02d}"
+            )
             if row.total_minor is not None
             else None,
             "total_minor": row.total_minor,
@@ -87,6 +117,48 @@ class PurchaseDetails:
             "reason": row.reason,
             "recorded_at": row.recorded_at,
         }
+
+    @staticmethod
+    def suggestions(text: str, item_quote: str) -> dict[str, str | None]:
+        """Copy uniquely labeled source passages; never infer or calculate."""
+        result: dict[str, str | None] = {
+            "line_total": None,
+            "currency": None,
+            "money_quote": None,
+            "purchase_date": None,
+            "date_quote": None,
+        }
+        # Restrict money to the item's own printed line; never borrow another total.
+        lines = [line for line in text.splitlines() if item_quote in line]
+        if len(lines) == 1 and len(lines[0]) <= 500:
+            amounts = MONEY_PATTERN.findall(lines[0])
+            if len(amounts) == 1:
+                currency, amount = amounts[0]
+                try:
+                    minor_amount(amount, currency.upper())
+                except ValueError:
+                    pass
+                else:
+                    result.update(
+                        line_total=amount,
+                        currency=currency.upper(),
+                        money_quote=lines[0],
+                    )
+        dates = list(
+            re.finditer(
+                r"\bpurchase date\s*:?\s*([0-9]{4}-[0-9]{2}-[0-9]{2})(?![0-9])",
+                text,
+                re.I,
+            )
+        )
+        if len(dates) == 1:
+            try:
+                date.fromisoformat(dates[0][1])
+            except ValueError:
+                pass
+            else:
+                result.update(purchase_date=dates[0][1], date_quote=dates[0][0])
+        return result
 
     def get(self, actor: Account, value: DetailRead) -> dict[str, Any]:
         data = DetailRead.model_validate(value)
@@ -100,8 +172,10 @@ class PurchaseDetails:
                 db.scalars(query.order_by(ReceiptDetail.revision.desc()).limit(6))
             )
             available = True
+            suggestions = None
             try:
-                self.receipts.source(db, actor, receipt.source_id)
+                text = self.receipts.source(db, actor, receipt.source_id)
+                suggestions = self.suggestions(text, choice.fields.quote)
             except MemoryError:
                 available = False
             return {
@@ -112,13 +186,18 @@ class PurchaseDetails:
                 "current_head": head.id if head else None,
                 "current": self.view(head) if head else None,
                 "can_edit": available,
+                "suggestions": suggestions,
                 "items": [self.view(r) for r in rows[:5]],
                 "next_revision": rows[4].revision if len(rows) > 5 else None,
             }
 
     def save(self, actor: Account, value: DetailSave) -> dict[str, Any]:
         data = DetailSave.model_validate(value)
-        signature = fingerprint(data.model_dump())
+        payload = data.model_dump()
+        # Preserve old USD fingerprints for lost-response replay.
+        if data.currency == "USD":
+            payload.pop("currency")
+        signature = fingerprint(payload)
         with self.receipts.memory._write() as db:
             receipt, choice = self.context(db, actor, data.receipt_id, data.index)
             used = db.scalar(
@@ -152,16 +231,15 @@ class PurchaseDetails:
                     raise MemoryError(
                         "Quote the item and its line total exactly from the source"
                     )
-                amounts = re.findall(
-                    r"\bline total\s*:?\s*USD ([0-9]+\.[0-9]{2})(?![0-9.])", quote, re.I
-                )
-                if amounts != [data.line_total]:
+                amounts = MONEY_PATTERN.findall(quote)
+                if [(code.upper(), amount) for code, amount in amounts] != [
+                    (data.currency, data.line_total)
+                ]:
                     raise MemoryError(
-                        "Use one Line total: USD 0.00 passage; "
-                        "dollar symbols are ambiguous"
+                        "Use one exact Line total: CODE amount passage; "
+                        "symbols alone are ambiguous"
                     )
-                whole, fraction = data.line_total.split(".")
-                total = int(whole) * 100 + int(fraction)
+                total = minor_amount(data.line_total, data.currency)
             if data.purchase_date is None:
                 if data.date_quote is not None:
                     raise MemoryError("A date quote requires a purchase date")
@@ -190,7 +268,7 @@ class PurchaseDetails:
                 line_index=data.index,
                 revision=head.revision + 1 if head else 1,
                 total_minor=total,
-                currency="USD" if total is not None else None,
+                currency=data.currency if total is not None else None,
                 money_quote=data.money_quote,
                 purchase_date=data.purchase_date,
                 date_quote=data.date_quote,

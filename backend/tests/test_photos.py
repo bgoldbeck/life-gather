@@ -398,3 +398,114 @@ def test_openai_vision_wire_is_explicit_bounded_and_stateless() -> None:
         assert result.value == reading()
 
     asyncio.run(run())
+
+
+def test_detach_only_one_gallery_preserves_original_evidence_and_retry(
+    tmp_path: Path,
+) -> None:
+    from lifegather.memory.schemas import EntityInput
+    from lifegather.memory.service import MemoryService
+    from lifegather.photos.service import PhotoDetach
+
+    auth, alice, bob, _, _, proposals, proposal = setup(tmp_path)
+    asset = proposals.review(alice, review(proposal["id"]))["result"]["asset_ids"][0]
+    second = MemoryService(auth.engine).create_entity(
+        alice,
+        EntityInput(
+            kind="asset",
+            name="Other synthetic item",
+            operation_key="other",
+            source_id=proposal["source_id"],
+        ),
+    )
+    photos = PhotoService(auth.engine)
+    first = photos.upload(alice, image_bytes(), "synthetic.jpg", asset_id=asset)
+    row = photos.upload(alice, image_bytes(), "synthetic.jpg", asset_id=second.id)
+    body = PhotoDetach(
+        photo_id=row["id"], asset_id=asset, expected_updated_at=row["updated_at"]
+    )
+    with pytest.raises(MemoryError):
+        photos.detach(bob, body)
+    with pytest.raises(NoteConflict):
+        photos.detach(alice, body.model_copy(update={"expected_updated_at": 0}))
+    removed = photos.detach(alice, body)
+    assert photos.detach(alice, body) == removed
+    assert photos.list(alice, PhotoList(asset_id=asset))["items"] == []
+    assert (
+        photos.list(alice, PhotoList(asset_id=second.id))["items"][0]["id"]
+        == first["id"]
+    )
+    assert photos.binary(alice, row["id"], True)[0] == image_bytes()
+    photos.upload(alice, image_bytes(), "synthetic.jpg", asset_id=asset)
+    with pytest.raises(NoteConflict):
+        photos.detach(alice, body)
+    auth.engine.dispose()
+
+
+def test_detach_http_mcp_boundaries_and_audit_preserve_evidence() -> None:
+    from lifegather.memory.models import Audit
+    from lifegather.memory.schemas import EntityInput, SourceInput
+    from lifegather.memory.service import MemoryService
+
+    app = create_app()
+    with TestClient(app) as client:
+        alice, actor = signed_headers(app, "detach-alice")
+        bob, _ = signed_headers(app, "detach-bob")
+        memory = MemoryService(app.state.auth_store.engine)
+        source = memory.ingest(
+            actor,
+            SourceInput(
+                text="Synthetic car photo",
+                source_type="conversation",
+                namespace="synthetic",
+                external_id="car",
+            ),
+        )
+        asset = memory.create_entity(
+            actor,
+            EntityInput(
+                name="Synthetic car",
+                kind="asset",
+                source_id=source.id,
+                operation_key="car",
+            ),
+        )
+        photos = PhotoService(memory.engine)
+        row = photos.upload(actor, image_bytes(), "car.jpg", asset_id=asset.id)
+        body = {
+            "photo_id": row["id"],
+            "asset_id": asset.id,
+            "expected_updated_at": row["updated_at"],
+        }
+        assert client.post("/api/photos/detach", json=body).status_code == 401
+        assert (
+            client.post(
+                "/api/photos/detach", headers={"Cookie": alice["Cookie"]}, json=body
+            ).status_code
+            == 403
+        )
+        assert (
+            client.post("/api/photos/detach", headers=bob, json=body).status_code == 400
+        )
+        assert rpc(client, bob, "photo_detach", body).json()["result"]["isError"]
+        assert (
+            client.post("/api/photos/detach", headers=alice, json=body).status_code
+            == 200
+        )
+        assert (
+            not rpc(client, alice, "photo_detach", body).json()["result"].get("isError")
+        )
+        assert photos.binary(actor, row["id"], True)[0] == image_bytes()
+        assert memory.get_source(actor, source.id).text == "Synthetic car photo"
+        with Session(memory.engine) as db:
+            audit = list(
+                db.scalars(select(Audit).where(Audit.operation == "photo_detached"))
+            )
+            assert len(audit) == 1 and audit[0].target_id == f"{row['id']}:{asset.id}"
+
+
+def test_detach_rejects_oversized_request_before_parsing() -> None:
+    with TestClient(create_app()) as client:
+        assert (
+            client.post("/api/photos/detach", content=b" " * 32769).status_code == 413
+        )

@@ -24,3 +24,10 @@ def test_release_revision_is_reported(monkeypatch: pytest.MonkeyPatch) -> None:
             "version": __version__,
             "revision": "b" * 40,
         }
+
+
+def test_readme_source_badge_matches_application_version() -> None:
+    from pathlib import Path
+
+    readme = Path(__file__).resolve().parents[2] / "README.md"
+    assert f"source_version-v{__version__}-" in readme.read_text(encoding="utf-8")
