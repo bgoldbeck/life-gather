@@ -8,7 +8,10 @@ it('browses private assets, details, original evidence and history pages safely'
   const user = userEvent.setup()
   const fetcher = vi.fn(async (url: string) => {
     let value: unknown
-    if (url.startsWith('/api/assets?'))
+    if (url.startsWith('/api/photos') || url.startsWith('/api/credentials'))
+      value = { items: [], next_cursor: null }
+    else if (url === '/api/settings') value = { allow_external_ai: false }
+    else if (url.startsWith('/api/assets?'))
       value = {
         items: [
           {

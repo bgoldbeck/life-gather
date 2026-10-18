@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import './assets.css'
+import { PhotosPanel } from './PhotosPanel'
 import { AssetActions } from './AssetActions'
 
 type Asset = {
@@ -53,7 +54,12 @@ type Detail = {
     recorded_at: number
   }[]
 }
-type Source = { id: string; text: string; next_offset: number | null }
+type Source = {
+  id: string
+  text: string
+  next_offset: number | null
+  photo?: { id: string; deleted_at: number | null } | null
+}
 const recorded = (stamp: number) => new Date(stamp / 1000).toLocaleString()
 
 export function AssetsPanel({
@@ -304,6 +310,11 @@ export function AssetsPanel({
           >
             View original evidence
           </Button>
+          <PhotosPanel
+            key={detail.asset.id}
+            assetId={detail.asset.id}
+            csrfToken={csrfToken}
+          />
           <h3>Sourced details and decisions</h3>
           <details>
             <summary>Make a correction</summary>

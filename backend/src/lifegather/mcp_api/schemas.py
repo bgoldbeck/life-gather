@@ -4,6 +4,7 @@ from lifegather.assets.actions import AssetChange
 from lifegather.assets.service import AssetList, AssetRead
 from lifegather.chat.service import SaveText
 from lifegather.memory.notes import CorrectionInput, NoteHistoryInput
+from lifegather.photos.service import PhotoList, PhotoRead
 from lifegather.reconciliation.proposals import (
     ProposalPreview,
     ProposalRead,
@@ -78,3 +79,6 @@ INPUTS: dict[str, type[BaseModel]] = {
     "discovery_inventory": Page,
     "discovery_history": DiscoveryHistory,
 }
+
+INPUTS["photo_list"] = PhotoList
+INPUTS["photo_get"] = PhotoRead

@@ -1,5 +1,6 @@
 """Bounded OpenAI Responses adapter; no tools, retries, or provider-side state."""
 
+import base64
 import json
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -53,7 +54,31 @@ class OpenAIProvider:
         payload: dict[str, Any],
         schema: type[BaseModel],
     ) -> Completion:
+        payload = dict(payload)
+        image = payload.pop("_image_jpeg", None)
         content = json.dumps(payload, ensure_ascii=False)
+        input_value: Any = content
+        if image is not None:
+            if (
+                not isinstance(image, bytes)
+                or not image
+                or len(image) > 2 * 1024 * 1024
+            ):
+                raise ProviderError("Invalid image preview")
+            input_value = [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "input_text", "text": content},
+                        {
+                            "type": "input_image",
+                            "image_url": "data:image/jpeg;base64,"
+                            + base64.b64encode(image).decode(),
+                            "detail": "high",
+                        },
+                    ],
+                }
+            ]
         if len(content.encode()) > 40000:
             raise ProviderError("Context exceeds the chat limit")
         try:
@@ -72,7 +97,7 @@ class OpenAIProvider:
                         "store": False,
                         "max_output_tokens": 1500,
                         "instructions": instruction,
-                        "input": content,
+                        "input": input_value,
                         "text": {
                             "format": {
                                 "type": "json_schema",

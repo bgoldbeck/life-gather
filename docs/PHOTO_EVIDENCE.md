@@ -1,6 +1,6 @@
 # Photographs, attachments, and graph evidence
 
-User-approved direction, 2026-10-17. Planning only; uploads and graph storage are not implemented yet. Dedicated phone-camera/PWA capture and remote access remain deferred. Ordinary image uploads are part of the first useful release.
+User-approved direction, 2026-10-17. The v0.7.0 initial photo slice is implemented; broader graph/event linking remains planned. Dedicated phone-camera/PWA capture and remote access remain deferred. Ordinary image uploads are part of the first useful release.
 
 ## User experience
 
@@ -36,3 +36,52 @@ Store the original upload as provenance and keep OCR, annotations, crops, and th
 6. Uploading/viewing/captioning works without external AI permission; extraction never bypasses that setting.
 
 Implement this with the planned evidence core and upload stages, with their own migrations and tests. Google OAuth live setup and private-user foundations precede personal photo ingestion.
+
+## Implemented initial slice (0.7.0)
+
+Use Photos or an asset's Photos & Documents gallery to upload a single JPEG, PNG,
+or WebP, up to 8 MiB / 20 megapixels / 10,000 pixels per side. Animated images,
+invalid decodes, compressed request bodies and unknown formats are rejected. The
+server limits active uploads to two and each owner to 200 photos / 256 MiB of
+original-plus-preview data. Same bytes reuse an owner's active photo and asset
+link; separate owners receive independent records. Display filenames never become
+filesystem paths. Decoded, oriented previews are fresh JPEG canvases capped at
+2048 pixels and 2 MiB, without inherited EXIF/GPS/comments. Originals retain their
+exact bytes (including metadata) and download only as attachments with canonical
+extensions, octet-stream and nosniff. All image routes require the private session
+and no-store; mutations require origin and CSRF checks.
+
+Originals and previews are deferred SQLite BLOBs in the existing private database,
+outside the webroot. This bounded first slice favors atomic evidence and consistent
+operator snapshots over a separate object store; allow adequate disk space for
+snapshots, WAL and uploads. Existing operator snapshots include all image bytes,
+metadata and attachment links. Metadata list/MCP reads never load image BLOBs.
+Use the authenticated original download for per-file export. Exporting only graph
+JSON does not export image bytes.
+
+Read photo with AI explicitly sends only the selected sanitized preview to the
+configured vision-capable model, after the existing external-AI preference check.
+It uses the same persistent chat turns, selected private credential, request replay,
+usage limit and session/cancel checks. The model has no tools. Strict bounded
+transcription and candidate schemas plus exact quote/identifier validation gate
+persistence. Source and proposal commit together. Empty/ambiguous readings create
+no inventory. The transcription remains AI-generated and unverified, with original
+photo provenance through every note correction. A saved reading is reused; corrected
+notes can be proposed through Chat. A person must explicitly state purchase or
+possession, check duplicates and confirm before any inventory write. Acceptance
+atomically links the original to resulting assets. Uploads/general attachments alone
+support no ownership claim. Models may misread text; human review is required.
+
+Delete photo is a separate acknowledged operation that clears the original and
+preview for all attached assets. A changed attachment/reading/claim invalidates a
+stale deletion acknowledgment. Derived text, facts, metadata and audit history are
+retained and marked through the deleted-photo provenance; unresolved proposals from
+a deleted original cannot be accepted. Earlier backups and SQLite recovery pages
+may retain bytes: this is not a secure-erasure promise. Reupload after deletion
+creates a new record without reviving old links. Link removal, event galleries,
+PDFs, multi-item receipts, prices, dates, quantities, chat file picking and graph
+navigation are deferred beyond this slice.
+
+Wire references verified for this release: [OpenAI Responses image inputs](https://developers.openai.com/api/docs/guides/images-vision?api-mode=responses)
+and [Pillow image API](https://pillow.readthedocs.io/en/stable/reference/Image.html).
+No live provider calls or personal images were used in verification.

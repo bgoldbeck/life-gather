@@ -5,6 +5,7 @@ import { ChatRequestError } from './chatRequest'
 export type EvidenceSource = {
   id: string
   text: string
+  photo?: { id: string; deleted_at: number | null } | null
   asset_proposal_id?: string | null
   asset_context?: {
     asset_name: string
@@ -132,7 +133,25 @@ export function EvidencePanel({
           Close evidence
         </Button>
       </div>
-      <p>Original statement · not independently verified</p>
+      {source.photo ? (
+        <div>
+          <p>
+            AI photo transcription or correction · unverified. Compare with the
+            original image.
+          </p>
+          {source.photo.deleted_at === null ? (
+            <img
+              className="photo-preview"
+              src={`/api/photos/${source.photo.id}/preview`}
+              alt="Original photo preview"
+            />
+          ) : (
+            <p>The original photo has been deleted. Derived text remains.</p>
+          )}
+        </div>
+      ) : (
+        <p>Original statement · not independently verified</p>
+      )}
       {source.note && (
         <p role="status">
           {source.note.is_current

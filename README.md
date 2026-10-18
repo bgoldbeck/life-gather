@@ -120,3 +120,5 @@ The first [text memory chat increment](docs/TEXT_CHAT.md) provides private persi
 - Preserve source evidence and historical corrections.
 - Keep personal data private and require explicit configuration before sending it to external model providers.
 - Validate and authorize domain operations through application services.
+
+Private receipt/nameplate uploads, galleries and optional reviewed vision extraction are available; see [photo evidence and storage limits](docs/PHOTO_EVIDENCE.md).

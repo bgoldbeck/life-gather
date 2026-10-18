@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.0 — Private receipt and nameplate photos
+
+- Add authenticated JPEG/PNG/WebP upload, private originals, metadata-free previews,
+  per-user byte deduplication, paginated Photos and asset galleries, and downloads.
+- Explicit consented vision reading produces an unverified, correctable transcription
+  and one reviewed item proposal; attaching a photo never creates assets. Accepted
+  proposals link the original photo atomically to their resulting items.
+- Enforce 8 MiB / 20 MP / single-frame inputs, two concurrent uploads, 200 photos /
+  256 MiB per owner, and existing AI budgets/session/cancellation rules.
+- Migration `0010_private_photos` stores deferred binary originals and previews in
+  the private SQLite database so operator snapshots restore both bytes and links.
+  Deletion clears originals/previews; derived text/history and earlier backups remain.
+- Pillow 13.0.0 is pinned; model wire and privacy checks use synthetic providers only.
+
+
 ## 0.6.0 — 2026-10-18
 
 - Add sourced ownership updates (owned, sold, returned, no longer owned),
