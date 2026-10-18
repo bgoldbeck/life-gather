@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "LifeGather"
+    build_revision: str = Field(default="", pattern=r"^(?:[0-9a-f]{40})?$")
     data_dir: Path = Path("data")
     static_dir: Path | None = None
     public_url: str = "http://127.0.0.1:8787"

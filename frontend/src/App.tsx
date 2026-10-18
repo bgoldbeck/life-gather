@@ -21,6 +21,7 @@ import { AuthGate } from './AuthGate'
 import { PrivateSettingsPanel } from './PrivateSettingsPanel'
 import { PasswordSettings } from './PasswordSettings'
 import { ChatPanel } from './ChatPanel'
+import { BuildInfo, type Build } from './BuildInfo'
 
 const navigation = [
   {
@@ -62,6 +63,7 @@ export function Workspace({
   refreshSession,
   passwordEnabled = false,
   deliveryEnabled = false,
+  build,
 }: {
   userName?: string
   onSignOut?: () => void
@@ -70,6 +72,7 @@ export function Workspace({
   refreshSession?: () => Promise<void>
   passwordEnabled?: boolean
   deliveryEnabled?: boolean
+  build?: Build
 }) {
   const [view, setView] = useState<View>('Overview')
   const current = navigation.find((item) => item.name === view)!
@@ -117,9 +120,6 @@ export function Workspace({
             </p>
           </div>
         </div>
-        <div className="sidebar-footer">
-          <span className="phase-dot" /> Foundation preview <span>Phase 0</span>
-        </div>
       </aside>
 
       <div className="workspace">
@@ -128,6 +128,7 @@ export function Workspace({
             Your personal space <span className="breadcrumb">/ {view}</span>
           </span>
           <div className="account-actions">
+            <BuildInfo build={build} />
             <span>{userName}</span>
             {onSignOut && (
               <Button
@@ -329,6 +330,7 @@ export default function App() {
         refreshSession,
         passwordEnabled,
         deliveryEnabled,
+        build,
       ) => (
         <Workspace
           key={user.id}
@@ -337,6 +339,7 @@ export default function App() {
           signingOut={busy}
           passwordEnabled={passwordEnabled}
           deliveryEnabled={deliveryEnabled}
+          build={build}
           csrfToken={csrfToken}
           refreshSession={refreshSession}
         />

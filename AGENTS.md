@@ -53,6 +53,14 @@ Use the source-code graph workflow below when code discovery is required.
 - Report the refresh result or failure in the task summary. Do not install hooks, enable agents, or change assistant configuration to enforce this workflow.
 
 ## Feature completion and release rule
+
+### Application versioning
+- Follow `docs/VERSIONING.md`. The single application version source is `backend/src/lifegather/version.py`; do not maintain a second UI version string.
+- For new user-facing feature releases, increment the minor number and reset patch to zero (`0.3.0` → `0.4.0`). For fixes, increment patch (`0.4.0` → `0.4.1`). Update `CHANGELOG.md` with the verified behavior and migration consequences.
+- Documentation-only changes do not bump the application version. Multiple features deliberately released together may share one minor bump. Do not increment major or declare 1.0 without explicit agreement.
+- Keep running-version display, package metadata, and release-image labels consistent. Report the application version and Git revision separately; `latest` is not a version number. Version bumps do not authorize Docker builds, uploads, or redeployment beyond the user's current authorization.
+
+### Delivery sequence
 User instruction, 2026-10-18: once a new feature's scoped acceptance criteria and
 required tests/checks pass, complete its release rather than leaving local changes:
 

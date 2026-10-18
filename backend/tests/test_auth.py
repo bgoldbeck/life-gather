@@ -12,6 +12,7 @@ from joserfc.jwk import RSAKey
 import lifegather.main as main
 from lifegather.auth.google import GoogleProvider
 from lifegather.config import Settings
+from lifegather.version import __version__
 
 
 class GoogleFixture:
@@ -234,6 +235,7 @@ def test_disabled_configuration_and_origin_validation() -> None:
         assert client.get("/auth/session").json() == {
             "configured": False,
             "test_login_enabled": False,
+            "build": {"version": __version__, "revision": None},
             "email_delivery_enabled": False,
             "email_password_enabled": False,
             "user": None,
