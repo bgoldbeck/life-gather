@@ -99,6 +99,53 @@
 .chat-evidence > p {
   margin-top: 0.7rem;
 }
+.note-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+}
+.note-correction {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+.note-correction label,
+.note-history h3 {
+  font-weight: 600;
+}
+.note-correction textarea {
+  width: 100%;
+  border: 1px solid #a4b59d;
+  border-radius: 0.5rem;
+  padding: 0.7rem;
+  background: #fffef9;
+  color: #263e2b;
+}
+.note-correction textarea:focus-visible {
+  outline: 2px solid #3f6940;
+  outline-offset: 3px;
+}
+.note-correction p,
+.note-history p {
+  font-size: 0.85rem;
+  color: #566757;
+}
+.note-history {
+  margin-top: 1rem;
+}
+.note-history ol {
+  list-style: decimal;
+  padding-left: 1.4rem;
+}
+.note-history li button {
+  height: auto;
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+  overflow-wrap: anywhere;
+  margin-top: 0.4rem;
+}
 .chat-error {
   color: #933928;
   margin: 1rem 0;

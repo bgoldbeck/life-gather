@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 from lifegather.chat.service import SaveText
+from lifegather.memory.notes import CorrectionInput, NoteHistoryInput
 
 
 class Input(BaseModel):
@@ -50,6 +51,8 @@ class DiscoveryHistory(Page):
 
 
 INPUTS: dict[str, type[BaseModel]] = {
+    "memory_correct_note": CorrectionInput,
+    "memory_note_history": NoteHistoryInput,
     "memory_save_text": SaveText,
     "memory_search": Search,
     "memory_get_entity": EntityRead,

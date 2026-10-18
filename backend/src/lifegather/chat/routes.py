@@ -2,11 +2,13 @@ import asyncio
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import Path as PathParam
 
 from lifegather.auth.routes import require_session, require_write_session
 from lifegather.auth.store import CurrentSession
 from lifegather.chat.runner import answer
-from lifegather.chat.service import ChatService, TurnInput
+from lifegather.chat.service import ChatService, SaveText, TurnInput
+from lifegather.memory.notes import CorrectionInput, NoteService
 from lifegather.memory.service import MemoryError
 
 Authenticated = Annotated[CurrentSession, Depends(require_session)]
@@ -54,7 +56,33 @@ def chat_router() -> APIRouter:
             "recorded_at": original.recorded_at,
             "event_date": original.event_date,
             "source_type": original.source_type,
+            "note": NoteService(service(request).engine).describe(
+                current.user, source_id
+            ),
         }
+
+    @router.post("/sources/{source_id}/corrections")
+    def correct_note(
+        request: Request,
+        source_id: Annotated[str, PathParam(min_length=1, max_length=36)],
+        body: SaveText,
+        current: Mutation,
+    ) -> dict[str, Any]:
+        return NoteService(service(request).engine).correct(
+            current.user, CorrectionInput(source_id=source_id, **body.model_dump())
+        )
+
+    @router.get("/sources/{source_id}/history")
+    def note_history(
+        request: Request,
+        source_id: Annotated[str, PathParam(min_length=1, max_length=36)],
+        current: Authenticated,
+        cursor: Cursor = "",
+        limit: Annotated[int, Query(ge=1, le=25)] = 25,
+    ) -> dict[str, Any]:
+        return NoteService(service(request).engine).history(
+            current.user, source_id, cursor, limit
+        )
 
     @router.get("/conversations/{conversation_id}/turns")
     def turns(

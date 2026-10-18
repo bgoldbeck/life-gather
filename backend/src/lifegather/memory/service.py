@@ -14,7 +14,15 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from lifegather.auth.store import Account
-from lifegather.memory.models import Alias, Assertion, Audit, Entity, Episode, Evidence
+from lifegather.memory.models import (
+    Alias,
+    Assertion,
+    Audit,
+    Entity,
+    Episode,
+    Evidence,
+    NoteRevision,
+)
 from lifegather.memory.schemas import (
     EntityInput,
     EntityView,
@@ -130,6 +138,17 @@ class MemoryService:
         )
 
     def ingest(self, actor: Account, value: SourceInput) -> SourceView:
+        with self._write() as db:
+            return self._ingest_in(db, actor, value)
+
+    def _ingest_in(
+        self,
+        db: Session,
+        actor: Account,
+        value: SourceInput,
+        *,
+        recorded_at: int | None = None,
+    ) -> SourceView:
         data = SourceInput.model_validate(value)
         content_hash = hashlib.sha256(data.text.encode()).hexdigest()
         context = [data.source_type, data.namespace]
@@ -141,35 +160,34 @@ class MemoryService:
                 else ["content", content_hash, data.event_date]
             )
         )
-        with self._write() as db:
-            existing = db.scalar(
-                select(Episode)
-                .where(Episode.user_id == actor.id, Episode.source_key == key)
-                .limit(1)
-            )
-            if existing is not None:
-                if (
-                    existing.content_hash != content_hash
-                    or existing.event_date != data.event_date
-                ):
-                    raise MemoryError(
-                        "Source identity conflict: use a new source revision ID"
-                    )
-                return SourceView.model_validate(existing)
-            now = self.clock()
-            source = Episode(
-                id=str(uuid4()),
-                user_id=actor.id,
-                source_key=key,
-                content_hash=content_hash,
-                recorded_at=now,
-                **data.model_dump(),
-            )
-            db.add(source)
-            db.flush()
-            self._index(db, actor, source.id, "source", source.text)
-            self._audit(db, actor, "source_ingested", source.id, now)
-            return SourceView.model_validate(source)
+        existing = db.scalar(
+            select(Episode)
+            .where(Episode.user_id == actor.id, Episode.source_key == key)
+            .limit(1)
+        )
+        if existing is not None:
+            if (
+                existing.content_hash != content_hash
+                or existing.event_date != data.event_date
+            ):
+                raise MemoryError(
+                    "Source identity conflict: use a new source revision ID"
+                )
+            return SourceView.model_validate(existing)
+        now = self.clock() if recorded_at is None else recorded_at
+        source = Episode(
+            id=str(uuid4()),
+            user_id=actor.id,
+            source_key=key,
+            content_hash=content_hash,
+            recorded_at=now,
+            **data.model_dump(),
+        )
+        db.add(source)
+        db.flush()
+        self._index(db, actor, source.id, "source", source.text)
+        self._audit(db, actor, "source_ingested", source.id, now)
+        return SourceView.model_validate(source)
 
     def get_source(self, actor: Account, identifier: str) -> SourceView:
         with Session(self.engine) as db:
@@ -613,7 +631,12 @@ class MemoryService:
                 text(
                     "SELECT record_id,kind FROM memory_fts "
                     "WHERE memory_fts MATCH :query "
-                    "AND user_id=:owner ORDER BY kind,record_id LIMIT :limit"
+                    "AND user_id=:owner AND NOT EXISTS ("
+                    "SELECT 1 FROM memory_note_revisions r "
+                    "WHERE r.user_id=memory_fts.user_id "
+                    "AND r.previous_source_id=memory_fts.record_id "
+                    "AND memory_fts.kind='source') "
+                    "ORDER BY kind,record_id LIMIT :limit"
                 ),
                 {"query": match, "owner": actor.id, "limit": limit},
             ).all()
@@ -688,7 +711,13 @@ class MemoryService:
         self,
         actor: Account,
         collection: Literal[
-            "sources", "entities", "aliases", "facts", "evidence", "audit"
+            "sources",
+            "entities",
+            "aliases",
+            "facts",
+            "evidence",
+            "audit",
+            "note_revisions",
         ],
         cursor: str = "",
         limit: int = 100,
@@ -701,6 +730,7 @@ class MemoryService:
             "facts": Assertion,
             "evidence": Evidence,
             "audit": Audit,
+            "note_revisions": NoteRevision,
         }
         if collection not in models or len(cursor) > 36:
             raise MemoryError("Invalid export page")

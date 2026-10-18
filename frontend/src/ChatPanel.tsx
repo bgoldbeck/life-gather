@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import './chat.css'
+import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
+import { ChatRequestError as RequestError } from './chatRequest'
 
 type Source = { id: string; text: string }
 type Turn = {
@@ -14,8 +16,6 @@ type Turn = {
 type Conversation = { id: string; title: string }
 type Page<T> = { items: T[]; next_cursor: string | null }
 type Credential = { id: string; kind: string; provider: string; label: string }
-
-class RequestError extends Error {}
 
 export function ChatPanel({
   csrfToken,
@@ -42,7 +42,7 @@ export function ChatPanel({
   const [retryNeeded, setRetryNeeded] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [source, setSource] = useState<Source | null>(null)
+  const [source, setSource] = useState<EvidenceSource | null>(null)
   const [sourceOffset, setSourceOffset] = useState<number | null>(null)
   const [opening, setOpening] = useState(false)
   const abort = useRef<AbortController | null>(null)
@@ -65,11 +65,12 @@ export function ChatPanel({
       })
       if (response.status === 401) {
         await refreshSession?.()
-        throw new RequestError('Your session expired. Sign in again.')
+        throw new RequestError('Your session expired. Sign in again.', 401)
       }
       if (!response.ok)
         throw new RequestError(
           'Unable to load or save this conversation. Please try again.',
+          response.status,
         )
       return response.json()
     },
@@ -382,24 +383,15 @@ export function ChatPanel({
             )}
           </div>
           {source && (
-            <section className="chat-evidence" aria-label="Original evidence">
-              <div>
-                <h2>Original evidence</h2>
-                <Button variant="ghost" onClick={() => setSource(null)}>
-                  Close evidence
-                </Button>
-              </div>
-              <p>Original statement · not independently verified</p>
-              <p className="chat-text">{source.text}</p>
-              {sourceOffset !== null && (
-                <Button
-                  disabled={opening}
-                  onClick={() => void openSource(source.id, sourceOffset)}
-                >
-                  Next source page
-                </Button>
-              )}
-            </section>
+            <EvidencePanel
+              key={source.id}
+              source={source}
+              nextOffset={sourceOffset}
+              opening={opening}
+              onOpen={openSource}
+              onClose={() => setSource(null)}
+              request={request}
+            />
           )}
           {error && (
             <p role="alert" className="chat-error">

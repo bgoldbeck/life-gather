@@ -15,6 +15,27 @@ rendered as text, not HTML. Statements are not independently verified facts.
 The answer is model-generated: source-ID validation proves the citation is in
 the supplied evidence, not that every sentence is semantically supported.
 
+## Correcting a saved note
+
+Open a saved note's evidence and choose **Correct note**. Save the revised text
+to create a new version. The original text remains available in **View note
+history**, including from older conversation citations. **View current note**
+opens the latest correction. New keyword recall and AI evidence use the current
+version; previous conversation answers remain historical records.
+
+Corrections apply only to explicitly saved text notes, require no AI connection,
+and do not rewrite inventory, extracted graph facts, or their original evidence.
+History timestamps show when versions were recorded, not when a real-world fact
+became true. To revert a note, save its earlier text as a new correction.
+
+Migration `0007_note_corrections` adds owner-constrained revision links without
+changing existing sources. Saving the new source, its search index, revision link,
+and audit entries is one transaction. Only the current version can be corrected;
+stale edits conflict. A lost response can be retried with the same request ID,
+returning the same version even after later corrections. History pages contain up
+to 25 versions. Operator snapshots preserve revision links; the Python export
+service includes the `note_revisions` collection alongside all original sources.
+
 ## OpenAI setup
 
 1. The installation owner configures the optional vault key using
@@ -37,8 +58,8 @@ policies still apply. See [official structured-output documentation](https://dev
 
 No tools, write authority, credentials, SQL, shell, or filesystem operations are
 given to the model. A typed `memory_save_text` MCP operation and chat capture use
-the same deterministic service. The eleven-tool app-session MCP endpoint now has
-ten read operations and this one explicit, idempotent source write. External-client
+the same deterministic service. The thirteen-tool app-session MCP endpoint has
+eleven read operations and two explicit, idempotent note writes. External-client
 OAuth remains unimplemented; never share application session cookies.
 
 ## Persistence, limits, and cancellation
@@ -86,6 +107,5 @@ This is an initial usable text slice, not the whole chat milestone. Structured
 extraction, graph-fact correction/approval, discovery resolution UI, streaming
 tokens, persistent provider/model preferences, and per-user Light/Dark settings
 are still required in subsequent increments. Uploads and connectors remain later.
-Real OpenAI access and model compatibility have not been smoke-tested. Source
-changes do not rebuild or publish an image; those operations remain separately
-approved.
+Real OpenAI access and model compatibility have not been smoke-tested. Completed,
+tested feature increments follow the standing release rule in `AGENTS.md`.
