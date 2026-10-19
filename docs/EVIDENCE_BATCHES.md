@@ -50,5 +50,11 @@ The existing append-only asset-action ledger stores the bounded reversal snapsho
 asset browsing exposes its association count rather than repeating large snapshots.
 Exports retain the complete ledger; database snapshots preserve replay and reversal.
 
+New batch explanations and audit entries are timestamped no earlier than all
+changed decisions and both item records. Reversal advances the source item's
+correction history even if the wall clock stalls or moves backward. Historical
+fact reads at the correction timestamp therefore include its effects. Existing
+stored episodes and timestamps are preserved rather than rewritten.
+
 No schema migration or dependency change. No external model call, unattended merge,
 connector ingestion or deployment change is introduced.

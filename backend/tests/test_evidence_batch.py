@@ -5,6 +5,8 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 from test_asset_actions import change
 from test_mcp_http import rpc, signed_headers
 from test_reconciliation import discovery, setup
@@ -17,14 +19,17 @@ from lifegather.assets.batch import (
     EvidenceMovePreview,
     EvidenceRestore,
 )
+from lifegather.assets.models import AssetAction
 from lifegather.assets.purchases import AssetPurchases, AssetPurchasesRead
 from lifegather.assets.service import AssetRead, AssetService
 from lifegather.auth.store import AuthStore
 from lifegather.main import create_app
 from lifegather.memory.backup import operator_snapshot
+from lifegather.memory.models import Audit
 from lifegather.memory.notes import NoteConflict
 from lifegather.memory.schemas import EntityInput, FactInput, SourceInput
 from lifegather.memory.service import MemoryError, MemoryService
+from lifegather.reconciliation.models import Decision
 from lifegather.reconciliation.schemas import DiscoveryInput
 from lifegather.reconciliation.service import ReconciliationService
 
@@ -61,6 +66,70 @@ def batch(tmp_path: Path) -> tuple[Any, ...]:
         preview,
         move,
     )
+
+
+@pytest.mark.parametrize("clock_offset", [0, -1_000_000])
+def test_batch_history_never_precedes_its_decisions(
+    tmp_path: Path, clock_offset: int
+) -> None:
+    auth, actor, _, memory, reconcile, _, _, target, _, service, preview, move = batch(
+        tmp_path
+    )
+    anchor = max(
+        reconcile.get(actor, entry["observation_id"]).recorded_at
+        for entry in preview["entries"]
+    )
+    service.memory.clock = lambda: anchor + clock_offset
+    service.reconcile.memory.clock = lambda: anchor + clock_offset
+    moved = service.move(actor, move)
+
+    def check(result: dict[str, Any], key: str, active_asset: str) -> int:
+        with Session(auth.engine) as db:
+            row = db.scalar(select(AssetAction).where(AssetAction.id == result["id"]))
+            assert row is not None
+            times = list(
+                db.scalars(
+                    select(Decision.recorded_at).where(
+                        Decision.id.in_([entry[key] for entry in result["entries"]])
+                    )
+                )
+            )
+            assert len(times) == 2
+            assert row.recorded_at >= max(times)
+            source = memory.get_source(actor, row.source_id)
+            assert source.recorded_at == row.recorded_at
+            assert (
+                db.scalar(
+                    select(Audit.recorded_at).where(
+                        Audit.user_id == actor.id,
+                        Audit.target_id == row.id,
+                        Audit.operation == "asset_" + row.operation,
+                    )
+                )
+                == row.recorded_at
+            )
+            assert any(
+                fact.predicate == "owned" and fact.value is True
+                for fact in memory.facts(actor, active_asset, known_at=row.recorded_at)
+            )
+            return row.recorded_at
+
+    moved_at = check(moved, "moved_decision_id", target.id)
+    restore = EvidenceRestore(
+        action_id=moved["id"], request_id="clock-restore", note="Restore both mappings."
+    )
+    restored = service.restore(actor, restore)
+    restored_at = check(restored, "restored_decision_id", move.asset_id)
+    assert restored_at > moved_at
+    assert not memory.facts(actor, target.id, known_at=restored_at)
+    assert memory.facts(actor, target.id, known_at=moved_at)
+    snapshot = tmp_path / "chronology.sqlite3"
+    operator_snapshot(auth.engine, snapshot)
+    recovered = AuthStore(snapshot)
+    recovered.migrate()
+    replay = EvidenceBatchService(recovered.engine)
+    assert replay.move(actor, move) == moved
+    assert replay.restore(actor, restore) == restored
 
 
 def test_atomic_multi_source_move_reverse_replay_and_backup(tmp_path: Path) -> None:

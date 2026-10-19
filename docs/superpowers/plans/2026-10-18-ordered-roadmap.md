@@ -492,3 +492,13 @@ Frontend lint/types/format and production build also pass. Refresh the local sou
 graph/HTML against the reconciled code, rather than trusting the old graph cache.
 
 The reconciled local Graphify graph/HTML contains 2107 nodes / 8234 edges. Recovery ZIPs, all three protected refs and both unchanged user-edit hashes were reverified before delivery. Self-review confirmed only test annotations/assertions and workflow documentation changed; no production code, migrations, version bump or Docker operations.
+
+Correction chronology v0.38.1: after fetching and inspecting current GitHub main,
+preserve all v0.34–0.38 mailbox, scan, schedule and purchase changes. Batch
+move/restore explanations and audit times cannot precede their changed decisions;
+individual reassociation/undo use one explanation/decision/audit transaction time.
+Five regressions reproduced the defects; historical reads, exact replay, sibling
+units and snapshot recovery pass. Full verification: 390 backend / 138 frontend,
+lint/format/types and package/frontend builds; twelve offline publisher cases pass.
+No new migration, dependency, live provider call or deployment. Graphify is not
+installed in this environment; source graph/HTML refresh could not run.

@@ -24,3 +24,17 @@ Run full backend/frontend verification from their own directories, strict types,
 lint/format and builds. Attempt the prescribed code-only graph refresh. Follow
 the standing PR/merge/branch cleanup and verified Linux/GHCR release workflow;
 never restart a running installation or invoke live mail/AI services.
+
+Verified on the v0.38 baseline: five new regressions demonstrated both defects
+before their fixes. Full backend suite: 390 passed; frontend: 138 passed. Ruff
+lint/format, strict mypy from backend, Prettier, oxlint, TypeScript, Vite and
+source/wheel builds pass. All twelve offline container-release control-flow cases
+pass. No migration, dependency or public request-schema changes in this patch;
+the existing migration head remains `0021_email_discovery`.
+
+The original local checkout was v0.33.1. Its reviewed changes were preserved in a
+local recovery snapshot, rebased onto GitHub v0.38.0 and retested; retain the newer
+email/scan/purchase implementation and all intervening changelog entries. The
+canonical purchase helper remains intact. Graphify is unavailable here (`uv tool
+list`: no tools installed), so graph/HTML refresh could not run; current source
+and tests were inspected directly. Live Gmail/AI behavior remains unverified.
