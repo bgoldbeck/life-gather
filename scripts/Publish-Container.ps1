@@ -13,6 +13,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $imageName = 'ghcr.io/bgoldbeck/life-gather'
 $releaseTimer = [Diagnostics.Stopwatch]::StartNew()
 $currentStage = 'Preflight'
+$releaseOutcome = 'FAILED'
 
 function Write-Stage {
     param([string]$Name)
@@ -74,7 +75,10 @@ try {
         }
     }
     $dirty = Get-CheckedOutput git @('status', '--porcelain')
-    if ($dirty) { throw 'Commit or safely stash your changes first. Nothing was built or uploaded.' }
+    if ($dirty) {
+        Write-Host "Uncommitted paths (file contents are not shown):`n$dirty"
+        throw 'Commit or safely stash your changes first. Nothing was built or uploaded.'
+    }
     $revision = Get-CheckedOutput git @('rev-parse', 'HEAD')
     if ($revision -notmatch '^[0-9a-f]{40}$') { throw 'Expected a full Git commit SHA.' }
     $versionSource = Get-Content -LiteralPath (Join-Path $repoRoot 'backend/src/lifegather/version.py') -Raw
@@ -133,10 +137,15 @@ try {
     Write-Stage 'Compose validation'
     Invoke-Checked docker @('compose', 'config', '--quiet')
     Invoke-Checked docker @('compose', '-f', 'deploy/compose.image.yaml', 'config', '--quiet')
-    if ($CheckOnly) { Write-Host 'Checks passed. No image built or uploaded.'; return }
+    if ($CheckOnly) {
+        $releaseOutcome = 'CHECKS PASSED'
+        Write-Host 'Checks passed. No image built or uploaded.'
+        return
+    }
 
     if (-not (Confirm-Operation 'Build the Linux image now? Docker may download base layers')) {
         Write-Host 'Build deferred. Nothing uploaded.'
+        $releaseOutcome = 'BUILD DEFERRED'
         return
     }
     Write-Stage 'Build'
@@ -207,6 +216,7 @@ print('Container health, UI, auth migration, user, and private storage verified.
     $probeName = $null
     if (-not $Publish) {
         Write-Host "Build and checks passed: $commitTag. No upload requested."
+        $releaseOutcome = 'BUILT (no upload)'
         return
     }
 
@@ -220,6 +230,7 @@ print('Container health, UI, auth migration, user, and private storage verified.
     $destination = if ($PublishLatest) { "$commitTag and $latestTag" } else { $commitTag }
     if (-not (Confirm-Operation "Upload $destination now? This can use your internet bandwidth")) {
         Write-Host 'Upload deferred. Verified image remains available locally.'
+        $releaseOutcome = 'UPLOAD DEFERRED'
         return
     }
 
@@ -251,6 +262,7 @@ print('Container health, UI, auth migration, user, and private storage verified.
     }
     Write-Host "Published $destination. TrueNAS must pull and redeploy to use it."
     Write-Host 'Existing package visibility is unchanged; verify public access for first publication.'
+    $releaseOutcome = 'PUBLISHED'
 } catch {
     Write-Host "Release failed during stage '${currentStage}'. $($_.Exception.Message)" -ForegroundColor Red
     throw
@@ -269,5 +281,5 @@ print('Container health, UI, auth migration, user, and private storage verified.
         Remove-Item -LiteralPath $authDirectory
     }
     Pop-Location
-    Write-Host ("Release session completed in {0:N1}s. Review the result above for success, deferral or failure." -f $releaseTimer.Elapsed.TotalSeconds)
+    Write-Host ("Result: {0}. Elapsed: {1:N1}s. Existing running containers were not changed." -f $releaseOutcome, $releaseTimer.Elapsed.TotalSeconds)
 }

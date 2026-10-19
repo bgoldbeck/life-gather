@@ -16,3 +16,8 @@ Acceptance: strengthen offline mocks to capture failure-path information records
 observe missing result markers fail, then check all nine existing paths plus dirty
 file names, exit preservation and token redaction. Parse PowerShell and retain the
 double-click launcher. Commit/push/PR/merge/cleanup after tests; early scope push first.
+
+Verified: the strengthened dirty-refusal result test failed before implementation.
+All nine mocked publisher paths now pass with explicit outcomes, dirty path output,
+parser/launcher checks, correct stop/publish counts and token redaction. Final clash
+check retains main 6abf92d with no competing PR. No real release or local edit mutation.
