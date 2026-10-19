@@ -31,6 +31,7 @@ import { GraphPanel } from './GraphPanel'
 import { ProfilesPanel } from './ProfilesPanel'
 import { DocumentsPanel } from './DocumentsPanel'
 import { MailboxesPanel } from './MailboxesPanel'
+import { ScansPanel } from './ScansPanel'
 import type { Theme } from './appearance'
 
 const navigation = [
@@ -53,6 +54,11 @@ const navigation = [
     name: 'Review',
     icon: CircleCheck,
     description: 'Review pending item details and uncertain identity matches.',
+  },
+  {
+    name: 'Scans',
+    icon: BookOpen,
+    description: 'Private requested and scheduled imports.',
   },
   {
     name: 'Profiles',
@@ -207,6 +213,8 @@ export function Workspace({
             </>
           ) : view === 'Review' ? (
             <ReviewPanel csrfToken={csrfToken} />
+          ) : view === 'Scans' ? (
+            <ScansPanel csrfToken={csrfToken} />
           ) : view === 'Documents' ? (
             <DocumentsPanel
               csrfToken={csrfToken}

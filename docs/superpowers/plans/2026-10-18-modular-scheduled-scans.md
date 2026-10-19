@@ -39,3 +39,21 @@ owner separation, disconnect/reconnect, expired/pending flows, vault removal and
 snapshot recovery. Self-review: explicit consent only, no mail/AI read on connect,
 no secret in API results; installation setup and live verification limits recorded.
 No real account connection, provider call, image build/upload or deployment.
+
+Step 2 implementation: fixed typed registry, durable per-user SQLite run/item
+tables, one-item atomic checkpoints, leases, idempotent request replay, overlap
+guard, cancellation and bounded crash recovery. Gmail handler verifies the
+connected account, rechecks permissions before requests and inside writes, bounds
+dates/messages/response bytes/MIME depth, omits attachments and imports only text.
+Scans UI requests/retries, progress/results and source inspection; email evidence
+joins existing Memories correction history. MCP scan_list/scan_get are read-only;
+chat remains read-only and does not silently gain scan-start permissions.
+
+Step 2 verified: full baseline plus new runner tests: 339 backend tests pass;
+six additional boundary tests pass (345 total). 130 frontend tests, Ruff lint and
+format, strict mypy (166 files), TypeScript/Oxlint/Prettier, frontend and wheel
+builds pass. Graph refreshed 2329 nodes / 9052 edges. Synthetic tests cover two-user
+HTTP/MCP/CSRF, snapshot/checkpoint recovery, stale leases, cancellation, three-claim
+cap, replay, source deduplication, wrong account, disconnect during message read,
+untrusted message identity, oversized response and MIME omission. No live Gmail,
+AI, Docker or deployment action. Daily/weekly recurrence remains step 3.

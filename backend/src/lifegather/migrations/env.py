@@ -14,6 +14,7 @@ from lifegather.reconciliation import (
     proposal_models,  # noqa: F401
     receipt_models,  # noqa: F401
 )
+from lifegather.scans import models as scan_models  # noqa: F401
 
 connection = context.config.attributes["connection"]
 context.configure(connection=connection, target_metadata=Base.metadata)

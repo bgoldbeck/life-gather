@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.35.0 — Modular requested email evidence scans
+
+- Request bounded Gmail text imports in Scans, inspect progress and results, cancel
+  pending work and browse original/corrected email evidence in Memories. No AI
+  request or inventory creation occurs during import; attachments are omitted.
+- Server-registered typed handlers share durable SQLite runs, owner authorization,
+  atomic evidence/checkpoint commits, bounded recovery and replay protection.
+  Gmail credentials stay encrypted; scan APIs and read-only MCP reveal no tokens.
+- Migration `0018_modular_scans` preserves existing data and adds scan runs/results.
+  Scans resume after restart; connection changes stop old work. Daily/weekly
+  recurrence is the next increment. Live Gmail access remains unverified.
+
 ## 0.34.0 — Separate private Gmail consent
 
 - Connect an individual Gmail mailbox through a separate read-only Google OAuth flow in Settings. Use PKCE and hashed one-time state bound to account/session/browser; refresh credentials remain in the encrypted vault and never appear in responses.
