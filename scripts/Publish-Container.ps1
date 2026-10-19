@@ -143,11 +143,6 @@ try {
         return
     }
 
-    if (-not (Confirm-Operation 'Build the Linux image now? Docker may download base layers')) {
-        Write-Host 'Build deferred. Nothing uploaded.'
-        $releaseOutcome = 'BUILD DEFERRED'
-        return
-    }
     Write-Stage 'Build'
     Invoke-Checked docker @(
         'build', '--progress=plain', '--platform', 'linux/amd64',
@@ -228,11 +223,7 @@ print('Container health, UI, auth migration, user, and private storage verified.
     Write-Stage 'Upload preflight and image size'
     Show-ImageSize $commitTag
     $destination = if ($PublishLatest) { "$commitTag and $latestTag" } else { $commitTag }
-    if (-not (Confirm-Operation "Upload $destination now? This can use your internet bandwidth")) {
-        Write-Host 'Upload deferred. Verified image remains available locally.'
-        $releaseOutcome = 'UPLOAD DEFERRED'
-        return
-    }
+
 
     Write-Stage 'Registry sign-in and upload'
     # Keep registry credentials out of the user's persistent Docker configuration.
