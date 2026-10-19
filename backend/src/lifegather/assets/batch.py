@@ -142,7 +142,24 @@ class EvidenceBatchService(ActionService):
         if not data.note.strip():
             raise MemoryError("Explain the change")
         previous = self.latest(db, actor, snapshot["asset_id"])
-        now = max(self.memory.clock(), previous.recorded_at + 1 if previous else 0)
+        # Decisions advance their own logical clocks. A stalled/backward wall
+        # clock must not place the explanation before any effect it describes.
+        decision_key = (
+            "restored_decision_id"
+            if operation == "batch_restore"
+            else "moved_decision_id"
+        )
+        decision_times = [
+            self.reconcile._decision(db, actor, entry[decision_key]).recorded_at
+            for entry in entries
+        ]
+        now = max(
+            self.memory.clock(),
+            previous.recorded_at + 1 if previous else 0,
+            self.memory._entity(db, actor, snapshot["asset_id"]).recorded_at,
+            self.memory._entity(db, actor, snapshot["target_asset_id"]).recorded_at,
+            *decision_times,
+        )
         source = self.memory._ingest_in(
             db,
             actor,

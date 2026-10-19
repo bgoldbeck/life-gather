@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.38.1 — Preserve correction chronology
+
+- Record evidence batch move/restore explanations and audit events at or after
+  every changed decision and both participating item records, even when the
+  system clock stalls or moves backward. Historical reads at the correction's
+  timestamp now include its effects; reversal remains a later recorded action.
+- Individual reassociation and undo share one transaction timestamp for their
+  explanation, decision and audit instead of sampling separate clocks.
+- Preserve existing episodes, replay results and snapshots. No retrospective
+  timestamp rewrite, schema migration, dependency or provider change.
+
 ## 0.38.0 — Requested and scheduled Gmail purchase discovery
 
 - Container publishing now confirms the active GitHub token's `write:packages`

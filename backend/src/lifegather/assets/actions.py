@@ -149,6 +149,14 @@ class ActionService:
                 self.memory.clock(),
                 previous.recorded_at + 1 if previous else asset.recorded_at,
             )
+            if data.decision_id:
+                # One transaction timestamp for explanation, decision and audit.
+                # Preserve logical order even after a wall-clock adjustment.
+                decision = self.reconcile._decision(db, actor, data.decision_id)
+                now = max(now, self.reconcile.memory.clock(), decision.recorded_at + 1)
+                if data.target_asset_id:
+                    target = self.memory._entity(db, actor, data.target_asset_id)
+                    now = max(now, target.recorded_at)
             when = date.fromisoformat(data.event_date) if data.event_date else None
             source = self.memory._ingest_in(
                 db,
@@ -260,6 +268,7 @@ class ActionService:
                     decision.id,
                     "undo" if data.operation == "undo" else "resolve",
                     targets,
+                    recorded_at=now,
                 )
                 if data.operation == "reassociate":
                     # Retain the actual new target as well as explicitly supplied

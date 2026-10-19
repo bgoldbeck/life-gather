@@ -273,10 +273,12 @@ class ReconciliationService:
         candidates: list[str],
         request_key: str,
         previous: Decision | None,
+        *,
+        recorded_at: int | None = None,
     ) -> DiscoveryView:
         data = DiscoveryInput.model_validate_json(observation.payload)
         now = max(
-            self.memory.clock(),
+            self.memory.clock() if recorded_at is None else recorded_at,
             previous.recorded_at + 1 if previous else observation.recorded_at,
         )
         if previous:
@@ -402,6 +404,8 @@ class ReconciliationService:
         expected: str,
         action: Literal["resolve", "dismiss", "undo"],
         asset_ids: list[str] | None,
+        *,
+        recorded_at: int | None = None,
     ) -> DiscoveryView:
         if asset_ids is not None and (
             not 1 <= len(asset_ids) <= 20 or len(asset_ids) != len(set(asset_ids))
@@ -441,6 +445,7 @@ class ReconciliationService:
                     prior.candidate_ids,
                     key,
                     old,
+                    recorded_at=recorded_at,
                 )
             return self._record(
                 db,
@@ -452,6 +457,7 @@ class ReconciliationService:
                 [],
                 key,
                 old,
+                recorded_at=recorded_at,
             )
         if action == "dismiss":
             return self._record(
@@ -464,6 +470,7 @@ class ReconciliationService:
                 [],
                 key,
                 old,
+                recorded_at=recorded_at,
             )
         if data.kind in {"payment", "mention"}:
             raise MemoryError(
@@ -483,6 +490,7 @@ class ReconciliationService:
             [],
             key,
             old,
+            recorded_at=recorded_at,
         )
 
     def resolve(
