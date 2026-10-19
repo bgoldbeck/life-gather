@@ -1,5 +1,25 @@
 # Photographs, attachments, and graph evidence
 
+## Saved-photo reading in Chat (v0.40.0)
+
+Choose **Read a saved photo** in Chat, load the private five-item paged library,
+select one original and explicitly submit **Read selected photo**. This uses the
+selected persistent conversation and existing provider/model, consent and daily
+budget controls. Loading/choosing a thumbnail makes no AI call; submitting sends
+the selected original to that provider. Existing saved readings are reused.
+
+Transcription remains unverified and at most one identifiable item is proposed.
+Inspect the source and review the proposal before inventory changes. Other chat
+messages and an unsent text draft are not sent to the photo extractor; switching
+back to text preserves that draft. Arbitrary photo questions and multi-item photo
+receipts are not supported by this action. Upload new images in Photos first.
+
+Uncertain responses retain the exact request and freeze the choice for safe retry.
+A still-pending turn can be checked again without generating a new request ID.
+Conversation changes clear the selection and discard late chooser responses.
+A completed request stays saved if refreshing daily usage fails. No new schema,
+provider adapter, credential scope or deletion behavior is introduced.
+
 User-approved direction, 2026-10-17. The v0.7.0 initial photo slice is implemented; broader graph/event linking remains planned. Dedicated phone-camera/PWA capture and remote access remain deferred. Ordinary image uploads are part of the first useful release.
 
 ## User experience

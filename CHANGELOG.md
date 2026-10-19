@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.40.0 — Read a saved private photo in Chat
+
+- Choose **Read a saved photo** in Chat, deliberately load/select from the private
+  five-item paged library, and explicitly read the original with the configured AI
+  connection/model. Keep transcription evidence and the unverified single-item
+  proposal in the selected persistent conversation. Selection makes no AI request.
+- Preserve unsent text drafts, existing consent/connection/model/budget gates and
+  human review before inventory. Freeze exact request arguments after uncertain
+  responses, retain pending turns for safe checks, and clear photo choices/read
+  results on conversation intent changes, including a new unsaved conversation.
+- A completed request whose usage refresh fails remains visibly saved; it does
+  not become an uncertain request or invite another model call. Uploads stay in
+  Photos; multi-item photo receipts and arbitrary photo questions remain separate.
+- Reuse existing private photo/chat domain services. No migration, dependency,
+  provider-adapter or public request-schema change; no live provider call/redeploy.
+- Let narrow Chat grid tracks shrink and wrap provider action buttons; browser
+  verification shows no page overflow at 390px with the photo picker active.
+
 ## 0.39.0 — Compare complete bounded current records
 
 - Explicitly compare two private item records in Assets: current statement versions

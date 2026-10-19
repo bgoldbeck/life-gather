@@ -26,3 +26,20 @@ conversation reset, original evidence/proposal links and provider failure handli
 Verify the existing private backend path with synthetic providers, full backend/
 frontend checks, browser and Linux smoke; no live AI/email. No schema/dependency or
 provider-adapter changes. Release v0.40.0 through the standing source/GHCR workflow.
+
+Verified: 411 backend / 159 frontend tests, Ruff lint/format, strict mypy,
+Prettier, oxlint, TypeScript, Vite and package builds pass. Fourteen new UI cases
+cover explicit no-eager selection, source links, preserved drafts, connection/
+model/consent/budget gates, exact lost/pending retries, usage-refresh failure,
+paging/errors and late success/error after new/existing conversation changes.
+The initial action tests and new-unsaved-conversation race tests failed before
+their implementations. One composed private backend test proves prior messages
+remain, duplicate photo reads reuse one provider/budget request, sources remain
+private and inventory stays empty until review.
+
+Synthetic browser verified a labelled photo, saved conversation, source image and
+unverified single-item proposal. Narrow 390px QA exposed an existing Chat grid/
+button-row minimum width; minmax tracks and wrapping now keep document width at
+375px with no overflow. Viewport reset, preview tab/server closed. Linux-compatible
+smoke checks the same domain lifecycle and snapshot replay. Graphify unavailable;
+source graph/HTML refresh could not run. No live provider calls or migration.
