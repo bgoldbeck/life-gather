@@ -6,6 +6,7 @@ from uuid import uuid4
 from sqlalchemy import Engine, and_, or_, select
 from sqlalchemy.orm import Session
 
+from lifegather.assets.identity import canonical_id, same_identity, secondary_ids
 from lifegather.auth.store import Account
 from lifegather.memory.models import Assertion, Entity
 from lifegather.memory.schemas import EntityInput, FactInput
@@ -93,7 +94,12 @@ class ReconciliationService:
             superseded_at=row.superseded_at,
             previous_decision_id=row.previous_id,
             asset_ids=[
-                binding.asset_id for binding in self._bindings(db, actor, row.id)
+                (
+                    canonical_id(db, actor, binding.asset_id)
+                    if row.superseded_at is None
+                    else binding.asset_id
+                )
+                for binding in self._bindings(db, actor, row.id)
             ],
             candidate_ids=list(
                 db.scalars(
@@ -284,6 +290,9 @@ class ReconciliationService:
         ownership_status: Literal["stated", "inferred"] | None = None,
     ) -> DiscoveryView:
         data = DiscoveryInput.model_validate_json(observation.payload)
+        targets = [canonical_id(db, actor, identifier) for identifier in targets]
+        if len(set(targets)) != len(targets):
+            raise MemoryError("Each unit must remain a distinct physical item")
         if ownership_status is None:
             # Identity corrections/undo retain an explicit declaration from this
             # same observation; ordinary discoveries retain their inferred default.
@@ -552,14 +561,21 @@ class ReconciliationService:
             return list(
                 db.scalars(
                     self.matcher._active_bindings(actor)
-                    .with_only_columns(Binding.asset_id)
+                    .with_only_columns(Entity.id)
                     .join(
                         Entity,
-                        and_(Entity.user_id == actor.id, Entity.id == Binding.asset_id),
+                        and_(
+                            Entity.user_id == actor.id,
+                            same_identity(actor, Entity.id, Binding.asset_id),
+                        ),
                     )
-                    .where(Binding.asset_id > cursor, current_inventory(actor))
+                    .where(
+                        Entity.id > cursor,
+                        Entity.id.not_in(secondary_ids(actor)),
+                        current_inventory(actor),
+                    )
                     .distinct()
-                    .order_by(Binding.asset_id)
+                    .order_by(Entity.id)
                     .limit(limit)
                 )
             )

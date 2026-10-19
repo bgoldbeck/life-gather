@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Engine, and_, or_, select
 from sqlalchemy.orm import Session
 
+from lifegather.assets.identity import member_ids
 from lifegather.auth.store import Account
 from lifegather.memory.models import Assertion, Audit
 from lifegather.memory.origins import ChangeOrigin
@@ -47,14 +48,18 @@ class FieldHistory:
         with Session(self.engine) as db:
             db.connection().exec_driver_sql("BEGIN")
             entity = self.memory._entity(db, actor, data.entity_id)
+            identifiers = member_ids(db, actor, entity.id)
             query = select(Assertion).where(
                 Assertion.user_id == actor.id,
-                Assertion.subject_id == entity.id,
+                Assertion.subject_id.in_(identifiers),
                 Assertion.predicate == data.field,
             )
             if data.cursor:
                 cursor = self.memory._assertion(db, actor, data.cursor)
-                if cursor.subject_id != entity.id or cursor.predicate != data.field:
+                if (
+                    cursor.subject_id not in identifiers
+                    or cursor.predicate != data.field
+                ):
                     raise MemoryError("Choose a cursor from this record and field")
                 query = query.where(
                     or_(

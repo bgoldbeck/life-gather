@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.48.0 — Reversible two-record asset consolidation
+
+- Choose a primary record after a fresh complete bounded comparison and explicitly
+  confirm that two records describe the same physical item. Preserve original
+  entity IDs, evidence, conflicting fact versions, aliases, photo links, receipts
+  and purchase identities; no financial claims are added or allocated.
+- Current Assets, Profiles, galleries, graph, field history and chat recall use a
+  shared identity projection. Later discovery enriches the selected primary.
+  Historical recorded-time reads preserve the identity known at that time.
+- Refuse overlapping groups, chains, sibling receipt units, replacement items and
+  conflicting manufacturer/serial/VIN identifiers. Atomic preview/version checks,
+  owner constraints, request replay and append-only explanations protect decisions.
+  Guarded reversal refuses dependent changes rather than overwriting them.
+- New private HTTP/MCP operations require direct human choices and remain outside
+  the application's model tool set. The UI preserves uncertain request identities
+  and distinguishes successful saves from failed read-only reloads.
+- Add migration 0023_asset_consolidation with owner-constrained group history and
+  unique active members. JSON portability format 2 adds consolidation history;
+  original bytes remain excluded and the file is not a restorable backup.
+- No new runtime dependency, live provider call or running-installation deployment.
+
 ## 0.47.0 — Download private records with preserved history
 
 - Settings can explicitly download a versioned JSON copy of saved evidence,

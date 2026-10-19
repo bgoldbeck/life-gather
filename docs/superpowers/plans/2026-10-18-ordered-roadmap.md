@@ -596,3 +596,18 @@ actual synthetic browser download (45 records, 23 collections, 18 audit origins)
 390px with the dock, standalone quantity/JPY/history/privacy/snapshot smoke.
 No new migration/dependency/provider call/deployment. Graphify unavailable locally;
 graph/HTML refresh could not run. Linux smoke and source/GHCR release follow.
+
+Two-record consolidation v0.48.0: explicit fresh complete preview, primary record,
+human confirmation and sourced explanation; preserve original facts, IDs, sources,
+quantities and exact financial claims. Shared current identity supports Assets,
+Profiles, galleries, graph, recall, inventory and future discovery. Historical
+recorded-time reads retain their identity context. Refuse incompatible identifiers,
+sibling physical units, replacement links, chains and overlapping groups. Stable
+replay, serialized writes, guarded reversal and paged explanation history are
+implemented. Migration 0023 adds owner-constrained history/membership; portability
+format 2 adds consolidation history. Verification: 492 backend / 231 frontend,
+strict types, lint/format, wheel/frontend builds and all four offline release-script
+checks. Synthetic browser confirmation, reversal, explanation navigation, light/dark
+and 390px layout pass. No dependency, live provider or running-installation change.
+Code-only source graph/HTML refreshed (2,970 nodes / 12,981 edges; partial AST
+coverage of AssetsPanel.tsx). Source/container release follows source acceptance.

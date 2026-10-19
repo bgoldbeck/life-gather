@@ -7,9 +7,10 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import Engine, exists, or_, select
 from sqlalchemy.orm import Session, aliased
 
+from lifegather.assets.identity import canonical_id, identity_group, member_ids
 from lifegather.assets.models import AssetAction
 from lifegather.auth.store import Account
-from lifegather.memory.models import Entity
+from lifegather.memory.models import Assertion, Entity
 from lifegather.memory.notes import NoteConflict
 from lifegather.memory.schemas import FactInput, SourceInput
 from lifegather.memory.service import MemoryError, MemoryService, fingerprint
@@ -77,7 +78,11 @@ class ActionService:
         value: str | bool,
         when: date | None,
         previous_id: str | None,
+        *,
+        subject_id: str | None = None,
+        key_suffix: str = "",
     ) -> str:
+        subject_id = subject_id or row.asset_id
         source = self.memory._source(db, actor, row.source_id)
         previous = (
             self.memory._assertion(db, actor, previous_id) if previous_id else None
@@ -93,7 +98,7 @@ class ActionService:
                 db,
                 actor,
                 FactInput(
-                    subject_id=row.asset_id,
+                    subject_id=subject_id,
                     predicate=predicate,
                     value=json.loads(previous.value_json or "null"),
                     status="stated",
@@ -101,7 +106,7 @@ class ActionService:
                     quote=source.text,
                     valid_from=previous.valid_from,
                     valid_to=when,
-                    operation_key=f"asset-action:{row.id}:{predicate}:close",
+                    operation_key=f"asset-action:{row.id}:{predicate}{key_suffix}:close",
                 ),
                 previous.id,
                 recorded_at=row.recorded_at,
@@ -111,14 +116,14 @@ class ActionService:
             db,
             actor,
             FactInput(
-                subject_id=row.asset_id,
+                subject_id=subject_id,
                 predicate=predicate,
                 value=value,
                 status="stated",
                 source_id=source.id,
                 quote=source.text,
                 valid_from=when,
-                operation_key=f"asset-action:{row.id}:{predicate}",
+                operation_key=f"asset-action:{row.id}:{predicate}{key_suffix}",
             ),
             previous_id,
             recorded_at=row.recorded_at,
@@ -142,12 +147,23 @@ class ActionService:
                 if existing.fingerprint != signature:
                     raise NoteConflict("Action request conflict")
                 return {"id": existing.id, **json.loads(existing.result_json)}
+            asset = self.memory._entity(db, actor, canonical_id(db, actor, asset.id))
+            if (
+                data.target_asset_id
+                and canonical_id(db, actor, data.target_asset_id) == asset.id
+            ):
+                raise MemoryError(
+                    "Choose a different physical item outside this consolidation"
+                )
             previous = self.latest(db, actor, asset.id)
             if (previous.id if previous else "") != data.expected_action_id:
                 raise NoteConflict("This item changed. Reload it before correcting it.")
             now = max(
                 self.memory.clock(),
                 previous.recorded_at + 1 if previous else asset.recorded_at,
+                group.recorded_at + 1
+                if (group := identity_group(db, actor, asset.id))
+                else 0,
             )
             if data.decision_id:
                 # One transaction timestamp for explanation, decision and audit.
@@ -215,11 +231,63 @@ class ActionService:
                     when,
                     old.status_fact_id if old else None,
                 )
+                identifiers = member_ids(db, actor, asset.id)
+                mirrored = []
+                if len(identifiers) > 1:
+                    # The explicit statement concerns the consolidated physical
+                    # item. Advance action-owned status versions on its other
+                    # original record too; arbitrary independent facts remain
+                    # conflicts and are never silently overwritten.
+                    secondary_facts = list(
+                        db.scalars(
+                            select(Assertion)
+                            .where(
+                                Assertion.user_id == actor.id,
+                                Assertion.subject_id.in_(
+                                    [
+                                        identifier
+                                        for identifier in identifiers
+                                        if identifier != asset.id
+                                    ]
+                                ),
+                                Assertion.predicate.in_(["owned", "asset_status"]),
+                                Assertion.operation_key.startswith(
+                                    "asset-action:", autoescape=True
+                                ),
+                                Assertion.superseded_at.is_(None),
+                                Assertion.valid_to.is_(None),
+                            )
+                            .order_by(Assertion.id)
+                            .limit(101)
+                        )
+                    )
+                    if len(secondary_facts) > 100:
+                        raise MemoryError(
+                            "Too many ownership statements; inspect original history"
+                        )
+                    for previous_fact in secondary_facts:
+                        mirrored.append(
+                            self._fact(
+                                db,
+                                actor,
+                                row,
+                                previous_fact.predicate,
+                                data.status == "owned"
+                                if previous_fact.predicate == "owned"
+                                else data.status or "owned",
+                                when,
+                                previous_fact.id,
+                                subject_id=previous_fact.subject_id,
+                                key_suffix=":" + previous_fact.id,
+                            )
+                        )
                 result = {
                     "operation": "ownership",
                     "status": data.status,
                     "source_id": source.id,
                 }
+                if mirrored:
+                    result["original_record_status_fact_ids"] = mirrored
             else:
                 assert data.decision_id is not None
                 decision = self.reconcile._decision(db, actor, data.decision_id)
@@ -227,7 +295,7 @@ class ActionService:
                     select(Binding).where(
                         Binding.user_id == actor.id,
                         Binding.decision_id == decision.id,
-                        Binding.asset_id == asset.id,
+                        Binding.asset_id.in_(member_ids(db, actor, asset.id)),
                     )
                 )
                 observation = self.reconcile._observation(

@@ -155,6 +155,17 @@ class RecallTools:
                         )
                     ),
                 }
+                if detail is not None and detail.get("consolidation"):
+                    choice = detail["consolidation"]
+                    add_source(choice["source_id"])
+                    record["consolidation"] = {
+                        **choice,
+                        "identity_status": (
+                            "user-confirmed same physical item; "
+                            "original fact subjects preserved"
+                        ),
+                        "original_records": detail["original_records"],
+                    }
                 if detail is not None:
                     record["in_inventory"] = detail["in_inventory"]
                     record["inventory_status"] = (

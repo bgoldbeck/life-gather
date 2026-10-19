@@ -13,6 +13,7 @@ from sqlalchemy import Engine, Select, and_, or_, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from lifegather.assets.identity import canonical_id, member_ids, secondary_ids
 from lifegather.auth.store import Account
 from lifegather.memory.models import (
     Alias,
@@ -240,8 +241,12 @@ class MemoryService:
         self._audit(db, actor, "entity_created", entity.id, now)
         return EntityView.model_validate(entity)
 
-    def get_entity(self, actor: Account, identifier: str) -> EntityView:
+    def get_entity(
+        self, actor: Account, identifier: str, *, known_at: int | None = None
+    ) -> EntityView:
         with Session(self.engine) as db:
+            self._entity(db, actor, identifier)
+            identifier = member_ids(db, actor, identifier, known_at=known_at)[0]
             return EntityView.model_validate(self._entity(db, actor, identifier))
 
     def list_entities(
@@ -254,7 +259,11 @@ class MemoryService:
             rows = list(
                 db.scalars(
                     select(Entity)
-                    .where(Entity.user_id == actor.id, Entity.id > cursor)
+                    .where(
+                        Entity.user_id == actor.id,
+                        Entity.id > cursor,
+                        Entity.id.not_in(secondary_ids(actor)),
+                    )
                     .order_by(Entity.id)
                     .limit(limit + 1)
                 )
@@ -325,16 +334,22 @@ class MemoryService:
             aliases = select(Alias.entity_id).where(
                 Alias.user_id == actor.id, Alias.normalized_name == label
             )
-            rows = db.scalars(
-                select(Entity)
-                .where(
-                    Entity.user_id == actor.id,
-                    or_(Entity.normalized_name == label, Entity.id.in_(aliases)),
+            rows = list(
+                db.scalars(
+                    select(Entity)
+                    .where(
+                        Entity.user_id == actor.id,
+                        or_(Entity.normalized_name == label, Entity.id.in_(aliases)),
+                    )
+                    .order_by(Entity.id)
+                    .limit(limit * 2)
                 )
-                .order_by(Entity.id)
-                .limit(limit)
             )
-            return [EntityView.model_validate(row) for row in rows]
+            canonical = sorted({canonical_id(db, actor, row.id) for row in rows})
+            return [
+                EntityView.model_validate(self._entity(db, actor, identifier))
+                for identifier in canonical[:limit]
+            ]
 
     @staticmethod
     def _view(
@@ -540,8 +555,9 @@ class MemoryService:
             raise MemoryError("Invalid recorded timestamp")
         with Session(self.engine) as db:
             self._entity(db, actor, entity_id)
+            identifiers = member_ids(db, actor, entity_id, known_at=known_at)
             query = select(Assertion).where(
-                Assertion.user_id == actor.id, Assertion.subject_id == entity_id
+                Assertion.user_id == actor.id, Assertion.subject_id.in_(identifiers)
             )
             if known_at is None:
                 query = query.where(Assertion.superseded_at.is_(None))
@@ -559,7 +575,9 @@ class MemoryService:
                     Assertion.valid_from <= when,
                     or_(Assertion.valid_to.is_(None), Assertion.valid_to > when),
                 )
-            query = self._after(db, actor, entity_id, query, cursor)
+            query = self._after(
+                db, actor, entity_id, query, cursor, identifiers=identifiers
+            )
             return [
                 self._view(db, actor, row, known_at)
                 for row in db.scalars(
@@ -578,12 +596,13 @@ class MemoryService:
         bounded(limit)
         with Session(self.engine) as db:
             self._entity(db, actor, entity_id)
+            identifiers = member_ids(db, actor, entity_id)
             query = self._after(
                 db,
                 actor,
                 entity_id,
                 select(Assertion).where(
-                    Assertion.user_id == actor.id, Assertion.subject_id == entity_id
+                    Assertion.user_id == actor.id, Assertion.subject_id.in_(identifiers)
                 ),
                 cursor,
             )
@@ -601,13 +620,15 @@ class MemoryService:
         entity_id: str,
         query: Select[Assertion],
         cursor: str | None,
+        *,
+        identifiers: list[str] | None = None,
     ) -> Select[Assertion]:
         if cursor is None:
             return query
         if len(cursor) > 36:
             raise MemoryError("Invalid cursor")
         previous = self._assertion(db, actor, cursor)
-        if previous.subject_id != entity_id:
+        if previous.subject_id not in (identifiers or member_ids(db, actor, entity_id)):
             raise MemoryError("Invalid cursor")
         return query.where(
             or_(
@@ -646,11 +667,16 @@ class MemoryService:
             results = []
             for identifier, kind in matches:
                 if kind == "entity":
-                    entity = self._entity(db, actor, identifier)
+                    entity = self._entity(
+                        db, actor, canonical_id(db, actor, identifier)
+                    )
+                    identifier = entity.id
                     label = entity.name
                 else:
                     label = self._source(db, actor, identifier).text[:240]
-                results.append({"id": identifier, "kind": kind, "text": label})
+                item = {"id": identifier, "kind": kind, "text": label}
+                if item not in results:
+                    results.append(item)
             return results
 
     def related(
@@ -661,7 +687,8 @@ class MemoryService:
             raise MemoryError("Graph depth must be 1 or 2")
         with Session(self.engine) as db:
             self._entity(db, actor, entity_id)
-            visited, frontier = {entity_id}, {entity_id}
+            identifiers = member_ids(db, actor, entity_id)
+            visited, frontier = set(identifiers), set(identifiers)
             edges: dict[str, FactView] = {}
             truncated = False
             for _ in range(depth):
@@ -690,6 +717,11 @@ class MemoryService:
                     next_frontier.update(
                         {row.subject_id, row.object_id or row.subject_id}
                     )
+                next_frontier = {
+                    member
+                    for identifier in next_frontier
+                    for member in member_ids(db, actor, identifier)
+                }
                 next_frontier -= visited
                 visited |= next_frontier
                 frontier = next_frontier
@@ -704,9 +736,31 @@ class MemoryService:
                     .limit(201)
                 )
             )
+            canonical_nodes = sorted({canonical_id(db, actor, row.id) for row in nodes})
             return {
-                "nodes": [EntityView.model_validate(row) for row in nodes],
-                "edges": list(edges.values()),
+                "nodes": [
+                    EntityView.model_validate(self._entity(db, actor, identifier))
+                    for identifier in canonical_nodes
+                ],
+                "edges": [
+                    edge.model_copy(
+                        update={
+                            "subject_id": canonical_id(db, actor, edge.subject_id),
+                            "object_id": canonical_id(db, actor, edge.object_id)
+                            if edge.object_id
+                            else None,
+                        }
+                    )
+                    for edge in edges.values()
+                ],
+                "identity_projection": [
+                    {
+                        "original_id": row.id,
+                        "primary_id": canonical_id(db, actor, row.id),
+                    }
+                    for row in nodes
+                    if canonical_id(db, actor, row.id) != row.id
+                ],
                 "truncated": truncated,
             }
 

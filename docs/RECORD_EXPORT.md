@@ -42,7 +42,7 @@ not guess who made an old change or relabel its confidence.
 
 ## File format
 
-The envelope identifies `format: "lifegather-records/1"`, `application_version`,
+The envelope identifies `format: "lifegather-records/2"`, `application_version`,
 UTC `snapshot_at`, purpose, exclusions, per-collection `counts` and `total_records`.
 `collections` contains arrays with these stable names:
 
@@ -53,6 +53,7 @@ UTC `snapshot_at`, purpose, exclusions, per-collection `counts` and `total_recor
 | `reconciliation_purchases`, `reconciliation_lines`, `reconciliation_observations` | Purchase identity, quantities and source observations |
 | `reconciliation_decisions`, `reconciliation_bindings`, `reconciliation_candidates` | Review history and separate physical units |
 | `asset_actions`, `asset_proposals`, `receipt_proposals`, `receipt_details` | Corrections, reviews and receipt-line claims |
+| `asset_consolidations` | Explicit two-record identity choices and preserved reversals |
 | `purchase_evidence` | Cross-source purchase claims and revisions |
 | `chat_conversations`, `chat_turns` | Conversations and saved requests/results |
 | `photos`, `photo_assets`, `documents` | Metadata, links and extracted PDF text; no binary files |
@@ -66,6 +67,12 @@ Stored JSON text fields such as `value_json` and `result_json` remain exact stri
 so no type, numeric literal or historical representation is silently rewritten.
 Check the envelope format before consuming the document. It is not a database
 dump or a supported replay/import protocol.
+
+Format 2 adds consolidation history to the 23 format-1 collections; existing row
+fields keep their previous meanings. The UI accepts either version for server
+compatibility. Active consolidation membership is a derived index and is not a
+separate collection; both member IDs, choice dates and reversals are retained in
+`asset_consolidations`. Check the envelope version before processing a file.
 
 ## Implementation and verification
 

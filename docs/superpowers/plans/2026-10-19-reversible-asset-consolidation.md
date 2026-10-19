@@ -56,3 +56,22 @@ Container verification/publication requires available Docker tooling; never clai
 publication from a source merge and never redeploy a running installation.
 Check account usage between milestones and stop near 5 percent remaining.
 No live personal data, mailbox scans or model calls are part of development.
+
+## Verified source acceptance, 2026-10-19
+
+Implemented v0.48.0 with migration 0023 and portability format 2. Current identity
+projection preserves the two original records and facts across browsing, profile
+corrections, galleries, graph, recall, inventory and subsequent discovery. Explicit
+group ownership advances action-owned statements on both originals while retaining
+independent conflicts. Paged identity history links both original explanations.
+
+Verification on the implementation: 492 backend tests; 231 frontend tests across
+45 files; strict backend/source-test typing, TypeScript, Ruff, oxlint and Prettier;
+production frontend and backend wheel builds. Wheel metadata and inclusion of
+migration 0023 checked. All four offline PowerShell release/launcher test scripts
+pass. Synthetic browser verified confirmation, reversal, preserved explanation
+navigation, light/dark appearances and a 390px layout with no horizontal overflow.
+No live provider calls or personal-data ingestion occurred. Code-only Graphify
+refresh and HTML export succeeded (2,970 nodes / 12,981 edges), with partial AST
+extraction reported for AssetsPanel.tsx despite passing TypeScript verification.
+Source publication and isolated Linux container verification are release steps.

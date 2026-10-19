@@ -7,7 +7,13 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Engine, and_, or_, select
 from sqlalchemy.orm import Session
 
-from lifegather.assets.models import AssetAction
+from lifegather.assets.identity import (
+    canonical_id,
+    identity_group,
+    member_ids,
+    secondary_ids,
+)
+from lifegather.assets.models import AssetAction, AssetConsolidation
 from lifegather.auth.store import Account
 from lifegather.memory.models import Entity
 from lifegather.memory.schemas import EntityView
@@ -31,6 +37,7 @@ class AssetRead(BaseModel):
     fact_cursor: str = Field(default="", max_length=36)
     decision_cursor: str = Field(default="", max_length=36)
     action_cursor: str = Field(default="", max_length=36)
+    identity_cursor: str = Field(default="", max_length=36)
     limit: int = Field(default=25, ge=1, le=25)
 
 
@@ -58,18 +65,38 @@ class AssetService:
 
     def list(self, actor: Account, value: AssetList) -> dict[str, Any]:
         data = AssetList.model_validate(value)
+        secondary_entity = Entity.__table__.alias("secondary_entity")
         with Session(self.engine) as db:
             query = select(Entity, self.active(actor).label("in_inventory")).where(
                 Entity.user_id == actor.id,
                 Entity.kind == "asset",
                 Entity.id > data.cursor,
+                Entity.id.not_in(secondary_ids(actor)),
             )
             if not data.include_history:
                 query = query.where(self.active(actor))
             if data.query.strip():
                 query = query.where(
-                    Entity.normalized_name.contains(
-                        normalized(data.query), autoescape=True
+                    or_(
+                        Entity.normalized_name.contains(
+                            normalized(data.query), autoescape=True
+                        ),
+                        Entity.id.in_(
+                            select(AssetConsolidation.primary_id)
+                            .join(
+                                secondary_entity,
+                                secondary_entity.c.id
+                                == AssetConsolidation.secondary_id,
+                            )
+                            .where(
+                                AssetConsolidation.user_id == actor.id,
+                                AssetConsolidation.superseded_at.is_(None),
+                                secondary_entity.c.user_id == actor.id,
+                                secondary_entity.c.normalized_name.contains(
+                                    normalized(data.query), autoescape=True
+                                ),
+                            )
+                        ),
                     )
                 )
             rows = list(db.execute(query.order_by(Entity.id).limit(data.limit + 1)))
@@ -92,6 +119,8 @@ class AssetService:
             asset = self.memory._entity(db, actor, data.asset_id)
             if asset.kind != "asset":
                 raise MemoryError("Asset not found")
+            identifiers = member_ids(db, actor, asset.id)
+            asset = self.memory._entity(db, actor, canonical_id(db, actor, asset.id))
             in_inventory = db.scalar(
                 select(self.active(actor)).where(
                     Entity.id == asset.id, Entity.user_id == actor.id
@@ -103,7 +132,7 @@ class AssetService:
                 .join(Observation, Observation.id == Decision.observation_id)
                 .where(
                     Binding.user_id == actor.id,
-                    Binding.asset_id == asset.id,
+                    Binding.asset_id.in_(identifiers),
                     Decision.user_id == actor.id,
                 )
             )
@@ -160,6 +189,75 @@ class AssetService:
                 if len(rows) > data.limit
                 else None,
             }
+            group = identity_group(db, actor, asset.id)
+            result["consolidation"] = (
+                None
+                if group is None
+                else {
+                    "id": group.id,
+                    "primary_id": group.primary_id,
+                    "secondary_id": group.secondary_id,
+                    "source_id": group.source_id,
+                    "recorded_at": group.recorded_at,
+                }
+            )
+            result["original_records"] = [
+                EntityView.model_validate(
+                    self.memory._entity(db, actor, identifier)
+                ).model_dump()
+                for identifier in identifiers
+            ]
+            identity_query = select(AssetConsolidation).where(
+                AssetConsolidation.user_id == actor.id,
+                or_(
+                    AssetConsolidation.primary_id.in_(identifiers),
+                    AssetConsolidation.secondary_id.in_(identifiers),
+                ),
+            )
+            if data.identity_cursor:
+                cursor = db.scalar(
+                    identity_query.where(AssetConsolidation.id == data.identity_cursor)
+                )
+                if cursor is None:
+                    raise MemoryError("Invalid consolidation history cursor")
+                identity_query = identity_query.where(
+                    or_(
+                        AssetConsolidation.recorded_at < cursor.recorded_at,
+                        and_(
+                            AssetConsolidation.recorded_at == cursor.recorded_at,
+                            AssetConsolidation.id < cursor.id,
+                        ),
+                    )
+                )
+            choices = list(
+                db.scalars(
+                    identity_query.order_by(
+                        AssetConsolidation.recorded_at.desc(),
+                        AssetConsolidation.id.desc(),
+                    ).limit(data.limit + 1)
+                )
+            )
+            result["identity_history"] = [
+                {
+                    "id": choice.id,
+                    "primary_id": choice.primary_id,
+                    "secondary_id": choice.secondary_id,
+                    "primary_name": self.memory._entity(
+                        db, actor, choice.primary_id
+                    ).name,
+                    "secondary_name": self.memory._entity(
+                        db, actor, choice.secondary_id
+                    ).name,
+                    "source_id": choice.source_id,
+                    "recorded_at": choice.recorded_at,
+                    "superseded_at": choice.superseded_at,
+                    "reverse_source_id": choice.reverse_source_id,
+                }
+                for choice in choices[: data.limit]
+            ]
+            result["next_identity_cursor"] = (
+                choices[data.limit - 1].id if len(choices) > data.limit else None
+            )
             actions_query = select(AssetAction).where(
                 AssetAction.user_id == actor.id, AssetAction.asset_id == asset.id
             )
@@ -174,8 +272,8 @@ class AssetService:
             actions_query = select(AssetAction).where(
                 AssetAction.user_id == actor.id,
                 or_(
-                    AssetAction.asset_id == asset.id,
-                    AssetAction.target_asset_id == asset.id,
+                    AssetAction.asset_id.in_(identifiers),
+                    AssetAction.target_asset_id.in_(identifiers),
                 ),
             )
             if data.action_cursor:

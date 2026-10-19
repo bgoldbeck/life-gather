@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session
 
+from lifegather.assets.identity import canonical_id, identity_group, member_ids
 from lifegather.auth.store import Account
 from lifegather.memory.models import Assertion
 from lifegather.memory.service import MemoryError, MemoryService, fingerprint
@@ -66,12 +67,15 @@ class WorkspaceContexts:
                 "fields": {},
             }
         entity = self.memory._entity(db, actor, value.entity_id)
+        group = identity_group(db, actor, entity.id)
+        identifiers = member_ids(db, actor, entity.id)
+        entity = self.memory._entity(db, actor, canonical_id(db, actor, entity.id))
         rows = list(
             db.scalars(
                 select(Assertion)
                 .where(
                     Assertion.user_id == actor.id,
-                    Assertion.subject_id == entity.id,
+                    Assertion.subject_id.in_(identifiers),
                     Assertion.predicate.startswith("profile_", autoescape=True),
                     Assertion.superseded_at.is_(None),
                 )
@@ -104,6 +108,9 @@ class WorkspaceContexts:
             "entity_id": entity.id,
             "name": entity.name,
             "kind": entity.kind,
-            "version": fingerprint([entity.id, entity.name, [row.id for row in rows]]),
+            "version": fingerprint(
+                [entity.id, entity.name, [row.id for row in rows]]
+                + ([group.id] if group else [])
+            ),
             "fields": fields,
         }

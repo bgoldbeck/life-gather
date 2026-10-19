@@ -10,6 +10,12 @@ from lifegather.assets.batch import (
     EvidenceRestore,
 )
 from lifegather.assets.comparison import RecordComparison, RecordComparisonService
+from lifegather.assets.consolidation import (
+    Consolidate,
+    ConsolidationPair,
+    ConsolidationService,
+    ReverseConsolidation,
+)
 from lifegather.assets.manual import ManualAssetCreate, ManualAssetFields, ManualAssets
 from lifegather.assets.purchases import AssetPurchases, AssetPurchasesRead
 from lifegather.assets.replacements import (
@@ -27,6 +33,34 @@ Cursor = Annotated[str, Query(max_length=36)]
 
 def asset_router() -> APIRouter:
     router = APIRouter(prefix="/api/assets")
+
+    @router.post("/consolidation/preview")
+    def consolidation_preview(
+        request: Request, body: ConsolidationPair, current: Authenticated
+    ) -> dict[str, Any]:
+        return ConsolidationService(request.app.state.auth_store.engine).preview(
+            current.user, body.primary_id, body.secondary_id
+        )
+
+    @router.post("/consolidation/apply")
+    def consolidate(
+        request: Request,
+        body: Consolidate,
+        current: Annotated[CurrentSession, Depends(require_write_session)],
+    ) -> dict[str, Any]:
+        return ConsolidationService(request.app.state.auth_store.engine).apply(
+            current.user, body
+        )
+
+    @router.post("/consolidation/reverse")
+    def reverse_consolidation(
+        request: Request,
+        body: ReverseConsolidation,
+        current: Annotated[CurrentSession, Depends(require_write_session)],
+    ) -> dict[str, Any]:
+        return ConsolidationService(request.app.state.auth_store.engine).reverse(
+            current.user, body
+        )
 
     @router.post("/manual/preview")
     def manual_preview(
@@ -78,6 +112,7 @@ def asset_router() -> APIRouter:
         fact_cursor: Cursor = "",
         decision_cursor: Cursor = "",
         action_cursor: Cursor = "",
+        identity_cursor: Cursor = "",
         limit: Annotated[int, Query(ge=1, le=25)] = 25,
     ) -> dict[str, Any]:
         return AssetService(request.app.state.auth_store.engine).get(
@@ -87,6 +122,7 @@ def asset_router() -> APIRouter:
                 fact_cursor=fact_cursor,
                 decision_cursor=decision_cursor,
                 action_cursor=action_cursor,
+                identity_cursor=identity_cursor,
                 limit=limit,
             ),
         )

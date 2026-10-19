@@ -3,7 +3,13 @@
 **Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
 **Date:** Updated 2026-10-17
 
-Current increment: v0.47.0 adds [private record downloads](docs/RECORD_EXPORT.md)
+Current increment: v0.48.0 adds [reversible two-record asset consolidation](docs/ASSET_CONSOLIDATION.md).
+An explicit fresh preview and human identity choice produce one current item while
+preserving original records, evidence, conflicting statements and temporal history.
+Shared browsing/recall/matching and guarded reversal use migration 0023. Portability
+format 2 includes consolidation history; bulk/chain consolidation remains ahead.
+
+v0.47.0 adds [private record downloads](docs/RECORD_EXPORT.md)
 from a consistent owner-scoped snapshot with history, quantities and exact money.
 Original-file exports and user-facing import/restore remain ahead.
 
@@ -30,7 +36,8 @@ using the existing private original, configured provider and single-item review.
 Arbitrary photo questions and automatic photo financial extraction remain ahead.
 v0.39.0 adds [complete bounded current-record comparison](docs/RECORD_COMPARISON.md)
 before duplicate corrections, preserving conflicts, quantities and provenance.
-The read-only comparison makes no merge decision; full consolidation remains ahead.
+The read-only comparison makes no identity decision; v0.48.0 adds a separate
+explicit two-record consolidation and guarded reversal workflow.
 v0.38.0 adds [requested/scheduled Gmail purchase discovery](docs/EMAIL_DISCOVERY.md)
 using private configured AI adapters, exact evidence validation, inferred inventory,
 existing identity review/corrections and durable extraction reuse. Attachment and

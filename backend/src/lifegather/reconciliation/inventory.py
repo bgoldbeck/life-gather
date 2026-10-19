@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from sqlalchemy import and_, exists, or_, select
 from sqlalchemy.sql.elements import ColumnElement
 
+from lifegather.assets.identity import same_identity
 from lifegather.auth.store import Account
 from lifegather.memory.models import Assertion, Entity
 from lifegather.reconciliation.models import Binding, Decision
@@ -16,7 +17,7 @@ def current_ownership(
     today = datetime.now(UTC).date()
     query = select(Assertion.id).where(
         Assertion.user_id == actor.id,
-        Assertion.subject_id == Entity.id,
+        same_identity(actor, Assertion.subject_id, Entity.id),
         Assertion.predicate == "owned",
         Assertion.value_json == ("true" if value else "false"),
         Assertion.superseded_at.is_(None),
@@ -35,7 +36,7 @@ def current_inventory(actor: Account) -> ColumnElement[bool]:
         .where(
             Binding.user_id == actor.id,
             Decision.user_id == actor.id,
-            Binding.asset_id == Entity.id,
+            same_identity(actor, Binding.asset_id, Entity.id),
             Decision.superseded_at.is_(None),
             Decision.outcome.in_(["create", "enrich"]),
         )
