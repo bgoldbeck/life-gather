@@ -89,6 +89,9 @@ function global:docker {
     switch ($arguments[0]) {
         'info' { 'linux' }
         'image' {
+            if ($global:LifeGatherReleaseTest.ContainerBuilder -and
+                $arguments[-1] -like '*:sha-*' -and
+                -not $global:LifeGatherReleaseTest.ImageLoaded) { return }
             if ($arguments[1] -eq 'inspect') { '53723398' }
             elseif ($arguments -contains '--quiet') { 'fixture-image' }
             else { '222MB' }
@@ -103,12 +106,20 @@ function global:docker {
                 throw 'Build must embed the revision and application version label'
             }
             $global:LifeGatherReleaseTest.Builds++
+            $global:LifeGatherReleaseTest.ImageLoaded =
+                -not $global:LifeGatherReleaseTest.ContainerBuilder -or $arguments -contains '--load'
             if ($global:LifeGatherReleaseTest.SwitchAccount) {
                 $global:LifeGatherReleaseTest.RegistryUser = 'changed-account'
             }
             if ($global:LifeGatherReleaseTest.BuildFailure) { $global:LASTEXITCODE = 1 }
         }
-        'run' { 'fixture-container' }
+        'run' {
+            if (-not $global:LifeGatherReleaseTest.ImageLoaded) {
+                $global:LASTEXITCODE = 125
+                return
+            }
+            'fixture-container'
+        }
         'inspect' { 'healthy' }
         'exec' {
             $script = $input -join "`n"
@@ -150,7 +161,8 @@ function Test-Release {
         [string]$Relation = 'diverged', [string]$Branch = 'main',
         [bool]$FetchFailure = $false, [bool]$MoveAgain = $false,
         [bool]$NoAuth = $false, [int]$ExpectedUpdates = 0, [int]$ExpectedAuthRepairs = 0,
-        [bool]$AuthRepairFailure = $false, [bool]$DirtyAfterFetch = $false
+        [bool]$AuthRepairFailure = $false, [bool]$DirtyAfterFetch = $false,
+        [bool]$ContainerBuilder = $false
     )
     $queue = New-Object 'System.Collections.Generic.Queue[string]'
     foreach ($answer in $Answers) { $queue.Enqueue($answer) }
@@ -161,6 +173,7 @@ function Test-Release {
         Head = ('a' * 40); Branch = $Branch; Relation = $Relation; FetchFailure = $FetchFailure
         Fetches = 0; Updates = 0; MoveAgain = $MoveAgain; NoAuth = $NoAuth; AuthRepairs = 0
         AuthRepairFailure = $AuthRepairFailure; DirtyAfterFetch = $DirtyAfterFetch
+        ContainerBuilder = $ContainerBuilder; ImageLoaded = $false
     }
     $failed = $false
     $captured = New-Object System.Text.StringBuilder
@@ -216,6 +229,7 @@ try {
     Test-Release 'dirty checkout stops early' -Dirty $true -ExpectFailure $true
     Test-Release 'check-only never builds' -Flags @{ CheckOnly = $true }
     Test-Release 'build-only never pushes' -ExpectedBuilds 1
+    Test-Release 'container builder loads its image for isolated smoke' -ContainerBuilder $true -ExpectedBuilds 1
     Test-Release 'failed build never pushes' -Flags @{ Publish = $true } -BuildFailure $true -ExpectedBuilds 1 -ExpectFailure $true
     Test-Release 'missing package scope stops before build' -Flags @{ Publish = $true } -Scopes 'gist, read:org, repo, workflow' -ExpectFailure $true -ExpectedMessage 'gh auth refresh --hostname github.com --scopes write:packages'
     Test-Release 'missing scope header fails closed' -Flags @{ Publish = $true } -NoScopeHeader $true -ExpectFailure $true -ExpectedMessage 'write:packages'
