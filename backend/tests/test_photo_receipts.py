@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 from test_chat import send
 from test_mcp_http import rpc, signed_headers
 from test_photos import image_bytes, reading
@@ -18,6 +19,7 @@ from lifegather.chat.provider import Completion
 from lifegather.chat.service import ChatService
 from lifegather.credentials.keygen import generate
 from lifegather.memory.backup import operator_snapshot
+from lifegather.memory.history import FieldHistory, FieldHistoryRead, event_origin
 from lifegather.memory.notes import CorrectionInput, NoteService
 from lifegather.memory.service import MemoryError
 from lifegather.photos.service import PhotoDelete, PhotoList, PhotoService
@@ -102,6 +104,11 @@ def test_photo_receipt_chat_replay_review_private_source_and_snapshot(
     assert provider.calls[0][1]["_image_jpeg"].startswith(b"\xff\xd8")
     receipt_id = result["result"]["receipt_proposal_id"]
     source_id = result["result"]["sources"][0]["id"]
+    with Session(chat.engine) as db:
+        origin = event_origin(db, actor, source_id, ("source_ingested",))
+        assert origin is not None
+        assert origin["method"] == "ai_extraction" and origin["provider"] == "openai"
+        assert origin["model"] == "synthetic" and origin["related_id"] == conversation
     assert chat.usage(actor)["requests"] == 1
     assert chat.memory.export_page(actor, "entities")["items"] == []
     service = ReceiptService(chat.engine)
@@ -148,6 +155,11 @@ def test_photo_receipt_chat_replay_review_private_source_and_snapshot(
         for identifier in row["asset_ids"]
     ]
     assert len(identifiers) == len(set(identifiers)) == 3
+    history = FieldHistory(chat.engine).get(
+        actor, FieldHistoryRead(entity_id=identifiers[0], field="owned")
+    )
+    assert history["items"][0]["origin"]["method"] == "review"
+    assert history["items"][0]["proposal_origin"]["provider"] == "openai"
     for identifier in identifiers:
         assert (
             PhotoService(chat.engine).list(actor, PhotoList(asset_id=identifier))[

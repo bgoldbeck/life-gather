@@ -568,6 +568,7 @@ def test_extraction_boundaries(
                 service.review(actor, review(rows[0]["id"]))
 
 
+@pytest.mark.usefixtures("legacy_audit_writer")
 def test_upgrade_foreign_keys_and_export_paging(tmp_path: Path) -> None:
     from alembic import command
     from alembic.config import Config

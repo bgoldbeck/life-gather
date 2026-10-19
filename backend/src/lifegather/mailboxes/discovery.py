@@ -18,6 +18,7 @@ from lifegather.mailboxes.discovery_models import EmailDiscovery
 from lifegather.mailboxes.provider import GmailProvider
 from lifegather.mailboxes.scan import GmailImportHandler, GmailScanConfig
 from lifegather.memory.models import Episode
+from lifegather.memory.origins import change_origin
 from lifegather.memory.service import MemoryError
 from lifegather.reconciliation.receipts import (
     ReceiptFields,
@@ -287,7 +288,12 @@ class GmailDiscoveryHandler(GmailImportHandler):
                     "order": order,
                 }
             )
-            outcome = self.receipts.reconcile._discover_in(db, actor, data)
+            with change_origin(
+                method="ai_inference",
+                provider=config["ai_provider"],
+                model=config["model"],
+            ):
+                outcome = self.receipts.reconcile._discover_in(db, actor, data)
             key = {"create": "created", "enrich": "enriched"}.get(
                 outcome.outcome, "review"
             )

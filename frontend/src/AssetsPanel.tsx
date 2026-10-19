@@ -9,6 +9,7 @@ import { EvidenceBatch } from './EvidenceBatch'
 import { RecordComparison } from './RecordComparison'
 import { AssetActions } from './AssetActions'
 import { AssetPurchases } from './AssetPurchases'
+import { FieldHistory } from './FieldHistory'
 
 type Asset = {
   id: string
@@ -571,6 +572,11 @@ export function AssetsPanel({
           </p>
           {detail.facts.map((fact) => (
             <article key={fact.id}>
+              <FieldHistory
+                entityId={detail.asset.id}
+                field={fact.predicate}
+                onOpenSource={evidence}
+              />
               <p>
                 {fact.predicate.replaceAll('_', ' ')}:{' '}
                 {fact.object_id

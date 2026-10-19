@@ -12,6 +12,11 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
 
 ## Execution ledger and decisions
 
+- v0.45.0 adds [shared field history and workflow attribution](../../CHANGE_HISTORY.md)
+  using the existing audit/fact store. The UI covers graph facts and preserves
+  original sources, explicit correction links and unknown legacy origins. Custom
+  asset templates and universal undo remain ahead.
+
 - Protect unrelated edits and unfinished worktrees. No live personal-data ingestion,
   paid model calls or externally configured services without configured permission.
 - Source delivery is authorized. Follow the standing source and GHCR release authorization in AGENTS.md; publishing

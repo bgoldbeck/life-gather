@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from lifegather.auth.models import User
 from lifegather.auth.store import Account
 from lifegather.memory.notes import NoteConflict
+from lifegather.memory.origins import change_origin
 from lifegather.memory.service import MemoryError, fingerprint
 from lifegather.scans.models import ScanSchedule
 from lifegather.scans.recurrence import latest_occurrence, next_occurrence, zone
@@ -265,13 +266,19 @@ class ScheduleService:
                     config = handler.window(
                         snapshot, max(0, due - row.lookback_days * 86400), due
                     )
-                    run = self.scans.enqueue_in(
-                        db,
-                        actor,
-                        row.handler_key,
-                        config,
-                        f"schedule:{row.id}:{row.revision}:{due}",
-                    )
+                    with change_origin(
+                        interface="scheduler",
+                        initiator="scheduled",
+                        method="import",
+                        related_id=row.id,
+                    ):
+                        run = self.scans.enqueue_in(
+                            db,
+                            actor,
+                            row.handler_key,
+                            config,
+                            f"schedule:{row.id}:{row.revision}:{due}",
+                        )
                     row.last_run_id = run["id"]
                     row.last_status = "queued"
                 except ScanBusy:

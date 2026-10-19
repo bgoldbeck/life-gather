@@ -148,6 +148,7 @@ def test_replay_clock_reversal_and_graph_evidence_unchanged(tmp_path: Path) -> N
             notes.history(alice, original.id, cursor)
 
 
+@pytest.mark.usefixtures("legacy_audit_writer")
 def test_upgrade_preserves_notes_sessions_settings_and_chat(tmp_path: Path) -> None:
     from alembic import command
     from alembic.config import Config
