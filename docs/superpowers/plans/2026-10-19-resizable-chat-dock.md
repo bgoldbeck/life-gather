@@ -13,3 +13,12 @@ collapse/expand, persistence/account isolation and narrow-screen orientation.
 Run frontend suite/lint/types/format/build and backend verification for release;
 refresh the local source graph and HTML after checks. Release v0.49.0 through
 the authorized commit/push/PR/merge and isolated Docker smoke/GHCR sequence.
+
+Verified: frontend `npm test` (239 passing), `npm run lint`, `npm run typecheck`,
+`npm run format:check`, `npm run build`; backend `uv run --locked pytest`
+(492 passing), `ruff check .`, `ruff format --check .`, and `mypy` from backend/.
+Browser verification of the actual component confirmed pointer drag, keyboard
+resize and the 600px bottom-layout fallback while preserving draft text.
+Graphify extraction and HTML export succeeded (3054 nodes); extractor warned
+about partial parsing of unchanged AssetsPanel.tsx and no symbols for unchanged
+ScansPanel.test.tsx. The production build reports a JS chunk-size advisory.
