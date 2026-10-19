@@ -46,6 +46,18 @@ Use the source-code graph workflow below when code discovery is required.
 
 ## Baseline checks when starting or resuming work
 
+- Before starting any feature, always check for clashing or already-completed
+  work: fetch GitHub refs; inspect remote feature branches and open PR titles/diffs,
+  local branches/worktrees and uncommitted changes; compare current main's code,
+  tests, roadmap, version and migration head with the proposed scope. Report
+  overlaps before implementing and reuse existing behavior rather than building
+  a competing feature. A clean Git merge alone does not prove behavioral safety.
+- Repeat this clash check before the final merge, including consumers of changed
+  APIs/models and version/migration collisions. If overlapping work appears,
+  reconcile the missing behavior onto current main and rerun affected checks.
+  Preserve others' edits and unmerged branches; never reset, overwrite, delete or
+  merge unrelated work merely to clear a clash. A stale summary is not a baseline.
+
 - Before implementation, fetch the remote, inspect the current checkout/status and
   compare its HEAD, version, migrations and intended feature with `origin/main`.
   Read the latest changelog and roadmap ledger; a conversation summary or old
