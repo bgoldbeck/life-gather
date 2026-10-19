@@ -34,7 +34,11 @@
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(90px, 1fr) minmax(min(380px, 60vh), 50%);
+  grid-template-rows: minmax(0, 1fr) clamp(
+      min(180px, 50%),
+      var(--dock-height, 50%),
+      calc(100% - min(90px, 25%))
+    );
   grid-template-areas: 'page' 'chat';
 }
 .workspace-body > .main-content {
@@ -48,16 +52,24 @@
 }
 .workspace-body.dock-top {
   grid-template-areas: 'chat' 'page';
-  grid-template-rows: minmax(min(380px, 60vh), 50%) minmax(90px, 1fr);
+  grid-template-rows:
+    clamp(min(180px, 50%), var(--dock-height, 50%), calc(100% - min(90px, 25%)))
+    minmax(0, 1fr);
 }
 .workspace-body.dock-left,
 .workspace-body.dock-right {
   grid-template-rows: minmax(0, 1fr);
-  grid-template-columns: minmax(320px, 38%) minmax(0, 1fr);
+  grid-template-columns:
+    clamp(min(320px, 45%), var(--dock-width, 38%), 75%)
+    minmax(0, 1fr);
   grid-template-areas: 'chat page';
 }
 .workspace-body.dock-right {
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 38%);
+  grid-template-columns: minmax(0, 1fr) clamp(
+      min(320px, 45%),
+      var(--dock-width, 38%),
+      75%
+    );
   grid-template-areas: 'page chat';
 }
 .workspace-body.dock-collapsed {
@@ -66,6 +78,7 @@
   grid-template-areas: 'page' 'chat';
 }
 .assistant-dock {
+  position: relative;
   grid-area: chat;
   min-width: 0;
   min-height: 0;
@@ -74,6 +87,46 @@
   background: var(--background);
   border: 1px solid var(--border);
   box-shadow: 0 -3px 18px #00000008;
+}
+.dock-resizer {
+  position: absolute;
+  z-index: 2;
+  touch-action: none;
+  user-select: none;
+  background: var(--border);
+  border-radius: 4px;
+}
+.dock-resizer:hover,
+.dock-resizer:focus-visible {
+  background: var(--foreground);
+  outline: 2px solid var(--foreground);
+  outline-offset: 1px;
+}
+.resize-left,
+.resize-right {
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  cursor: col-resize;
+}
+.resize-right {
+  left: -4px;
+}
+.resize-left {
+  right: -4px;
+}
+.resize-top,
+.resize-bottom {
+  left: 0;
+  right: 0;
+  height: 7px;
+  cursor: row-resize;
+}
+.resize-bottom {
+  top: -4px;
+}
+.resize-top {
+  bottom: -4px;
 }
 .dock-toolbar {
   display: flex;
@@ -279,7 +332,11 @@
   .workspace-body.dock-top,
   .workspace-body {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(90px, 1fr) minmax(min(330px, 60vh), 53%);
+    grid-template-rows: minmax(0, 1fr) clamp(
+        min(180px, 50%),
+        var(--dock-height, 50%),
+        calc(100% - min(90px, 25%))
+      );
     grid-template-areas: 'page' 'chat';
   }
   .workspace-body.dock-collapsed {

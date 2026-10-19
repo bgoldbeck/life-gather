@@ -3,7 +3,16 @@
 **Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
 **Date:** Updated 2026-10-17
 
-Current increment: v0.48.0 adds [reversible two-record asset consolidation](docs/ASSET_CONSOLIDATION.md).
+Current increment: v0.50.0 adds [encrypted operator recovery](docs/OPERATOR_RECOVERY.md):
+consistent whole-installation backup, authenticated verification and restore into
+a new directory, including original files, configuration and the separate vault
+key. No automatic activation, HTTP/MCP recovery endpoint, dependency or migration.
+
+v0.49.0 defaults the [contextual assistant](docs/CONTEXTUAL_ASSISTANT.md)
+to the right and adds pointer/keyboard resizing with account-scoped dimensions.
+Saved positions and the narrow-screen bottom layout remain supported; no migration.
+
+v0.48.0 adds [reversible two-record asset consolidation](docs/ASSET_CONSOLIDATION.md).
 An explicit fresh preview and human identity choice produce one current item while
 preserving original records, evidence, conflicting statements and temporal history.
 Shared browsing/recall/matching and guarded reversal use migration 0023. Portability

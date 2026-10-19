@@ -1,6 +1,6 @@
 # LifeGather
 
-[![Source version](https://img.shields.io/badge/source_version-v0.48.2-426B46)](CHANGELOG.md)
+[![Source version](https://img.shields.io/badge/source_version-v0.50.0-426B46)](CHANGELOG.md)
 
 This badge identifies the source release. Check the login screen or app header for your running container’s version.
 
@@ -9,6 +9,10 @@ LifeGather is a private, self-hosted personal-memory application built around an
 It aims to help organize possessions, events, documents, and relationships while preserving the original sources, tracking changes over time, and distinguishing facts from inferences and unknowns.
 
 ## Project status
+
+Operators can create, verify and restore [encrypted installation backups](docs/OPERATOR_RECOVERY.md)
+including every owner's database, photo/PDF originals, configuration and vault key.
+Recovery creates a new directory and never starts or replaces an installation.
 
 Assets now supports [reversible two-record consolidation](docs/ASSET_CONSOLIDATION.md):
 choose a primary record after a fresh complete comparison and explicitly confirm
@@ -73,7 +77,7 @@ docker compose down
 
 The container runs as UID/GID 10001, with a read-only root filesystem, a writable `/data` volume, a temporary `/tmp`, and dropped Linux capabilities. The source-build Compose file publishes only on `127.0.0.1`; the image-only TrueNAS Compose file publishes on all IPv4 interfaces (`0.0.0.0`) for LAN access. Configure Google login using the documented public URL and credentials; non-loopback login requires HTTPS. Remote exposure remains deferred, and the old published preview is unauthenticated.
 
-The source includes private memory and reconciliation services, an authenticated MCP adapter, and the first text chat UI; broader memory views and a general backup/restore interface remain later work. See the login guide for session expiry, revocation, private storage, and verification limits.
+The source includes private memory and reconciliation services, an authenticated MCP adapter, text chat and an [operator recovery CLI](docs/OPERATOR_RECOVERY.md). Personal record import and a recovery UI remain later work. See the login guide for session expiry, revocation, private storage, and verification limits.
 
 ## Backend development
 

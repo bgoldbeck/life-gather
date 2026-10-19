@@ -3,7 +3,13 @@ from typing import Self
 from urllib.parse import urlsplit
 
 from pydantic import Field, SecretStr, field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
+
+from lifegather.installation_config import InstallationConfigSource
 
 
 class Settings(BaseSettings):
@@ -11,6 +17,7 @@ class Settings(BaseSettings):
         env_prefix="LIFEGATHER_",
         env_file=".env",
         env_file_encoding="utf-8",
+        hide_input_in_errors=True,
     )
 
     app_name: str = "LifeGather"
@@ -22,6 +29,7 @@ class Settings(BaseSettings):
     test_login_enabled: bool = False
     google_client_secret: SecretStr = SecretStr("")
     vault_key_file: Path | None = None
+    configuration_file: Path | None = None
     smtp_host: str = ""
     smtp_port: int = Field(default=587, ge=1, le=65535)
     smtp_username: str = ""
@@ -58,7 +66,24 @@ class Settings(BaseSettings):
             raise ValueError("Invalid SMTP configuration")
         return self
 
-    @field_validator("vault_key_file", mode="before")
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            InstallationConfigSource(settings_cls),
+            file_secret_settings,
+        )
+
+    @field_validator("vault_key_file", "configuration_file", mode="before")
     @classmethod
     def empty_key_path(cls, value: object) -> object:
         return None if value == "" else value
@@ -117,5 +142,15 @@ class Settings(BaseSettings):
             ):
                 raise ValueError(
                     "Vault key must be outside data and static directories"
+                )
+        if self.configuration_file is not None:
+            configuration = self.configuration_file.resolve()
+            if configuration.is_relative_to(self.data_dir.resolve()) or (
+                self.static_dir is not None
+                and configuration.is_relative_to(self.static_dir.resolve())
+            ):
+                raise ValueError(
+                    "Installation configuration must be outside "
+                    "data and static directories"
                 )
         return self

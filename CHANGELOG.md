@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.50.0 — Encrypted operator backup and recovery
+
+- Add explicit local `python -m lifegather.recovery backup|verify|restore`
+  commands, using a consistent SQLite snapshot and authenticated streaming
+  encryption. Include all owners, original photo/PDF bytes, authentication state,
+  installation settings and the original vault key when configured.
+- Validate format, lengths/hashes, SQLite integrity/foreign keys, supported
+  migration, original files and owner-bound credential decryption before restoring
+  into an exclusively new private directory. Preserve IDs, evidence/corrections,
+  consolidation history, distinct units and exact monetary records.
+- Add explicit private JSON installation configuration for lossless restored
+  secrets; constructor/environment/dotenv settings retain precedence. No HTTP,
+  MCP or AI recovery tool, new dependency, schema change, provider request or
+  automatic application activation. Migration remains 0023.
+
+## 0.49.0 — Right-default resizable assistant
+
+- Default the assistant to the right edge when no account preference exists;
+  preserve previously saved positions and the narrow-screen bottom layout.
+- Drag the page/assistant divider or use its keyboard arrow/Home/End controls
+  to resize. Remember bounded width and height separately per account in this
+  browser, preserving drafts, navigation, and collapse/expand behavior.
+- No dependency, backend API, schema or migration change. Layout storage contains
+  preferences only; no messages, personal records or provider calls are added.
+
 ## 0.48.2 — Load release images before container verification
 
 - Explicitly load the single-platform Linux build into the local Docker engine.

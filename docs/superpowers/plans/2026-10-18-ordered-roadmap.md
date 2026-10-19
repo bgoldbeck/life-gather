@@ -12,6 +12,22 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
 
 ## Execution ledger and decisions
 
+- v0.50.0 adds [encrypted operator recovery](../../OPERATOR_RECOVERY.md):
+  consistent all-owner backup with SQLite photo/PDF originals, installation
+  configuration and vault key; authenticated verification and new-directory
+  restore. Preserve IDs/history, owner boundaries, units and exact money. No
+  HTTP/MCP recovery tool, automatic activation, dependency or migration change.
+  Personal import/privacy deletion and a recovery UI remain separate later work.
+  Acceptance: 533 backend / 239 frontend tests; strict types, lint/format and
+  wheel/frontend builds pass. Isolated Linux source smoke recovers a 42.9 MB
+  synthetic database with originals, two owners and vault credentials under
+  read-only/no-network/non-root constraints and 64 MiB `/tmp`. Code-only graph
+  and HTML refreshed: 3,125 nodes / 13,617 edges. Fresh image release follows.
+
+- v0.49.0 defaults the assistant to the right for new layout preferences and
+  adds pointer/keyboard resizing with separate account-scoped width and height.
+  Preserve legacy positions, drafts and responsive bottom docking; no migration.
+
 - The bundled v0.46.0 [contextual assistant](../../CONTEXTUAL_ASSISTANT.md) stays
   mounted across pages, docks/collapses, opens uniquely named assets from chat,
   and saves explicit profile details with original evidence and history. Ask AI
