@@ -1,5 +1,22 @@
 # Private email connections and scans
 
+## Request from Chat (v0.43.0)
+
+In Chat, choose **Request an email scan**, explicitly select one connected Gmail
+mailbox, choose past UTC dates and optionally a filter, then **Start email scan**.
+The through date includes that UTC day up to the instant you submit; the frozen
+window is at most 31 days and 1–50 messages. This imports original email text as
+evidence, omits attachments, needs no AI permission and creates no inventory.
+Purchase discovery remains a separate choice in Scans.
+
+**View email scan** opens that saved job in Scans, including progress, evidence
+and cancellation. A queued job continues after leaving Chat or closing the browser.
+Stopping a Chat request before enqueue creates no job; once queued, cancel in
+Scans. Existing connection checks, one active run per mailbox and the shared
+20-run daily cap still apply. A safe retry checks the same saved request/job;
+changing scope requires a new request. Queuing alone does not guarantee success
+or complete mailbox coverage: inspect completion, errors and truncation in Scans.
+
 ## Daily/weekly schedules (v0.36.0)
 
 Scans → Scheduled scans creates a schedule for a connected Gmail mailbox. Choose

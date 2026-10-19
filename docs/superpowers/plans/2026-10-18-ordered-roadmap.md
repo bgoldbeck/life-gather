@@ -554,3 +554,15 @@ for pending receipts while preserving accepted history. Pre-merge verification:
 browser confirms three units and blank money, composed replay/recovery smoke.
 No migration/dependency/provider-adapter/live-call/redeployment change. Graphify
 unavailable. New Chat mode extract_photo_receipt; existing modes remain supported.
+
+Chat email evidence scans v0.43.0: explicit mailbox/date/query/message scope,
+atomic durable queue and saved Chat result, safe replay and interrupted-pending
+recovery without AI. Cancellation before enqueue creates no job; queued jobs use
+Scans cancellation. Preserve text drafts and context resets; open/focus the exact
+private job from Chat. First scope is original email text only, not AI purchase
+discovery or attachments. Verification: 446 backend /195 frontend tests, with
+22 affected backend cases rerun after the pending-recovery adjustment; strict
+types, lint/format and package/frontend builds. Synthetic browser import, saved
+conversation/result/evidence navigation and 390px form pass. Queue/worker/replay/
+snapshot smoke uses synthetic transport. No schema/dependency/provider-adapter/
+live-call/redeployment change. Graphify unavailable; graph/HTML not refreshed.

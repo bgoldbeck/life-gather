@@ -1,6 +1,6 @@
 # LifeGather
 
-[![Source version](https://img.shields.io/badge/source_version-v0.42.0-426B46)](CHANGELOG.md)
+[![Source version](https://img.shields.io/badge/source_version-v0.43.0-426B46)](CHANGELOG.md)
 
 This badge identifies the source release. Check the login screen or app header for your running container’s version.
 
@@ -9,6 +9,9 @@ LifeGather is a private, self-hosted personal-memory application built around an
 It aims to help organize possessions, events, documents, and relationships while preserving the original sources, tracking changes over time, and distinguishing facts from inferences and unknowns.
 
 ## Project status
+
+Chat can now [request a bounded email evidence scan](docs/EMAIL_SCANS.md)
+from an explicitly chosen connected Gmail mailbox, then open its saved progress.
 
 The app now reports its running version on the login screen and in the app header.
 See [versioning](docs/VERSIONING.md) and the [changelog](CHANGELOG.md) for release numbering; older Docker images need an update to display it.

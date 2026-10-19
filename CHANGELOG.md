@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.43.0 — Request email evidence scans from Chat
+
+- Choose a connected Gmail mailbox, past UTC dates, optional filter and up to
+  50 messages in Chat, then explicitly start the existing text-evidence import.
+  The action needs no AI connection or permission and creates no inventory.
+- Save the queued job and completed Chat result atomically. Retries reuse the
+  exact scope and job; cancellation before enqueue creates no job. Old Chat
+  request identities remain compatible. Ordinary messages cannot enqueue scans.
+- Open the exact owner-scoped job in Scans for progress, evidence and cancellation.
+  Leaving Chat does not cancel an independently queued job. Existing mailbox
+  permission, one-active-run and daily scan limits apply.
+- Preserve unsent text and reset scope on conversation/action changes. Freeze
+  uncertain retry inputs and ignore stale mailbox reads. No schema migration,
+  dependency, provider-adapter, scheduled-scan or deployment change.
+
 ## 0.42.0 — Review multiple items from receipt photos
 
 - Explicit Chat receipt-photo action uses a saved/uploaded private original and

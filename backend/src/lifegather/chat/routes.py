@@ -168,7 +168,7 @@ def chat_router() -> APIRouter:
             if begun is not None
             else chat.begin(current.user, conversation_id, body)
         )
-        if not fresh:
+        if not fresh and not (body.mode == "scan_email" and row["state"] == "pending"):
             return row
         turn_id = row["id"]
 
@@ -207,6 +207,32 @@ def chat_router() -> APIRouter:
                     request.app.state.claude_provider,
                     emit,
                     google_provider=request.app.state.google_provider,
+                )
+
+        if body.mode == "scan_email":
+            try:
+                active()
+                return chat.start_scan(
+                    current.user, conversation_id, body, request.app.state.scan_service
+                )
+            except asyncio.CancelledError:
+                return chat.finish(
+                    current.user,
+                    turn_id,
+                    {"text": "Scan request stopped before enqueue."},
+                    "canceled",
+                )
+            except Exception:
+                return chat.finish(
+                    current.user,
+                    turn_id,
+                    {
+                        "text": (
+                            "Scan was not queued. Check the mailbox connection, "
+                            "scan scope and daily scan limit, then start a new request."
+                        )
+                    },
+                    "failed",
                 )
 
         task = asyncio.create_task(guarded())

@@ -3,7 +3,10 @@
 **Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
 **Date:** Updated 2026-10-17
 
-Current increment: v0.42.0 adds explicit multi-item receipt-photo reading in Chat,
+Current increment: v0.43.0 adds explicit bounded Gmail text-evidence scans from
+Chat, with atomic queue/result saving and existing Scans progress/cancellation.
+Conversational AI purchase discovery and free-form agent planning remain ahead.
+v0.42.0 adds explicit multi-item receipt-photo reading in Chat,
 with unverified transcription, quantities and the existing human receipt review.
 v0.41.0 adds explicit private photo uploads directly in Chat,
 then a separate AI reading using the existing single-item review flow.
@@ -16,7 +19,7 @@ The read-only comparison makes no merge decision; full consolidation remains ahe
 v0.38.0 adds [requested/scheduled Gmail purchase discovery](docs/EMAIL_DISCOVERY.md)
 using private configured AI adapters, exact evidence validation, inferred inventory,
 existing identity review/corrections and durable extraction reuse. Attachment and
-financial extraction and conversational scan-start remain ahead. The milestone
+financial extraction and conversational purchase-discovery scans remain ahead. The milestone
 paragraphs below include historical descriptions of earlier increments.
 
 Ordered continuation, 2026-10-18: [implementation ledger](docs/superpowers/plans/2026-10-18-ordered-roadmap.md).

@@ -5,6 +5,41 @@ import { ScansPanel } from './ScansPanel'
 
 afterEach(() => vi.unstubAllGlobals())
 
+it('opens the exact saved Chat job without starting another scan', async () => {
+  const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
+    expect(init?.method ?? 'GET').toBe('GET')
+    return new Response(
+      JSON.stringify(
+        url.includes('/scans/chat-run')
+          ? {
+              id: 'chat-run',
+              state: 'completed',
+              handler_key: 'gmail_import',
+              items: [
+                {
+                  sequence: 1,
+                  label: 'Synthetic saved Chat evidence',
+                  state: 'saved',
+                  reason: '',
+                },
+              ],
+              next_after: null,
+            }
+          : { items: [] },
+      ),
+    )
+  })
+  vi.stubGlobal('fetch', fetcher)
+  render(<ScansPanel csrfToken="csrf" initialRunId="chat-run" />)
+  expect(
+    await screen.findByRole('region', { name: 'Scan results' }),
+  ).toHaveTextContent('Synthetic saved Chat evidence')
+  expect(screen.getByRole('region', { name: 'Scan results' })).toHaveFocus()
+  expect(
+    fetcher.mock.calls.some(([url]) => url.startsWith('/api/scans/chat-run')),
+  ).toBe(true)
+})
+
 it('explicitly selects purchase discovery and its private AI connection', async () => {
   const user = userEvent.setup()
   let saved: Record<string, unknown> | null = null

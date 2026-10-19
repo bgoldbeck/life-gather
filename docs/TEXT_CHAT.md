@@ -1,5 +1,9 @@
 # Private text memory chat: first usable increment
 
+Current scan action: [request a bounded Gmail text-evidence scan](EMAIL_SCANS.md)
+from an explicitly selected connected mailbox. Chat saves the queue result and
+links to Scans for progress/cancellation. No AI request or inventory write occurs.
+
 Current photo capture: [direct private Chat uploads](PHOTO_EVIDENCE.md) and explicit
 saved-photo reading reuse the existing single-item review workflow. Uploading saves
 the original without an AI call; reading it is a separate explicit action.

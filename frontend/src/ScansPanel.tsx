@@ -39,8 +39,10 @@ type Evidence = EvidenceSource & { next_offset: number | null }
 export function ScansPanel({
   csrfToken,
   onNavigate,
+  initialRunId = '',
 }: {
   csrfToken: string
+  initialRunId?: string
   onNavigate?: (view: 'Review' | 'Assets') => void
 }) {
   const [discovery, setDiscovery] = useState(false)
@@ -58,9 +60,21 @@ export function ScansPanel({
   const [limit, setLimit] = useState(20)
   const [runs, setRuns] = useState<Run[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
-  const [selected, setSelected] = useState('')
+  const [selected, setSelected] = useState(initialRunId)
   const [after, setAfter] = useState(0)
   const [result, setResult] = useState<Result | null>(null)
+  const resultPanel = useRef<HTMLElement | null>(null)
+  const focusedInitialRun = useRef(false)
+  useEffect(() => {
+    if (
+      initialRunId &&
+      result?.id === initialRunId &&
+      !focusedInitialRun.current
+    ) {
+      focusedInitialRun.current = true
+      resultPanel.current?.focus()
+    }
+  }, [initialRunId, result?.id])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [retry, setRetry] = useState(false)
@@ -436,6 +450,8 @@ export function ScansPanel({
       )}
       {result && (
         <section
+          ref={resultPanel}
+          tabIndex={-1}
           aria-label="Scan results"
           className="space-y-2 rounded border p-3"
         >

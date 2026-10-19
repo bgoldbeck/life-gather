@@ -128,6 +128,7 @@ export function Workspace({
   const [graphEntityId, setGraphEntityId] = useState('')
   const [assetId, setAssetId] = useState('')
   const [receiptSourceId, setReceiptSourceId] = useState('')
+  const [scanRunId, setScanRunId] = useState('')
   const current = navigation.find((item) => item.name === view)!
 
   return (
@@ -157,6 +158,7 @@ export function Workspace({
               aria-current={view === name ? 'page' : undefined}
               onClick={() => {
                 if (name === 'Chat') setReceiptSourceId('')
+                if (name === 'Scans') setScanRunId('')
                 setView(name)
               }}
             >
@@ -220,7 +222,12 @@ export function Workspace({
           ) : view === 'Review' ? (
             <ReviewPanel csrfToken={csrfToken} />
           ) : view === 'Scans' ? (
-            <ScansPanel csrfToken={csrfToken} onNavigate={setView} />
+            <ScansPanel
+              key={scanRunId}
+              csrfToken={csrfToken}
+              onNavigate={setView}
+              initialRunId={scanRunId}
+            />
           ) : view === 'Purchases' ? (
             <PurchasesPanel
               csrfToken={csrfToken}
@@ -240,6 +247,10 @@ export function Workspace({
             <ChatPanel
               key={receiptSourceId}
               initialReceiptSourceId={receiptSourceId}
+              onOpenScan={(id) => {
+                setScanRunId(id)
+                setView('Scans')
+              }}
               csrfToken={csrfToken}
               refreshSession={refreshSession}
               onOpenGraph={(id) => {
