@@ -525,3 +525,10 @@ private conversation/vision/replay test, browser source/proposal inspection and
 No migration, dependency, provider-adapter change or live call/redeploy. Graphify
 unavailable; source graph/HTML not refreshed. Uploads and multi-item photo receipts
 remain separate from this saved-photo increment.
+
+Chat background read intent v0.40.1: all eight new delayed-read regressions pass; full verification
+411 backend / 167 frontend tests, formatting/lint/strict types and package/frontend
+builds pass. Synthetic browser: save completes and New conversation works while
+usage is delayed eight seconds; late refresh leaves new context intact. No domain,
+API, migration, dependency or provider changes. Graphify is unavailable locally;
+source graph/HTML refresh could not run. No live calls or running-app deployment.

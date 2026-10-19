@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.40.1 — Keep background Chat reads within current intent
+
+- Cancel initial saved-note selection when the user changes the draft/action or
+  conversation; a dismissed selection cannot restart on request/session refresh.
+- Refresh usage independently after a saved request so slow metadata cannot keep
+  Chat busy. Discard obsolete counts/errors after new requests, navigation or
+  unmount while retaining the saved result and safe write retry behavior.
+- Serialize conversation paging, deduplicate appended IDs and scope late list
+  errors to the current conversation. New conversations remain available during
+  background list reads. Cancel obsolete pages during context/session changes.
+- No domain/API, migration, dependency or provider behavior change.
+
 ## 0.40.0 — Read a saved private photo in Chat
 
 - Choose **Read a saved photo** in Chat, deliberately load/select from the private
