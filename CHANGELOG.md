@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.50.1 — Recovery independent of lost operational settings
+
+- Verify and restore valid bundles even when remaining environment or dotenv
+  settings contain an incomplete Google/SMTP configuration or invalid old public
+  URL. These commands need the bundle, not the old operational configuration.
+- Preserve data/static path settings and private staging guards. Backup continues
+  validating and capturing the actual installation settings. No format, schema,
+  dependency, application startup or deployment change.
+
 ## 0.50.0 — Encrypted operator backup and recovery
 
 - Add explicit local `python -m lifegather.recovery backup|verify|restore`

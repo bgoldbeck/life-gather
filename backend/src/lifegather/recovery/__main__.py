@@ -9,9 +9,38 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 from lifegather.config import Settings
 from lifegather.recovery.bundle import RecoveryService
 from lifegather.recovery.envelope import RecoveryError
+
+
+class _RecoveryStorage(BaseSettings):
+    """Keep local path guards without requiring the lost app configuration."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="LIFEGATHER_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        hide_input_in_errors=True,
+    )
+    data_dir: Path = Path("data")
+    static_dir: Path | None = None
+
+
+def _verification_settings() -> Settings:
+    # Supply every application field explicitly so unrelated environment values
+    # cannot override defaults or trigger login/mail validation during recovery.
+    # Only storage paths retain normal environment/dotenv precedence and guards.
+    arguments: dict[str, Any] = {
+        name: field.get_default(call_default_factory=True)
+        for name, field in Settings.model_fields.items()
+    }
+    arguments.update(_RecoveryStorage().model_dump())
+    arguments["_env_file"] = None
+    return Settings(**arguments)
 
 
 def _password(path: Path | None, *, confirm: bool) -> bytes:
@@ -100,7 +129,7 @@ def main(argv: list[str] | None = None) -> int:
             settings = Settings(**overrides)
         else:
             # Verification/recovery must work when the original JSON file is lost.
-            settings = Settings(configuration_file=None)
+            settings = _verification_settings()
         service = RecoveryService(settings, staging_dir=args.staging_dir)
         password = _password(args.passphrase_file, confirm=args.command == "backup")
         if args.command == "backup":

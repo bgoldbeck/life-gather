@@ -7,6 +7,8 @@ Current increment: v0.50.0 adds [encrypted operator recovery](docs/OPERATOR_RECO
 consistent whole-installation backup, authenticated verification and restore into
 a new directory, including original files, configuration and the separate vault
 key. No automatic activation, HTTP/MCP recovery endpoint, dependency or migration.
+v0.50.1 lets verify/restore proceed when old operational settings are incomplete;
+configured data/static privacy guards and actual backup configuration remain enforced.
 
 v0.49.0 defaults the [contextual assistant](docs/CONTEXTUAL_ASSISTANT.md)
 to the right and adds pointer/keyboard resizing with account-scoped dimensions.
