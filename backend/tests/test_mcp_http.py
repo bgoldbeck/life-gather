@@ -167,7 +167,14 @@ def test_mcp_discovery_and_owner_scoped_memory_reads() -> None:
                 "receipt_details_save",
                 "photo_detach",
                 "photo_attach",
+                "purchase_evidence_save",
+                "purchase_evidence_withdraw",
             }
+        )
+        assert all(
+            not tool["annotations"]["readOnlyHint"]
+            for tool in tools
+            if tool["name"] in {"purchase_evidence_save", "purchase_evidence_withdraw"}
         )
         assert (
             next(t for t in tools if t["name"] == "memory_save_text")["annotations"][

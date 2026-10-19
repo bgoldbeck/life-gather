@@ -37,6 +37,7 @@ from lifegather.memory.routes import graph_router, library_router
 from lifegather.memory.service import MemoryError
 from lifegather.photos.routes import photo_router
 from lifegather.profiles.routes import profile_router
+from lifegather.purchases.routes import purchase_router
 from lifegather.reconciliation.queue_routes import review_router
 from lifegather.reconciliation.receipt_routes import receipt_router
 from lifegather.scans.registry import ScanRegistry
@@ -138,6 +139,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(mailbox_router())
     app.include_router(scan_router())
     app.include_router(schedule_router())
+    app.include_router(purchase_router())
     app.add_middleware(CredentialBodyLimit)
 
     @app.exception_handler(MemoryError)

@@ -11,6 +11,13 @@ from lifegather.memory.library import LibraryPage
 from lifegather.memory.notes import CorrectionInput, NoteHistoryInput
 from lifegather.photos.service import PhotoAttach, PhotoDetach, PhotoList, PhotoRead
 from lifegather.profiles.service import ProfileRead
+from lifegather.purchases.schemas import (
+    EvidenceHistory,
+    EvidenceSave,
+    EvidenceWithdraw,
+    PurchasePage,
+    PurchaseRead,
+)
 from lifegather.reconciliation.proposals import (
     ProposalPreview,
     ProposalRead,
@@ -78,6 +85,11 @@ class DiscoveryHistory(Page):
 
 
 INPUTS: dict[str, type[BaseModel]] = {
+    "purchase_list": PurchasePage,
+    "purchase_get": PurchaseRead,
+    "purchase_evidence_history": EvidenceHistory,
+    "purchase_evidence_save": EvidenceSave,
+    "purchase_evidence_withdraw": EvidenceWithdraw,
     "scan_list": ScanPage,
     "scan_schedule_list": ScanPage,
     "scan_get": ScanRead,

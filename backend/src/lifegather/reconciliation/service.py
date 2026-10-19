@@ -143,28 +143,18 @@ class ReconciliationService:
         order = data.order
         if order is None or data.kind in {"payment", "mention"}:
             return None, False
-        key = fingerprint(
-            [normalized(order.retailer), order.account_scope, order.order_id]
-        )
-        purchase = db.scalar(
-            select(Purchase)
-            .where(Purchase.user_id == actor.id, Purchase.identity_key == key)
-            .limit(1)
-        )
         now = self.memory.clock()
-        if purchase is None:
-            purchase = Purchase(
-                id=str(uuid4()),
-                user_id=actor.id,
-                recorded_at=now,
-                identity_key=key,
-                retailer=order.retailer,
-                account_scope=order.account_scope,
-                order_id=order.order_id,
-                source_id=data.source_id,
-            )
-            db.add(purchase)
-            db.flush()
+        from lifegather.reconciliation.purchase_identity import purchase_in
+
+        purchase = purchase_in(
+            db,
+            actor,
+            data.source_id,
+            order.retailer,
+            order.account_scope,
+            order.order_id,
+            now,
+        )
         line = db.scalar(
             select(PurchaseLine)
             .where(
