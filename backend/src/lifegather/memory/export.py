@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from typing import Any, cast
 
-from sqlalchemy import Engine, Table, select
+from sqlalchemy import Connection, Engine, Table, select
 
 from lifegather.assets.models import AssetAction, AssetConsolidation
 from lifegather.auth.models import Base
@@ -177,6 +177,21 @@ class RecordExport:
 
     def download(self, actor: Account) -> bytes:
         """Build one complete owner-only snapshot in memory, or return no file."""
+        # SQLite legacy mode needs a real BEGIN, not just SQLAlchemy autobegin.
+        with self.engine.connect() as connection:
+            connection.exec_driver_sql("BEGIN")
+            return self.render_in(connection, actor)
+
+    def render_in(
+        self,
+        connection: Connection,
+        actor: Account,
+        *,
+        snapshot_at: datetime | None = None,
+    ) -> bytes:
+        """Render inside the caller's existing read snapshot without closing it."""
+        if not connection.in_transaction():
+            raise ValueError("Record rendering requires an active read snapshot")
         encoder = json.JSONEncoder(
             ensure_ascii=False,
             allow_nan=False,
@@ -199,49 +214,45 @@ class RecordExport:
 
         counts: dict[str, int] = {}
         total = 0
-        # Explicit BEGIN is essential with SQLite's legacy transaction mode:
-        # SQLAlchemy autobegin alone does not start a real snapshot for SELECT.
-        with self.engine.connect() as connection:
-            connection.exec_driver_sql("BEGIN")
-            append('{"format":')
-            encode(FORMAT)
-            append(',"application_version":')
-            encode(__version__)
-            append(',"snapshot_at":')
-            encode(datetime.now(UTC).isoformat())
-            append(',"purpose":"personal record portability; not a restorable backup"')
-            append(',"excluded":')
-            encode(EXCLUSIONS)
-            append(',"collections":{')
-            for index, projection in enumerate(COLLECTIONS):
-                table = projection.table
-                columns = [table.c[field] for field in projection.fields.split()]
-                if index:
+        append('{"format":')
+        encode(FORMAT)
+        append(',"application_version":')
+        encode(__version__)
+        append(',"snapshot_at":')
+        encode((snapshot_at or datetime.now(UTC)).isoformat())
+        append(',"purpose":"personal record portability; not a restorable backup"')
+        append(',"excluded":')
+        encode(EXCLUSIONS)
+        append(',"collections":{')
+        for index, projection in enumerate(COLLECTIONS):
+            table = projection.table
+            columns = [table.c[field] for field in projection.fields.split()]
+            if index:
+                append(",")
+            encode(table.name)
+            append(":[")
+            count = 0
+            rows = connection.execute(
+                select(*columns)
+                .where(table.c.user_id == actor.id)
+                .order_by(table.c.id)
+                .limit(MAX_RECORDS - total + 1)
+            ).mappings()
+            for row in rows:
+                if total >= MAX_RECORDS:
+                    raise ExportLimitError(
+                        "Record export exceeds the 10,000-record download limit"
+                    )
+                if count:
                     append(",")
-                encode(table.name)
-                append(":[")
-                count = 0
-                rows = connection.execute(
-                    select(*columns)
-                    .where(table.c.user_id == actor.id)
-                    .order_by(table.c.id)
-                    .limit(MAX_RECORDS - total + 1)
-                ).mappings()
-                for row in rows:
-                    if total >= MAX_RECORDS:
-                        raise ExportLimitError(
-                            "Record export exceeds the 10,000-record download limit"
-                        )
-                    if count:
-                        append(",")
-                    encode(dict(row))
-                    count += 1
-                    total += 1
-                counts[table.name] = count
-                append("]")
-            append('},"counts":')
-            encode(counts)
-            append(',"total_records":')
-            encode(total)
-            append("}")
+                encode(dict(row))
+                count += 1
+                total += 1
+            counts[table.name] = count
+            append("]")
+        append('},"counts":')
+        encode(counts)
+        append(',"total_records":')
+        encode(total)
+        append("}")
         return bytes(buffer)

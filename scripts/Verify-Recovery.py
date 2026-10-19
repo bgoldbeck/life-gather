@@ -9,6 +9,7 @@ import os
 from io import BytesIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from zipfile import ZipFile
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from PIL import Image
@@ -19,6 +20,7 @@ from lifegather.auth.store import AuthStore
 from lifegather.config import Settings
 from lifegather.credentials.service import PrivateSettings, read_key
 from lifegather.documents.service import DocumentService
+from lifegather.memory.archive import PersonalArchive
 from lifegather.memory.schemas import EntityInput, FactInput, SourceInput
 from lifegather.memory.service import MemoryError, MemoryService
 from lifegather.photos.service import PhotoService
@@ -83,6 +85,16 @@ def verify(root: Path) -> None:
     with store.engine.begin() as db:
         db.execute(text("CREATE TABLE synthetic_padding (value BLOB)"))
         db.execute(text("INSERT INTO synthetic_padding VALUES (zeroblob(41943040))"))
+    personal = PersonalArchive(store.engine).download(alice)
+    assert len(personal) < 100000
+    with ZipFile(BytesIO(personal)) as package:
+        manifest = json.loads(package.read("manifest.json"))
+        assert len(manifest["originals"]) == 1
+        original = manifest["originals"][0]
+        assert original["id"] == photo["id"]
+        assert package.read(original["path"]) == image.getvalue()
+        assert custom.id.encode() in package.read("records.json")
+    assert document["id"].encode() not in personal
     os.environ["LIFEGATHER_DATA_DIR"] = str(source)
     os.environ["LIFEGATHER_VAULT_KEY_FILE"] = str(key_path)
     phrase = root / "phrase"

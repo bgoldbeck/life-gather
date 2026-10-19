@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.52.0 — Personal records and original-file archive
+
+- Add explicit Include original photos and PDFs (ZIP) to the private Settings
+  download. Package the unchanged records JSON, active owned originals and a
+  versioned length/hash manifest from one real SQLite read snapshot.
+- Stream and verify saved BLOBs, retain fixed safe UUID paths and preserve original
+  filenames as metadata. Exclude deleted originals, previews, credentials and
+  installation state. Enforce 64 MiB total including ZIP overhead, 1,000 originals
+  and existing record limits before returning a complete file.
+- Preserve default JSON compatibility, source/history, units and exact money;
+  handle refusal, busy/duplicate clicks, aborts/late responses, safe filenames and
+  file-signature validation. No dependency, migration, AI tool, provider request
+  or application restore/activation. Migration remains 0023.
+
 ## 0.51.0 — Named custom sourced profile details
 
 - Add Custom detail to Profiles for named descriptions such as tire size or fuel

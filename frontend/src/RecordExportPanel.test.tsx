@@ -31,6 +31,177 @@ function downloadHarness(
   return { fetcher, create, revoke, click }
 }
 
+// Wire-envelope fixture only. Backend and browser tests inspect real ZIP entries.
+function archiveEnvelope() {
+  const bytes = new Uint8Array(64)
+  bytes.set([80, 75, 3, 4])
+  bytes.set([80, 75, 5, 6], bytes.length - 22)
+  return bytes
+}
+
+it('downloads original evidence only after an explicit ZIP choice', async () => {
+  const { fetcher, click, create, revoke } = downloadHarness(
+    Promise.resolve(
+      new Response(archiveEnvelope(), {
+        headers: {
+          'Content-Type': 'application/zip',
+          'Content-Disposition':
+            'attachment; filename="lifegather-archive-20261019T120000Z.zip"',
+        },
+      }),
+    ),
+  )
+  const user = userEvent.setup()
+  const view = render(<RecordExportPanel csrfToken="csrf-private" />)
+  const choice = screen.getByLabelText('Include original photos and PDFs (ZIP)')
+  expect(choice).not.toBeChecked()
+  expect(fetcher).not.toHaveBeenCalled()
+  await user.click(choice)
+  expect(fetcher).not.toHaveBeenCalled()
+  expect(screen.getByText(/ZIP includes records/)).toHaveTextContent(
+    'not encrypted',
+  )
+  await user.click(
+    screen.getByRole('button', { name: 'Download archive (ZIP)' }),
+  )
+  expect(await screen.findByRole('status')).toHaveTextContent(
+    'records and originals download has started',
+  )
+  expect(fetcher).toHaveBeenCalledWith(
+    '/api/export/archive',
+    expect.objectContaining({
+      method: 'POST',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      body: '{}',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': 'csrf-private',
+      },
+    }),
+  )
+  expect(create).toHaveBeenCalledOnce()
+  expect(click).toHaveBeenCalledOnce()
+  const anchor = click.mock.instances[0] as HTMLAnchorElement
+  expect(anchor.download).toBe('lifegather-archive-20261019T120000Z.zip')
+  expect(anchor.isConnected).toBe(false)
+  view.unmount()
+  expect(revoke).toHaveBeenCalledWith('blob:synthetic-export')
+})
+
+it('uses a safe ZIP filename when the server attachment name is unsafe', async () => {
+  const { click } = downloadHarness(
+    Promise.resolve(
+      new Response(archiveEnvelope(), {
+        headers: {
+          'Content-Type': 'application/zip',
+          'Content-Disposition': 'attachment; filename="../../escape.html"',
+        },
+      }),
+    ),
+  )
+  const user = userEvent.setup()
+  render(<RecordExportPanel csrfToken="csrf" />)
+  await user.click(
+    screen.getByLabelText('Include original photos and PDFs (ZIP)'),
+  )
+  await user.click(
+    screen.getByRole('button', { name: 'Download archive (ZIP)' }),
+  )
+  await screen.findByRole('status')
+  expect((click.mock.instances[0] as HTMLAnchorElement).download).toBe(
+    'lifegather-archive.zip',
+  )
+})
+
+it.each(['mime', 'header', 'footer', 'short'])(
+  'refuses a malformed ZIP response without a download: %s',
+  async (kind) => {
+    let bytes = archiveEnvelope()
+    if (kind === 'header') bytes[0] = 0
+    if (kind === 'footer') bytes[bytes.length - 22] = 0
+    if (kind === 'short') bytes = bytes.slice(0, 4)
+    const { create, click } = downloadHarness(
+      Promise.resolve(
+        new Response(bytes, {
+          headers: {
+            'Content-Type':
+              kind === 'mime' ? 'application/json' : 'application/zip',
+          },
+        }),
+      ),
+    )
+    const user = userEvent.setup()
+    render(<RecordExportPanel csrfToken="csrf" />)
+    await user.click(
+      screen.getByLabelText('Include original photos and PDFs (ZIP)'),
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Download archive (ZIP)' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(/archive file/)
+    expect(create).not.toHaveBeenCalled()
+    expect(click).not.toHaveBeenCalled()
+  },
+)
+
+it.each([413, 409])(
+  'explains archive refusal %s and permits returning to JSON',
+  async (status) => {
+    const { create } = downloadHarness(
+      Promise.resolve(new Response('{}', { status })),
+    )
+    const user = userEvent.setup()
+    render(<RecordExportPanel csrfToken="csrf" />)
+    await user.click(
+      screen.getByLabelText('Include original photos and PDFs (ZIP)'),
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Download archive (ZIP)' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      status === 413 ? 'exceeds the download limit' : 'could not be verified',
+    )
+    expect(create).not.toHaveBeenCalled()
+    await user.click(
+      screen.getByLabelText('Include original photos and PDFs (ZIP)'),
+    )
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Download records (JSON)' }),
+    ).toBeEnabled()
+  },
+)
+
+it('locks archive choice while preparing and discards a late ZIP response after unmount', async () => {
+  let finish!: (response: Response) => void
+  const pending = new Promise<Response>((resolve) => {
+    finish = resolve
+  })
+  const { fetcher, create } = downloadHarness(pending)
+  const user = userEvent.setup()
+  const view = render(<RecordExportPanel csrfToken="csrf" />)
+  const choice = screen.getByLabelText('Include original photos and PDFs (ZIP)')
+  await user.click(choice)
+  const button = screen.getByRole('button', { name: 'Download archive (ZIP)' })
+  fireEvent.click(button)
+  fireEvent.click(button)
+  expect(fetcher).toHaveBeenCalledOnce()
+  expect(choice).toBeDisabled()
+  expect(
+    screen.getByRole('button', { name: 'Preparing archive…' }),
+  ).toBeDisabled()
+  view.unmount()
+  await act(async () => {
+    finish(
+      new Response(archiveEnvelope(), {
+        headers: { 'Content-Type': 'application/zip' },
+      }),
+    )
+  })
+  expect(create).not.toHaveBeenCalled()
+})
+
 it.each(['lifegather-records/1', 'lifegather-records/2'])(
   'downloads supported format %s only after an explicit private request',
   async (format) => {
