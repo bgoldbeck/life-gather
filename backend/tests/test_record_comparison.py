@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import pytest
 from fastapi.testclient import TestClient
@@ -487,7 +487,7 @@ def test_purchase_totals_remain_separate_and_bounded(
 
 @pytest.mark.parametrize("status", ["stated", "unknown"])
 def test_unknown_literals_do_not_contradict_known_statements(
-    tmp_path: Path, status: str
+    tmp_path: Path, status: Literal["stated", "unknown"]
 ) -> None:
     auth, actor, _, memory, source, records, data = pair(tmp_path)
     memory.assert_fact(

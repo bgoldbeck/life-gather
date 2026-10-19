@@ -1,6 +1,6 @@
 # LifeGather
 
-[![Source version](https://img.shields.io/badge/source_version-v0.40.1-426B46)](CHANGELOG.md)
+[![Source version](https://img.shields.io/badge/source_version-v0.41.0-426B46)](CHANGELOG.md)
 
 This badge identifies the source release. Check the login screen or app header for your running container’s version.
 

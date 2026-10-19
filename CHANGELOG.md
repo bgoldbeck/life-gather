@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.41.0 — Upload private photos directly in Chat
+
+- Explicitly save a JPEG/PNG/WebP original from Chat, up to 8 MiB, with a photo,
+  receipt or nameplate purpose. Select the saved original without an eager AI
+  request, conversation creation, asset attachment or inventory write.
+- Preserve text drafts and the existing explicit AI submit, consent/model/budget
+  and human-review gates. Originals remain in Photos when leaving Chat.
+- Freeze the original file/purpose for uncertain upload retry; reuse the existing
+  owner-scoped active content-hash deduplication. Ignore late upload results when
+  the picker closes. Library paging deduplicates originals also inserted by upload.
+- No domain/API/schema/dependency/provider-adapter change. Existing server-side
+  file validation, CSRF, storage limits and private photo authorization remain.
+
 ## 0.40.1 — Keep background Chat reads within current intent
 
 - Cancel initial saved-note selection when the user changes the draft/action or

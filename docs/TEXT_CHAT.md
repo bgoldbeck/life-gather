@@ -1,5 +1,9 @@
 # Private text memory chat: first usable increment
 
+Current photo capture: [direct private Chat uploads](PHOTO_EVIDENCE.md) and explicit
+saved-photo reading reuse the existing single-item review workflow. Uploading saves
+the original without an AI call; reading it is a separate explicit action.
+
 The original text-memory increment provides three explicit actions:
 
 - **Save memory** preserves the exact original text as a private source. It does

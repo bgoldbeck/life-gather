@@ -532,3 +532,14 @@ builds pass. Synthetic browser: save completes and New conversation works while
 usage is delayed eight seconds; late refresh leaves new context intact. No domain,
 API, migration, dependency or provider changes. Graphify is unavailable locally;
 source graph/HTML refresh could not run. No live calls or running-app deployment.
+
+Direct Chat upload v0.41.0: explicitly save one private JPEG/PNG/WebP original
+(up to 8 MiB), then separately request the existing photo reading/review. Preserve
+text drafts, configured provider permissions and active-original hash reuse;
+freeze uncertain upload inputs and discard callbacks after context changes.
+Deduplicate uploaded originals in later library pages. Verification: 412 backend /
+181 frontend, strict types including tests, lint/format and both builds, synthetic
+browser upload/explicit reading and narrow layout, HTTP/private/recovery smoke.
+One earlier comparison test Literal annotation corrected. No schema, API,
+dependency, provider-adapter or live call/deployment change. Graphify unavailable.
+Multi-item photo receipts and arbitrary image questions remain ahead.

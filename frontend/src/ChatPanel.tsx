@@ -801,6 +801,7 @@ export function ChatPanel({
             {mode === 'extract_photo' && (
               <ChatPhotoPicker
                 key={`${selected}:${photoContext}`}
+                csrfToken={csrfToken}
                 selected={photo}
                 onSelect={setPhoto}
                 disabled={busy || retryNeeded || loading}
