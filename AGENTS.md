@@ -81,6 +81,18 @@ Use the source-code graph workflow below when code discovery is required.
 - Keep running-version display, package metadata, and release-image labels consistent. Report the application version and Git revision separately; `latest` is not a version number. Version bumps do not authorize Docker builds, uploads, or redeployment beyond the user's current authorization.
 
 ### Delivery sequence
+
+User instruction, 2026-10-18: make new feature work visible early. When starting a
+local feature branch, create and push one early commit to `bgoldbeck/life-gather`.
+Prefer a meaningful scope/implementation-plan commit before implementation, so
+others can see what is starting without committing known-broken or unfinished
+code. Name the feature and its intended acceptance checks. Stage only the intended
+kickoff material and preserve unrelated edits/staging. If implementation has
+already started, publish its plan first and leave unfinished code uncommitted.
+This early visibility commit does not mark the feature complete or replace final
+verification, the completed-feature commit, push, PR, merge and branch cleanup
+below. Do not publish an empty commit merely to reserve a branch.
+
 User instruction, 2026-10-18: once a new feature's scoped acceptance criteria and
 required tests/checks pass, complete its release rather than leaving local changes:
 

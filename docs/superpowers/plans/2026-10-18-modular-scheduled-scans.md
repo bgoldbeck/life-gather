@@ -57,3 +57,25 @@ HTTP/MCP/CSRF, snapshot/checkpoint recovery, stale leases, cancellation, three-c
 cap, replay, source deduplication, wrong account, disconnect during message read,
 untrusted message identity, oversized response and MIME omission. No live Gmail,
 AI, Docker or deployment action. Daily/weekly recurrence remains step 3.
+
+Step 3 kickoff — daily/weekly modular schedules (in progress, not complete).
+Use a generic handler window contract to materialize frozen scope; the scheduler
+never calls Gmail. Persist per-user schedules with local wall time/IANA timezone,
+optimistic revisions, stable request replay and bounded ownership-scoped controls.
+Enqueue the normal scan run and advance due time in one SQLite transaction.
+After downtime dispatch at most the latest missed occurrence, then advance beyond
+now. Overlap records a skipped occurrence; disconnected/changed permissions block
+and pause until the user explicitly resumes. Pause does not erase evidence or
+cancel an existing run. Limit five schedules per user; existing scan run caps apply.
+For spring gaps use the first valid local minute; autumn repeats run once at the
+first occurrence. Use calendar rules, including half-hour offsets. Add first-party
+tzdata because this Windows runtime has no system IANA database (verified).
+
+Acceptance: failing-first service tests for recurrence/DST, atomic dispatch/replay,
+overlap, catch-up, isolation, stale edits, connection changes and snapshot recovery;
+HTTP/MCP ownership and CSRF; accessible create/edit/pause/resume UI tests; full
+backend/frontend checks, graph refresh and normal source release workflow. No live
+mailbox scan or Docker action is part of this implementation verification.
+
+Early-visibility rule applied: publish this kickoff plan and repository rule now;
+unfinished implementation/tests remain uncommitted until they pass verification.
