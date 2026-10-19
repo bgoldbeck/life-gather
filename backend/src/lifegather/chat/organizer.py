@@ -1,13 +1,13 @@
 """Bounded explicit workspace commands. No model output or document instructions."""
 
 import re
-from typing import Any, cast
+from typing import Any, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import Engine, func, or_, select
 from sqlalchemy.orm import Session
 
-from lifegather.assets.identity import canonical_id
+from lifegather.assets.identity import canonical_id, member_ids
 from lifegather.auth.store import Account
 from lifegather.chat.context import ContextRef, WorkspaceContexts
 from lifegather.memory.models import Alias, Assertion, Entity, Episode, Evidence
@@ -30,9 +30,16 @@ EDIT = re.compile(
     r"(?:(?:\s+(?:to|as|is)\s+|\s*[:=]\s*)(.+))?\s*$",
     re.I,
 )
+CUSTOM_EDIT = re.compile(
+    r"^" + PREFIX + r"(?:add|set|update|change|record)\s+"
+    r'custom\s+"([^"\r\n]{1,200})"'
+    r"(?:(?:\s+(?:to|as|is)\s+|\s*[:=]\s*)(.*))?\s*$",
+    re.I,
+)
 HELP = (
     "I can open an item or save a supplied profile detail. "
     "Try ‘Edit my F150’, then ‘Set VIN to …’. "
+    'For named details, use ‘Set custom "Tire size" to 205/55R16’. '
     "Choose Ask AI for broader questions."
 )
 
@@ -126,9 +133,13 @@ class WorkspaceOrganizer:
                 "navigation": {"page": "Assets", "entity_id": row.id, "name": row.name},
             }
         edit = EDIT.fullmatch(text)
+        custom = CUSTOM_EDIT.fullmatch(text)
+        custom_name = None
         if edit:
             field = edit[1].lower().replace(" number", "").replace(" ", "_")
             value = edit[2]
+        elif custom:
+            field, custom_name, value = "custom", custom[1], custom[2]
         elif (
             awaiting
             and re.fullmatch(r"[A-Za-z0-9]{17}", text)
@@ -151,18 +162,39 @@ class WorkspaceOrganizer:
         if snapshot["kind"] not in {"asset", "place"}:
             raise MemoryError("Select an asset or home profile before editing details")
         ref = {key: snapshot[key] for key in ("page", "entity_id", "version")}
+        if value and len(value) > 500:
+            return {"text": "Profile details accept at most 500 characters."}
+        operation_key = "workspace:" + fingerprint([data.request_id])
+        try:
+            change = ProfileChange(
+                entity_id=snapshot["entity_id"],
+                field=cast(ProfileField | Literal["custom"], field),
+                custom_name=custom_name,
+                value=value or None,
+                status="stated" if value else "unknown",
+                text=data.text,
+                operation_key=operation_key,
+            )
+        except ValidationError:
+            raise MemoryError(
+                "Choose a valid custom detail name (up to 48 letters, numbers, "
+                "spaces, underscores or hyphens). Use the existing detail type "
+                "for names such as VIN or model."
+                if custom
+                else "Supply a valid profile detail and exact value."
+            ) from None
+        field = change.predicate.removeprefix("profile_")
+        label = field.removeprefix("custom_").replace("_", " ")
         if not value:
             return {
                 "text": (
-                    f"What {field.replace('_', ' ')} should I record for "
+                    f"What {label} should I record for "
                     f"{snapshot['name']}? Supply the exact value; I won't guess."
+                    + (f' Use Set custom "{label}" to ….' if custom else "")
                 ),
                 "awaiting": {**ref, "field": field},
                 "context": {**ref, "name": snapshot["name"]},
             }
-        if len(value) > 500:
-            return {"text": "Profile details accept at most 500 characters."}
-        operation_key = "workspace:" + fingerprint([data.request_id])
         existing = db.scalar(
             select(Assertion)
             .where(
@@ -173,8 +205,8 @@ class WorkspaceOrganizer:
         )
         if existing:
             if (
-                existing.subject_id != snapshot["entity_id"]
-                or existing.predicate != "profile_" + field
+                existing.subject_id not in member_ids(db, actor, snapshot["entity_id"])
+                or existing.predicate != change.predicate
             ):
                 raise NoteConflict(
                     "This request already belongs to another record or field"
@@ -205,14 +237,7 @@ class WorkspaceOrganizer:
                 view = self.profiles._save_in(
                     db,
                     actor,
-                    ProfileChange(
-                        entity_id=snapshot["entity_id"],
-                        field=cast(ProfileField, field),
-                        value=value,
-                        text=data.text,
-                        operation_key=operation_key,
-                        replaces_id=replaces,
-                    ),
+                    change.model_copy(update={"replaces_id": replaces}),
                 )
         source = db.scalar(
             select(Episode)
@@ -231,10 +256,7 @@ class WorkspaceOrganizer:
         if data.context:
             ref["version"] = data.context.version
         return {
-            "text": (
-                f"Saved {field.replace('_', ' ')} for {snapshot['name']} "
-                "as your statement."
-            ),
+            "text": (f"Saved {label} for {snapshot['name']} as your statement."),
             "changed_entity_id": snapshot["entity_id"],
             "profile_fact_id": view.id,
             "sources": [{"id": source.id, "text": source.text}],

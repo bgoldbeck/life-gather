@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.53.0 — Custom details through the contextual assistant
+
+- Save explicitly supplied named details with commands such as `Set custom "Tire
+  size" to 205/55R16`, using the selected private record, original request evidence
+  and the existing profile name/value validation and correction history.
+- Preserve explicit quoted names, exact values, version checks, conflict review,
+  atomic chat replies, cancellation and stable retries. Unknowns and valid dates
+  remain available through Profiles; no model write tool or inferred field/value.
+- Fix direct organizer/MCP retries of corrections inherited from a consolidated
+  member. Check owner-scoped current membership while retaining original subjects;
+  reversal cannot authorize another physical record. No migration or dependency;
+  migration remains 0023.
+
 ## 0.52.0 — Personal records and original-file archive
 
 - Add explicit Include original photos and PDFs (ZIP) to the private Settings
