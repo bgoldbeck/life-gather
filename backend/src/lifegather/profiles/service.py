@@ -124,34 +124,38 @@ class ProfileService:
     def save(self, actor: Account, value: ProfileChange) -> FactView:
         data = ProfileChange.model_validate(value)
         with self.memory._write() as db:
-            entity = self.memory._entity(db, actor, data.entity_id)
-            if entity.kind not in {"asset", "place"}:
-                raise MemoryError("Profiles require an asset or place record")
-            source = self.memory._ingest_in(
-                db,
-                actor,
-                SourceInput(
-                    text=data.text,
-                    namespace="profile-facts",
-                    external_id=data.operation_key,
-                ),
-            )
-            return self.memory._put_fact_in(
-                db,
-                actor,
-                FactInput(
-                    subject_id=entity.id,
-                    predicate="profile_" + data.field,
-                    value=data.value,
-                    status=data.status,
-                    source_id=source.id,
-                    quote=data.value or data.text[:500],
-                    valid_from=data.valid_from,
-                    valid_to=data.valid_to,
-                    operation_key="profile-fact:" + data.operation_key,
-                ),
-                data.replaces_id,
-            )
+            return self._save_in(db, actor, data)
+
+    def _save_in(self, db: Session, actor: Account, value: ProfileChange) -> FactView:
+        data = ProfileChange.model_validate(value)
+        entity = self.memory._entity(db, actor, data.entity_id)
+        if entity.kind not in {"asset", "place"}:
+            raise MemoryError("Profiles require an asset or place record")
+        source = self.memory._ingest_in(
+            db,
+            actor,
+            SourceInput(
+                text=data.text,
+                namespace="profile-facts",
+                external_id=data.operation_key,
+            ),
+        )
+        return self.memory._put_fact_in(
+            db,
+            actor,
+            FactInput(
+                subject_id=entity.id,
+                predicate="profile_" + data.field,
+                value=data.value,
+                status=data.status,
+                source_id=source.id,
+                quote=data.value or data.text[:500],
+                valid_from=data.valid_from,
+                valid_to=data.valid_to,
+                operation_key="profile-fact:" + data.operation_key,
+            ),
+            data.replaces_id,
+        )
 
     def get(
         self,

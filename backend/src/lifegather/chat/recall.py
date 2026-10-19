@@ -29,7 +29,12 @@ class RecallTools:
         self.chat = chat
 
     def collect(
-        self, actor: Account, value: RecallPlan, *, max_bytes: int = 24000
+        self,
+        actor: Account,
+        value: RecallPlan,
+        *,
+        max_bytes: int = 24000,
+        pinned_entity_id: str | None = None,
     ) -> dict[str, Any]:
         if not 1200 <= max_bytes <= 24000:
             raise ValueError("Invalid recall context budget")
@@ -86,8 +91,13 @@ class RecallTools:
             return result
 
         seen: set[str] = set()
-        for name in plan.entity_names:
-            matches = memory.find_entities(actor, name, 3)
+        groups = (
+            [[memory.get_entity(actor, pinned_entity_id)]] if pinned_entity_id else []
+        )
+        groups.extend(
+            memory.find_entities(actor, name, 3) for name in plan.entity_names
+        )
+        for matches in groups:
             trace.append(
                 {
                     "tool": "memory_find_entities",

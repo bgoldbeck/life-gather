@@ -10,6 +10,8 @@ from fastapi.responses import StreamingResponse
 from lifegather.assets.actions import ActionService
 from lifegather.auth.routes import require_session, require_write_session
 from lifegather.auth.store import CurrentSession
+from lifegather.chat.context import ContextRead, WorkspaceContexts
+from lifegather.chat.organizer import HELP
 from lifegather.chat.preferences import ChatChoice, ChatPreferences
 from lifegather.chat.runner import answer
 from lifegather.chat.service import ChatService, SaveText, TurnInput
@@ -36,6 +38,12 @@ def service(request: Request) -> ChatService:
 
 def chat_router() -> APIRouter:
     router = APIRouter(prefix="/api/chat")
+
+    @router.post("/context")
+    def workspace_context(
+        request: Request, body: ContextRead, current: Authenticated
+    ) -> dict[str, Any]:
+        return WorkspaceContexts(service(request).engine).read(current.user, body)
 
     @router.get("/preferences")
     def preferences(request: Request, current: Authenticated) -> ChatChoice:
@@ -207,6 +215,22 @@ def chat_router() -> APIRouter:
                     request.app.state.claude_provider,
                     emit,
                     google_provider=request.app.state.google_provider,
+                )
+
+        if body.mode == "organize":
+            try:
+                active()
+                organized = chat.organize(current.user, conversation_id, body)
+                if organized is not None:
+                    return organized
+                return chat.finish(current.user, turn_id, {"text": HELP})
+            except MemoryError as error:
+                return chat.finish(
+                    current.user, turn_id, {"text": str(error)}, "failed"
+                )
+            except asyncio.CancelledError:
+                return chat.finish(
+                    current.user, turn_id, {"text": "Request stopped."}, "canceled"
                 )
 
         if body.mode == "scan_email":
