@@ -215,9 +215,20 @@ print('Container health, UI, auth migration, user, and private storage verified.
         return
     }
 
-    # Source may have been edited during the checks/build: reject before publishing.
-    if ((Get-CheckedOutput git @('status', '--porcelain')) -or
-        (Get-CheckedOutput git @('rev-parse', 'HEAD')) -ne $revision) {
+    # Ensure source has not changed during the release.
+    $finalStatus = Get-CheckedOutput git @('status', '--porcelain')
+    $finalRevision = Get-CheckedOutput git @('rev-parse', 'HEAD')
+
+    if ($finalStatus -or $finalRevision -ne $revision) {
+        if ($finalStatus) {
+            Write-Host "Files changed during release:" -ForegroundColor Yellow
+            Write-Host $finalStatus
+        }
+
+        if ($finalRevision -ne $revision) {
+            Write-Host "Git HEAD changed: $revision -> $finalRevision" -ForegroundColor Yellow
+        }
+
         throw 'Source changed during release. Nothing uploaded; rerun from a clean commit.'
     }
     Write-Stage 'Upload preflight and image size'
