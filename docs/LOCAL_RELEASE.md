@@ -11,26 +11,44 @@ passes its required checks, commit, push, open a PR, merge the tested head, dele
 the merged feature branch, then build/smoke-test clean GitHub-matching `main` and
 publish its commit tag plus `ghcr.io/bgoldbeck/life-gather:latest`. This sequence is
 authorized without repeated confirmation for each feature. Preserve branch checks,
-owner isolation, size reporting, and the script's release guards. The agent may
-answer the existing build/upload prompts using this standing authorization.
-Other interactive/manual invocations still retain their default decline behavior.
+owner isolation, size reporting, and the script's release guards. The current
+script builds without an interactive prompt; `-Publish` explicitly enables upload.
 Hosted GitHub Actions stays disabled; publication does not redeploy TrueNAS.
 
 ## Commands
 
 On Windows, double-click **`scripts/Publish-Container.cmd`** to build, verify and
-offer to publish the commit tag plus `latest`. It opens PowerShell and keeps the
-window open afterward, including on failure. The default build/upload prompts
-still apply. No extra `-Verbose` flag is needed: named timestamped stages, commands,
+publish the commit tag plus `latest`. It opens PowerShell and keeps the
+window open afterward, including on failure. This launcher passes `-Publish
+-PublishLatest`; it does not ask again before building/uploading. Run the PowerShell
+script without `-Publish` for a local build only. No extra `-Verbose` flag is needed: named timestamped stages, commands,
 elapsed times, plain Docker build progress and health checks are shown by default.
 Registry tokens and stdin are never printed. Failed stages stop the release and
 leave an error explaining what failed; publication never restarts your running app.
 
-The final `Result:` states whether checks passed, a build/upload was deferred, an
+The final `Result:` states whether checks passed, an
 image was built locally, publication succeeded, or the release failed. `Cleanup`
 only names a housekeeping stage. A dirty checkout prints uncommitted paths and
 reports `FAILED` before any build/upload. Commit or deliberately stash those edits;
 the script will never do that for you or discard them automatically.
+
+Publishing preflight checks the active GitHub account's actual OAuth scope header
+before running the tests or build. A token missing `write:packages` stops immediately
+with this recovery command:
+
+```powershell
+gh auth refresh --hostname github.com --scopes write:packages
+```
+
+Complete GitHub's browser authorization, then rerun. If `gh` is not on PATH, the
+publisher also supports the cached CLI under `%TEMP%/lifegather-github-cli/bin/gh.exe`.
+Scopes must be confirmed; a fine-grained token with no compatible scope header is
+not sufficient for this GHCR publisher. A classic PAT with `write:packages` is an
+alternative. The selected account must also have write access to the existing GHCR
+package, which is separate from repository access. The script uses the actual
+authenticated username for Docker sign-in and rechecks identity/scope before upload;
+it never changes package permissions or prints the registry token. See
+[GitHub's container authentication documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry).
 
 Check the source only:
 

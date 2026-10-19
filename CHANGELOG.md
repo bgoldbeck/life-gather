@@ -2,6 +2,11 @@
 
 ## 0.38.0 — Requested and scheduled Gmail purchase discovery
 
+- Container publishing now confirms the active GitHub token's `write:packages`
+  scope before verification/build and rechecks account/scope before upload. Missing
+  scope gives the refresh command immediately; package-specific write access remains
+  required. Preserve prompt-free publishing explicitly selected by `-Publish`.
+
 - Opt into AI discovery in Scans or daily/weekly schedules using your private
   OpenAI, Claude or Gemini connection. Evidence-only scans remain available.
 - Validate exact quotes, quantities and labelled order/line identities before

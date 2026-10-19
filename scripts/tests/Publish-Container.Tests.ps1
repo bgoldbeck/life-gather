@@ -10,6 +10,14 @@ New-Item -ItemType Directory -Path $testRoot | Out-Null
 $global:LifeGatherFakeGh = Join-Path $testRoot 'gh.ps1'
 Set-Content -LiteralPath $global:LifeGatherFakeGh -Value @'
 if ($args[0] -eq 'auth' -and $args[1] -eq 'token') { 'synthetic-token' }
+if ($args[0] -eq 'api') {
+    'HTTP/2.0 200 OK'
+    if (-not $global:LifeGatherReleaseTest.NoScopeHeader) {
+        'X-OAuth-Scopes: ' + $global:LifeGatherReleaseTest.Scopes
+    }
+    ''
+    $global:LifeGatherReleaseTest.RegistryUser
+}
 $global:LASTEXITCODE = 0
 '@
 
@@ -29,8 +37,8 @@ function global:git {
         default { throw 'Unexpected git command' }
     }
 }
-function global:uv { $global:LASTEXITCODE = 0 }
-function global:npm { $global:LASTEXITCODE = 0 }
+function global:uv { $global:LifeGatherReleaseTest.Checks++; $global:LASTEXITCODE = 0 }
+function global:npm { $global:LifeGatherReleaseTest.Checks++; $global:LASTEXITCODE = 0 }
 function global:Read-Host {
     param([string]$Prompt)
     if ($global:LifeGatherReleaseTest.Answers.Count -eq 0) { throw "Unexpected prompt: $Prompt" }
@@ -57,6 +65,9 @@ function global:docker {
                 throw 'Build must embed the revision and application version label'
             }
             $global:LifeGatherReleaseTest.Builds++
+            if ($global:LifeGatherReleaseTest.SwitchAccount) {
+                $global:LifeGatherReleaseTest.RegistryUser = 'changed-account'
+            }
             if ($global:LifeGatherReleaseTest.BuildFailure) { $global:LASTEXITCODE = 1 }
         }
         'run' { 'fixture-container' }
@@ -76,7 +87,13 @@ function global:docker {
             }
             '[{"Endpoints":{"docker":{"Host":"npipe:////./pipe/dockerDesktopLinuxEngine"}}}]'
         }
-        'login' { $null = $input | Out-String }
+        'login' {
+            $null = $input | Out-String
+            $username = $arguments[[array]::IndexOf($arguments, '--username') + 1]
+            if ($username -ne $global:LifeGatherReleaseTest.RegistryUser) {
+                throw 'Docker login must use the preflight authenticated account'
+            }
+        }
         'push' { $global:LifeGatherReleaseTest.Pushes++ }
         'tag' { }
         default { throw "Unexpected docker command: $arguments" }
@@ -88,18 +105,26 @@ function Test-Release {
         [string]$Name, [hashtable]$Flags = @{}, [string[]]$Answers,
         [bool]$Dirty = $false, [bool]$BuildFailure = $false,
         [string]$Remote = ('a' * 40), [int]$ExpectedBuilds = 0,
-        [int]$ExpectedPushes = 0, [bool]$ExpectFailure = $false
+        [int]$ExpectedPushes = 0, [bool]$ExpectFailure = $false,
+        [string]$Scopes = 'repo, write:packages', [bool]$NoScopeHeader = $false,
+        [string]$RegistryUser = 'bgoldbeck', [string]$ExpectedMessage = '',
+        [bool]$SwitchAccount = $false
     )
     $queue = New-Object 'System.Collections.Generic.Queue[string]'
     foreach ($answer in $Answers) { $queue.Enqueue($answer) }
     $global:LifeGatherReleaseTest = @{
         Dirty = $Dirty; BuildFailure = $BuildFailure; Remote = $Remote
-        Answers = $queue; Builds = 0; Pushes = 0
+        Answers = $queue; Builds = 0; Pushes = 0; Checks = 0; SwitchAccount = $SwitchAccount
+        Scopes = $Scopes; NoScopeHeader = $NoScopeHeader; RegistryUser = $RegistryUser
     }
     $failed = $false
     $captured = New-Object System.Text.StringBuilder
     try { & $publisher @Flags 6>&1 | ForEach-Object { [void]$captured.AppendLine($_.ToString()) } }
-    catch { $failed = $true; if (-not $ExpectFailure) { Write-Host $_.Exception.Message } }
+    catch {
+        $failed = $true
+        [void]$captured.AppendLine($_.Exception.Message)
+        if (-not $ExpectFailure) { Write-Host $_.Exception.Message }
+    }
     $output = $captured.ToString()
     if ($failed -ne $ExpectFailure -or
         $global:LifeGatherReleaseTest.Builds -ne $ExpectedBuilds -or
@@ -107,6 +132,13 @@ function Test-Release {
         throw "FAIL: $Name (failure=$failed builds=$($global:LifeGatherReleaseTest.Builds) pushes=$($global:LifeGatherReleaseTest.Pushes))"
     }
     if ($output -match 'synthetic-token') { throw 'Registry token leaked in logs' }
+    if ($ExpectedMessage -and -not $output.Contains($ExpectedMessage)) {
+        throw "FAIL: $Name must explain '$ExpectedMessage'"
+    }
+    if ($Flags.Publish -and ($NoScopeHeader -or $Scopes -notmatch '(?:^|,\s*)write:packages(?:\s*,|$)') -and
+        $global:LifeGatherReleaseTest.Checks -ne 0) {
+        throw 'Missing scope must fail before backend/frontend verification, not just before building'
+    }
     $expectedResult = if ($ExpectFailure) { 'FAILED' }
         elseif ($Flags.CheckOnly) { 'CHECKS PASSED' }
         elseif ($ExpectedBuilds -eq 0) { 'BUILD DEFERRED' }
@@ -131,13 +163,16 @@ try {
     }
     Test-Release 'dirty checkout stops early' -Dirty $true -ExpectFailure $true
     Test-Release 'check-only never builds' -Flags @{ CheckOnly = $true }
-    Test-Release 'declining build stops' -Answers @('n')
-    Test-Release 'build-only never pushes' -Answers @('y') -ExpectedBuilds 1
-    Test-Release 'failed build never pushes' -Flags @{ Publish = $true } -Answers @('y') -BuildFailure $true -ExpectedBuilds 1 -ExpectFailure $true
-    Test-Release 'declining upload retains build' -Flags @{ Publish = $true } -Answers @('y', 'n') -ExpectedBuilds 1
+    Test-Release 'build-only never pushes' -ExpectedBuilds 1
+    Test-Release 'failed build never pushes' -Flags @{ Publish = $true } -BuildFailure $true -ExpectedBuilds 1 -ExpectFailure $true
+    Test-Release 'missing package scope stops before build' -Flags @{ Publish = $true } -Scopes 'gist, read:org, repo, workflow' -ExpectFailure $true -ExpectedMessage 'gh auth refresh --hostname github.com --scopes write:packages'
+    Test-Release 'missing scope header fails closed' -Flags @{ Publish = $true } -NoScopeHeader $true -ExpectFailure $true -ExpectedMessage 'write:packages'
+    Test-Release 'similar scope name is insufficient' -Flags @{ Publish = $true } -Scopes 'repo, write:packages-other' -ExpectFailure $true -ExpectedMessage 'write:packages'
     Test-Release 'unmerged latest is rejected' -Flags @{ Publish = $true; PublishLatest = $true } -Remote ('b' * 40) -ExpectFailure $true
-    Test-Release 'approved commit tag uploads' -Flags @{ Publish = $true } -Answers @('y', 'y') -ExpectedBuilds 1 -ExpectedPushes 1
-    Test-Release 'approved latest uploads both tags' -Flags @{ Publish = $true; PublishLatest = $true } -Answers @('y', 'y') -ExpectedBuilds 1 -ExpectedPushes 2
+    Test-Release 'scoped commit tag uploads' -Flags @{ Publish = $true } -ExpectedBuilds 1 -ExpectedPushes 1
+    Test-Release 'scoped latest uploads both tags' -Flags @{ Publish = $true; PublishLatest = $true } -ExpectedBuilds 1 -ExpectedPushes 2
+    Test-Release 'collaborator uses its actual login' -Flags @{ Publish = $true } -RegistryUser 'synthetic-collaborator' -ExpectedBuilds 1 -ExpectedPushes 1 -ExpectedMessage 'synthetic-collaborator'
+    Test-Release 'changed account cannot upload' -Flags @{ Publish = $true } -SwitchAccount $true -ExpectedBuilds 1 -ExpectFailure $true -ExpectedMessage 'account changed during the build'
 } finally {
     foreach ($name in @('Get-Command', 'git', 'uv', 'npm', 'Read-Host', 'docker')) {
         Remove-Item -LiteralPath "Function:\$name"

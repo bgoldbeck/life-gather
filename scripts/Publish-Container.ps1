@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    # Omitting this switch builds/tests only. Publishing requires another prompt.
+    # Omitting this switch builds/tests only. This switch authorizes publishing.
     [switch]$Publish,
     # Optional convenience: require the release commit to be the remote main tip.
     [switch]$PublishLatest,
@@ -56,9 +56,24 @@ function Show-ImageSize {
     Write-Host 'Only missing registry layers are uploaded; the transfer may be much smaller.'
 }
 
-function Confirm-Operation {
-    param([string]$Question)
-    return (Read-Host "$Question [y/N]") -match '^(?i:y|yes)$'
+function Get-PublishIdentity {
+    param([string]$GhExecutable)
+    # Read only the login and response headers. Never retrieve or print a token here.
+    # auth status alone does not prove that the credential has package scopes.
+    $identity = Get-CheckedOutput $GhExecutable @('api', '--include', '--hostname', 'github.com', 'user', '--jq', '.login')
+    $scopeHeader = [regex]::Match($identity, '(?im)^x-oauth-scopes:[ \t]*([^\r\n]*)')
+    $scopes = @()
+    if ($scopeHeader.Success) {
+        $scopes = @($scopeHeader.Groups[1].Value -split ',' | ForEach-Object { $_.Trim() })
+    }
+    if ($scopes -notcontains 'write:packages') {
+        throw 'GitHub credential is missing a confirmed write:packages scope. Run gh auth refresh --hostname github.com --scopes write:packages, approve in the browser, then retry. GHCR requires a compatible OAuth token or a personal access token (classic); repository write permission alone is insufficient. Nothing was uploaded.'
+    }
+    $login = ($identity.Trim() -split '\r?\n')[-1].Trim()
+    if ($login -notmatch '^[a-zA-Z0-9][a-zA-Z0-9-]{0,38}$') {
+        throw 'Unable to determine the authenticated GitHub account safely.'
+    }
+    return $login
 }
 
 Push-Location $repoRoot
@@ -97,6 +112,7 @@ try {
 
     # Publishing has extra preflight checks, but code is never pushed or merged here.
     $ghExecutable = $null
+    $registryUser = $null
     if ($Publish) {
         $ghCommand = Get-Command gh -ErrorAction SilentlyContinue
         if ($ghCommand) { $ghExecutable = $ghCommand.Source }
@@ -106,6 +122,9 @@ try {
         }
         if (-not $ghExecutable) { throw 'Install GitHub CLI (gh) and run gh auth login first.' }
         Invoke-Checked $ghExecutable @('auth', 'status', '--hostname', 'github.com')
+        $registryUser = Get-PublishIdentity $ghExecutable
+        Write-Host "Publishing account: $registryUser; write:packages scope confirmed."
+        Write-Host 'The account must also have write access to bgoldbeck/life-gather in GHCR; scope alone does not grant package access.'
         # Read the advertised main ref without modifying the checkout or remote.
         $advertised = Get-CheckedOutput git @('ls-remote', 'https://github.com/bgoldbeck/life-gather.git', 'refs/heads/main')
         $remoteMain = ($advertised -split '\s+')[0]
@@ -237,6 +256,9 @@ print('Container health, UI, auth migration, user, and private storage verified.
 
 
     Write-Stage 'Registry sign-in and upload'
+    if ((Get-PublishIdentity $ghExecutable) -ne $registryUser) {
+        throw 'GitHub account changed during the build. Nothing uploaded; rerun with the intended account.'
+    }
     # Keep registry credentials out of the user's persistent Docker configuration.
     # JSON avoids nested Go-template quotes being stripped by Windows PowerShell.
     $contextJson = Get-CheckedOutput docker @('context', 'inspect')
@@ -249,7 +271,7 @@ print('Container health, UI, auth migration, user, and private storage verified.
     $registryToken = & $ghExecutable auth token --hostname github.com 2>$null
     if ($LASTEXITCODE -ne 0 -or -not $registryToken) { throw 'GitHub token unavailable.' }
     try {
-        $registryToken | & docker @dockerAuth login ghcr.io --username bgoldbeck --password-stdin
+        $registryToken | & docker @dockerAuth login ghcr.io --username $registryUser --password-stdin
         if ($LASTEXITCODE -ne 0) { throw 'Registry login failed; check write:packages permission.' }
     } finally { $registryToken = $null }
     Invoke-Checked docker ($dockerAuth + @('push', $commitTag))
