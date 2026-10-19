@@ -37,8 +37,10 @@ Hosted GitHub Actions stays disabled; publication does not redeploy TrueNAS.
 ## Commands
 
 On Windows, double-click **`scripts/Publish-Container.cmd`** to build, verify and
-publish the commit tag plus `latest`. It opens PowerShell and keeps the
-window open afterward, including on failure. This launcher passes `-Publish
+publish the commit tag plus `latest`. The window closes automatically on success;
+on failure it stays open until you press a key so you can read the error.
+An existing caller terminal stays open and receives the original exit code.
+This launcher passes `-Publish
 -PublishLatest`; it does not ask again before building/uploading. Run the PowerShell
 script without `-Publish` for a local build only. No extra `-Verbose` flag is needed: named timestamped stages, commands,
 elapsed times, plain Docker build progress and health checks are shown by default.
