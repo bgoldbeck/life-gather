@@ -49,6 +49,9 @@ function global:docker {
         }
         'compose' { }
         'build' {
+            if ($arguments -notcontains '--progress=plain') {
+                throw 'Build must show readable plain progress'
+            }
             if ($arguments -notcontains ('APP_REVISION=' + ('a' * 40)) -or
                 -not ($arguments | Where-Object { $_ -match '^org.opencontainers.image.version=\d+\.\d+\.\d+$' })) {
                 throw 'Build must embed the revision and application version label'
@@ -94,17 +97,27 @@ function Test-Release {
         Answers = $queue; Builds = 0; Pushes = 0
     }
     $failed = $false
-    try { & $publisher @Flags 6>$null }
+    $output = ''
+    try { $output = (& $publisher @Flags 6>&1 | Out-String) }
     catch { $failed = $true; if (-not $ExpectFailure) { Write-Host $_.Exception.Message } }
     if ($failed -ne $ExpectFailure -or
         $global:LifeGatherReleaseTest.Builds -ne $ExpectedBuilds -or
         $global:LifeGatherReleaseTest.Pushes -ne $ExpectedPushes) {
         throw "FAIL: $Name (failure=$failed builds=$($global:LifeGatherReleaseTest.Builds) pushes=$($global:LifeGatherReleaseTest.Pushes))"
     }
+    if ($output -match 'synthetic-token') { throw 'Registry token leaked in logs' }
+    if (-not $ExpectFailure -and $ExpectedBuilds -gt 0 -and
+        ($output -notmatch 'Stage: Build' -or $output -notmatch 'completed in')) {
+        throw 'Expected named stages and command elapsed-time output'
+    }
     Write-Host "PASS: $Name"
 }
 
 try {
+    $launcher = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Publish-Container.cmd') -Raw
+    if ($launcher -notmatch '-Publish -PublishLatest' -or $launcher -notmatch '%~dp0Publish-Container.ps1' -or $launcher -notmatch 'exit /b %result%') {
+        throw 'Launcher must preserve the guarded publisher flags and exit code'
+    }
     Test-Release 'dirty checkout stops early' -Dirty $true -ExpectFailure $true
     Test-Release 'check-only never builds' -Flags @{ CheckOnly = $true }
     Test-Release 'declining build stops' -Answers @('n')

@@ -19,3 +19,9 @@ and verify no token exposure or real Docker/network invocation. Add usage docs,
 commit/push/PR/merge and delete the merged branch. Continue cross-source purchase
 reconciliation on a new branch afterward. This early planning commit makes the
 work visible before implementation, as requested.
+
+Verified: missing launcher test failed before implementation. All nine mocked
+publisher paths now pass, including dirty/main guards, declined operations, failed
+build, both upload modes, named/timed logs, plain build output and no token leakage.
+PowerShell parser passes and launcher arguments/exit handling are checked. No real
+build, registry login/upload or running-container mutation. This is tooling only.
