@@ -72,12 +72,9 @@ def test_replacement_preserves_distinct_items_receipts_and_ownership(
         incoming["action_head"] == ""
         and incoming["actions"][0]["operation"] == "replacement"
     )
-    assert (
-        ActionService(auth.engine).source_context(actor, result["source_id"])[
-            "target_asset_name"
-        ]
-        == target.name
-    )
+    context = ActionService(auth.engine).source_context(actor, result["source_id"])
+    assert context is not None
+    assert context["target_asset_name"] == target.name
 
 
 def test_withdrawal_preserves_temporal_history_and_snapshot_replay(

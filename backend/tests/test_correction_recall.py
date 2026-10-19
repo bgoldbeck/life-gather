@@ -130,18 +130,11 @@ def test_recall_distinguishes_superseded_ownership_from_current_inventory(
             note="I bought this item back.",
         ),
     )
-    assert (
-        actions.source_context(actor, sold["source_id"])[
-            "ownership_statement_current_version"
-        ]
-        is False
-    )
-    assert (
-        actions.source_context(actor, owned["source_id"])[
-            "ownership_statement_current_version"
-        ]
-        is True
-    )
+    sold_context = actions.source_context(actor, sold["source_id"])
+    owned_context = actions.source_context(actor, owned["source_id"])
+    assert sold_context is not None and owned_context is not None
+    assert sold_context["ownership_statement_current_version"] is False
+    assert owned_context["ownership_statement_current_version"] is True
     context = RecallTools(ChatService(auth.engine)).collect(actor, plan("Drill"))
     record = next(
         row for row in context["records"] if row["entity"]["id"] == identifier
