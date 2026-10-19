@@ -11,17 +11,29 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $imageName = 'ghcr.io/bgoldbeck/life-gather'
+$releaseTimer = [Diagnostics.Stopwatch]::StartNew()
+$currentStage = 'Preflight'
+
+function Write-Stage {
+    param([string]$Name)
+    $script:currentStage = $Name
+    Write-Host ("`n[{0}] Stage: {1}" -f (Get-Date -Format 'HH:mm:ss'), $Name) -ForegroundColor Cyan
+}
 
 function Invoke-Checked {
     param([string]$Executable, [string[]]$Arguments)
+    Write-Host ("[{0}] > {1} {2}" -f (Get-Date -Format 'HH:mm:ss'), $Executable, ($Arguments -join ' '))
+    $commandTimer = [Diagnostics.Stopwatch]::StartNew()
     & $Executable @Arguments | Out-Host
     if ($LASTEXITCODE -ne 0) {
         throw "$Executable failed (exit $LASTEXITCODE). Release stopped."
     }
+    Write-Host ("{0} completed in {1:N1}s" -f $Executable, $commandTimer.Elapsed.TotalSeconds)
 }
 
 function Get-CheckedOutput {
     param([string]$Executable, [string[]]$Arguments)
+    Write-Host ("[{0}] Checking: {1} {2}" -f (Get-Date -Format 'HH:mm:ss'), $Executable, ($Arguments -join ' '))
     $result = & $Executable @Arguments
     if ($LASTEXITCODE -ne 0) { throw "$Executable failed (exit $LASTEXITCODE)." }
     return ($result -join "`n").Trim()
@@ -52,6 +64,9 @@ Push-Location $repoRoot
 $probeName = $null
 $authDirectory = $null
 try {
+    Write-Stage 'Preflight'
+    Write-Host "Workspace: $repoRoot"
+    Write-Host 'Verbose progress is enabled. Registry credentials and stdin are never logged.'
     if ($PublishLatest -and -not $Publish) { throw '-PublishLatest requires -Publish.' }
     foreach ($command in @('git', 'uv', 'npm', 'docker')) {
         if (-not (Get-Command $command -ErrorAction SilentlyContinue)) {
@@ -95,7 +110,8 @@ try {
         }
     }
 
-    Write-Host 'Running local checks. Dependency setup may download missing packages.'
+    Write-Stage 'Backend verification'
+    Write-Host 'Dependency setup may download missing packages.'
     Push-Location (Join-Path $repoRoot 'backend')
     try {
         Invoke-Checked uv @('sync', '--locked')
@@ -104,6 +120,7 @@ try {
         Invoke-Checked uv @('run', '--locked', 'ruff', 'format', '--check', '.')
         Invoke-Checked uv @('run', '--locked', 'mypy')
     } finally { Pop-Location }
+    Write-Stage 'Frontend verification'
     Push-Location (Join-Path $repoRoot 'frontend')
     try {
         Invoke-Checked npm @('ci', '--no-audit', '--no-fund')
@@ -113,6 +130,7 @@ try {
         Invoke-Checked npm @('run', 'format:check')
         Invoke-Checked npm @('run', 'build')
     } finally { Pop-Location }
+    Write-Stage 'Compose validation'
     Invoke-Checked docker @('compose', 'config', '--quiet')
     Invoke-Checked docker @('compose', '-f', 'deploy/compose.image.yaml', 'config', '--quiet')
     if ($CheckOnly) { Write-Host 'Checks passed. No image built or uploaded.'; return }
@@ -121,8 +139,9 @@ try {
         Write-Host 'Build deferred. Nothing uploaded.'
         return
     }
+    Write-Stage 'Build'
     Invoke-Checked docker @(
-        'build', '--platform', 'linux/amd64',
+        'build', '--progress=plain', '--platform', 'linux/amd64',
         '--label', 'org.opencontainers.image.source=https://github.com/bgoldbeck/life-gather',
         '--label', "org.opencontainers.image.revision=$revision",
         '--label', "org.opencontainers.image.version=$appVersion",
@@ -131,6 +150,7 @@ try {
     )
     Show-ImageSize $commitTag
 
+    Write-Stage 'Isolated container smoke verification'
     $probeName = 'lifegather-release-' + [guid]::NewGuid().ToString('N')
     Invoke-Checked docker @(
         'run', '--detach', '--pull=never', '--name', $probeName,
@@ -141,6 +161,7 @@ try {
     $healthy = $false
     for ($attempt = 0; $attempt -lt 45; $attempt++) {
         $status = Get-CheckedOutput docker @('inspect', '--format', '{{.State.Health.Status}}', $probeName)
+        Write-Host "Health check $($attempt + 1)/45: $status"
         if ($status -eq 'healthy') { $healthy = $true; break }
         if ($status -eq 'unhealthy') { break }
         Start-Sleep -Seconds 2
@@ -194,6 +215,7 @@ print('Container health, UI, auth migration, user, and private storage verified.
         (Get-CheckedOutput git @('rev-parse', 'HEAD')) -ne $revision) {
         throw 'Source changed during release. Nothing uploaded; rerun from a clean commit.'
     }
+    Write-Stage 'Upload preflight and image size'
     Show-ImageSize $commitTag
     $destination = if ($PublishLatest) { "$commitTag and $latestTag" } else { $commitTag }
     if (-not (Confirm-Operation "Upload $destination now? This can use your internet bandwidth")) {
@@ -201,6 +223,7 @@ print('Container health, UI, auth migration, user, and private storage verified.
         return
     }
 
+    Write-Stage 'Registry sign-in and upload'
     # Keep registry credentials out of the user's persistent Docker configuration.
     # JSON avoids nested Go-template quotes being stripped by Windows PowerShell.
     $contextJson = Get-CheckedOutput docker @('context', 'inspect')
@@ -228,7 +251,11 @@ print('Container health, UI, auth migration, user, and private storage verified.
     }
     Write-Host "Published $destination. TrueNAS must pull and redeploy to use it."
     Write-Host 'Existing package visibility is unchanged; verify public access for first publication.'
+} catch {
+    Write-Host "Release failed during stage '${currentStage}'. $($_.Exception.Message)" -ForegroundColor Red
+    throw
 } finally {
+    Write-Stage 'Cleanup'
     if ($probeName) {
         & docker rm --force $probeName | Out-Host
         if ($LASTEXITCODE -ne 0) { Write-Warning "Remove leftover test container $probeName manually." }
@@ -242,4 +269,5 @@ print('Container health, UI, auth migration, user, and private storage verified.
         Remove-Item -LiteralPath $authDirectory
     }
     Pop-Location
+    Write-Host ("Release session completed in {0:N1}s. Review the result above for success, deferral or failure." -f $releaseTimer.Elapsed.TotalSeconds)
 }
