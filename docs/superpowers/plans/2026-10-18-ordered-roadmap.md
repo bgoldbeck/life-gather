@@ -47,6 +47,9 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
    correction; never identify physical items from names alone.
 8. Advanced duplicate resolution: reversible complete-record consolidation and
    explicit shipment/replacement/unit workflows, preserving conflicts/provenance.
+   v0.37.0 adds reviewed cross-source purchase-evidence grouping with immutable
+   move/withdraw history and exact canonical identity reuse. Automatic extraction,
+   transaction allocation/refunds and whole-record consolidation remain ahead.
 9. Photo handling: chat attachments, individual link removal, event galleries and
    graph navigation, preserving original privacy/deletion contracts.
 10. Email connections and requested scans: owner-scoped credentials, requested scope,

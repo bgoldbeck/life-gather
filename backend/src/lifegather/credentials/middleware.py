@@ -15,6 +15,7 @@ class CredentialBodyLimit:
                     "/api/credentials",
                     "/api/mailboxes",
                     "/api/scans",
+                    "/api/purchases",
                     "/api/scan-schedules",
                     "/api/appearance",
                     "/api/profiles",

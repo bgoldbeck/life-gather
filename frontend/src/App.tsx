@@ -32,6 +32,7 @@ import { ProfilesPanel } from './ProfilesPanel'
 import { DocumentsPanel } from './DocumentsPanel'
 import { MailboxesPanel } from './MailboxesPanel'
 import { ScansPanel } from './ScansPanel'
+import { PurchasesPanel } from './PurchasesPanel'
 import type { Theme } from './appearance'
 
 const navigation = [
@@ -59,6 +60,11 @@ const navigation = [
     name: 'Scans',
     icon: BookOpen,
     description: 'Private requested and scheduled imports.',
+  },
+  {
+    name: 'Purchases',
+    icon: BookOpen,
+    description: 'Reconcile order, receipt, shipment and payment evidence.',
   },
   {
     name: 'Profiles',
@@ -215,6 +221,14 @@ export function Workspace({
             <ReviewPanel csrfToken={csrfToken} />
           ) : view === 'Scans' ? (
             <ScansPanel csrfToken={csrfToken} />
+          ) : view === 'Purchases' ? (
+            <PurchasesPanel
+              csrfToken={csrfToken}
+              onOpenGraph={(id) => {
+                setGraphEntityId(id)
+                setView('Graph')
+              }}
+            />
           ) : view === 'Documents' ? (
             <DocumentsPanel
               csrfToken={csrfToken}

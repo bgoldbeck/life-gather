@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.37.0 — Reviewed cross-source purchase evidence
+
+- Purchases connects saved order, receipt, shipment and payment evidence to the
+  existing retailer/account/order identity. Reuse canonical purchases already used
+  by item reconciliation; attaching evidence never creates physical items or
+  ownership facts. A payment cannot create a new purchase or establish contents.
+- Source quotes, exact currency amounts and optional event dates remain separate
+  claims, never summed into balances. Conflicting current order totals are shown;
+  historical/deleted-source claims remain visible but are excluded from comparison.
+- Correct, move, withdraw and deliberately reattach source associations with immutable
+  history, optimistic heads, owner checks and stable request retry. Private HTTP/MCP
+  and paged source/evidence/history UI; product chat stays read-only.
+- Migration `0020_purchase_evidence` adds owned source-association revisions without
+  replacing existing purchases, receipts or line details. One current association
+  per source and 50 current sources per purchase. Automatic email extraction,
+  financial allocations, refunds and full record consolidation remain later work.
+
 ## 0.36.0 — Private modular daily and weekly scans
 
 - Create, edit, pause and resume private Gmail scan schedules in Scans. Choose

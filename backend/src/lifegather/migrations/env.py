@@ -9,6 +9,7 @@ from lifegather.documents import models as document_models  # noqa: F401
 from lifegather.mailboxes import models as mailbox_models  # noqa: F401
 from lifegather.memory import models as memory_models  # noqa: F401
 from lifegather.photos import models as photo_models  # noqa: F401
+from lifegather.purchases import models as purchase_models  # noqa: F401
 from lifegather.reconciliation import models as reconciliation_models  # noqa: F401
 from lifegather.reconciliation import (
     proposal_models,  # noqa: F401

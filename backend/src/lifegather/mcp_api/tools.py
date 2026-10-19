@@ -53,6 +53,14 @@ from lifegather.photos.service import (
     PhotoService,
 )
 from lifegather.profiles.service import ProfileRead, ProfileService
+from lifegather.purchases.schemas import (
+    EvidenceHistory,
+    EvidenceSave,
+    EvidenceWithdraw,
+    PurchasePage,
+    PurchaseRead,
+)
+from lifegather.purchases.service import PurchaseEvidenceService
 from lifegather.reconciliation.proposals import (
     ProposalPreview,
     ProposalRead,
@@ -786,6 +794,74 @@ def build_server() -> MCPServer:
             lambda actor, memory, _: ScheduleService(
                 ScanService(memory.engine, ScanRegistry([]))
             ).list(actor),
+        )
+
+    @server.tool(annotations=annotation)
+    def purchase_list(data: PurchasePage, ctx: ToolContext) -> dict[str, Any]:
+        """Read private canonical purchase identities, not inferred balances."""
+        return read(
+            ctx,
+            lambda actor, memory, _: PurchaseEvidenceService(memory.engine).list(
+                actor, data.cursor, data.limit
+            ),
+        )
+
+    @server.tool(annotations=annotation)
+    def purchase_get(data: PurchaseRead, ctx: ToolContext) -> dict[str, Any]:
+        """Read separate source claims and linked items; never sum amounts."""
+        return read(
+            ctx,
+            lambda actor, memory, _: PurchaseEvidenceService(memory.engine).get(
+                actor, data.purchase_id, data.after, data.limit
+            ),
+        )
+
+    @server.tool(annotations=annotation)
+    def purchase_evidence_history(
+        data: EvidenceHistory, ctx: ToolContext
+    ) -> dict[str, Any]:
+        """Read immutable evidence correction/withdrawal history for an owned source."""
+        return read(
+            ctx,
+            lambda actor, memory, _: PurchaseEvidenceService(memory.engine).history(
+                actor, data.source_id, data.before_revision
+            ),
+        )
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        )
+    )
+    def purchase_evidence_save(data: EvidenceSave, ctx: ToolContext) -> dict[str, Any]:
+        """Attach/correct evidence only after explicit human review."""
+        return read(
+            ctx,
+            lambda actor, memory, _: PurchaseEvidenceService(memory.engine).save(
+                actor, data
+            ),
+        )
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        )
+    )
+    def purchase_evidence_withdraw(
+        data: EvidenceWithdraw, ctx: ToolContext
+    ) -> dict[str, Any]:
+        """Withdraw a human-reviewed association, preserving history."""
+        return read(
+            ctx,
+            lambda actor, memory, _: PurchaseEvidenceService(memory.engine).withdraw(
+                actor, data
+            ),
         )
 
     return server
