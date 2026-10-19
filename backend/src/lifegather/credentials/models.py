@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, ForeignKey, LargeBinary, String
+from sqlalchemy import CheckConstraint, ForeignKey, Index, LargeBinary, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from lifegather.auth.models import Base
@@ -22,6 +22,7 @@ class UserSettings(Base):
 
 class Credential(Base):
     __tablename__ = "credentials"
+    __table_args__ = (Index("uq_credentials_user_id_id", "user_id", "id", unique=True),)
     id: Mapped[str] = mapped_column(String, primary_key=True)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     kind: Mapped[str]

@@ -30,6 +30,7 @@ import { AppearanceSettings } from './AppearanceSettings'
 import { GraphPanel } from './GraphPanel'
 import { ProfilesPanel } from './ProfilesPanel'
 import { DocumentsPanel } from './DocumentsPanel'
+import { MailboxesPanel } from './MailboxesPanel'
 import type { Theme } from './appearance'
 
 const navigation = [
@@ -105,7 +106,13 @@ export function Workspace({
   build?: Build
   appearance?: Theme
 }) {
-  const [view, setView] = useState<View>('Overview')
+  const [view, setView] = useState<View>(() =>
+    ['connected', 'failed'].includes(
+      new URLSearchParams(window.location.search).get('mailbox') ?? '',
+    )
+      ? 'Settings'
+      : 'Overview',
+  )
   const [graphEntityId, setGraphEntityId] = useState('')
   const [assetId, setAssetId] = useState('')
   const [receiptSourceId, setReceiptSourceId] = useState('')
@@ -190,6 +197,7 @@ export function Workspace({
                 csrfToken={csrfToken}
                 refreshSession={refreshSession}
               />
+              <MailboxesPanel csrfToken={csrfToken} />
               <PasswordSettings
                 configured={passwordEnabled}
                 deliveryEnabled={deliveryEnabled}

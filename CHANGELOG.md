@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.34.0 — Separate private Gmail consent
+
+- Connect an individual Gmail mailbox through a separate read-only Google OAuth flow in Settings. Use PKCE and hashed one-time state bound to account/session/browser; refresh credentials remain in the encrypted vault and never appear in responses.
+- List/disconnect only owned mailboxes; reconnect preserves mailbox identity and protects new grants from stale disconnects. Existing vault removal disables the mailbox. Fixed bounded Google endpoints; no mail mutation, automatic scan or AI request.
+- Migration `0017_private_mailboxes` adds owned mailboxes and expiring consent flows plus a credential owner index. Document the additional Gmail API/scope/callback setup. Live Gmail access remains unverified. This is the prerequisite for modular manual and scheduled scans.
+
 ## 0.33.1 — Keep Chat evidence with the current conversation
 
 - Ignore late citation pages and errors after closing evidence, selecting another
