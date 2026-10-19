@@ -31,45 +31,54 @@ function downloadHarness(
   return { fetcher, create, revoke, click }
 }
 
-it('explains scope and waits for explicit download before making a private request', async () => {
-  const { fetcher, create, click, revoke } = downloadHarness()
-  const user = userEvent.setup()
-  const view = render(<RecordExportPanel csrfToken="csrf-private" />)
-  expect(fetcher).not.toHaveBeenCalled()
-  expect(screen.getByText(/Original images and PDF files/)).toHaveTextContent(
-    'not a complete backup',
-  )
-  expect(screen.getByText(/Up to 10,000 records/)).toHaveTextContent(
-    'no partial file',
-  )
-  await user.click(
-    screen.getByRole('button', { name: 'Download records (JSON)' }),
-  )
-  expect(await screen.findByRole('status')).toHaveTextContent(
-    'download has started',
-  )
-  expect(fetcher).toHaveBeenCalledWith(
-    '/api/export/records',
-    expect.objectContaining({
-      method: 'POST',
-      credentials: 'same-origin',
-      cache: 'no-store',
-      body: '{}',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': 'csrf-private',
-      },
-    }),
-  )
-  expect(create).toHaveBeenCalledOnce()
-  expect(click).toHaveBeenCalledOnce()
-  const anchor = click.mock.instances[0] as HTMLAnchorElement
-  expect(anchor.download).toBe('lifegather-records.json')
-  expect(anchor.href).toBe('blob:synthetic-export')
-  expect(anchor.isConnected).toBe(false)
-  view.unmount()
-  expect(revoke).toHaveBeenCalledWith('blob:synthetic-export')
-})
+it.each(['lifegather-records/1', 'lifegather-records/2'])(
+  'downloads supported format %s only after an explicit private request',
+  async (format) => {
+    const { fetcher, create, click, revoke } = downloadHarness(
+      Promise.resolve(
+        new Response(JSON.stringify({ format }), {
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    )
+    const user = userEvent.setup()
+    const view = render(<RecordExportPanel csrfToken="csrf-private" />)
+    expect(fetcher).not.toHaveBeenCalled()
+    expect(screen.getByText(/Original images and PDF files/)).toHaveTextContent(
+      'not a complete backup',
+    )
+    expect(screen.getByText(/Up to 10,000 records/)).toHaveTextContent(
+      'no partial file',
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Download records (JSON)' }),
+    )
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'download has started',
+    )
+    expect(fetcher).toHaveBeenCalledWith(
+      '/api/export/records',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        body: '{}',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': 'csrf-private',
+        },
+      }),
+    )
+    expect(create).toHaveBeenCalledOnce()
+    expect(click).toHaveBeenCalledOnce()
+    const anchor = click.mock.instances[0] as HTMLAnchorElement
+    expect(anchor.download).toBe('lifegather-records.json')
+    expect(anchor.href).toBe('blob:synthetic-export')
+    expect(anchor.isConnected).toBe(false)
+    view.unmount()
+    expect(revoke).toHaveBeenCalledWith('blob:synthetic-export')
+  },
+)
 
 it('prevents duplicate clicks while preparing and ignores a response after unmount', async () => {
   let finish!: (response: Response) => void

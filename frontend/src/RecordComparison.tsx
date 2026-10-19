@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import './record-comparison.css'
+import { AssetConsolidation } from './AssetConsolidation'
 
 type Record = {
   id: string
@@ -21,7 +22,7 @@ type Fact = {
   valid_to: string | null
   evidence: { source_id: string; quote: string | null }[]
 }
-type Comparison = {
+export type Comparison = {
   complete: boolean
   records: Record[]
   references?: Record[]
@@ -121,14 +122,18 @@ export function RecordComparison({
   assetName,
   csrfToken,
   onOpen,
-  disabled = false,
+  disabled: externallyDisabled = false,
+  onConsolidated,
 }: {
   assetId: string
   assetName: string
   csrfToken: string
   onOpen: (id: string) => Promise<void>
   disabled?: boolean
+  onConsolidated?: (id: string) => Promise<void>
 }) {
+  const [consolidationPending, setConsolidationPending] = useState(false)
+  const disabled = externallyDisabled || consolidationPending
   const [query, setQuery] = useState('')
   const [items, setItems] = useState<Record[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
@@ -253,8 +258,8 @@ export function RecordComparison({
       <h3>Compare current records</h3>
       <p>
         Inspect {assetName} beside another item before correcting a possible
-        duplicate. This view never merges records or decides that they are the
-        same physical item.
+        duplicate. Comparison does not decide identity; consolidation requires a
+        separate fresh preview and your explicit confirmation.
       </p>
       <label>
         Find another item
@@ -322,6 +327,16 @@ export function RecordComparison({
       {error && <p role="alert">{error}</p>}
       {result && (
         <>
+          {result.complete && onConsolidated && (
+            <AssetConsolidation
+              key={target}
+              records={result.records}
+              csrfToken={csrfToken}
+              onPreview={setResult}
+              onPending={setConsolidationPending}
+              onChanged={onConsolidated}
+            />
+          )}
           <p role="status">
             {result.complete
               ? 'Complete within the stated current-version scope.'

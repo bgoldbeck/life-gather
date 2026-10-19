@@ -218,7 +218,10 @@ class RecordComparisonService:
             # cursor proves overflow without hiding omitted associations.
             for page_number in range(4):
                 page = purchases._get_in(
-                    db, actor, AssetPurchasesRead(asset_id=identifier, cursor=cursor)
+                    db,
+                    actor,
+                    AssetPurchasesRead(asset_id=identifier, cursor=cursor),
+                    original=True,
                 )
                 receipt_rows.extend(
                     {"asset_id": identifier, **row} for row in page["items"]

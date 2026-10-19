@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Engine, func, or_, select
 from sqlalchemy.orm import Session
 
+from lifegather.assets.identity import canonical_id
 from lifegather.auth.store import Account
 from lifegather.chat.context import ContextRef, WorkspaceContexts
 from lifegather.memory.models import Alias, Assertion, Entity, Episode, Evidence
@@ -100,6 +101,12 @@ class WorkspaceOrganizer:
                     .limit(6)
                 )
             )
+            rows = [
+                self.memory._entity(db, actor, identifier)
+                for identifier in sorted(
+                    {canonical_id(db, actor, row.id) for row in rows}
+                )
+            ]
             if not rows:
                 return {
                     "text": "I couldn't find that asset in your records. "

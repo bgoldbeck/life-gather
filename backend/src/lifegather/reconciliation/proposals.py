@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session
 
+from lifegather.assets.identity import canonical_id
 from lifegather.auth.store import Account
 from lifegather.memory.models import Entity
 from lifegather.memory.notes import NoteConflict, NoteService
@@ -266,6 +267,9 @@ class ProposalService:
             )
             if observation.serial_key
             else []
+        )
+        serial_targets = sorted(
+            {canonical_id(db, actor, identifier) for identifier in serial_targets}
         )
         reliable = serial_targets or (targets if outcome == "enrich" else [])
         return sorted(set(targets + candidates + serial_targets))[:100], reliable

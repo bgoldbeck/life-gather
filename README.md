@@ -1,6 +1,6 @@
 # LifeGather
 
-[![Source version](https://img.shields.io/badge/source_version-v0.47.0-426B46)](CHANGELOG.md)
+[![Source version](https://img.shields.io/badge/source_version-v0.48.0-426B46)](CHANGELOG.md)
 
 This badge identifies the source release. Check the login screen or app header for your running container’s version.
 
@@ -9,6 +9,11 @@ LifeGather is a private, self-hosted personal-memory application built around an
 It aims to help organize possessions, events, documents, and relationships while preserving the original sources, tracking changes over time, and distinguishing facts from inferences and unknowns.
 
 ## Project status
+
+Assets now supports [reversible two-record consolidation](docs/ASSET_CONSOLIDATION.md):
+choose a primary record after a fresh complete comparison and explicitly confirm
+the same physical item. Original evidence, conflicting facts and history remain.
+Current browsing, galleries, profiles, graph and recall share the chosen identity.
 
 Settings provides a [private records download](docs/RECORD_EXPORT.md) with saved
 evidence and history, purchases/units, conversations and file metadata. This
@@ -123,9 +128,9 @@ npm run format:check
 npm run build
 ```
 
-The UI uses Tailwind CSS and shadcn/ui primitives. Chat supports explicit text memory capture, keyword search, and optional OpenAI recall; Settings manages private credentials and consent. The [Assets browser](docs/ASSETS.md) shows private inventory, sourced details and history. Memories and Graph remain preview placeholders.
+The UI uses Tailwind CSS and shadcn/ui primitives. Chat supports explicit text memory capture, keyword search, streaming and optional OpenAI/Claude/Gemini recall; Settings manages private credentials and consent. The [Assets browser](docs/ASSETS.md) shows private inventory, sourced details and history. Memories provides capture/search/history, and Graph provides a bounded evidence-backed explorer.
 
-The first [text memory chat increment](docs/TEXT_CHAT.md) provides private persistent conversations, explicit original-text saving, keyword recall, evidence inspection, saved-note correction/history, and optional OpenAI answers using the user's credential and consent. Single-item [asset proposals](docs/ASSET_PROPOSALS.md) add human-reviewed extraction. Broader extraction, graph-fact correction/review, streaming, and per-user appearance settings remain next increments. Authentication and the deterministic memory foundation are already implemented.
+The [text memory chat](docs/TEXT_CHAT.md) provides private persistent conversations, original-text saving, keyword recall, evidence inspection and saved-note history. Reviewed item/receipt extraction, private photo/PDF evidence, streaming, sourced profiles and per-user appearance settings are implemented. Broader life-management and research workflows remain separate roadmap increments.
 
 ## Planned stack
 

@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from lifegather.assets.actions import ActionService
+from lifegather.assets.identity import identity_group
 from lifegather.assets.models import AssetAction
 from lifegather.auth.store import Account
 from lifegather.memory.notes import NoteConflict
@@ -49,6 +50,8 @@ class EvidenceBatchService(ActionService):
         target = self.memory._entity(db, actor, data.target_asset_id)
         if source.kind != "asset" or target.kind != "asset":
             raise MemoryError("Choose two physical items")
+        if identity_group(db, actor, source.id) or identity_group(db, actor, target.id):
+            raise MemoryError("Reverse consolidation before moving discovery batches")
         rows = list(
             db.scalars(
                 select(Decision)

@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Engine, func, literal, select
 from sqlalchemy.orm import Session
 
+from lifegather.assets.identity import member_ids
 from lifegather.auth.store import Account
 from lifegather.memory.service import MemoryError
 from lifegather.reconciliation.models import Binding, Decision, Observation
@@ -33,7 +34,12 @@ class AssetPurchases:
             return self._get_in(db, actor, data)
 
     def _get_in(
-        self, db: Session, actor: Account, data: AssetPurchasesRead
+        self,
+        db: Session,
+        actor: Account,
+        data: AssetPurchasesRead,
+        *,
+        original: bool = False,
     ) -> dict[str, Any]:
         asset = self.details.receipts.memory._entity(db, actor, data.asset_id)
         if asset.kind != "asset":
@@ -57,7 +63,9 @@ class AssetPurchases:
                 Observation.user_id == actor.id,
                 Decision.user_id == actor.id,
                 Binding.user_id == actor.id,
-                Binding.asset_id == asset.id,
+                Binding.asset_id.in_(
+                    [asset.id] if original else member_ids(db, actor, asset.id)
+                ),
                 Decision.superseded_at.is_(None),
                 Decision.outcome.in_(["create", "enrich"]),
                 Observation.item_key.in_([f"receipt-line-{i}" for i in range(8)]),

@@ -159,6 +159,8 @@ def test_mcp_discovery_and_owner_scoped_memory_reads() -> None:
                 "asset_proposal_review",
                 "asset_change",
                 "asset_manual_save",
+                "asset_consolidate",
+                "asset_consolidation_reverse",
                 "workspace_organize",
                 "asset_replacement_record",
                 "asset_replacement_withdraw",

@@ -7,7 +7,7 @@ from typing import Any, cast
 
 from sqlalchemy import Engine, Table, select
 
-from lifegather.assets.models import AssetAction
+from lifegather.assets.models import AssetAction, AssetConsolidation
 from lifegather.auth.models import Base
 from lifegather.auth.store import Account
 from lifegather.chat.models import Conversation, Turn
@@ -35,7 +35,7 @@ from lifegather.reconciliation.proposal_models import AssetProposal
 from lifegather.reconciliation.receipt_models import ReceiptDetail, ReceiptProposal
 from lifegather.version import __version__
 
-FORMAT = "lifegather-records/1"
+FORMAT = "lifegather-records/2"
 MAX_RECORDS = 10_000
 MAX_BYTES = 16 * 1024 * 1024
 
@@ -57,6 +57,12 @@ class Projection:
 # Frozen format contract: additions need explicit privacy review and tests.
 # Never select an entire ORM row or infer exportability from a user_id column.
 COLLECTIONS = (
+    Projection(
+        AssetConsolidation,
+        "id primary_id secondary_id source_id request_id fingerprint state_token "
+        "recorded_at superseded_at reverse_source_id reverse_request_id "
+        "reverse_fingerprint",
+    ),
     Projection(
         Episode,
         "id source_key text source_type namespace external_id "

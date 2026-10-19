@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
 
+from lifegather.assets.identity import canonical_id, member_ids
 from lifegather.auth.store import Account
 from lifegather.memory.notes import NoteConflict, NoteService
 from lifegather.memory.schemas import SourceInput
@@ -135,8 +136,13 @@ class PhotoService:
             )
             if data.asset_id:
                 self.memory._entity(db, actor, data.asset_id)
-                query = query.join(PhotoAsset, PhotoAsset.photo_id == Photo.id).where(
-                    PhotoAsset.user_id == actor.id, PhotoAsset.asset_id == data.asset_id
+                query = (
+                    query.join(PhotoAsset, PhotoAsset.photo_id == Photo.id)
+                    .where(
+                        PhotoAsset.user_id == actor.id,
+                        PhotoAsset.asset_id.in_(member_ids(db, actor, data.asset_id)),
+                    )
+                    .distinct()
                 )
             rows = list(db.scalars(query.order_by(Photo.id).limit(data.limit + 1)))
             return {
@@ -166,12 +172,13 @@ class PhotoService:
         asset = self.memory._entity(db, actor, asset_id)
         if asset.kind != "asset":
             raise MemoryError("Choose a physical asset")
+        asset_id = canonical_id(db, actor, asset.id)
         if (
             db.scalar(
                 select(PhotoAsset.id).where(
                     PhotoAsset.user_id == actor.id,
                     PhotoAsset.photo_id == row.id,
-                    PhotoAsset.asset_id == asset_id,
+                    PhotoAsset.asset_id.in_(member_ids(db, actor, asset_id)),
                 )
             )
             is None
@@ -188,7 +195,7 @@ class PhotoService:
             )
             row.updated_at = max(now, row.updated_at + 1)
             self.memory._audit(
-                db, actor, "photo_attached", f"{row.id}:{asset.id}", row.updated_at
+                db, actor, "photo_attached", f"{row.id}:{asset_id}", row.updated_at
             )
 
     def upload(
@@ -264,23 +271,30 @@ class PhotoService:
             asset = self.memory._entity(db, actor, data.asset_id)
             if asset.kind != "asset":
                 raise MemoryError("Choose a physical asset")
-            link = db.scalar(
-                select(PhotoAsset).where(
-                    PhotoAsset.user_id == actor.id,
-                    PhotoAsset.photo_id == row.id,
-                    PhotoAsset.asset_id == asset.id,
+            links = list(
+                db.scalars(
+                    select(PhotoAsset).where(
+                        PhotoAsset.user_id == actor.id,
+                        PhotoAsset.photo_id == row.id,
+                        PhotoAsset.asset_id.in_(member_ids(db, actor, asset.id)),
+                    )
                 )
             )
             # An already absent link is a safe replay, even after a lost response.
-            if link is None:
+            if not links:
                 return self.view(row)
             if row.updated_at != data.expected_updated_at:
                 raise NoteConflict("Photo changed. Reload before removing its link.")
-            db.delete(link)
             row.updated_at = max(self.memory.clock(), row.updated_at + 1)
-            self.memory._audit(
-                db, actor, "photo_detached", f"{row.id}:{asset.id}", row.updated_at
-            )
+            for link in links:
+                db.delete(link)
+                self.memory._audit(
+                    db,
+                    actor,
+                    "photo_detached",
+                    f"{row.id}:{link.asset_id}",
+                    row.updated_at,
+                )
             db.flush()
             return self.view(row)
 
@@ -297,7 +311,7 @@ class PhotoService:
                 select(PhotoAsset.id).where(
                     PhotoAsset.user_id == actor.id,
                     PhotoAsset.photo_id == row.id,
-                    PhotoAsset.asset_id == asset.id,
+                    PhotoAsset.asset_id.in_(member_ids(db, actor, asset.id)),
                 )
             )
             if existing is None:

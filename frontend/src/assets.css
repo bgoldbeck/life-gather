@@ -157,3 +157,23 @@
 .asset-purchases button {
   margin: 0.3rem 0.5rem 0.3rem 0;
 }
+.consolidation {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  overflow-wrap: anywhere;
+}
+.consolidation label {
+  display: grid;
+  gap: 0.375rem;
+  min-width: 0;
+}
+.consolidation select,
+.consolidation textarea {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}

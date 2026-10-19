@@ -21,6 +21,12 @@ from lifegather.assets.batch import (
     EvidenceRestore,
 )
 from lifegather.assets.comparison import RecordComparison, RecordComparisonService
+from lifegather.assets.consolidation import (
+    Consolidate,
+    ConsolidationPair,
+    ConsolidationService,
+    ReverseConsolidation,
+)
 from lifegather.assets.manual import ManualAssetCreate, ManualAssetFields, ManualAssets
 from lifegather.assets.purchases import AssetPurchases, AssetPurchasesRead
 from lifegather.assets.replacements import (
@@ -453,7 +459,7 @@ def build_server() -> MCPServer:
         def operation(
             actor: Account, memory: MemoryService, _: ReconciliationService
         ) -> dict[str, Any]:
-            entity = memory.get_entity(actor, data.entity_id)
+            entity = memory.get_entity(actor, data.entity_id, known_at=data.known_at)
             facts = memory.facts(
                 actor,
                 data.entity_id,
@@ -743,6 +749,54 @@ def build_server() -> MCPServer:
         return read(
             ctx,
             lambda actor, memory, _: ActionService(memory.engine).apply(actor, data),
+        )
+
+    @server.tool(annotations=annotation)
+    def asset_consolidation_preview(
+        data: ConsolidationPair, ctx: ToolContext
+    ) -> dict[str, Any]:
+        """Inspect a complete pair; requires a separate explicit human decision."""
+        return read(
+            ctx,
+            lambda actor, memory, _: ConsolidationService(memory.engine).preview(
+                actor, data.primary_id, data.secondary_id
+            ),
+        )
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        )
+    )
+    def asset_consolidate(data: Consolidate, ctx: ToolContext) -> dict[str, Any]:
+        """Apply a directly confirmed human identity choice. Never an app-model tool."""
+        return read(
+            ctx,
+            lambda actor, memory, _: ConsolidationService(memory.engine).apply(
+                actor, data
+            ),
+        )
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        )
+    )
+    def asset_consolidation_reverse(
+        data: ReverseConsolidation, ctx: ToolContext
+    ) -> dict[str, Any]:
+        """Explicitly reverse an unchanged consolidation with a human explanation."""
+        return read(
+            ctx,
+            lambda actor, memory, _: ConsolidationService(memory.engine).reverse(
+                actor, data
+            ),
         )
 
     @server.tool(annotations=annotation)

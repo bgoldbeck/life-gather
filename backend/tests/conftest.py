@@ -27,11 +27,30 @@ def legacy_audit_writer(monkeypatch: pytest.MonkeyPatch) -> None:
     """
     from uuid import uuid4
 
-    from sqlalchemy import inspect, text
+    from sqlalchemy import inspect, literal, select, text
     from sqlalchemy.orm import Session
 
+    from lifegather.assets import identity
     from lifegather.auth.store import Account
     from lifegather.memory.service import MemoryService
+    from lifegather.reconciliation import inventory
+    from lifegather.reconciliation import service as reconciliation_service
+
+    # These fixtures deliberately seed schemas from before identity groups existed.
+    # Their records have no consolidations, before or after upgrade. Exercise the
+    # historical identity contract while new consolidation tests cover 0023 itself.
+    monkeypatch.setattr(identity, "identity_group", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        inventory, "same_identity", lambda actor, left, right: left == right
+    )
+    monkeypatch.setattr(
+        reconciliation_service,
+        "same_identity",
+        lambda actor, left, right: left == right,
+    )
+    monkeypatch.setattr(
+        reconciliation_service, "secondary_ids", lambda actor: select(literal(None))
+    )
 
     original = MemoryService._audit
 

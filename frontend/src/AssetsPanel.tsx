@@ -11,6 +11,11 @@ import { AssetActions } from './AssetActions'
 import { AssetPurchases } from './AssetPurchases'
 import { FieldHistory } from './FieldHistory'
 import { ManualAssetForm, type ManualAssetResult } from './ManualAssetForm'
+import { AssetConsolidation, type Consolidation } from './AssetConsolidation'
+import {
+  ConsolidationHistory,
+  type IdentityChoice,
+} from './ConsolidationHistory'
 
 type Asset = {
   id: string
@@ -49,6 +54,10 @@ type Fact = {
 }
 type Detail = {
   asset: Asset
+  consolidation?: Consolidation | null
+  original_records?: Asset[]
+  identity_history?: IdentityChoice[]
+  next_identity_cursor?: string | null
   in_inventory: boolean
   decisions: Decision[]
   facts: Fact[]
@@ -281,6 +290,34 @@ export function AssetsPanel({
       if (version === generation.current) setBusy(false)
     }
   }
+  async function consolidationChanged(id: string) {
+    if (
+      !detail ||
+      (selectedAsset.current !== detail.asset.id &&
+        selectedAsset.current !== id)
+    )
+      return
+    const version = selectAsset(id)
+    setBusy(true)
+    setNotice(
+      'Identity change saved. Original evidence and history are preserved.',
+    )
+    try {
+      const [row, page] = await Promise.all([
+        request(`assets/${id}`),
+        request(
+          `assets?query=${encodeURIComponent(search)}&include_history=${history}`,
+        ),
+      ])
+      if (version !== generation.current) return
+      setDetail(row)
+      setItems(page.items)
+      setCursor(page.next_cursor)
+      detailHeading.current?.scrollIntoView?.({ block: 'start' })
+    } finally {
+      if (version === generation.current) setBusy(false)
+    }
+  }
   async function moreActions() {
     if (
       !detail?.next_action_cursor ||
@@ -413,6 +450,38 @@ export function AssetsPanel({
       {detail && (
         <section className="asset-detail" aria-label="Asset details">
           <h2 ref={detailHeading}>{detail.asset.name}</h2>
+          {Boolean(detail.identity_history?.length) && (
+            <ConsolidationHistory
+              key={`identity:${detail.asset.id}:${detail.identity_history?.[0]?.id}:${detail.identity_history?.[0]?.superseded_at}`}
+              assetId={detail.asset.id}
+              initial={detail.identity_history!}
+              cursor={detail.next_identity_cursor ?? null}
+              csrfToken={csrfToken}
+              onOpen={evidence}
+            />
+          )}
+          {detail.consolidation && (
+            <AssetConsolidation
+              key={detail.consolidation.id}
+              consolidation={detail.consolidation}
+              csrfToken={csrfToken}
+              onChanged={consolidationChanged}
+            />
+          )}
+          {detail.consolidation && (
+            <div aria-label="Preserved original records">
+              {detail.original_records?.map((record) => (
+                <Button
+                  key={record.id}
+                  variant="outline"
+                  onClick={() => void evidence(record.source_id)}
+                >
+                  Original record evidence: {record.name} ·{' '}
+                  {record.id.slice(0, 8)}
+                </Button>
+              ))}
+            </div>
+          )}
           {onOpenGraph && (
             <Button
               variant="outline"
@@ -452,17 +521,20 @@ export function AssetsPanel({
             onOpen={evidence}
           />
           <h3>Sourced details and decisions</h3>
-          <details>
-            <summary>Compare complete current records</summary>
-            <RecordComparison
-              key={`comparison:${detail.asset.id}`}
-              assetId={detail.asset.id}
-              assetName={detail.asset.name}
-              csrfToken={csrfToken}
-              onOpen={evidence}
-              disabled={busy}
-            />
-          </details>
+          {!detail.consolidation && (
+            <details>
+              <summary>Compare complete current records</summary>
+              <RecordComparison
+                key={`comparison:${detail.asset.id}`}
+                assetId={detail.asset.id}
+                assetName={detail.asset.name}
+                csrfToken={csrfToken}
+                onOpen={evidence}
+                disabled={busy}
+                onConsolidated={consolidationChanged}
+              />
+            </details>
+          )}
           <details>
             <summary>Make a correction</summary>
             <AssetActions

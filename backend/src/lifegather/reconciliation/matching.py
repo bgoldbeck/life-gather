@@ -3,6 +3,7 @@
 from sqlalchemy import Select, and_, false, or_, select
 from sqlalchemy.orm import Session
 
+from lifegather.assets.identity import canonical_id, member_ids
 from lifegather.auth.store import Account
 from lifegather.memory.models import Alias, Assertion, Entity
 from lifegather.memory.service import normalized
@@ -63,7 +64,13 @@ class IdentityMatcher:
             .order_by(Entity.id)
             .limit(101)
         )
-        return list(db.scalars(query))
+        rows = list(db.scalars(query))
+        # Preserve the overflow signal before collapsing equivalent records.
+        return (
+            rows
+            if len(rows) > 100
+            else sorted({canonical_id(db, actor, identifier) for identifier in rows})
+        )
 
     def _choose(
         self,
@@ -122,9 +129,13 @@ class IdentityMatcher:
         targets: list[str] = []
         for unit in range(data.quantity):
             matches = {
-                binding.asset_id for binding, _ in line_rows if binding.unit == unit
+                canonical_id(db, actor, binding.asset_id)
+                for binding, _ in line_rows
+                if binding.unit == unit
             }
-            matches.update(binding.asset_id for binding, _ in serial_rows)
+            matches.update(
+                canonical_id(db, actor, binding.asset_id) for binding, _ in serial_rows
+            )
             if len(matches) > 1:
                 return (
                     "review",
@@ -137,7 +148,7 @@ class IdentityMatcher:
                 evidence_rows = list(
                     db.execute(
                         self._active_bindings(actor)
-                        .where(Binding.asset_id == target)
+                        .where(Binding.asset_id.in_(member_ids(db, actor, target)))
                         .limit(101)
                     )
                 )
@@ -237,7 +248,13 @@ class IdentityMatcher:
                     "review",
                     "Known identity was previously corrected or excluded",
                     [],
-                    sorted(set(candidates) | set(historical))[:100],
+                    sorted(
+                        set(candidates)
+                        | {
+                            canonical_id(db, actor, identifier)
+                            for identifier in historical
+                        }
+                    )[:100],
                 )
         if candidates:
             # A different explicit order distinguishes purchased units only when all
@@ -247,13 +264,20 @@ class IdentityMatcher:
                     self._active_bindings(actor)
                     .with_only_columns(Binding.asset_id)
                     .where(
-                        Binding.asset_id.in_(candidates),
+                        Binding.asset_id.in_(
+                            [
+                                member
+                                for identifier in candidates
+                                for member in member_ids(db, actor, identifier)
+                            ]
+                        ),
                         Observation.line_id.is_not(None),
                     )
                     .distinct()
                     .limit(101)
                 )
             )
+            anchored = {canonical_id(db, actor, identifier) for identifier in anchored}
             if observation.line_id is None or set(candidates) - anchored:
                 return (
                     "review",

@@ -9,6 +9,7 @@ from pydantic import Field, model_validator
 from sqlalchemy import select
 
 from lifegather.assets.actions import ActionService
+from lifegather.assets.identity import canonical_id
 from lifegather.assets.models import AssetAction
 from lifegather.auth.store import Account
 from lifegather.memory.models import Assertion
@@ -80,6 +81,10 @@ class ReplacementService(ActionService):
                 target = self.memory._entity(db, actor, data.target_asset_id)
                 if asset.kind != "asset" or target.kind != "asset":
                     raise MemoryError("Choose two existing physical items")
+                if canonical_id(db, actor, asset.id) == canonical_id(
+                    db, actor, target.id
+                ):
+                    raise MemoryError("A replacement must be a distinct physical item")
                 previous = self.latest(db, actor, asset.id)
                 if (previous.id if previous else "") != data.expected_action_id:
                     raise NoteConflict(

@@ -3,6 +3,11 @@ from pydantic import BaseModel, ConfigDict, Field
 from lifegather.assets.actions import AssetChange
 from lifegather.assets.batch import EvidenceMove, EvidenceMovePreview, EvidenceRestore
 from lifegather.assets.comparison import RecordComparison
+from lifegather.assets.consolidation import (
+    Consolidate,
+    ConsolidationPair,
+    ReverseConsolidation,
+)
 from lifegather.assets.manual import ManualAssetCreate, ManualAssetFields
 from lifegather.assets.purchases import AssetPurchasesRead
 from lifegather.assets.replacements import ReplacementRecord, ReplacementWithdraw
@@ -90,6 +95,9 @@ class DiscoveryHistory(Page):
 
 
 INPUTS: dict[str, type[BaseModel]] = {
+    "asset_consolidation_preview": ConsolidationPair,
+    "asset_consolidate": Consolidate,
+    "asset_consolidation_reverse": ReverseConsolidation,
     "workspace_context_get": ContextRead,
     "workspace_organize": OrganizationAction,
     "asset_manual_preview": ManualAssetFields,

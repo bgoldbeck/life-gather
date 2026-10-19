@@ -7,6 +7,7 @@ from pydantic import Field, model_validator
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session
 
+from lifegather.assets.identity import canonical_id, member_ids
 from lifegather.auth.store import Account
 from lifegather.memory.models import Assertion
 from lifegather.memory.schemas import (
@@ -131,6 +132,12 @@ class ProfileService:
         entity = self.memory._entity(db, actor, data.entity_id)
         if entity.kind not in {"asset", "place"}:
             raise MemoryError("Profiles require an asset or place record")
+        subject_id = canonical_id(db, actor, entity.id)
+        if data.replaces_id:
+            previous = self.memory._assertion(db, actor, data.replaces_id)
+            if previous.subject_id not in member_ids(db, actor, entity.id):
+                raise MemoryError("Choose a correction from this record")
+            subject_id = previous.subject_id
         source = self.memory._ingest_in(
             db,
             actor,
@@ -144,7 +151,7 @@ class ProfileService:
             db,
             actor,
             FactInput(
-                subject_id=entity.id,
+                subject_id=subject_id,
                 predicate="profile_" + data.field,
                 value=data.value,
                 status=data.status,
@@ -169,9 +176,11 @@ class ProfileService:
             entity = self.memory._entity(db, actor, entity_id)
             if entity.kind not in {"asset", "place"}:
                 raise MemoryError("Profiles require an asset or place record")
+            identifiers = member_ids(db, actor, entity.id)
+            entity = self.memory._entity(db, actor, canonical_id(db, actor, entity.id))
             query = select(Assertion).where(
                 Assertion.user_id == actor.id,
-                Assertion.subject_id == entity.id,
+                Assertion.subject_id.in_(identifiers),
                 Assertion.predicate.startswith("profile_", autoescape=True),
             )
             if not history:
