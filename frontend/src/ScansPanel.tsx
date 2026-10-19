@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import { ScanSchedulesPanel } from './ScanSchedulesPanel'
+import { ScanAIOptions } from './ScanAIOptions'
 
 type Mailbox = { id: string; address: string; connected: boolean }
 type Run = {
@@ -24,12 +25,27 @@ type Result = Run & {
     label: string
     state: string
     reason: string
+    metadata?: {
+      created?: number
+      enriched?: number
+      review?: number
+      reused?: boolean
+    }
   }[]
   next_after: number | null
 }
 type Evidence = EvidenceSource & { next_offset: number | null }
 
-export function ScansPanel({ csrfToken }: { csrfToken: string }) {
+export function ScansPanel({
+  csrfToken,
+  onNavigate,
+}: {
+  csrfToken: string
+  onNavigate?: (view: 'Review' | 'Assets') => void
+}) {
+  const [discovery, setDiscovery] = useState(false)
+  const [credential, setCredential] = useState('')
+  const [model, setModel] = useState('')
   const [mailboxes, setMailboxes] = useState<Mailbox[]>([])
   const [mailbox, setMailbox] = useState('')
   const [from, setFrom] = useState(() =>
@@ -143,7 +159,7 @@ export function ScansPanel({ csrfToken }: { csrfToken: string }) {
     setError('')
     if (!pending.current)
       pending.current = {
-        handler_key: 'gmail_import',
+        handler_key: discovery ? 'gmail_discovery' : 'gmail_import',
         request_id: crypto.randomUUID(),
         config: {
           mailbox_id: mailbox,
@@ -156,6 +172,7 @@ export function ScansPanel({ csrfToken }: { csrfToken: string }) {
           ),
           query,
           max_messages: limit,
+          ...(discovery ? { credential_id: credential, model } : {}),
         },
       }
     try {
@@ -255,9 +272,10 @@ export function ScansPanel({ csrfToken }: { csrfToken: string }) {
         }}
       />
       <p className="text-muted-foreground">
-        Import private email text as evidence on request. This scan does not
-        send mail to AI or create inventory items. Attachments are omitted. Find
-        saved email evidence and corrections in Memories.
+        Import private email text as evidence on request. Enable purchase
+        discovery to use your selected AI provider and reconcile inferred
+        inventory. Attachments are omitted. Find saved email evidence and
+        corrections in Memories.
       </p>
       {error && <p role="alert">{error}</p>}
       <form
@@ -268,6 +286,22 @@ export function ScansPanel({ csrfToken }: { csrfToken: string }) {
           disabled={busy || retry}
           className="grid gap-3 sm:grid-cols-2"
         >
+          <label className="sm:col-span-2">
+            <input
+              type="checkbox"
+              checked={discovery}
+              onChange={(event) => setDiscovery(event.target.checked)}
+            />{' '}
+            Discover purchases with AI
+          </label>
+          {discovery && (
+            <ScanAIOptions
+              credential={credential}
+              model={model}
+              onCredential={setCredential}
+              onModel={setModel}
+            />
+          )}
           <label>
             Mailbox
             <select
@@ -420,8 +454,27 @@ export function ScansPanel({ csrfToken }: { csrfToken: string }) {
                 item.label
               )}{' '}
               · {item.state} {item.reason}
+              {item.metadata?.created !== undefined && (
+                <p>
+                  {item.metadata.created} created ·{' '}
+                  {item.metadata.enriched ?? 0} enriched ·{' '}
+                  {item.metadata.review ?? 0} need review
+                  {item.metadata.reused &&
+                    ' · previous discovery reused (no new AI call or inventory write)'}
+                </p>
+              )}
             </div>
           ))}
+          {result.handler_key === 'gmail_discovery' && (
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => onNavigate?.('Review')}>
+                Review uncertain matches
+              </Button>
+              <Button variant="outline" onClick={() => onNavigate?.('Assets')}>
+                Inspect or correct discovered assets
+              </Button>
+            </div>
+          )}
           {after > 0 && (
             <Button variant="outline" onClick={() => setAfter(0)}>
               First results

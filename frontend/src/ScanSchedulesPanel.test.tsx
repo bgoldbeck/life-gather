@@ -5,6 +5,65 @@ import { ScanSchedulesPanel } from './ScanSchedulesPanel'
 
 afterEach(() => vi.unstubAllGlobals())
 
+it('schedules discovery using the chosen AI adapter without changing evidence-only defaults', async () => {
+  const user = userEvent.setup()
+  let saved: unknown
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        saved = JSON.parse(String(init.body))
+        return new Response('{}')
+      }
+      return new Response(
+        JSON.stringify(
+          url.includes('credentials')
+            ? {
+                items: [
+                  {
+                    id: 'claude',
+                    kind: 'ai',
+                    provider: 'anthropic',
+                    label: 'Synthetic Claude',
+                  },
+                ],
+              }
+            : url.endsWith('settings')
+              ? { allow_external_ai: true }
+              : { items: [] },
+        ),
+      )
+    }),
+  )
+  render(
+    <ScanSchedulesPanel
+      csrfToken="csrf"
+      mailboxes={[{ id: 'mailbox', address: 'synthetic@example.test' }]}
+      onRun={vi.fn()}
+    />,
+  )
+  await screen.findByRole('button', { name: /^Create schedule$/ })
+  await user.type(screen.getByLabelText('Schedule name'), 'Discover receipts')
+  await user.click(screen.getByLabelText('Schedule purchase discovery with AI'))
+  await screen.findByRole('option', { name: 'Synthetic Claude (anthropic)' })
+  await user.selectOptions(
+    screen.getByLabelText('Discovery AI connection'),
+    'claude',
+  )
+  await user.type(screen.getByLabelText('Discovery model'), 'synthetic-model')
+  await user.click(screen.getByRole('button', { name: /^Create schedule$/ }))
+  await waitFor(() =>
+    expect(saved).toMatchObject({
+      handler_key: 'gmail_discovery',
+      config: {
+        mailbox_id: 'mailbox',
+        credential_id: 'claude',
+        model: 'synthetic-model',
+      },
+    }),
+  )
+})
+
 it('creates only after explicit submission and supports a private pause action', async () => {
   const user = userEvent.setup()
   let saved: unknown[] = []

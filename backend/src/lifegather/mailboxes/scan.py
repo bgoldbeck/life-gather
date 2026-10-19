@@ -39,8 +39,8 @@ class GmailScanConfig(BaseModel):
 class GmailImportHandler:
     key = "gmail_import"
     title = "Import Gmail evidence"
-    permissions = (READ_SCOPE,)
-    config_model = GmailScanConfig
+    permissions: tuple[str, ...] = (READ_SCOPE,)
+    config_model: type[BaseModel] = GmailScanConfig
 
     def __init__(
         self, engine: Engine, vault: PrivateSettings, provider: GmailProvider

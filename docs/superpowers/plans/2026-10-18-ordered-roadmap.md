@@ -55,7 +55,9 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
 10. Email connections and requested scans: owner-scoped credentials, requested scope,
     receipt discovery/reconciliation, no arrival-triggered ingestion.
     v0.34.0–v0.35.0 add separate Gmail consent and modular requested text-evidence
-    imports. Conversational scan-start and automatic receipt processing remain ahead.
+    imports. v0.38.0 adds optional requested/scheduled inline-text purchase discovery,
+    inferred inventory reconciliation, durable extraction reuse and review/correction
+    links. Attachments and conversational scan-start remain ahead.
 11. Scheduled scans: durable timezone-aware jobs, progress, cancellation, recovery,
     deduplication, pause/edit and summaries.
     v0.36.0 implements private daily/weekly schedules through the shared runner,

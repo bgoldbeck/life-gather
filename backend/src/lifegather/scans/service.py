@@ -17,7 +17,7 @@ from lifegather.memory.models import Episode
 from lifegather.memory.notes import NoteConflict
 from lifegather.memory.service import MemoryError, MemoryService, fingerprint
 from lifegather.scans.models import ScanRun, ScanRunItem
-from lifegather.scans.registry import ScanBatch, ScanRegistry
+from lifegather.scans.registry import ScanBatch, ScanProcessor, ScanRegistry
 
 
 class LeaseLost(Exception):
@@ -378,6 +378,14 @@ class ScanService:
                     source = self.memory._ingest_in(db, claim.actor, item.source)
                     source_id = source.id
                     state = "existing" if exists else "saved"
+                    processor = self.registry.get(claim.handler_key)
+                    if isinstance(processor, ScanProcessor):
+                        derived = processor.commit_in(
+                            db, claim.actor, claim.config, source_id, item
+                        )
+                        metadata = json.dumps({**item.metadata, **derived})
+                        if len(metadata.encode()) > 4096:
+                            raise MemoryError("Scan result exceeds supported limits")
                 row.scanned += 1
                 row.imported += int(state == "saved")
                 row.existing += int(state == "existing")

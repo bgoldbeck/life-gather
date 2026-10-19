@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
+import { ScanAIOptions } from './ScanAIOptions'
 
 type Schedule = {
   id: string
@@ -16,9 +17,18 @@ type Schedule = {
   last_due: number | null
   last_run_id: string | null
   last_status: string
-  scope: { mailbox_id: string; query: string; max_messages: number }
+  scope: {
+    mailbox_id: string
+    query: string
+    max_messages: number
+    credential_id?: string
+    model?: string
+  }
 }
 type Draft = {
+  discovery: boolean
+  credential_id: string
+  model: string
   label: string
   mailbox_id: string
   timezone: string
@@ -30,6 +40,9 @@ type Draft = {
   max_messages: number
 }
 const initial = (): Draft => ({
+  discovery: false,
+  credential_id: '',
+  model: '',
   label: '',
   mailbox_id: '',
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
@@ -126,11 +139,14 @@ export function ScanSchedulesPanel({
     if (!pending.current) {
       const data = {
         label: draft.label,
-        handler_key: 'gmail_import',
+        handler_key: draft.discovery ? 'gmail_discovery' : 'gmail_import',
         config: {
           mailbox_id: selectedMailbox,
           query: draft.query,
           max_messages: draft.max_messages,
+          ...(draft.discovery
+            ? { credential_id: draft.credential_id, model: draft.model }
+            : {}),
         },
         timezone: draft.timezone,
         cadence: draft.cadence,
@@ -213,6 +229,9 @@ export function ScanSchedulesPanel({
     if (busy || retry) return
     setEditing(item)
     setDraft({
+      discovery: item.handler_key === 'gmail_discovery',
+      credential_id: item.scope.credential_id ?? '',
+      model: item.scope.model ?? '',
       label: item.label,
       mailbox_id: item.scope.mailbox_id,
       timezone: item.timezone,
@@ -247,6 +266,26 @@ export function ScanSchedulesPanel({
           disabled={busy || retry}
           className="grid gap-3 sm:grid-cols-2"
         >
+          <label className="sm:col-span-2">
+            <input
+              type="checkbox"
+              checked={draft.discovery}
+              onChange={(event) =>
+                setDraft({ ...draft, discovery: event.target.checked })
+              }
+            />{' '}
+            Schedule purchase discovery with AI
+          </label>
+          {draft.discovery && (
+            <ScanAIOptions
+              credential={draft.credential_id}
+              model={draft.model}
+              onCredential={(value) =>
+                setDraft({ ...draft, credential_id: value })
+              }
+              onModel={(value) => setDraft({ ...draft, model: value })}
+            />
+          )}
           <label>
             Schedule name
             <input
