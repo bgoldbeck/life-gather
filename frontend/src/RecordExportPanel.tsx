@@ -9,6 +9,7 @@ export function RecordExportPanel({
   refreshSession?: () => Promise<void>
 }) {
   const [busy, setBusy] = useState(false)
+  const [includeOriginals, setIncludeOriginals] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const active = useRef<AbortController | null>(null)
@@ -24,23 +25,27 @@ export function RecordExportPanel({
 
   async function download() {
     if (active.current) return
+    const archive = includeOriginals
     const controller = new AbortController()
     active.current = controller
     setBusy(true)
     setError('')
     setNotice('')
     try {
-      const response = await fetch('/api/export/records', {
-        method: 'POST',
-        credentials: 'same-origin',
-        cache: 'no-store',
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
+      const response = await fetch(
+        archive ? '/api/export/archive' : '/api/export/records',
+        {
+          method: 'POST',
+          credentials: 'same-origin',
+          cache: 'no-store',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
+          },
+          body: '{}',
         },
-        body: '{}',
-      })
+      )
       if (controller.signal.aborted) return
       if (response.status === 401) {
         await refreshSession?.()
@@ -48,36 +53,68 @@ export function RecordExportPanel({
       }
       if (response.status === 413)
         throw new Error(
-          'Your records exceed the download limit. Ask the installation owner for a complete backup.',
+          archive
+            ? 'Your archive exceeds the download limit. Download the JSON records and individual originals separately, or ask the installation owner for help.'
+            : 'Your records exceed the download limit. Ask the installation owner for help.',
+        )
+      if (archive && response.status === 409)
+        throw new Error(
+          'Some saved originals could not be verified. No archive was downloaded. Ask the installation owner for help.',
         )
       if (!response.ok)
         throw new Error('Unable to prepare your export. Please try again.')
-      if (!response.headers.get('Content-Type')?.startsWith('application/json'))
+      if (
+        !response.headers
+          .get('Content-Type')
+          ?.startsWith(archive ? 'application/zip' : 'application/json')
+      )
         throw new Error(
-          'The server did not return a records file. Please try again.',
+          archive
+            ? 'The server did not return an archive file. Please try again.'
+            : 'The server did not return a records file. Please try again.',
         )
       const blob = await response.blob()
       if (controller.signal.aborted) return
-      if (!blob.size || blob.size > 16 * 1024 * 1024)
+      if (!blob.size || blob.size > (archive ? 64 : 16) * 1024 * 1024)
         throw new Error(
-          'The records file has an unexpected size. Please try again.',
+          archive
+            ? 'The archive file has an unexpected size. Please try again.'
+            : 'The records file has an unexpected size. Please try again.',
         )
       let valid = false
       try {
-        const file: unknown = JSON.parse(await blob.text())
-        valid =
-          typeof file === 'object' &&
-          file !== null &&
-          'format' in file &&
-          (file.format === 'lifegather-records/1' ||
-            file.format === 'lifegather-records/2')
+        if (archive && blob.size >= 52) {
+          const header = new Uint8Array(await blob.slice(0, 4).arrayBuffer())
+          const footer = new Uint8Array(
+            await blob.slice(-22, -18).arrayBuffer(),
+          )
+          valid =
+            header[0] === 80 &&
+            header[1] === 75 &&
+            header[2] === 3 &&
+            header[3] === 4 &&
+            footer[0] === 80 &&
+            footer[1] === 75 &&
+            footer[2] === 5 &&
+            footer[3] === 6
+        } else if (!archive) {
+          const file: unknown = JSON.parse(await blob.text())
+          valid =
+            typeof file === 'object' &&
+            file !== null &&
+            'format' in file &&
+            (file.format === 'lifegather-records/1' ||
+              file.format === 'lifegather-records/2')
+        }
       } catch {
         // A successful HTTP response must still contain the expected file format.
       }
       if (controller.signal.aborted) return
       if (!valid)
         throw new Error(
-          'The server did not return a valid records file. Please try again.',
+          archive
+            ? 'The server did not return a valid archive file. Please try again.'
+            : 'The server did not return a valid records file. Please try again.',
         )
       const url = URL.createObjectURL(blob)
       urls.current.add(url)
@@ -86,9 +123,13 @@ export function RecordExportPanel({
       const filename = response.headers
         .get('Content-Disposition')
         ?.match(
-          /^attachment; filename="(lifegather-records-\d{8}T\d{6}Z\.json)"$/,
+          archive
+            ? /^attachment; filename="(lifegather-archive-\d{8}T\d{6}Z\.zip)"$/
+            : /^attachment; filename="(lifegather-records-\d{8}T\d{6}Z\.json)"$/,
         )?.[1]
-      anchor.download = filename ?? 'lifegather-records.json'
+      anchor.download =
+        filename ??
+        (archive ? 'lifegather-archive.zip' : 'lifegather-records.json')
       document.body.appendChild(anchor)
       try {
         anchor.click()
@@ -99,7 +140,11 @@ export function RecordExportPanel({
           if (urls.current.delete(url)) URL.revokeObjectURL(url)
         }, 1000)
       }
-      setNotice('Your records download has started. Keep the file private.')
+      setNotice(
+        archive
+          ? 'Your records and originals download has started. Keep the archive private.'
+          : 'Your records download has started. Keep the file private.',
+      )
     } catch (caught) {
       if (!controller.signal.aborted)
         setError((caught as Error).message || 'Unable to prepare your export.')
@@ -121,11 +166,12 @@ export function RecordExportPanel({
         with their original IDs, sources and status.
       </p>
       <p>
-        Original images and PDF files, stored credentials, sign-in data,
-        settings, scan schedules and processing caches are excluded. This is a
-        records copy, not a complete backup; it cannot be restored through the
-        app. Download original files separately. A complete installation backup
-        remains the installation owner's responsibility.
+        Original images and PDF files are excluded from JSON. Choose ZIP below
+        to include your active saved originals. Stored credentials, sign-in
+        data, settings, scan schedules and processing caches remain excluded.
+        This is a records copy, not a complete backup; it cannot be restored
+        through the app. Installation recovery remains the installation owner's
+        responsibility.
       </p>
       <p>
         Up to 10,000 records and 16 MiB. If your export exceeds either limit, no
@@ -133,11 +179,42 @@ export function RecordExportPanel({
         content; choose where to keep it carefully. Downloading changes no saved
         records and makes no AI request.
       </p>
+      <label className="consent-label">
+        <input
+          type="checkbox"
+          checked={includeOriginals}
+          disabled={busy}
+          onChange={(event) => {
+            setIncludeOriginals(event.target.checked)
+            setError('')
+            setNotice('')
+          }}
+        />
+        Include original photos and PDFs (ZIP)
+      </label>
+      {includeOriginals && (
+        <p>
+          ZIP includes records, active original files and a hash manifest from
+          one snapshot. Up to 1,000 originals and 64 MiB total, including
+          records and archive metadata. Deleted originals and previews are
+          excluded. The ZIP is not encrypted; keep it private.
+        </p>
+      )}
       <Button variant="outline" disabled={busy} onClick={() => void download()}>
-        {busy ? 'Preparing records…' : 'Download records (JSON)'}
+        {busy
+          ? includeOriginals
+            ? 'Preparing archive…'
+            : 'Preparing records…'
+          : includeOriginals
+            ? 'Download archive (ZIP)'
+            : 'Download records (JSON)'}
       </Button>
       {busy && (
-        <p role="status">Preparing one consistent copy of your records…</p>
+        <p role="status">
+          {includeOriginals
+            ? 'Preparing one consistent copy of your records and originals…'
+            : 'Preparing one consistent copy of your records…'}
+        </p>
       )}
       {notice && <p role="status">{notice}</p>}
       {error && <p role="alert">{error}</p>}

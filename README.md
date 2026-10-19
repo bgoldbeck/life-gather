@@ -1,6 +1,6 @@
 # LifeGather
 
-[![Source version](https://img.shields.io/badge/source_version-v0.51.0-426B46)](CHANGELOG.md)
+[![Source version](https://img.shields.io/badge/source_version-v0.52.0-426B46)](CHANGELOG.md)
 
 This badge identifies the source release. Check the login screen or app header for your running container’s version.
 
@@ -24,8 +24,9 @@ the same physical item. Original evidence, conflicting facts and history remain.
 Current browsing, galleries, profiles, graph and recall share the chosen identity.
 
 Settings provides a [private records download](docs/RECORD_EXPORT.md) with saved
-evidence and history, purchases/units, conversations and file metadata. This
-structured JSON copy excludes originals and credentials and is not a full backup.
+evidence and history, purchases/units, conversations and file metadata. Opt into
+the [personal ZIP archive](docs/PERSONAL_ARCHIVE.md) to include active saved photo/PDF
+originals and a hash manifest. Credentials and installation state remain excluded.
 
 Use **Add asset** on Assets for private manual inventory entry, including
 duplicate checks and original user-stated evidence, without an AI provider.

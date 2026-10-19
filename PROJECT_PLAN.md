@@ -3,7 +3,12 @@
 **Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
 **Date:** Updated 2026-10-17
 
-Current increment: v0.51.0 adds [named custom sourced profile details](docs/CUSTOM_PROFILE_DETAILS.md).
+Current increment: v0.52.0 adds a [personal records and originals ZIP](docs/PERSONAL_ARCHIVE.md)
+from one owner-scoped SQLite snapshot, with exact original bytes and a hash
+manifest. Existing JSON downloads remain available. No schema, dependency or
+automatic import/restore; all-user encrypted operator recovery remains separate.
+
+v0.51.0 adds [named custom sourced profile details](docs/CUSTOM_PROFILE_DETAILS.md).
 Create and correct descriptive fields through the existing private fact/history
 services, with readable labels, original evidence, unknowns and dates. Reserved
 identity fields retain their meaning. No schema, dependency or AI-tool change.

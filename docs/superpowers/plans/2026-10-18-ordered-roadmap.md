@@ -12,6 +12,18 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
 
 ## Execution ledger and decisions
 
+- v0.52.0 adds [personal ZIP archives](../../PERSONAL_ARCHIVE.md) with unchanged
+  owner-scoped records JSON, active photo/PDF originals and a length/hash manifest
+  from one SQLite snapshot. Bound total bytes, file count and existing record
+  limits; preserve deleted-file contracts, history, exact money and distinct units.
+  Default JSON remains available. No schema/dependency or automatic import/restore.
+  Verification: 568 backend / 253 frontend tests, strict types, lint/format and
+  frontend build pass. Real browser ZIP has 27 records, both byte/hash-matching
+  synthetic originals and custom correction history; 390px has no page overflow.
+  Linux source smoke passes personal archive and encrypted installation recovery.
+  Wheel includes the archive service. Code-only graph and HTML refreshed:
+  3,210 nodes / 13,921 edges. Clean-main image release follows source acceptance.
+
 - v0.51.0 adds [named custom sourced profile details](../../CUSTOM_PROFILE_DETAILS.md),
   sharing exact evidence, unknowns, valid dates, immutable corrections and private
   history/recall with existing facts. Keep built-in identity fields reserved and

@@ -2,14 +2,16 @@
 
 In **Settings → Download your records**, select **Download records (JSON)**.
 The app prepares one consistent copy of your records and starts a file download.
+For original photos/PDFs as well, opt into the [personal ZIP archive](PERSONAL_ARCHIVE.md).
 No AI connection, vault key or provider permission is needed. Nothing is uploaded
 to another service or changed in your workspace. Keep the downloaded file private:
 it preserves your saved content, including anything sensitive you put in a note
 or conversation.
 
 This is a structured records copy for portability and inspection. It is **not a
-complete backup**, and there is no import/restore action. Download original photos
-and PDFs separately through their existing file views. Installation owners can use
+complete backup**, and there is no import/restore action. JSON contains metadata;
+the ZIP option adds active original photos/PDFs, or download them individually
+through their existing file views. Installation owners can use
 [encrypted operator recovery](OPERATOR_RECOVERY.md) to coordinate the whole
 database, original files and configuration/key backup.
 Never substitute a personal export for a tested installation backup.

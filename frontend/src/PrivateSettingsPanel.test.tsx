@@ -48,7 +48,19 @@ describe('Private settings', () => {
     expect(
       screen.getByRole('checkbox', { name: 'Allow external AI processing' }),
     ).not.toBeChecked()
-    await user.click(screen.getByRole('checkbox'))
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: 'Include original photos and PDFs (ZIP)',
+      }),
+    )
+    expect(consent).toBe(false)
+    expect(fetch).not.toHaveBeenCalledWith(
+      '/api/settings',
+      expect.objectContaining({ method: 'PUT' }),
+    )
+    await user.click(
+      screen.getByRole('checkbox', { name: 'Allow external AI processing' }),
+    )
     expect(await screen.findByText('Privacy preference saved.')).toBeVisible()
     expect(consent).toBe(true)
     await user.type(screen.getByLabelText('Provider'), 'example')
@@ -108,7 +120,9 @@ describe('Private settings', () => {
     expect(
       screen.getByRole('button', { name: 'Save credential' }),
     ).toBeDisabled()
-    expect(screen.getByRole('checkbox')).toBeEnabled()
+    expect(
+      screen.getByRole('checkbox', { name: 'Allow external AI processing' }),
+    ).toBeEnabled()
   })
 
   it('clears a submitted secret even when saving fails', async () => {
