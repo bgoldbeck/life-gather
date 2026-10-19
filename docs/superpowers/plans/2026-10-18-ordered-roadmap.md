@@ -502,3 +502,14 @@ units and snapshot recovery pass. Full verification: 390 backend / 138 frontend,
 lint/format/types and package/frontend builds; twelve offline publisher cases pass.
 No new migration, dependency, live provider call or deployment. Graphify is not
 installed in this environment; source graph/HTML refresh could not run.
+
+Current-record comparison v0.39.0 adds explicit owner-scoped inspection of two
+records in one read snapshot: statement evidence/relationships, aliases, photo
+metadata, discovery units, receipt line claims and unique purchase evidence.
+Preserve dates/status/unknowns and exact amounts; flag conflicts and distinct units.
+Refuse incomplete collection/byte-bounded results rather than present a partial
+preview as complete. This is read-only inspection, not consolidation or a merge
+authorization. Verification: 410 backend / 145 frontend, lint/format/types and
+package/frontend builds; desktop/narrow browser and synthetic lifecycle checks.
+Fixed existing photo-grid minimum width during 390px QA. No migration/dependency/
+provider call/redeploy. Graphify unavailable; source graph/HTML not refreshed.

@@ -3,7 +3,10 @@
 **Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
 **Date:** Updated 2026-10-17
 
-Current increment: v0.38.0 adds [requested/scheduled Gmail purchase discovery](docs/EMAIL_DISCOVERY.md)
+Current increment: v0.39.0 adds [complete bounded current-record comparison](docs/RECORD_COMPARISON.md)
+before duplicate corrections, preserving conflicts, quantities and provenance.
+The read-only comparison makes no merge decision; full consolidation remains ahead.
+v0.38.0 adds [requested/scheduled Gmail purchase discovery](docs/EMAIL_DISCOVERY.md)
 using private configured AI adapters, exact evidence validation, inferred inventory,
 existing identity review/corrections and durable extraction reuse. Attachment and
 financial extraction and conversational scan-start remain ahead. The milestone

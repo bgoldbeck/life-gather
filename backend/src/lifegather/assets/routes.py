@@ -9,6 +9,7 @@ from lifegather.assets.batch import (
     EvidenceMovePreview,
     EvidenceRestore,
 )
+from lifegather.assets.comparison import RecordComparison, RecordComparisonService
 from lifegather.assets.purchases import AssetPurchases, AssetPurchasesRead
 from lifegather.assets.replacements import (
     ReplacementRecord,
@@ -25,6 +26,14 @@ Cursor = Annotated[str, Query(max_length=36)]
 
 def asset_router() -> APIRouter:
     router = APIRouter(prefix="/api/assets")
+
+    @router.post("/comparison")
+    def comparison(
+        request: Request, body: RecordComparison, current: Authenticated
+    ) -> dict[str, Any]:
+        return RecordComparisonService(request.app.state.auth_store.engine).get(
+            current.user, body
+        )
 
     @router.get("")
     def assets(
