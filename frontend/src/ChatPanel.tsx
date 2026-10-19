@@ -46,6 +46,7 @@ export function ChatPanel({
   const [conversationCursor, setConversationCursor] = useState<string | null>(
     null,
   )
+  const [paging, setPaging] = useState(false)
   const [selected, setSelected] = useState('')
   const [turns, setTurns] = useState<Turn[]>([])
   const [turnCursor, setTurnCursor] = useState<string | null>(null)
@@ -82,6 +83,10 @@ export function ChatPanel({
   } | null>(null)
   const generation = useRef(0)
   const sourceGeneration = useRef(0)
+  const initialSourceAbort = useRef<AbortController | null>(null)
+  const dismissedInitialSource = useRef('')
+  const usageRead = useRef<AbortController | null>(null)
+  const conversationPage = useRef<AbortController | null>(null)
   const usesAI = [
     'ask',
     'extract',
@@ -115,8 +120,13 @@ export function ChatPanel({
   )
 
   useEffect(() => {
-    if (!initialReceiptSourceId) return
+    if (
+      !initialReceiptSourceId ||
+      dismissedInitialSource.current === initialReceiptSourceId
+    )
+      return
     const controller = new AbortController()
+    initialSourceAbort.current = controller
     void request('/sources/' + initialReceiptSourceId, {
       signal: controller.signal,
     })
@@ -138,6 +148,8 @@ export function ChatPanel({
   }, [initialReceiptSourceId, request])
 
   useEffect(() => {
+    conversationPage.current?.abort()
+    conversationPage.current = null
     const controller = new AbortController()
     let alive = true
     async function load() {
@@ -177,7 +189,10 @@ export function ChatPanel({
         if (alive)
           setError('Unable to load chat. Please reopen Chat to try again.')
       } finally {
-        if (alive) setLoading(false)
+        if (alive) {
+          setPaging(false)
+          setLoading(false)
+        }
       }
     }
     void load()
@@ -186,6 +201,8 @@ export function ChatPanel({
       controller.abort()
       abort.current?.abort()
       choiceAbort.current?.abort()
+      usageRead.current?.abort()
+      conversationPage.current?.abort()
     }
   }, [request])
 
@@ -231,6 +248,7 @@ export function ChatPanel({
   }
 
   async function openConversation(id: string) {
+    cancelContextReads()
     const version = ++generation.current
     pending.current = null
     setRetryNeeded(false)
@@ -258,14 +276,70 @@ export function ChatPanel({
   }
 
   async function moreConversations() {
+    if (busy || loading || conversationPage.current || !conversationCursor)
+      return
+    const controller = new AbortController()
+    conversationPage.current = controller
+    const version = generation.current
+    setPaging(true)
     try {
       const page: Page<Conversation> = await request(
         `/conversations?cursor=${conversationCursor}`,
+        { signal: controller.signal },
       )
-      setConversations((current) => [...current, ...page.items])
+      if (controller.signal.aborted) return
+      setConversations((current) => {
+        const known = new Set(current.map((row) => row.id))
+        const next = [...current]
+        for (const row of page.items) {
+          if (!known.has(row.id)) {
+            known.add(row.id)
+            next.push(row)
+          }
+        }
+        return next
+      })
       setConversationCursor(page.next_cursor)
     } catch (caught) {
-      setError((caught as Error).message)
+      if (!controller.signal.aborted && version === generation.current)
+        setError((caught as Error).message)
+    } finally {
+      if (conversationPage.current === controller) {
+        conversationPage.current = null
+        setPaging(false)
+      }
+    }
+  }
+
+  function cancelContextReads() {
+    cancelInitialSelection()
+    usageRead.current?.abort()
+    conversationPage.current?.abort()
+    conversationPage.current = null
+    setPaging(false)
+  }
+
+  function cancelInitialSelection() {
+    dismissedInitialSource.current = initialReceiptSourceId
+    initialSourceAbort.current?.abort()
+  }
+
+  async function refreshUsage() {
+    usageRead.current?.abort()
+    const controller = new AbortController()
+    usageRead.current = controller
+    const version = generation.current
+    try {
+      const meter = await request('/usage', { signal: controller.signal })
+      if (!controller.signal.aborted && version === generation.current)
+        setUsage(meter.requests)
+    } catch {
+      if (!controller.signal.aborted && version === generation.current)
+        setNotice(
+          'Request saved. Daily usage could not be refreshed; reopen Chat to check it.',
+        )
+    } finally {
+      if (usageRead.current === controller) usageRead.current = null
     }
   }
 
@@ -295,6 +369,7 @@ export function ChatPanel({
     )
       return
     setBusy(true)
+    cancelContextReads()
     setDraft('')
     setError('')
     setNotice('')
@@ -375,14 +450,7 @@ export function ChatPanel({
       setRetryNeeded(false)
       if (body.mode === 'extract_photo') setPhoto(null)
       else setText('')
-      try {
-        const meter = await request('/usage')
-        setUsage(meter.requests)
-      } catch {
-        setNotice(
-          'Request saved. Daily usage could not be refreshed; reopen Chat to check it.',
-        )
-      }
+      void refreshUsage()
     } catch (caught) {
       if (caught instanceof RequestError) {
         pending.current = null
@@ -460,6 +528,7 @@ export function ChatPanel({
           variant="outline"
           disabled={busy || loading}
           onClick={() => {
+            cancelContextReads()
             generation.current++
             setSelected('')
             setTurns([])
@@ -497,13 +566,14 @@ export function ChatPanel({
           ))}
           {conversationCursor && (
             <Button
-              disabled={busy || loading}
+              disabled={busy || loading || paging}
               variant="outline"
               onClick={() => void moreConversations()}
             >
               More conversations
             </Button>
           )}
+          {paging && <p role="status">Loading more conversations…</p>}
         </aside>
         <div className="chat-content">
           <div
@@ -660,6 +730,7 @@ export function ChatPanel({
                 busy || retryNeeded
                   ? undefined
                   : () => {
+                      cancelInitialSelection()
                       setExtractSource(source.id)
                       setText(source.text)
                       setMode('extract_receipt')
@@ -672,6 +743,7 @@ export function ChatPanel({
                 busy || retryNeeded
                   ? undefined
                   : () => {
+                      cancelInitialSelection()
                       setExtractSource(source.id)
                       setText(source.text)
                       setMode('extract')
@@ -709,7 +781,10 @@ export function ChatPanel({
               <select
                 value={mode}
                 disabled={busy || retryNeeded}
-                onChange={(e) => setMode(e.target.value)}
+                onChange={(e) => {
+                  cancelInitialSelection()
+                  setMode(e.target.value)
+                }}
               >
                 <option value="save">Save memory</option>
                 <option value="search">Keyword search</option>
@@ -833,7 +908,10 @@ export function ChatPanel({
                   disabled={busy || retryNeeded}
                   readOnly={mode === 'extract' || mode === 'extract_receipt'}
                   rows={3}
-                  onChange={(e) => setText(e.target.value)}
+                  onChange={(e) => {
+                    cancelInitialSelection()
+                    setText(e.target.value)
+                  }}
                 />
                 <p>
                   {mode === 'search'
