@@ -41,3 +41,11 @@ final Linux container and publication follow source merge. Graphify unavailable.
 GitHub main advanced to 1d74414 with PR62 release tooling only. Preserve that
 work, reconcile the changelog and run its offline publisher/Git fixtures before
 final merge; application/version/schema did not overlap.
+
+Reconciliation complete: merged current main 1d74414 into the feature and kept
+both changelog entries. Git diff confirms backend/frontend trees exactly match
+the fully tested feature commit 6c36ce4. Merged host tooling passes 24 offline
+publisher cases and 15 temporary-Git source recovery cases. No runtime overlap,
+version collision or migration change. Synthetic browser tab/server closed and
+viewport reset. Final feature/container smoke passed locally; release size before
+build: existing image 81.4 MB compressed content / 347 MB unpacked.
