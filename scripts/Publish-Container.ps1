@@ -204,7 +204,7 @@ try {
 
     Write-Stage 'Build'
     Invoke-Checked docker @(
-        'build', '--progress=plain', '--platform', 'linux/amd64',
+        'build', '--load', '--progress=plain', '--platform', 'linux/amd64',
         '--label', 'org.opencontainers.image.source=https://github.com/bgoldbeck/life-gather',
         '--label', "org.opencontainers.image.revision=$revision",
         '--label', "org.opencontainers.image.version=$appVersion",
