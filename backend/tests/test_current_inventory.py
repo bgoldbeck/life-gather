@@ -8,14 +8,20 @@ from test_reconciliation import setup
 
 from lifegather.assets.actions import ActionService, AssetChange
 from lifegather.assets.service import AssetList, AssetRead, AssetService
+from lifegather.auth.store import Account
 from lifegather.main import create_app
 from lifegather.memory.schemas import FactInput, SourceInput
 from lifegather.memory.service import MemoryService
-from lifegather.reconciliation.schemas import DiscoveryInput
+from lifegather.reconciliation.schemas import DiscoveryInput, DiscoveryView
 from lifegather.reconciliation.service import ReconciliationService
 
 
-def item(memory, reconcile, actor, key="first"):
+def item(
+    memory: MemoryService,
+    reconcile: ReconciliationService,
+    actor: Account,
+    key: str = "first",
+) -> DiscoveryView:
     source = memory.ingest(
         actor,
         SourceInput(

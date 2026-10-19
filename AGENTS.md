@@ -44,6 +44,26 @@ Use the source-code graph workflow below when code discovery is required.
 4. Add useful fixtures demonstrating ambiguity, temporal updates, duplicate ingestion and provenance.
 5. Stop at the acceptance criteria rather than opportunistically starting the next phase.
 
+## Baseline checks when starting or resuming work
+
+- Before implementation, fetch the remote, inspect the current checkout/status and
+  compare its HEAD, version, migrations and intended feature with `origin/main`.
+  Read the latest changelog and roadmap ledger; a conversation summary or old
+  worktree is not evidence that a feature is still missing.
+- Use one active implementation checkout in this chat. Parked worktrees must pass
+  the same baseline check before reuse. Preserve unrelated edits and existing staging.
+- If old unfinished work overlaps merged features, preserve recoverable snapshots
+  and original commits first. Compare behavior and tests against current main;
+  carry only verified missing fixes, never wholesale superseded implementations,
+  competing migration histories or already-used version numbers.
+- Fetch again before delivery. If main advanced during implementation, inspect the
+  overlap, reconcile onto the current baseline and rerun affected verification.
+  Do not overwrite newer behavior merely to make an old draft merge.
+- Run backend verification from `backend/` (or explicitly select its configuration).
+  Selecting the uv project alone does not select mypy's working-directory config;
+  a repository-root invocation can miss the required strict settings. Run frontend
+  checks from `frontend/`. Record the actual commands/results, not assumed checks.
+
 ## Source-code searches and graph refresh
 - When locating code by behavior, tracing calls/imports, or identifying affected components, first consult Graphify with a scoped query. For an exact filename, identifier, or text search, reach first for `rg`/`rg --files`; consult the graph when relationship context is needed. Directly reading a known file does not require a graph query.
 - Verify graph findings against current source and relevant tests. Use `rg` to cover omissions, unsupported files, configuration, or inconclusive results. Never infer that code is absent solely because the graph has no match.

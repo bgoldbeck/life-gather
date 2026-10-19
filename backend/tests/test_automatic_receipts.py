@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import pytest
 from fastapi.testclient import TestClient
@@ -77,10 +77,13 @@ def test_one_ambiguous_line_leaves_entire_receipt_pending_without_writes(
         ),
     )
     service, row = draft(auth.engine, actor, memory)
-    before = {
-        name: memory.export_page(actor, name)
-        for name in ("sources", "entities", "facts", "audit")
-    }
+    tables: tuple[Literal["sources", "entities", "facts", "audit"], ...] = (
+        "sources",
+        "entities",
+        "facts",
+        "audit",
+    )
+    before = {name: memory.export_page(actor, name) for name in tables}
     result = service.review(actor, automatic(row))
     assert result["state"] == "proposed" and result["automatic_outcome"] == "review"
     assert any(

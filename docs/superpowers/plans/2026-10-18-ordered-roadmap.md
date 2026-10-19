@@ -443,3 +443,43 @@ regression joins this session's batches, photo reuse, replacement withdrawal,
 strict reversal refusal, explicit unit recovery, bounded private recall and
 snapshot replay. Browser used a four-second delayed citation and retained the
 new-conversation view after completion. Graphify unavailable; graph/HTML not refreshed.
+
+
+## Worktree reconciliation, 2026-10-18
+
+GitHub main through v0.33.1 (`f300368`) supersedes the older unfinished receipt and
+private-chat drafts. Preserve those drafts and their original commits in local
+recovery snapshots/archive refs; do not merge them into main. The unfinished local
+v0.24.0 label is not a release: merged v0.24.0 is purchase-record inspection.
+
+Keep the merged v0.29 automatic receipt behavior: if any automatic identity is
+uncertain, retain the entire receipt pending without partial graph writes. The
+older draft's partial-create-plus-identity-queue behavior is not adopted. Current
+source already contains single-item/receipt automatic matching, PDF deletion
+guards, candidate comparisons, unit corrections, purchase recall, batch evidence
+moves, replacements, photo reuse and navigation fixes. Follow current acceptance
+and tests before choosing the next missing milestone.
+
+Three dirty historical worktrees were snapshotted with raw-file SHA-256-verified
+ZIPs and protected Git recovery refs. Original branches were renamed locally to
+`archive/2026-10-18/*`; no unmerged commits were deleted or published. Their
+checkouts and local main were aligned to the merged baseline, preserving ignored
+local files. Both unrelated main documentation edits were hash-checked unchanged.
+Recovery archives remain outside the repository; no private draft data is published.
+
+Add repository baseline checks at start/resume and before delivery to prevent
+repeating work from stale summaries/worktrees. This is development maintenance,
+not an application feature; retain v0.33.1 and make no image/deployment changes.
+
+
+Reconciliation verification: the merged baseline's full 324 backend / 126 frontend
+tests passed. Strict mypy from backend then exposed ten pre-existing test-only
+errors in five files: an untyped helper, widened export-table keys and nullable
+source context indexing. Add explicit domain annotations, literal table names and
+non-null assertions without weakening checks or changing production behavior.
+Strict mypy and Ruff pass after those fixes; all 33 tests in the affected modules passed.
+Use the backend working directory so future type checks load its strict config.
+Frontend lint/types/format and production build also pass. Refresh the local source
+graph/HTML against the reconciled code, rather than trusting the old graph cache.
+
+The reconciled local Graphify graph/HTML contains 2107 nodes / 8234 edges. Recovery ZIPs, all three protected refs and both unchanged user-edit hashes were reverified before delivery. Self-review confirmed only test annotations/assertions and workflow documentation changed; no production code, migrations, version bump or Docker operations.

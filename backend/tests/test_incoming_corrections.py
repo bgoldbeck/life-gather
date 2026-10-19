@@ -23,6 +23,7 @@ def test_incoming_correction_history_keeps_own_write_head_and_private_paging(
     assert incoming["actions"][0]["target_asset_id"] == target.id
     assert incoming["actions"][0]["note"] == request.note
     context = actions.source_context(actor, moved["source_id"])
+    assert context is not None
     assert context["target_asset_name"] == target.name
     assert actions.source_context(bob, moved["source_id"]) is None
     sold = actions.apply(
