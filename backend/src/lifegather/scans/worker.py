@@ -1,16 +1,24 @@
 """One bounded async runner; handlers never control job ownership or recurrence."""
 
 import asyncio
+from collections.abc import Callable
+
+from sqlalchemy.exc import OperationalError
 
 from lifegather.scans.registry import ScanContext
 from lifegather.scans.service import LeaseLost, ScanCanceled, ScanService
 
 
 class ScanWorker:
-    def __init__(self, scans: ScanService) -> None:
+    def __init__(
+        self, scans: ScanService, dispatch: Callable[[], int] | None = None
+    ) -> None:
         self.scans = scans
+        self.dispatch = dispatch
 
     async def run_once(self) -> bool:
+        if self.dispatch:
+            self.dispatch()
         claim = self.scans.claim()
         if claim is None:
             return False
@@ -49,5 +57,10 @@ class ScanWorker:
 
     async def serve(self) -> None:
         while True:
-            await self.run_once()
+            try:
+                await self.run_once()
+            except OperationalError:
+                # A transient SQLite lock must not permanently kill background work.
+                # Durable leases/checkpoints remain authoritative on the next tick.
+                await asyncio.sleep(5)
             await asyncio.sleep(1)

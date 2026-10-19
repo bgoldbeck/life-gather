@@ -79,6 +79,7 @@ class DiscoveryHistory(Page):
 
 INPUTS: dict[str, type[BaseModel]] = {
     "scan_list": ScanPage,
+    "scan_schedule_list": ScanPage,
     "scan_get": ScanRead,
     "receipt_get": ReceiptRead,
     "receipt_details_get": DetailRead,

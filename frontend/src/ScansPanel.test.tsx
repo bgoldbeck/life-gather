@@ -47,7 +47,7 @@ it('requires an explicit request and reuses its identity after an uncertain resp
     }),
   )
   render(<ScansPanel csrfToken="csrf" />)
-  await screen.findByText('synthetic@example.test')
+  await screen.findAllByText('synthetic@example.test')
   expect(writes).toHaveLength(0)
   await user.click(screen.getByRole('button', { name: /^Start email scan$/ }))
   await screen.findByRole('alert')

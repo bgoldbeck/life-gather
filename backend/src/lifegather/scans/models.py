@@ -76,3 +76,37 @@ class ScanRunItem(Base):
     state: Mapped[str]
     reason: Mapped[str]
     metadata_json: Mapped[str]
+
+
+class ScanSchedule(Base):
+    __tablename__ = "scan_schedules"
+    __table_args__ = (
+        UniqueConstraint("user_id", "id"),
+        UniqueConstraint("user_id", "request_id"),
+        ForeignKeyConstraint(
+            ["user_id", "last_run_id"], ["scan_runs.user_id", "scan_runs.id"]
+        ),
+        CheckConstraint("cadence IN ('daily','weekly')"),
+        CheckConstraint("weekday BETWEEN 0 AND 6 AND lookback_days BETWEEN 1 AND 30"),
+        Index("ix_scan_schedules_due", "enabled", "next_run"),
+    )
+    id: Mapped[str] = mapped_column(primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    request_id: Mapped[str]
+    fingerprint: Mapped[str]
+    label: Mapped[str]
+    handler_key: Mapped[str]
+    config_json: Mapped[str]
+    timezone: Mapped[str]
+    cadence: Mapped[str]
+    weekday: Mapped[int]
+    local_time: Mapped[str]
+    lookback_days: Mapped[int]
+    enabled: Mapped[bool]
+    revision: Mapped[int]
+    next_run: Mapped[int]
+    last_due: Mapped[int | None]
+    last_run_id: Mapped[str | None]
+    last_status: Mapped[str]
+    created_at: Mapped[int]
+    updated_at: Mapped[int]

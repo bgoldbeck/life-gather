@@ -41,6 +41,8 @@ from lifegather.reconciliation.queue_routes import review_router
 from lifegather.reconciliation.receipt_routes import receipt_router
 from lifegather.scans.registry import ScanRegistry
 from lifegather.scans.routes import scan_router
+from lifegather.scans.schedule_routes import schedule_router
+from lifegather.scans.schedules import ScheduleService
 from lifegather.scans.service import ScanService
 from lifegather.scans.worker import ScanWorker
 from lifegather.version import __version__, build_info
@@ -95,7 +97,10 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
                     ]
                 ),
             )
-            worker = asyncio.create_task(ScanWorker(app.state.scan_service).serve())
+            scheduler = ScheduleService(app.state.scan_service)
+            worker = asyncio.create_task(
+                ScanWorker(app.state.scan_service, scheduler.dispatch).serve()
+            )
             try:
                 async with mcp_server.session_manager.run():
                     yield
@@ -132,6 +137,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(document_router())
     app.include_router(mailbox_router())
     app.include_router(scan_router())
+    app.include_router(schedule_router())
     app.add_middleware(CredentialBodyLimit)
 
     @app.exception_handler(MemoryError)

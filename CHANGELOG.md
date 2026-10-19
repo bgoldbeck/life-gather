@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.36.0 — Private modular daily and weekly scans
+
+- Create, edit, pause and resume private Gmail scan schedules in Scans. Choose
+  local time, IANA timezone, weekday, lookback window, search and message limit;
+  inspect next-run time and the last run's evidence/progress.
+- Generic calendar scheduling dispatches the same registered source handlers and
+  durable run queue as manual scans. Enqueue and due advancement are atomic;
+  downtime produces one latest catch-up, overlaps are recorded as skipped, and
+  changed/disconnected local mailbox grants block scheduling until explicit resume.
+- Migration `0019_scan_schedules` adds owned schedule metadata. First-party tzdata
+  supports Windows/Linux timezone calculations; spring gaps advance to the first
+  valid minute and repeated autumn times run once. Five schedules per user with
+  existing scan caps. No new AI/asset creation or mail-arrival trigger.
+- Publish a meaningful early plan commit/push for new feature branches, preserving
+  verification and the final commit/push/PR/merge/cleanup workflow.
+
 ## 0.35.0 — Modular requested email evidence scans
 
 - Request bounded Gmail text imports in Scans, inspect progress and results, cancel

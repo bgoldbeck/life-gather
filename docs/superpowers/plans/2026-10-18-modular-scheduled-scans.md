@@ -57,3 +57,48 @@ HTTP/MCP/CSRF, snapshot/checkpoint recovery, stale leases, cancellation, three-c
 cap, replay, source deduplication, wrong account, disconnect during message read,
 untrusted message identity, oversized response and MIME omission. No live Gmail,
 AI, Docker or deployment action. Daily/weekly recurrence remains step 3.
+
+Step 3 kickoff — daily/weekly modular schedules (in progress, not complete).
+Use a generic handler window contract to materialize frozen scope; the scheduler
+never calls Gmail. Persist per-user schedules with local wall time/IANA timezone,
+optimistic revisions, stable request replay and bounded ownership-scoped controls.
+Enqueue the normal scan run and advance due time in one SQLite transaction.
+After downtime dispatch at most the latest missed occurrence, then advance beyond
+now. Overlap records a skipped occurrence; disconnected/changed permissions block
+and pause until the user explicitly resumes. Pause does not erase evidence or
+cancel an existing run. Limit five schedules per user; existing scan run caps apply.
+For spring gaps use the first valid local minute; autumn repeats run once at the
+first occurrence. Use calendar rules, including half-hour offsets. Add first-party
+tzdata because this Windows runtime has no system IANA database (verified).
+
+Acceptance: failing-first service tests for recurrence/DST, atomic dispatch/replay,
+overlap, catch-up, isolation, stale edits, connection changes and snapshot recovery;
+HTTP/MCP ownership and CSRF; accessible create/edit/pause/resume UI tests; full
+backend/frontend checks, graph refresh and normal source release workflow. No live
+mailbox scan or Docker action is part of this implementation verification.
+
+Early-visibility rule applied: publish this kickoff plan and repository rule now;
+unfinished implementation/tests remain uncommitted until they pass verification.
+
+Step 3 completed in source: owned daily/weekly calendar schedules materialize
+handler scope and dispatch into the existing runner. Atomic enqueue/next due,
+latest-only catch-up, overlap status, explicit pause/resume, stale edit protection,
+local connection revision checks and restored database dispatch are implemented.
+UI supports create/edit/retry/pause/resume/last-run inspection; private MCP lists
+schedules without starting scans. Source-specific window logic remains in handlers.
+
+Step 3 verified: 354 full backend / 133 frontend tests pass; Ruff lint/format,
+strict mypy (172 files), TypeScript/Oxlint/Prettier, wheel/frontend builds pass.
+Graph refreshed 2400 nodes / 9344 edges. Nine schedule tests cover spring gaps,
+autumn repeats, weekly/quarter-hour/half-hour zones, invalid configuration,
+concurrent dispatch, latest catch-up, overlap, owner isolation, stale changes,
+five-schedule cap, replay conflicts, paused edits, snapshot recovery, frozen Gmail
+windows, changed-grant block/resume, API CSRF/body limits and private MCP. UI tests
+cover create/pause, revision-aware edit/run navigation and exact create retry.
+
+Root-only self-review completed: no personal-data/model calls or credentials in
+responses; no custom code upload, email-arrival trigger or per-source scheduler.
+Remote provider failures appear on the run; local changed/disconnected grants
+block dispatch until explicit resume. Conversational scan-start and automatic
+receipt extraction from email are intentionally outside this evidence-import slice.
+No live Gmail verification, container build/upload or redeployment performed.

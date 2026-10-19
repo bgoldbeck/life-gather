@@ -51,8 +51,12 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
    graph navigation, preserving original privacy/deletion contracts.
 10. Email connections and requested scans: owner-scoped credentials, requested scope,
     receipt discovery/reconciliation, no arrival-triggered ingestion.
+    v0.34.0–v0.35.0 add separate Gmail consent and modular requested text-evidence
+    imports. Conversational scan-start and automatic receipt processing remain ahead.
 11. Scheduled scans: durable timezone-aware jobs, progress, cancellation, recovery,
     deduplication, pause/edit and summaries.
+    v0.36.0 implements private daily/weekly schedules through the shared runner,
+    with DST, catch-up, overlap, revision protection and the existing result views.
 12. Sourced requested web research: explicit scope and external-data permission,
     dated sources, no unsupported identity/ownership assertions.
 13. Bank statements then live sync: deterministic exact-money tables and shared
