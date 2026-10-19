@@ -363,3 +363,51 @@ class PhotoService:
                     candidate=value["candidate"], explanation=value["explanation"]
                 ),
             )
+
+    def save_receipt_reading(
+        self, actor: Account, identifier: str, value: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Save one original transcription and its validated receipt atomically."""
+        from lifegather.reconciliation.receipt_models import ReceiptProposal
+        from lifegather.reconciliation.receipts import ReceiptExtraction, ReceiptService
+
+        text = value["transcription"]
+        if not isinstance(text, str) or len(text) > 4000:
+            raise MemoryError("Photo transcription exceeds the reading limit")
+        data = ReceiptExtraction.model_validate(
+            {"items": value["items"], "explanation": value["explanation"]}
+        )
+        receipts = ReceiptService(self.engine)
+        receipts.bounded(data.items)
+        with self.memory._write() as db:
+            row = self.owned(db, actor, identifier)
+            if row.deleted_at is not None:
+                raise MemoryError("Photo was deleted")
+            if row.source_id:
+                existing = db.scalar(
+                    select(ReceiptProposal.id).where(
+                        ReceiptProposal.user_id == actor.id,
+                        ReceiptProposal.source_id == row.source_id,
+                    )
+                )
+                if existing:
+                    return receipts._create_in(db, actor, row.source_id, data)
+                raise NoteConflict(
+                    "Photo already has a transcription. "
+                    "Reload it before receipt review."
+                )
+            source = self.memory._ingest_in(
+                db,
+                actor,
+                SourceInput(
+                    text=text or "[No readable text was extracted from this photo.]",
+                    source_type="conversation",
+                    namespace="photo-memory",
+                    external_id=row.id,
+                ),
+            )
+            row.source_id = source.id
+            row.updated_at = max(self.memory.clock(), row.updated_at + 1)
+            self.memory._audit(db, actor, "photo_transcribed", row.id, row.updated_at)
+            db.flush()
+            return receipts._create_in(db, actor, source.id, data)

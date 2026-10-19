@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { isAIProvider, aiProviderLabel } from './aiProviders'
 import { AssetProposalCard } from './AssetProposalCard'
+import { ReceiptProposalCard } from './ReceiptProposalCard'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import { ChatRequestError } from './chatRequest'
 import { ExistingPhotoLink } from './ExistingPhotoLink'
@@ -42,6 +43,7 @@ export function PhotosPanel({
   const [model, setModel] = useState('')
   const [consent, setConsent] = useState(false)
   const [proposal, setProposal] = useState('')
+  const [receipt, setReceipt] = useState('')
   const [source, setSource] = useState<EvidenceSource | null>(null)
   const [sourceOpening, setSourceOpening] = useState(false)
   const sourceGeneration = useRef(0)
@@ -156,6 +158,7 @@ export function PhotosPanel({
       setSelected(row)
       setDeleteAcknowledged(false)
       setProposal('')
+      setReceipt('')
       clearSource()
       setFile(null)
       if (uploadInput.current) uploadInput.current.value = ''
@@ -221,7 +224,8 @@ export function PhotosPanel({
       pending.current = null
       setRetry(false)
       setStatus(turn.result.text ?? 'Photo request finished.')
-      if (turn.result.proposal_id) setProposal(turn.result.proposal_id)
+      setProposal(turn.result.proposal_id ?? '')
+      setReceipt(turn.result.receipt_proposal_id ?? '')
       if (turn.result.sources?.[0]) await openSource(turn.result.sources[0].id)
       setSelected(await request('photos/' + selected.id))
       await load()
@@ -252,6 +256,7 @@ export function PhotosPanel({
       setSelected(null)
       clearSource()
       setProposal('')
+      setReceipt('')
       await load()
       setStatus(
         'Photo removed from this item. The original, other galleries and source evidence remain available.',
@@ -279,6 +284,7 @@ export function PhotosPanel({
       setSelected(null)
       clearSource()
       setProposal('')
+      setReceipt('')
       setDeleteAcknowledged(false)
       await load()
       setStatus(
@@ -359,6 +365,7 @@ export function PhotosPanel({
               onClick={() => {
                 setSelected(row)
                 setProposal('')
+                setReceipt('')
                 clearSource()
                 setDeleteAcknowledged(false)
                 setStatus('')
@@ -521,6 +528,13 @@ export function PhotosPanel({
           onOpen={openSource}
           onClose={clearSource}
           onViewProposal={setProposal}
+        />
+      )}
+      {receipt && (
+        <ReceiptProposalCard
+          id={receipt}
+          csrfToken={csrfToken}
+          onOpen={openSource}
         />
       )}
       {proposal && (

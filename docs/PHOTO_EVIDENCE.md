@@ -1,5 +1,40 @@
 # Photographs, attachments, and graph evidence
 
+## Multi-item receipt photos (v0.42.0)
+
+In Chat, choose **Review a receipt photo**, explicitly select or upload an original,
+then select **Review receipt photo**. The configured provider reads an untrusted
+image into an unverified transcription and up to eight item lines/twenty total
+units. Inspect every quoted passage and quantity against the original through
+**View receipt source** before reviewing purchase/possession and confirming lines.
+Only the existing receipt review changes inventory; each unit remains distinct.
+Photo links follow accepted lines. Prices, dates and financial allocation are not
+inferred; optional source-backed purchase details retain their existing review.
+
+The first transcription and receipt draft save in one transaction. Invalid quotes,
+unsupported quantities, serial/quantity conflicts, non-mention ownership or excess
+limits leave neither a draft nor a new transcription. Unreadable input can retain
+the source with no item suggestions. Omitted/uncertain lines remain for inspection;
+the bounded reading is not a claim to have captured an entire long receipt.
+
+An existing receipt review is reopened without another AI request. If a single
+reading already exists, resolve its active proposal first; the receipt action then
+uses the current saved transcription rather than overwriting it or retransmitting
+the image. Correct that text in the existing note workflow if needed. All photo
+reads still require an owned, retained original. A source correction invalidates
+stale review; original text, versions and earlier decisions remain available.
+
+The saved-photo single-item action and Photos reading can reopen a receipt review
+already associated with that photo. Lost/pending Chat responses retain the same
+mode, photo ID and request identity for retry. Uploading/selecting alone makes no
+model call. Cancellation or deletion before persistence discards the model result.
+
+Receipt validation also refuses a cropped quote that hides an explicit multiple
+on its source line. Repeated short passages are checked against all matching line
+contexts (at most 32 before requiring a less ambiguous quote). Use a full exact
+item/quantity passage rather than defaulting such a line to one unit. Existing
+accepted history is preserved. Arbitrary image questions remain separate work.
+
 ## Direct Chat upload (v0.41.0)
 
 Choose **Read a saved photo** in Chat, then choose a file under **Or upload a new
@@ -32,7 +67,8 @@ Transcription remains unverified and at most one identifiable item is proposed.
 Inspect the source and review the proposal before inventory changes. Other chat
 messages and an unsent text draft are not sent to the photo extractor; switching
 back to text preserves that draft. Arbitrary photo questions and multi-item photo
-receipts are not supported by this action. Uploads are available in Chat as of
+receipts are not supported by this single-item action; use the separate receipt
+photo action above. Uploads are available in Chat as of
 v0.41.0, as well as in Photos.
 
 Uncertain responses retain the exact request and freeze the choice for safe retry.

@@ -8,6 +8,12 @@ vi.mock('./AssetProposalCard', () => ({
     <section aria-label="Saved photo proposal">{id}</section>
   ),
 }))
+vi.mock('./ReceiptProposalCard', () => ({
+  ReceiptProposalCard: ({ id }: { id: string }) => (
+    <section aria-label="Saved photo receipt review">{id}</section>
+  ),
+}))
+
 afterEach(() => vi.unstubAllGlobals())
 const json = (value: unknown, status = 200) =>
   new Response(JSON.stringify(value), { status })
@@ -78,7 +84,7 @@ function harness({
         return json({
           id: 'turn',
           request_id: body.request_id,
-          mode: 'extract_photo',
+          mode: body.mode,
           text: body.text,
           state: 'pending',
           result: {},
@@ -86,12 +92,14 @@ function harness({
       return json({
         id: 'turn',
         request_id: body.request_id,
-        mode: 'extract_photo',
+        mode: body.mode,
         text: body.text,
         state: 'complete',
         result: {
           text: 'Unverified synthetic photo reading.',
-          proposal_id: 'photo-proposal',
+          ...(body.mode === 'extract_photo_receipt'
+            ? { receipt_proposal_id: 'receipt-proposal' }
+            : { proposal_id: 'photo-proposal' }),
           sources: [{ id: 'source-photo', text: 'Synthetic transcription' }],
         },
       })
@@ -108,12 +116,9 @@ function harness({
   vi.stubGlobal('fetch', fetcher)
   return { writes, fetcher, uploads }
 }
-async function choosePhoto() {
+async function choosePhoto(mode = 'extract_photo') {
   const user = userEvent.setup()
-  await user.selectOptions(
-    await screen.findByLabelText('Action'),
-    'extract_photo',
-  )
+  await user.selectOptions(await screen.findByLabelText('Action'), mode)
   await user.click(
     screen.getByRole('button', { name: 'Load saved Chat photos' }),
   )
@@ -478,3 +483,118 @@ it.each([201, 503])(
     ).toBeDisabled()
   },
 )
+
+it('explicitly reviews a selected receipt photo in the current conversation while preserving text', async () => {
+  const { writes } = harness()
+  render(<ChatPanel csrfToken="csrf" />)
+  const user = userEvent.setup()
+  await user.click(
+    await screen.findByRole('button', { name: 'Current conversation' }),
+  )
+  await user.type(
+    screen.getByLabelText('Memory to save'),
+    'Keep my receipt draft.',
+  )
+  await user.selectOptions(
+    screen.getByLabelText('Action'),
+    'extract_photo_receipt',
+  )
+  expect(
+    screen.getByRole('button', { name: 'Review receipt photo' }),
+  ).toBeDisabled()
+  await user.click(
+    screen.getByRole('button', { name: 'Load saved Chat photos' }),
+  )
+  await user.click(
+    await screen.findByRole('button', {
+      name: 'Choose photo Synthetic nameplate.jpg',
+    }),
+  )
+  expect(writes).toHaveLength(0)
+  await user.click(screen.getByRole('button', { name: 'Review receipt photo' }))
+  expect(
+    await screen.findByRole('region', { name: 'Saved photo receipt review' }),
+  ).toBeVisible()
+  expect(writes).toHaveLength(1)
+  expect(writes[0].path).toBe('/api/chat/conversations/current/turns')
+  expect(writes[0].body).toMatchObject({
+    mode: 'extract_photo_receipt',
+    photo_id: photo.id,
+    text: 'Read receipt lines in this photo for human review.',
+  })
+  expect(writes[0].body.text).not.toContain('draft')
+  expect(
+    screen.queryByRole('region', { name: 'Saved photo proposal' }),
+  ).not.toBeInTheDocument()
+  await user.selectOptions(screen.getByLabelText('Action'), 'save')
+  expect(screen.getByLabelText('Memory to save')).toHaveValue(
+    'Keep my receipt draft.',
+  )
+})
+
+it('preserves receipt photo mode, photo ID and exact arguments through lost and pending retries', async () => {
+  const { writes } = harness({ lose: true, pending: true })
+  render(<ChatPanel csrfToken="csrf" />)
+  const user = await choosePhoto('extract_photo_receipt')
+  await user.click(screen.getByRole('button', { name: 'Review receipt photo' }))
+  await user.click(
+    await screen.findByRole('button', { name: 'Retry same request' }),
+  )
+  expect(await screen.findByText(/still running/i)).toBeVisible()
+  expect(screen.getByLabelText('Action')).toBeDisabled()
+  await user.click(screen.getByRole('button', { name: 'Retry same request' }))
+  expect(
+    await screen.findByRole('region', { name: 'Saved photo receipt review' }),
+  ).toBeVisible()
+  expect(writes).toHaveLength(3)
+  expect(writes[1]).toEqual(writes[0])
+  expect(writes[2]).toEqual(writes[0])
+})
+
+it.each([{ consent: false }, { usage: 20 }, { savedModel: '' }])(
+  'keeps receipt photo reading behind configured AI gates: %j',
+  async (settings) => {
+    const { writes } = harness(settings)
+    render(<ChatPanel csrfToken="csrf" />)
+    await choosePhoto('extract_photo_receipt')
+    expect(
+      screen.getByRole('button', { name: 'Review receipt photo' }),
+    ).toBeDisabled()
+    expect(writes).toHaveLength(0)
+  },
+)
+
+it('reuses a deliberately selected uploaded photo when changing from single-item to receipt mode', async () => {
+  const { writes, uploads } = harness()
+  render(<ChatPanel csrfToken="csrf" />)
+  const user = userEvent.setup()
+  await screen.findByRole('button', { name: 'Current conversation' })
+  await user.selectOptions(screen.getByLabelText('Action'), 'extract_photo')
+  await user.upload(
+    screen.getByLabelText('Upload a photo in Chat'),
+    new File(['synthetic'], 'receipt.jpg', { type: 'image/jpeg' }),
+  )
+  await user.click(screen.getByRole('button', { name: 'Save photo privately' }))
+  await screen.findByText(/Photo saved privately/)
+  await user.selectOptions(
+    screen.getByLabelText('Action'),
+    'extract_photo_receipt',
+  )
+  expect(
+    screen.getByRole('button', { name: 'Review receipt photo' }),
+  ).toBeEnabled()
+  expect(uploads).toHaveLength(1)
+  expect(writes).toHaveLength(0)
+  await user.click(screen.getByRole('button', { name: 'Review receipt photo' }))
+  expect(
+    await screen.findByRole('region', { name: 'Saved photo receipt review' }),
+  ).toBeVisible()
+  expect(writes[0].body.photo_id).toBe(photo.id)
+  await user.click(screen.getByRole('button', { name: 'New conversation' }))
+  expect(
+    screen.queryByRole('region', { name: 'Saved photo receipt review' }),
+  ).not.toBeInTheDocument()
+  expect(
+    screen.getByRole('button', { name: 'Review receipt photo' }),
+  ).toBeDisabled()
+})

@@ -92,7 +92,9 @@ export function ChatPanel({
     'extract',
     'extract_receipt',
     'extract_photo',
+    'extract_photo_receipt',
   ].includes(mode)
+  const usesPhoto = mode === 'extract_photo' || mode === 'extract_photo_receipt'
 
   const request = useCallback(
     async (path: string, init?: RequestInit) => {
@@ -365,7 +367,7 @@ export function ChatPanel({
       savingChoice ||
       loading ||
       turnCursor ||
-      (mode === 'extract_photo' ? !photo : !text.trim())
+      (usesPhoto ? !photo : !text.trim())
     )
       return
     setBusy(true)
@@ -389,13 +391,14 @@ export function ChatPanel({
       const body = pending.current?.body ?? {
         request_id: crypto.randomUUID(),
         mode,
-        text:
-          mode === 'extract_photo'
-            ? 'Read this photo for a reviewed asset proposal.'
-            : text,
+        text: usesPhoto
+          ? mode === 'extract_photo_receipt'
+            ? 'Read receipt lines in this photo for human review.'
+            : 'Read this photo for a reviewed asset proposal.'
+          : text,
         credential_id: credential,
         model,
-        ...(mode === 'extract_photo' ? { photo_id: photo!.id } : {}),
+        ...(usesPhoto ? { photo_id: photo!.id } : {}),
         ...(mode === 'extract' || mode === 'extract_receipt'
           ? { source_id: extractSource }
           : {}),
@@ -448,7 +451,11 @@ export function ChatPanel({
       )
       pending.current = null
       setRetryNeeded(false)
-      if (body.mode === 'extract_photo') setPhoto(null)
+      if (
+        body.mode === 'extract_photo' ||
+        body.mode === 'extract_photo_receipt'
+      )
+        setPhoto(null)
       else setText('')
       void refreshUsage()
     } catch (caught) {
@@ -609,9 +616,11 @@ export function ChatPanel({
                         ? turn.mode === 'extract_receipt'
                           ? 'Suggest receipt items'
                           : 'Suggest asset'
-                        : turn.mode === 'extract_photo'
-                          ? 'Read photo'
-                          : 'Ask AI'}
+                        : turn.mode === 'extract_photo_receipt'
+                          ? 'Review receipt photo'
+                          : turn.mode === 'extract_photo'
+                            ? 'Read photo'
+                            : 'Ask AI'}
                 </p>
                 <p className="chat-text">{turn.text}</p>
                 <div className="chat-response">
@@ -706,9 +715,7 @@ export function ChatPanel({
             )}
             {busy && (
               <p role="status">
-                {mode === 'extract' ||
-                mode === 'extract_receipt' ||
-                mode === 'extract_photo'
+                {mode === 'extract' || mode === 'extract_receipt' || usesPhoto
                   ? 'Preparing a proposal for your review…'
                   : mode === 'ask'
                     ? 'Searching your evidence and preparing an answer…'
@@ -790,6 +797,9 @@ export function ChatPanel({
                 <option value="search">Keyword search</option>
                 <option value="ask">Ask AI</option>
                 <option value="extract_photo">Read a saved photo</option>
+                <option value="extract_photo_receipt">
+                  Review a receipt photo
+                </option>
                 <option value="extract_receipt" disabled={!extractSource}>
                   Review multiple items from selected note
                 </option>
@@ -798,7 +808,7 @@ export function ChatPanel({
                 </option>
               </select>
             </label>
-            {mode === 'extract_photo' && (
+            {usesPhoto && (
               <ChatPhotoPicker
                 key={`${selected}:${photoContext}`}
                 csrfToken={csrfToken}
@@ -810,11 +820,13 @@ export function ChatPanel({
             {usesAI && (
               <div className="chat-provider">
                 <p>
-                  {mode === 'extract_photo'
-                    ? 'Your selected provider receives the selected original photo. The reading is unverified and proposes at most one item; review it before adding anything to inventory.'
-                    : mode === 'extract' || mode === 'extract_receipt'
-                      ? 'Your selected provider receives only the selected saved note. Nothing enters inventory until you review and confirm the proposed items.'
-                      : 'Your selected provider receives your question, up to four recent user messages, matching evidence, relevant records and requested graph connections.'}{' '}
+                  {mode === 'extract_photo_receipt'
+                    ? 'Your selected provider receives the selected original photo, or its current saved transcription if already read. Receipt suggestions and transcription are unverified; inspect every line and quantity before confirming inventory. At most eight lines and twenty total units are reviewed.'
+                    : mode === 'extract_photo'
+                      ? 'Your selected provider receives the selected original photo. The reading is unverified and proposes at most one item; review it before adding anything to inventory.'
+                      : mode === 'extract' || mode === 'extract_receipt'
+                        ? 'Your selected provider receives only the selected saved note. Nothing enters inventory until you review and confirm the proposed items.'
+                        : 'Your selected provider receives your question, up to four recent user messages, matching evidence, relevant records and requested graph connections.'}{' '}
                   {usage}/20 AI requests used today (UTC). Provider charges may
                   apply.
                 </p>
@@ -891,7 +903,7 @@ export function ChatPanel({
                 {choiceNotice && <p role="status">{choiceNotice}</p>}
               </div>
             )}
-            {mode !== 'extract_photo' && (
+            {!usesPhoto && (
               <>
                 <label htmlFor="chat-text">
                   {mode === 'save'
@@ -931,7 +943,7 @@ export function ChatPanel({
                   savingChoice ||
                   loading ||
                   !!turnCursor ||
-                  (mode === 'extract_photo' ? !photo : !text.trim()) ||
+                  (usesPhoto ? !photo : !text.trim()) ||
                   (usesAI && (!consent || !credential || !model || usage >= 20))
                 }
               >
@@ -941,13 +953,15 @@ export function ChatPanel({
                     ? 'Save memory'
                     : mode === 'search'
                       ? 'Search memories'
-                      : mode === 'extract_photo'
-                        ? 'Read selected photo'
-                        : mode === 'extract' || mode === 'extract_receipt'
-                          ? mode === 'extract_receipt'
-                            ? 'Suggest receipt items'
-                            : 'Suggest asset'
-                          : 'Ask AI'}
+                      : mode === 'extract_photo_receipt'
+                        ? 'Review receipt photo'
+                        : mode === 'extract_photo'
+                          ? 'Read selected photo'
+                          : mode === 'extract' || mode === 'extract_receipt'
+                            ? mode === 'extract_receipt'
+                              ? 'Suggest receipt items'
+                              : 'Suggest asset'
+                            : 'Ask AI'}
               </Button>
               {busy && (
                 <Button

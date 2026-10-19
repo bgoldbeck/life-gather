@@ -543,3 +543,14 @@ browser upload/explicit reading and narrow layout, HTTP/private/recovery smoke.
 One earlier comparison test Literal annotation corrected. No schema, API,
 dependency, provider-adapter or live call/deployment change. Graphify unavailable.
 Multi-item photo receipts and arbitrary image questions remain ahead.
+
+Multi-item receipt photos v0.42.0: explicit Chat photo action, one unverified
+transcription plus bounded validated draft in one transaction, existing reviewed
+quantities/units and original photo links. Reuse existing reviews/current text
+without overwriting sources; active single-item review must be resolved first.
+Photos can reopen saved receipt review. Tighten cropped-quote quantity validation
+for pending receipts while preserving accepted history. Pre-merge verification:
+434 backend / 188 frontend, strict source/test types, lint/format/builds; synthetic
+browser confirms three units and blank money, composed replay/recovery smoke.
+No migration/dependency/provider-adapter/live-call/redeployment change. Graphify
+unavailable. New Chat mode extract_photo_receipt; existing modes remain supported.

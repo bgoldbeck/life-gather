@@ -28,7 +28,13 @@ class TurnInput(BaseModel):
     )
     request_id: str = Field(min_length=1, max_length=100)
     mode: Literal[
-        "save", "search", "ask", "extract", "extract_photo", "extract_receipt"
+        "save",
+        "search",
+        "ask",
+        "extract",
+        "extract_photo",
+        "extract_receipt",
+        "extract_photo_receipt",
     ]
     source_id: str = Field(default="", max_length=36)
     photo_id: str = Field(default="", max_length=36)
@@ -40,13 +46,20 @@ class TurnInput(BaseModel):
     def valid_text(self) -> "TurnInput":
         if not self.text.strip():
             raise ValueError("Text cannot be blank")
-        if self.mode in {"ask", "extract", "extract_photo", "extract_receipt"} and (
-            not self.credential_id or not self.model
-        ):
+        if self.mode in {
+            "ask",
+            "extract",
+            "extract_photo",
+            "extract_receipt",
+            "extract_photo_receipt",
+        } and (not self.credential_id or not self.model):
             raise ValueError("Choose an AI connection and model")
         if self.mode in {"extract", "extract_receipt"} and not self.source_id:
             raise ValueError("Choose a saved note first")
-        if self.mode == "extract_photo" and not self.photo_id:
+        if (
+            self.mode in {"extract_photo", "extract_photo_receipt"}
+            and not self.photo_id
+        ):
             raise ValueError("Choose a photo first")
         return self
 

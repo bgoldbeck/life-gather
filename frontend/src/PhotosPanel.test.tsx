@@ -3,6 +3,12 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import { PhotosPanel } from './PhotosPanel'
 
+vi.mock('./ReceiptProposalCard', () => ({
+  ReceiptProposalCard: ({ id }: { id: string }) => (
+    <section aria-label="Existing photo receipt">{id}</section>
+  ),
+}))
+
 afterEach(() => vi.unstubAllGlobals())
 const photo = {
   id: 'photo',
@@ -157,5 +163,57 @@ it('removes only a gallery link and keeps the original photo private', async () 
   expect(calls.some((c) => c.url.includes('/delete'))).toBe(false)
   expect(
     screen.queryByRole('button', { name: /plate.jpg/ }),
+  ).not.toBeInTheDocument()
+})
+
+it('displays an existing multi-item photo receipt returned by photo reading and clears it on selection change', async () => {
+  const user = userEvent.setup()
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      let result: unknown = { items: [], next_cursor: null }
+      if (url.startsWith('/api/photos?'))
+        result = {
+          items: [photo, { ...photo, id: 'other', filename: 'other.jpg' }],
+          next_cursor: null,
+        }
+      else if (url === '/api/settings') result = { allow_external_ai: true }
+      else if (url === '/api/credentials?limit=100')
+        result = {
+          items: [
+            {
+              id: 'credential',
+              kind: 'ai',
+              provider: 'openai',
+              label: 'Synthetic',
+            },
+          ],
+        }
+      else if (url === '/api/chat/conversations' && init?.method === 'POST')
+        result = { id: 'conversation' }
+      else if (url.includes('/turns'))
+        result = {
+          state: 'complete',
+          result: {
+            text: 'Existing receipt review.',
+            receipt_proposal_id: 'receipt',
+          },
+        }
+      else if (url === '/api/photos/photo') result = photo
+      return new Response(JSON.stringify(result))
+    }),
+  )
+  render(<PhotosPanel csrfToken="csrf" />)
+  await user.click(await screen.findByRole('button', { name: /plate.jpg/ }))
+  await user.click(screen.getByText('Read photo with AI'))
+  await user.selectOptions(screen.getByLabelText('AI connection'), 'credential')
+  await user.type(screen.getByLabelText('Vision-capable model'), 'synthetic')
+  await user.click(screen.getByRole('button', { name: 'Read this photo' }))
+  expect(
+    await screen.findByRole('region', { name: 'Existing photo receipt' }),
+  ).toHaveTextContent('receipt')
+  await user.click(screen.getByRole('button', { name: /other.jpg/ }))
+  expect(
+    screen.queryByRole('region', { name: 'Existing photo receipt' }),
   ).not.toBeInTheDocument()
 })
