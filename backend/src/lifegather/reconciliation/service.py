@@ -7,7 +7,7 @@ from sqlalchemy import Engine, and_, or_, select
 from sqlalchemy.orm import Session
 
 from lifegather.auth.store import Account
-from lifegather.memory.models import Entity
+from lifegather.memory.models import Assertion, Entity
 from lifegather.memory.schemas import EntityInput, FactInput
 from lifegather.memory.service import (
     MemoryError,
@@ -189,7 +189,12 @@ class ReconciliationService:
             return self._discover_in(db, actor, value)
 
     def _discover_in(
-        self, db: Session, actor: Account, value: DiscoveryInput
+        self,
+        db: Session,
+        actor: Account,
+        value: DiscoveryInput,
+        *,
+        ownership_status: Literal["stated", "inferred"] | None = None,
     ) -> DiscoveryView:
         data = DiscoveryInput.model_validate(value)
         signature = fingerprint(data.model_dump(mode="json"))
@@ -260,6 +265,7 @@ class ReconciliationService:
             candidates,
             "discover",
             None,
+            ownership_status=ownership_status,
         )
 
     def _record(
@@ -275,8 +281,26 @@ class ReconciliationService:
         previous: Decision | None,
         *,
         recorded_at: int | None = None,
+        ownership_status: Literal["stated", "inferred"] | None = None,
     ) -> DiscoveryView:
         data = DiscoveryInput.model_validate_json(observation.payload)
+        if ownership_status is None:
+            # Identity corrections/undo retain an explicit declaration from this
+            # same observation; ordinary discoveries retain their inferred default.
+            stated = db.scalar(
+                select(Assertion.id)
+                .join(Binding, Binding.ownership_fact_id == Assertion.id)
+                .join(Decision, Decision.id == Binding.decision_id)
+                .where(
+                    Assertion.user_id == actor.id,
+                    Binding.user_id == actor.id,
+                    Decision.user_id == actor.id,
+                    Decision.observation_id == observation.id,
+                    Assertion.status == "stated",
+                )
+                .limit(1)
+            )
+            ownership_status = "stated" if stated else "inferred"
         now = max(
             self.memory.clock() if recorded_at is None else recorded_at,
             previous.recorded_at + 1 if previous else observation.recorded_at,
@@ -329,7 +353,7 @@ class ReconciliationService:
                     subject_id=asset_id,
                     predicate="owned",
                     value=True,
-                    status="inferred",
+                    status=ownership_status,
                     source_id=data.source_id,
                     quote=data.quote,
                     operation_key=f"reconcile:{decision.id}:{unit}:owned",
@@ -406,6 +430,7 @@ class ReconciliationService:
         asset_ids: list[str] | None,
         *,
         recorded_at: int | None = None,
+        ownership_status: Literal["stated", "inferred"] | None = None,
     ) -> DiscoveryView:
         if asset_ids is not None and (
             not 1 <= len(asset_ids) <= 20 or len(asset_ids) != len(set(asset_ids))
@@ -491,6 +516,7 @@ class ReconciliationService:
             key,
             old,
             recorded_at=recorded_at,
+            ownership_status=ownership_status,
         )
 
     def resolve(

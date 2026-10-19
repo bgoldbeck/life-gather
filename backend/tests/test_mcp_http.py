@@ -158,6 +158,7 @@ def test_mcp_discovery_and_owner_scoped_memory_reads() -> None:
                 "memory_correct_note",
                 "asset_proposal_review",
                 "asset_change",
+                "asset_manual_save",
                 "asset_replacement_record",
                 "asset_replacement_withdraw",
                 "asset_evidence_move",

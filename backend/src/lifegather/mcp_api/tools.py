@@ -21,6 +21,7 @@ from lifegather.assets.batch import (
     EvidenceRestore,
 )
 from lifegather.assets.comparison import RecordComparison, RecordComparisonService
+from lifegather.assets.manual import ManualAssetCreate, ManualAssetFields, ManualAssets
 from lifegather.assets.purchases import AssetPurchases, AssetPurchasesRead
 from lifegather.assets.replacements import (
     ReplacementRecord,
@@ -189,6 +190,30 @@ def build_server() -> MCPServer:
         idempotent_hint=True,
         open_world_hint=False,
     )
+
+    @server.tool(annotations=annotation)
+    def asset_manual_preview(
+        data: ManualAssetFields, ctx: ToolContext
+    ) -> dict[str, Any]:
+        """Inspect possible duplicates for an explicitly entered physical item."""
+        return read(
+            ctx,
+            lambda actor, memory, _: ManualAssets(memory.engine).preview(actor, data),
+        )
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        )
+    )
+    def asset_manual_save(data: ManualAssetCreate, ctx: ToolContext) -> dict[str, Any]:
+        """Save an explicit owned-item declaration and reviewed identity choice."""
+        return read(
+            ctx, lambda actor, memory, _: ManualAssets(memory.engine).save(actor, data)
+        )
 
     @server.tool(annotations=annotation)
     def memory_field_history(
