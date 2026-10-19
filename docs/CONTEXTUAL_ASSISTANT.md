@@ -1,7 +1,10 @@
 # Persistent contextual assistant
 
 The assistant lives in the workspace rather than a separate Chat page. It starts
-at the bottom, can dock at any edge, and collapses to a permanent toolbar. On
+on the right, can dock at any edge, and collapses to a permanent toolbar. Drag
+the divider between the page and assistant to resize it, or focus the divider
+and use arrow keys (Home/End select the size limits). Width and height are saved
+separately per account; existing saved dock positions are preserved. On
 narrow screens it uses the bottom edge. Layout alone is remembered per account
 in this browser; messages and drafts are never put in layout storage. Drafts,
 the current conversation and pending requests survive page changes and collapse.

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.49.0 — Right-default resizable assistant
+
+- Default the assistant to the right edge when no account preference exists;
+  preserve previously saved positions and the narrow-screen bottom layout.
+- Drag the page/assistant divider or use its keyboard arrow/Home/End controls
+  to resize. Remember bounded width and height separately per account in this
+  browser, preserving drafts, navigation, and collapse/expand behavior.
+- No dependency, backend API, schema or migration change. Layout storage contains
+  preferences only; no messages, personal records or provider calls are added.
+
 ## 0.48.2 — Load release images before container verification
 
 - Explicitly load the single-platform Linux build into the local Docker engine.
