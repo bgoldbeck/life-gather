@@ -97,15 +97,26 @@ function Test-Release {
         Answers = $queue; Builds = 0; Pushes = 0
     }
     $failed = $false
-    $output = ''
-    try { $output = (& $publisher @Flags 6>&1 | Out-String) }
+    $captured = New-Object System.Text.StringBuilder
+    try { & $publisher @Flags 6>&1 | ForEach-Object { [void]$captured.AppendLine($_.ToString()) } }
     catch { $failed = $true; if (-not $ExpectFailure) { Write-Host $_.Exception.Message } }
+    $output = $captured.ToString()
     if ($failed -ne $ExpectFailure -or
         $global:LifeGatherReleaseTest.Builds -ne $ExpectedBuilds -or
         $global:LifeGatherReleaseTest.Pushes -ne $ExpectedPushes) {
         throw "FAIL: $Name (failure=$failed builds=$($global:LifeGatherReleaseTest.Builds) pushes=$($global:LifeGatherReleaseTest.Pushes))"
     }
     if ($output -match 'synthetic-token') { throw 'Registry token leaked in logs' }
+    $expectedResult = if ($ExpectFailure) { 'FAILED' }
+        elseif ($Flags.CheckOnly) { 'CHECKS PASSED' }
+        elseif ($ExpectedBuilds -eq 0) { 'BUILD DEFERRED' }
+        elseif ($ExpectedPushes -gt 0) { 'PUBLISHED' }
+        elseif ($Flags.Publish) { 'UPLOAD DEFERRED' }
+        else { 'BUILT (no upload)' }
+    if (-not $output.Contains("Result: $expectedResult")) {
+        throw "FAIL: $Name must show explicit result '$expectedResult'"
+    }
+    if ($Dirty -and -not $output.Contains('fixture.txt')) { throw 'Dirty-source refusal must name the uncommitted paths' }
     if (-not $ExpectFailure -and $ExpectedBuilds -gt 0 -and
         ($output -notmatch 'Stage: Build' -or $output -notmatch 'completed in')) {
         throw 'Expected named stages and command elapsed-time output'

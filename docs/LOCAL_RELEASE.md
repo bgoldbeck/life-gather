@@ -26,6 +26,12 @@ elapsed times, plain Docker build progress and health checks are shown by defaul
 Registry tokens and stdin are never printed. Failed stages stop the release and
 leave an error explaining what failed; publication never restarts your running app.
 
+The final `Result:` states whether checks passed, a build/upload was deferred, an
+image was built locally, publication succeeded, or the release failed. `Cleanup`
+only names a housekeeping stage. A dirty checkout prints uncommitted paths and
+reports `FAILED` before any build/upload. Commit or deliberately stash those edits;
+the script will never do that for you or discard them automatically.
+
 Check the source only:
 
 ```powershell
