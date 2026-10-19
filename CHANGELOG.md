@@ -18,6 +18,16 @@
 - Add Chat mode `extract_photo_receipt`; existing request modes stay compatible.
   No schema migration, dependency or provider-adapter change.
 
+## Release tooling — safe source recovery
+
+- Fetch GitHub main before release checks; fast-forward only a clean, behind local
+  main and reload the updated publisher once before reading version/build metadata.
+- Preserve local-only/diverged commits, staged/untracked edits and deliberate
+  feature/detached builds. Explain blocked source/network states before building.
+- Optional `-RepairAuthentication` starts GitHub browser sign-in/scope recovery;
+  valid credentials are reused and browser authorization remains with the user.
+- Host tooling only: no application version, schema or runtime image change.
+
 ## 0.41.0 — Upload private photos directly in Chat
 
 - Explicitly save a JPEG/PNG/WebP original from Chat, up to 8 MiB, with a photo,
