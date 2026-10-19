@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.48.2 — Load release images before container verification
+
+- Explicitly load the single-platform Linux build into the local Docker engine.
+  Docker container builders otherwise retain it only in cache, causing the
+  isolated pull-disabled smoke test to fail with an absent image. Preserve all
+  verification, source/authentication checks and separate upload controls.
+- Add offline coverage for builders that require explicit image loading.
+  No domain, dependency or schema change.
+
+## 0.48.1 — Reliable scan focus verification
+
+- Wait for React's asynchronous result-focus effect in the saved Chat scan test,
+  retaining the focus and read-only assertions. This prevents an intermittent
+  release-check failure; application behavior and schema remain unchanged.
+
 ## 0.48.0 — Reversible two-record asset consolidation
 
 - Choose a primary record after a fresh complete bounded comparison and explicitly

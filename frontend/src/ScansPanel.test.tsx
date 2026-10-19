@@ -34,7 +34,9 @@ it('opens the exact saved Chat job without starting another scan', async () => {
   expect(
     await screen.findByRole('region', { name: 'Scan results' }),
   ).toHaveTextContent('Synthetic saved Chat evidence')
-  expect(screen.getByRole('region', { name: 'Scan results' })).toHaveFocus()
+  await waitFor(() =>
+    expect(screen.getByRole('region', { name: 'Scan results' })).toHaveFocus(),
+  )
   expect(
     fetcher.mock.calls.some(([url]) => url.startsWith('/api/scans/chat-run')),
   ).toBe(true)
