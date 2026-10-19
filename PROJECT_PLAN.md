@@ -3,7 +3,10 @@
 **Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
 **Date:** Updated 2026-10-17
 
-Current increment: v0.43.0 adds explicit bounded Gmail text-evidence scans from
+Current increment: v0.44.0 adds [private record downloads](docs/RECORD_EXPORT.md)
+from a consistent owner-scoped snapshot with history, quantities and exact money.
+Original-file exports and user-facing import/restore remain ahead.
+v0.43.0 adds explicit bounded Gmail text-evidence scans from
 Chat, with atomic queue/result saving and existing Scans progress/cancellation.
 Conversational AI purchase discovery and free-form agent planning remain ahead.
 v0.42.0 adds explicit multi-item receipt-photo reading in Chat,

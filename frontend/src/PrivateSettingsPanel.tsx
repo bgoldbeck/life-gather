@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
+import { RecordExportPanel } from './RecordExportPanel'
 
 type Entry = {
   id: string
@@ -185,6 +186,10 @@ export function PrivateSettingsPanel({
     <section className="private-settings" aria-labelledby="settings-heading">
       <h1 id="settings-heading">Settings</h1>
       <p>Your privacy choices and credentials belong to your account.</p>
+      <RecordExportPanel
+        csrfToken={csrfToken}
+        refreshSession={refreshSession}
+      />
       {error && (
         <div role="alert">
           <p>{error}</p>

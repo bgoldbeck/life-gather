@@ -25,6 +25,7 @@ class CredentialBodyLimit:
                     "/auth/test-login",
                     "/api/chat",
                     "/api/memories",
+                    "/api/export",
                     "/api/assets",
                     "/api/photos/delete",
                     "/api/photos/detach",
