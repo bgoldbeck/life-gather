@@ -1,0 +1,70 @@
+.record-comparison {
+  margin: 1rem 0;
+  min-width: 0;
+}
+.record-comparison label {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.6rem 0;
+}
+.record-comparison input,
+.record-comparison select {
+  min-width: 0;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  background: var(--card);
+}
+.record-comparison button {
+  margin: 0.25rem 0.4rem 0.25rem 0;
+}
+.record-comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: 1rem;
+}
+.record-comparison-grid article {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: var(--card);
+}
+.record-comparison li,
+.record-comparison blockquote,
+.comparison-id {
+  overflow-wrap: anywhere;
+}
+.record-comparison li {
+  margin: 0.7rem 0;
+}
+.record-comparison blockquote {
+  white-space: pre-wrap;
+  padding-left: 0.7rem;
+  border-left: 2px solid var(--border);
+}
+.comparison-source {
+  display: block;
+}
+.record-comparison .comparison-counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 0.5rem;
+}
+.record-comparison h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+.record-comparison h5 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 0.8rem;
+}
+.comparison-counts div {
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+}
+.comparison-counts dd {
+  font-weight: 600;
+}

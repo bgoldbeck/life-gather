@@ -20,6 +20,7 @@ from lifegather.assets.batch import (
     EvidenceMovePreview,
     EvidenceRestore,
 )
+from lifegather.assets.comparison import RecordComparison, RecordComparisonService
 from lifegather.assets.purchases import AssetPurchases, AssetPurchasesRead
 from lifegather.assets.replacements import (
     ReplacementRecord,
@@ -678,6 +679,18 @@ def build_server() -> MCPServer:
         return read(
             ctx,
             lambda actor, memory, _: ActionService(memory.engine).apply(actor, data),
+        )
+
+    @server.tool(annotations=annotation)
+    def asset_record_comparison(
+        data: RecordComparison, ctx: ToolContext
+    ) -> dict[str, Any]:
+        """Compare two private current records. Read only; never authorizes a merge."""
+        return read(
+            ctx,
+            lambda actor, memory, _: RecordComparisonService(memory.engine).get(
+                actor, data
+            ),
         )
 
     @server.tool(annotations=annotation)

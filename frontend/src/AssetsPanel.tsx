@@ -6,6 +6,7 @@ import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import { ChatRequestError } from './chatRequest'
 import { AssetReplacement } from './AssetReplacement'
 import { EvidenceBatch } from './EvidenceBatch'
+import { RecordComparison } from './RecordComparison'
 import { AssetActions } from './AssetActions'
 import { AssetPurchases } from './AssetPurchases'
 
@@ -396,6 +397,17 @@ export function AssetsPanel({
             onOpen={evidence}
           />
           <h3>Sourced details and decisions</h3>
+          <details>
+            <summary>Compare complete current records</summary>
+            <RecordComparison
+              key={`comparison:${detail.asset.id}`}
+              assetId={detail.asset.id}
+              assetName={detail.asset.name}
+              csrfToken={csrfToken}
+              onOpen={evidence}
+              disabled={busy}
+            />
+          </details>
           <details>
             <summary>Make a correction</summary>
             <AssetActions

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.39.0 — Compare complete bounded current records
+
+- Explicitly compare two private item records in Assets: current statement versions
+  and evidence, incoming/outgoing relationships, aliases, gallery links, discovery
+  units, receipt claims and unique cross-source purchase evidence. Preserve source,
+  status, dates, exact integer display and whole-line/order amount scope.
+- Flag differing statements over overlapping/unknown dates, replacement links,
+  distinct receipt units and competing current order/receipt totals. These are
+  inspection warnings; no identity decision or merge is performed.
+- Use one read snapshot across collections and the shared receipt reader. Refuse
+  partial comparisons when a collection or 30,000-byte response cap is exceeded;
+  expose section counts/limits and historical-source labels. Read-only HTTP/MCP
+  share the same owner validation. UI clears obsolete reads on close/navigation.
+- Historical versions remain in original record views. No schema migration,
+  dependency, provider request, database write or production redeploy.
+- Fix an existing photo-upload grid minimum width that caused horizontal asset-page
+  overflow; browser inspection confirms the comparison stacks at 390px width.
+
 ## 0.38.1 — Preserve correction chronology
 
 - Record evidence batch move/restore explanations and audit events at or after

@@ -31,3 +31,19 @@ photo reuse/deletion, receipt quantity/currency preservation, section/byte overf
 HTTP/MCP parity and UI selection/error/navigation/source inspection tests. Verify
 full backend/frontend checks and synthetic browser/Linux smoke. Publish v0.39.0
 through the standing commit/PR/merge/branch cleanup and GHCR workflow; no redeploy.
+
+Verified: 410 backend / 145 frontend tests pass, including twenty new backend and
+seven UI cases. Lint, format, strict mypy, TypeScript, Vite and package builds pass.
+Concurrent alias insertion proves sections share a committed snapshot. Source
+correction, immutable snapshots, distinct units, replacement links, unknowns,
+overlapping dates, large integer display, exact JPY/USD amounts and every collection
+cap are covered. An AST comparison confirmed that sharing the receipt read body
+introduced no semantic change to its existing public read behavior.
+
+Browser QA exercised explicit selection, conflict/source inspection, photo reuse,
+whole-line USD 49.90 and 390px stacking. Fixed an existing photo-upload grid
+minimum width discovered during that check; document width is 375px at a 390px
+viewport, with no overflowing main elements. Temporary viewport was reset and
+preview tab/server closed. Synthetic Linux smoke covers comparison, corrected
+sources, exact JPY claims, private refusal and snapshot restore. Graphify is not
+installed; code graph/HTML refresh could not run. No live provider call or migration.

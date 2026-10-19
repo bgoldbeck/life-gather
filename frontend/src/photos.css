@@ -1,5 +1,7 @@
 .photos-panel {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: 1rem;
 }
 .photo-upload,
@@ -15,6 +17,7 @@
 }
 .photos-panel input,
 .photos-panel select {
+  min-width: 0;
   max-width: 100%;
   padding: 0.5rem;
   border: 1px solid var(--border);
