@@ -7,6 +7,8 @@ from lifegather.assets.manual import ManualAssetCreate, ManualAssetFields
 from lifegather.assets.purchases import AssetPurchasesRead
 from lifegather.assets.replacements import ReplacementRecord, ReplacementWithdraw
 from lifegather.assets.service import AssetList, AssetRead
+from lifegather.chat.context import ContextRead
+from lifegather.chat.organizer import OrganizationAction
 from lifegather.chat.service import SaveText
 from lifegather.documents.service import DocumentPage, DocumentRead
 from lifegather.memory.history import FieldHistoryRead
@@ -88,6 +90,8 @@ class DiscoveryHistory(Page):
 
 
 INPUTS: dict[str, type[BaseModel]] = {
+    "workspace_context_get": ContextRead,
+    "workspace_organize": OrganizationAction,
     "asset_manual_preview": ManualAssetFields,
     "asset_manual_save": ManualAssetCreate,
     "memory_field_history": FieldHistoryRead,

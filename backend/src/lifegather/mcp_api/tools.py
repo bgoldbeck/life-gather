@@ -30,6 +30,8 @@ from lifegather.assets.replacements import (
 )
 from lifegather.assets.service import AssetList, AssetRead, AssetService
 from lifegather.auth.store import Account, AuthStore
+from lifegather.chat.context import ContextRead, WorkspaceContexts
+from lifegather.chat.organizer import OrganizationAction, WorkspaceOrganizer
 from lifegather.chat.service import SaveText, save_text
 from lifegather.documents.service import DocumentPage, DocumentRead, DocumentService
 from lifegather.mcp_api.schemas import (
@@ -190,6 +192,31 @@ def build_server() -> MCPServer:
         idempotent_hint=True,
         open_world_hint=False,
     )
+
+    @server.tool(annotations=annotation)
+    def workspace_context_get(data: ContextRead, ctx: ToolContext) -> dict[str, Any]:
+        """Read an explicit private record context; never inherit browser focus."""
+        return read(
+            ctx,
+            lambda actor, memory, _: WorkspaceContexts(memory.engine).read(actor, data),
+        )
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        )
+    )
+    def workspace_organize(
+        data: OrganizationAction, ctx: ToolContext
+    ) -> dict[str, Any]:
+        """Resolve explicit navigation or save a supplied profile detail in context."""
+        return read(
+            ctx,
+            lambda actor, memory, _: WorkspaceOrganizer(memory.engine).run(actor, data),
+        )
 
     @server.tool(annotations=annotation)
     def asset_manual_preview(

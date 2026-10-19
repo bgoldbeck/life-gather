@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.46.0 — Manual inventory entry
+## 0.46.0 — Manual inventory and a persistent contextual assistant
 
 - Add asset directly from Assets with a name, optional manufacturer/model/serial
   and notes, and an affirmative current-ownership declaration. Original values are
@@ -12,6 +12,15 @@
 - Atomic saves retain provenance and safe retry identities, with private HTTP/MCP
   adapters. Keep these write tools outside the app's provider tool allowlist.
   No migration, schema, dependency, price/date inference or live-provider calls.
+- Keep Chat mounted across pages in a collapsible edge dock, with bottom docking
+  by default and account-scoped layout preferences. Show the selected record.
+- Explicit local commands open uniquely named assets and save supplied profile
+  details with provenance, stale-version checks and atomic saved replies. Ambiguous
+  names require a choice; missing VINs are requested rather than invented.
+- Pin each message's record before sending; delayed replies and saved history
+  cannot redirect a user who moved elsewhere. Ask AI gains bounded sourced recall
+  for the selected record. MCP context stays explicit and owner-scoped; no browser
+  bridge, unrestricted model writes or additional migration is introduced.
 
 ## 0.45.0 — Sourced field history and workflow attribution
 

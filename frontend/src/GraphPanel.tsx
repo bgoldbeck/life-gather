@@ -14,16 +14,23 @@ export function GraphPanel({
   refreshSession,
   onOpenAsset,
   initialEntityId = '',
+  onContext,
+  contextRevision = 0,
 }: {
   csrfToken: string
   refreshSession?: () => Promise<void>
   onOpenAsset?: (id: string) => void
   initialEntityId?: string
+  onContext?: (id: string | null) => void
+  contextRevision?: number
 }) {
   const [page, setPage] = useState<EntityPage | null>(null)
   const [selected, setSelected] = useState(initialEntityId)
   const [depth, setDepth] = useState(1)
   const [graph, setGraph] = useState<GraphData | null>(null)
+  useEffect(() => {
+    onContext?.(graph?.entity.id ?? null)
+  }, [graph, onContext])
   const [fact, setFact] = useState<GraphFact | null>(null)
   const [source, setSource] = useState<SourcePage | null>(null)
   const [busy, setBusy] = useState(false)
@@ -95,7 +102,7 @@ export function GraphPanel({
       window.clearTimeout(timer)
       controller.abort()
     }
-  }, [selected, depth, request])
+  }, [selected, depth, request, contextRevision])
   async function entities(cursor = '') {
     try {
       setPage(

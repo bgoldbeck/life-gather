@@ -76,11 +76,15 @@ export function AssetsPanel({
   csrfToken = '',
   initialAssetId = '',
   onOpenGraph,
+  onContext,
+  contextRevision = 0,
 }: {
   refreshSession?: () => Promise<void>
   csrfToken?: string
   initialAssetId?: string
   onOpenGraph?: (id: string) => void
+  onContext?: (id: string | null) => void
+  contextRevision?: number
 }) {
   const [items, setItems] = useState<Asset[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
@@ -88,6 +92,14 @@ export function AssetsPanel({
   const [search, setSearch] = useState('')
   const [history, setHistory] = useState(false)
   const [detail, setDetail] = useState<Detail | null>(null)
+  const detailHeading = useRef<HTMLHeadingElement>(null)
+  useEffect(() => {
+    if (detail?.asset.id)
+      detailHeading.current?.scrollIntoView?.({ block: 'start' })
+  }, [detail?.asset.id])
+  useEffect(() => {
+    onContext?.(detail?.asset.id ?? null)
+  }, [detail, onContext])
   const [source, setSource] = useState<Source | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -149,7 +161,7 @@ export function AssetsPanel({
       controller.abort()
       selectAsset('')
     }
-  }, [request, search, history, initialAssetId, selectAsset])
+  }, [request, search, history, initialAssetId, selectAsset, contextRevision])
 
   async function more() {
     const version = ++generation.current
@@ -400,7 +412,7 @@ export function AssetsPanel({
       )}
       {detail && (
         <section className="asset-detail" aria-label="Asset details">
-          <h2>{detail.asset.name}</h2>
+          <h2 ref={detailHeading}>{detail.asset.name}</h2>
           {onOpenGraph && (
             <Button
               variant="outline"

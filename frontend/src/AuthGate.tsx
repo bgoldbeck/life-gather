@@ -160,7 +160,7 @@ export function AuthGate({
 
   if (session?.user) {
     return (
-      <>
+      <div className="authenticated-shell">
         {testBanner}
         {error && <p role="alert">{error}</p>}
         {children(
@@ -174,7 +174,7 @@ export function AuthGate({
           session.build,
           session.appearance,
         )}
-      </>
+      </div>
     )
   }
 

@@ -4,7 +4,7 @@ Baseline 9295672 / v0.46.0 / migration 0022. Manual entry is merged in PR 67;
 the separate private-record-export branch still contains only its plan.
 
 User-approved outcomes: remove Chat from sidebar navigation; one always-mounted
-assistant across pages, docked at the bottom by default, with edge/size controls
+assistant across pages, docked at the bottom by default, with edge controls
 and collapse/expand but no close button. Keep history, drafts and pending work
 through navigation/collapse. Store only layout preferences per account/browser.
 
@@ -35,3 +35,19 @@ context labels, pending navigation guards and responsive light/dark layouts.
 Run full checks, visual inspection, graph refresh, commit/push/PR/merge/cleanup.
 Keep the deliberately bundled v0.46.0 version, then publish one verified image
 containing manual entry and contextual chat. No app/TrueNAS redeployment is implied.
+
+Verified implementation: persistent bottom/top/side dock, collapse without remount,
+per-account layout, exact selected-record reads, explicit asset navigation, sourced
+profile writes and atomic turn completion. Default Assistant is local-only; Ask AI
+remains a separate explicitly chosen read-only mode. No resize/drag system or live
+external browser bridge is included. Narrow screens use bottom docking.
+
+Validation: full backend suite 461 passed, followed by five context tests including
+the additional rollback/concurrent-retry test; focused chat/MCP/scan regression
+suite 35 passed. Frontend 206 tests passed; strict mypy, Ruff, TypeScript, lint,
+format and production build passed. Compose configurations validate; migration
+head remains 0022_change_origins. Synthetic browser checks covered manual truck
+entry, page context, VIN save, navigation from Settings, side docking, collapse,
+390px mobile and light/dark appearance. The existing Docker installation was not
+changed. Graphify refreshed to 2909 nodes / 11591 edges; its known AssetsPanel
+parser limitation remains, with TypeScript and UI tests authoritative.

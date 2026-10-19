@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -20,7 +20,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { AuthGate } from './AuthGate'
 import { PrivateSettingsPanel } from './PrivateSettingsPanel'
 import { PasswordSettings } from './PasswordSettings'
-import { ChatPanel } from './ChatPanel'
+import { ChatDock } from './ChatDock'
+import { WorkspaceAssistant } from './WorkspaceAssistant'
 import { ReviewPanel } from './ReviewPanel'
 import { PhotosPanel } from './PhotosPanel'
 import { MemoriesPanel } from './MemoriesPanel'
@@ -36,11 +37,6 @@ import { PurchasesPanel } from './PurchasesPanel'
 import type { Theme } from './appearance'
 
 const navigation = [
-  {
-    name: 'Chat',
-    icon: MessageCircle,
-    description: 'Ask questions and save memories through conversation.',
-  },
   {
     name: 'Photos',
     icon: BookOpen,
@@ -98,6 +94,7 @@ const navigation = [
 type View = (typeof navigation)[number]['name']
 
 export function Workspace({
+  userId = '',
   userName,
   onSignOut,
   signingOut = false,
@@ -108,6 +105,7 @@ export function Workspace({
   build,
   appearance = 'system',
 }: {
+  userId?: string
   userName?: string
   onSignOut?: () => void
   signingOut?: boolean
@@ -129,6 +127,41 @@ export function Workspace({
   const [assetId, setAssetId] = useState('')
   const [receiptSourceId, setReceiptSourceId] = useState('')
   const [scanRunId, setScanRunId] = useState('')
+  const [expandAssistant, setExpandAssistant] = useState(0)
+  const [contextRevision, setContextRevision] = useState(0)
+  const [record, setRecord] = useState<{
+    page: View
+    id: string | null
+    revision: number
+  }>({ page: 'Overview', id: null, revision: 0 })
+  const assetContext = useCallback(
+    (id: string | null) =>
+      setRecord((previous) => ({
+        page: 'Assets',
+        id,
+        revision: previous.revision + 1,
+      })),
+    [],
+  )
+  const profileContext = useCallback(
+    (id: string | null) =>
+      setRecord((previous) => ({
+        page: 'Profiles',
+        id,
+        revision: previous.revision + 1,
+      })),
+    [],
+  )
+  const graphContext = useCallback(
+    (id: string | null) =>
+      setRecord((previous) => ({
+        page: 'Graph',
+        id,
+        revision: previous.revision + 1,
+      })),
+    [],
+  )
+  const openAssistant = () => setExpandAssistant((value) => value + 1)
   const current = navigation.find((item) => item.name === view)!
 
   return (
@@ -157,7 +190,6 @@ export function Workspace({
               className="nav-button"
               aria-current={view === name ? 'page' : undefined}
               onClick={() => {
-                if (name === 'Chat') setReceiptSourceId('')
                 if (name === 'Scans') setScanRunId('')
                 setView(name)
               }}
@@ -199,263 +231,290 @@ export function Workspace({
             )}
           </div>
         </header>
-        <main id="main-content" className="main-content">
-          {view === 'Settings' ? (
-            <>
-              <AppearanceSettings
-                theme={appearance}
-                csrfToken={csrfToken}
-                refreshSession={refreshSession}
-              />
-              <PrivateSettingsPanel
-                csrfToken={csrfToken}
-                refreshSession={refreshSession}
-              />
-              <MailboxesPanel csrfToken={csrfToken} />
-              <PasswordSettings
-                configured={passwordEnabled}
-                deliveryEnabled={deliveryEnabled}
-                csrfToken={csrfToken}
-                refreshSession={refreshSession}
-              />
-            </>
-          ) : view === 'Review' ? (
-            <ReviewPanel csrfToken={csrfToken} />
-          ) : view === 'Scans' ? (
-            <ScansPanel
-              key={scanRunId}
-              csrfToken={csrfToken}
-              onNavigate={setView}
-              initialRunId={scanRunId}
-            />
-          ) : view === 'Purchases' ? (
-            <PurchasesPanel
-              csrfToken={csrfToken}
-              onOpenGraph={(id) => {
-                setGraphEntityId(id)
-                setView('Graph')
-              }}
-            />
-          ) : view === 'Documents' ? (
-            <DocumentsPanel
-              csrfToken={csrfToken}
-              refreshSession={refreshSession}
-            />
-          ) : view === 'Photos' ? (
-            <PhotosPanel csrfToken={csrfToken} />
-          ) : view === 'Chat' ? (
-            <ChatPanel
-              key={receiptSourceId}
-              initialReceiptSourceId={receiptSourceId}
-              onOpenScan={(id) => {
-                setScanRunId(id)
-                setView('Scans')
-              }}
-              csrfToken={csrfToken}
-              refreshSession={refreshSession}
-              onOpenGraph={(id) => {
-                setGraphEntityId(id)
-                setView('Graph')
-              }}
-            />
-          ) : view === 'Profiles' ? (
-            <ProfilesPanel
-              csrfToken={csrfToken}
-              refreshSession={refreshSession}
-              onOpenGraph={(id) => {
-                setGraphEntityId(id)
-                setView('Graph')
-              }}
-            />
-          ) : view === 'Graph' ? (
-            <GraphPanel
-              csrfToken={csrfToken}
-              refreshSession={refreshSession}
-              initialEntityId={graphEntityId}
-              onOpenAsset={(id) => {
-                setAssetId(id)
-                setView('Assets')
-              }}
-            />
-          ) : view === 'Memories' ? (
-            <MemoriesPanel
-              onProposeReceipt={(id) => {
-                setReceiptSourceId(id)
-                setView('Chat')
-              }}
-              csrfToken={csrfToken}
-              refreshSession={refreshSession}
-            />
-          ) : view === 'Assets' ? (
-            <AssetsPanel
-              initialAssetId={assetId}
-              onOpenGraph={(id) => {
-                setGraphEntityId(id)
-                setView('Graph')
-              }}
-              refreshSession={refreshSession}
-              csrfToken={csrfToken}
-            />
-          ) : view === 'Overview' ? (
-            <>
-              <div className="section-label">
-                <span /> A HOME FOR WHAT MATTERS
-              </div>
-              <section className="welcome">
-                <div className="welcome-copy">
-                  <h1>
-                    A little less <br />
-                    to remember.
-                  </h1>
-                  <p>
-                    Life is full of details. Give them a place to belong.
-                    <br className="desktop-break" /> Your things, stories, and
-                    connections — with their sources intact.
-                  </p>
-                  <Button
-                    className="explore-button"
-                    onClick={() => {
-                      setReceiptSourceId('')
-                      setView('Chat')
-                    }}
-                  >
-                    Explore your workspace{' '}
-                    <ArrowUpRight aria-hidden="true" size={17} />
-                  </Button>
-                  <span className="preview-note">
-                    Your account is ready. Save a memory or find it in Chat.
-                  </span>
-                </div>
-                <div className="memory-illustration" aria-hidden="true">
-                  <div className="orbit orbit-one" />
-                  <div className="orbit orbit-two" />
-                  <div className="graph-line line-one" />
-                  <div className="graph-line line-two" />
-                  <div className="graph-line line-three" />
-                  <div className="graph-center">
-                    <Leaf size={47} strokeWidth={1.4} />
+        <ChatDock
+          userId={userId}
+          expandSignal={expandAssistant}
+          page={
+            <main id="main-content" className="main-content">
+              {view === 'Settings' ? (
+                <>
+                  <AppearanceSettings
+                    theme={appearance}
+                    csrfToken={csrfToken}
+                    refreshSession={refreshSession}
+                  />
+                  <PrivateSettingsPanel
+                    csrfToken={csrfToken}
+                    refreshSession={refreshSession}
+                  />
+                  <MailboxesPanel csrfToken={csrfToken} />
+                  <PasswordSettings
+                    configured={passwordEnabled}
+                    deliveryEnabled={deliveryEnabled}
+                    csrfToken={csrfToken}
+                    refreshSession={refreshSession}
+                  />
+                </>
+              ) : view === 'Review' ? (
+                <ReviewPanel csrfToken={csrfToken} />
+              ) : view === 'Scans' ? (
+                <ScansPanel
+                  key={scanRunId}
+                  csrfToken={csrfToken}
+                  onNavigate={setView}
+                  initialRunId={scanRunId}
+                />
+              ) : view === 'Purchases' ? (
+                <PurchasesPanel
+                  csrfToken={csrfToken}
+                  onOpenGraph={(id) => {
+                    setGraphEntityId(id)
+                    setView('Graph')
+                  }}
+                />
+              ) : view === 'Documents' ? (
+                <DocumentsPanel
+                  csrfToken={csrfToken}
+                  refreshSession={refreshSession}
+                />
+              ) : view === 'Photos' ? (
+                <PhotosPanel csrfToken={csrfToken} />
+              ) : view === 'Profiles' ? (
+                <ProfilesPanel
+                  onContext={profileContext}
+                  contextRevision={contextRevision}
+                  csrfToken={csrfToken}
+                  refreshSession={refreshSession}
+                  onOpenGraph={(id) => {
+                    setGraphEntityId(id)
+                    setView('Graph')
+                  }}
+                />
+              ) : view === 'Graph' ? (
+                <GraphPanel
+                  key={graphEntityId}
+                  onContext={graphContext}
+                  contextRevision={contextRevision}
+                  csrfToken={csrfToken}
+                  refreshSession={refreshSession}
+                  initialEntityId={graphEntityId}
+                  onOpenAsset={(id) => {
+                    setAssetId(id)
+                    setView('Assets')
+                  }}
+                />
+              ) : view === 'Memories' ? (
+                <MemoriesPanel
+                  onProposeReceipt={(id) => {
+                    setReceiptSourceId(id)
+                    openAssistant()
+                  }}
+                  csrfToken={csrfToken}
+                  refreshSession={refreshSession}
+                />
+              ) : view === 'Assets' ? (
+                <AssetsPanel
+                  onContext={assetContext}
+                  contextRevision={contextRevision}
+                  initialAssetId={assetId}
+                  onOpenGraph={(id) => {
+                    setGraphEntityId(id)
+                    setView('Graph')
+                  }}
+                  refreshSession={refreshSession}
+                  csrfToken={csrfToken}
+                />
+              ) : view === 'Overview' ? (
+                <>
+                  <div className="section-label">
+                    <span /> A HOME FOR WHAT MATTERS
                   </div>
-                  <span className="graph-node node-one">
-                    <BookOpen size={22} />
-                  </span>
-                  <span className="graph-node node-two">
-                    <Boxes size={22} />
-                  </span>
-                  <span className="graph-node node-three">
-                    <MessageCircle size={22} />
-                  </span>
-                  <span className="little-node little-one" />
-                  <span className="little-node little-two" />
-                  <span className="illustration-caption">
-                    Every detail has a connection.
-                  </span>
-                </div>
-              </section>
-              <section
-                className="start-section"
-                aria-labelledby="start-heading"
-              >
-                <div className="section-heading">
-                  <h2 id="start-heading">Your story starts here</h2>
-                  <Badge variant="secondary">In the making</Badge>
-                </div>
-                <p className="section-description">
-                  A thoughtful foundation for memories you can trust.
-                </p>
-                <div className="feature-grid">
-                  {[
-                    {
-                      icon: MessageCircle,
-                      title: 'Start with a conversation',
-                      text: 'A natural way to capture a detail or find something you remember.',
-                      target: 'Chat' as View,
-                      label: 'Explore Chat',
-                    },
-                    {
-                      icon: Boxes,
-                      title: 'Keep the whole story',
-                      text: 'Connect your belongings to their receipts, repairs, and history.',
-                      target: 'Assets' as View,
-                      label: 'Explore Assets',
-                    },
-                    {
-                      icon: GitFork,
-                      title: 'See how it connects',
-                      text: 'Follow the relationships between your memories, people, and places.',
-                      target: 'Graph' as View,
-                      label: 'Explore Graph',
-                    },
-                  ].map(({ icon: Icon, title, text, target, label }) => (
-                    <Card key={title} className="feature-card">
-                      <CardContent>
-                        <span className="feature-icon">
-                          <Icon
-                            aria-hidden="true"
-                            size={22}
-                            strokeWidth={1.5}
-                          />
-                        </span>
-                        <h3>{title}</h3>
-                        <p>{text}</p>
-                        <Button
-                          variant="link"
-                          className="feature-link"
-                          onClick={() => setView(target)}
-                        >
-                          {label}
-                          <ArrowUpRight aria-hidden="true" size={15} />
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </section>
-              <div className="principles">
-                <ShieldCheck aria-hidden="true" size={23} />
-                <div>
-                  <strong>Your memories deserve a source of truth.</strong>
-                  <p>
-                    Original evidence preserved. Uncertainty made clear. History
-                    kept intact.
-                  </p>
-                </div>
-                <span className="principles-icon">
-                  <CircleCheck aria-hidden="true" size={20} />
-                </span>
-              </div>
-              <footer className="workspace-footer">
-                Made for a life that keeps growing.
-                <span>
-                  <Sparkles aria-hidden="true" size={13} /> LifeGather · Working
-                  name
-                </span>
-              </footer>
-            </>
-          ) : (
-            <section className="placeholder-view">
-              <Badge variant="secondary">Planned feature</Badge>
-              <current.icon
-                aria-hidden="true"
-                className="placeholder-icon"
-                size={40}
-                strokeWidth={1.3}
-              />
-              <h1>{view}</h1>
-              <p>{current.description}</p>
-              <div className="placeholder-notice">
-                <strong>{view} is not available yet.</strong>
-                <p>
-                  Your workspace is ready. Personal memory storage and this
-                  feature will be added in a later milestone.
-                </p>
-              </div>
-              <Button variant="outline" onClick={() => setView('Overview')}>
-                <ArrowLeft aria-hidden="true" size={16} />
-                Back to overview
-              </Button>
-            </section>
-          )}
-        </main>
+                  <section className="welcome">
+                    <div className="welcome-copy">
+                      <h1>
+                        A little less <br />
+                        to remember.
+                      </h1>
+                      <p>
+                        Life is full of details. Give them a place to belong.
+                        <br className="desktop-break" /> Your things, stories,
+                        and connections — with their sources intact.
+                      </p>
+                      <Button
+                        className="explore-button"
+                        onClick={() => {
+                          setReceiptSourceId('')
+                          openAssistant()
+                        }}
+                      >
+                        Explore your workspace{' '}
+                        <ArrowUpRight aria-hidden="true" size={17} />
+                      </Button>
+                      <span className="preview-note">
+                        Your account is ready. Save a memory or find it in Chat.
+                      </span>
+                    </div>
+                    <div className="memory-illustration" aria-hidden="true">
+                      <div className="orbit orbit-one" />
+                      <div className="orbit orbit-two" />
+                      <div className="graph-line line-one" />
+                      <div className="graph-line line-two" />
+                      <div className="graph-line line-three" />
+                      <div className="graph-center">
+                        <Leaf size={47} strokeWidth={1.4} />
+                      </div>
+                      <span className="graph-node node-one">
+                        <BookOpen size={22} />
+                      </span>
+                      <span className="graph-node node-two">
+                        <Boxes size={22} />
+                      </span>
+                      <span className="graph-node node-three">
+                        <MessageCircle size={22} />
+                      </span>
+                      <span className="little-node little-one" />
+                      <span className="little-node little-two" />
+                      <span className="illustration-caption">
+                        Every detail has a connection.
+                      </span>
+                    </div>
+                  </section>
+                  <section
+                    className="start-section"
+                    aria-labelledby="start-heading"
+                  >
+                    <div className="section-heading">
+                      <h2 id="start-heading">Your story starts here</h2>
+                      <Badge variant="secondary">In the making</Badge>
+                    </div>
+                    <p className="section-description">
+                      A thoughtful foundation for memories you can trust.
+                    </p>
+                    <div className="feature-grid">
+                      {[
+                        {
+                          icon: MessageCircle,
+                          title: 'Start with a conversation',
+                          text: 'A natural way to capture a detail or find something you remember.',
+                          target: 'Assistant' as const,
+                          label: 'Explore Chat',
+                        },
+                        {
+                          icon: Boxes,
+                          title: 'Keep the whole story',
+                          text: 'Connect your belongings to their receipts, repairs, and history.',
+                          target: 'Assets' as View,
+                          label: 'Explore Assets',
+                        },
+                        {
+                          icon: GitFork,
+                          title: 'See how it connects',
+                          text: 'Follow the relationships between your memories, people, and places.',
+                          target: 'Graph' as View,
+                          label: 'Explore Graph',
+                        },
+                      ].map(({ icon: Icon, title, text, target, label }) => (
+                        <Card key={title} className="feature-card">
+                          <CardContent>
+                            <span className="feature-icon">
+                              <Icon
+                                aria-hidden="true"
+                                size={22}
+                                strokeWidth={1.5}
+                              />
+                            </span>
+                            <h3>{title}</h3>
+                            <p>{text}</p>
+                            <Button
+                              variant="link"
+                              className="feature-link"
+                              onClick={() =>
+                                target === 'Assistant'
+                                  ? openAssistant()
+                                  : setView(target)
+                              }
+                            >
+                              {label}
+                              <ArrowUpRight aria-hidden="true" size={15} />
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </section>
+                  <div className="principles">
+                    <ShieldCheck aria-hidden="true" size={23} />
+                    <div>
+                      <strong>Your memories deserve a source of truth.</strong>
+                      <p>
+                        Original evidence preserved. Uncertainty made clear.
+                        History kept intact.
+                      </p>
+                    </div>
+                    <span className="principles-icon">
+                      <CircleCheck aria-hidden="true" size={20} />
+                    </span>
+                  </div>
+                  <footer className="workspace-footer">
+                    Made for a life that keeps growing.
+                    <span>
+                      <Sparkles aria-hidden="true" size={13} /> LifeGather ·
+                      Working name
+                    </span>
+                  </footer>
+                </>
+              ) : (
+                <section className="placeholder-view">
+                  <Badge variant="secondary">Planned feature</Badge>
+                  <current.icon
+                    aria-hidden="true"
+                    className="placeholder-icon"
+                    size={40}
+                    strokeWidth={1.3}
+                  />
+                  <h1>{view}</h1>
+                  <p>{current.description}</p>
+                  <div className="placeholder-notice">
+                    <strong>{view} is not available yet.</strong>
+                    <p>
+                      Your workspace is ready. Personal memory storage and this
+                      feature will be added in a later milestone.
+                    </p>
+                  </div>
+                  <Button variant="outline" onClick={() => setView('Overview')}>
+                    <ArrowLeft aria-hidden="true" size={16} />
+                    Back to overview
+                  </Button>
+                </section>
+              )}
+            </main>
+          }
+        >
+          <WorkspaceAssistant
+            page={view}
+            entityId={record.page === view ? record.id : null}
+            revision={contextRevision + expandAssistant + record.revision}
+            csrfToken={csrfToken}
+            refreshSession={refreshSession}
+            initialReceiptSourceId={receiptSourceId}
+            onOpenAsset={(id) => {
+              setAssetId(id)
+              setView('Assets')
+            }}
+            onOpenGraph={(id) => {
+              setGraphEntityId(id)
+              setView('Graph')
+            }}
+            onOpenScan={(id) => {
+              setScanRunId(id)
+              setView('Scans')
+            }}
+            onRecordChanged={(id) => {
+              if (view === 'Assets') setAssetId(id)
+              setContextRevision((value) => value + 1)
+            }}
+          />
+        </ChatDock>
       </div>
     </div>
   )
@@ -477,6 +536,7 @@ export default function App() {
       ) => (
         <Workspace
           key={user.id}
+          userId={user.id}
           userName={user.name || user.email}
           onSignOut={signOut}
           signingOut={busy}

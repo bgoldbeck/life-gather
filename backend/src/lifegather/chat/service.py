@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from lifegather.assets.actions import ActionService
 from lifegather.auth.store import Account
+from lifegather.chat.context import ContextRef, WorkspaceContexts
 from lifegather.chat.models import Conversation, Turn, Usage
 from lifegather.chat.provider_names import SUPPORTED_PROVIDERS
 from lifegather.credentials.service import PrivateSettings
@@ -39,10 +40,12 @@ class TurnInput(BaseModel):
         "extract_receipt",
         "extract_photo_receipt",
         "scan_email",
+        "organize",
     ]
     source_id: str = Field(default="", max_length=36)
     photo_id: str = Field(default="", max_length=36)
     scan: GmailScanConfig | None = None
+    context: ContextRef | None = None
     text: str = Field(min_length=1, max_length=4000)
     credential_id: str = Field(default="", max_length=36)
     model: str = Field(default="", max_length=100, pattern=r"^[a-zA-Z0-9._:-]*$")
@@ -79,6 +82,7 @@ def request_key(conversation_id: str, data: TurnInput) -> str:
         ({"source_id"} if not data.source_id else set())
         | ({"photo_id"} if not data.photo_id else set())
         | ({"scan"} if data.scan is None else set())
+        | ({"context"} if data.context is None else set())
     )
     return fingerprint([conversation_id, data.model_dump(exclude=excluded)])
 
@@ -195,6 +199,8 @@ class ChatService:
         with Session(self.engine) as db:
             db.connection().exec_driver_sql("BEGIN IMMEDIATE")
             conversation = self.owned(db, actor, conversation_id)
+            if data.context:
+                WorkspaceContexts(self.engine).read_in(db, actor, data.context)
             # Preserve replay fingerprints for turns saved before extraction existed.
             key = request_key(conversation_id, data)
             existing = db.scalar(
@@ -235,6 +241,53 @@ class ChatService:
             result = self.view(row)
             db.commit()
             return result, True
+
+    def organize(
+        self, actor: Account, conversation_id: str, value: TurnInput
+    ) -> dict[str, Any] | None:
+        from lifegather.chat.organizer import OrganizationAction, WorkspaceOrganizer
+
+        data = TurnInput.model_validate(value)
+        if data.mode != "organize":
+            raise MemoryError("Choose the Assistant action")
+        with self.memory._write() as db:
+            self.owned(db, actor, conversation_id)
+            row = db.scalar(
+                select(Turn).where(
+                    Turn.user_id == actor.id, Turn.request_id == data.request_id
+                )
+            )
+            if row is None or row.fingerprint != request_key(conversation_id, data):
+                raise MemoryError("Assistant request changed; start a new request")
+            if row.state != "pending":
+                return self.view(row)
+            previous = db.scalar(
+                select(Turn.result_json)
+                .where(
+                    Turn.user_id == actor.id,
+                    Turn.conversation_id == conversation_id,
+                    Turn.state == "complete",
+                    Turn.id != row.id,
+                )
+                .order_by(Turn.created_at.desc(), Turn.id.desc())
+                .limit(1)
+            )
+            awaiting = json.loads(previous).get("awaiting") if previous else None
+            with change_origin(related_id=row.id):
+                result = WorkspaceOrganizer(self.engine).execute_in(
+                    db,
+                    actor,
+                    OrganizationAction(
+                        request_id=data.request_id, text=data.text, context=data.context
+                    ),
+                    awaiting,
+                )
+            if result is None:
+                return None
+            row.result_json = json.dumps(result)
+            row.state = "complete"
+            db.flush()
+            return self.view(row)
 
     def start_scan(
         self, actor: Account, conversation_id: str, value: TurnInput, scans: ScanService

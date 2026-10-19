@@ -12,6 +12,12 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
 
 ## Execution ledger and decisions
 
+- The bundled v0.46.0 [contextual assistant](../../CONTEXTUAL_ASSISTANT.md) stays
+  mounted across pages, docks/collapses, opens uniquely named assets from chat,
+  and saves explicit profile details with original evidence and history. Ask AI
+  gains owner-checked selected-record recall. External MCP context is explicit,
+  with no ambient browser focus or live browser-control bridge.
+
 - v0.46.0 adds [manual inventory entry on Assets](../../MANUAL_ASSETS.md), with
   original manual evidence, stated ownership and shared identity bindings. Later
   sources can enrich the same physical item; duplicate choices remain explicit.
