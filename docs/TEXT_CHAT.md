@@ -1,6 +1,6 @@
 # Private text memory chat: first usable increment
 
-Chat now provides three explicit actions:
+The original text-memory increment provides three explicit actions:
 
 - **Save memory** preserves the exact original text as a private source. It does
   not infer verified facts, merge possessions, or create inventory items.

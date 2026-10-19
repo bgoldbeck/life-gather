@@ -7,6 +7,7 @@ import { AssetProposalCard } from './AssetProposalCard'
 import { ChatRequestError as RequestError } from './chatRequest'
 import { readChatStream } from './chatStream'
 import { isAIProvider, aiProviderLabel } from './aiProviders'
+import { ChatPhotoPicker, type SavedChatPhoto } from './ChatPhotoPicker'
 
 type Source = { id: string; text: string }
 type Turn = {
@@ -68,6 +69,9 @@ export function ChatPanel({
   const [retryNeeded, setRetryNeeded] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [photo, setPhoto] = useState<SavedChatPhoto | null>(null)
+  const [photoContext, setPhotoContext] = useState(0)
   const [source, setSource] = useState<EvidenceSource | null>(null)
   const [sourceOffset, setSourceOffset] = useState<number | null>(null)
   const [opening, setOpening] = useState(false)
@@ -78,6 +82,12 @@ export function ChatPanel({
   } | null>(null)
   const generation = useRef(0)
   const sourceGeneration = useRef(0)
+  const usesAI = [
+    'ask',
+    'extract',
+    'extract_receipt',
+    'extract_photo',
+  ].includes(mode)
 
   const request = useCallback(
     async (path: string, init?: RequestInit) => {
@@ -224,6 +234,9 @@ export function ChatPanel({
     const version = ++generation.current
     pending.current = null
     setRetryNeeded(false)
+    setPhoto(null)
+    setPhotoContext((value) => value + 1)
+    setNotice('')
     clearEvidence()
     setViewProposal('')
     setViewReceipt('')
@@ -273,10 +286,18 @@ export function ChatPanel({
 
   async function submit(event?: FormEvent) {
     event?.preventDefault()
-    if (busy || savingChoice || turnCursor || !text.trim()) return
+    if (
+      busy ||
+      savingChoice ||
+      loading ||
+      turnCursor ||
+      (mode === 'extract_photo' ? !photo : !text.trim())
+    )
+      return
     setBusy(true)
     setDraft('')
     setError('')
+    setNotice('')
     const controller = new AbortController()
     abort.current = controller
     try {
@@ -293,9 +314,13 @@ export function ChatPanel({
       const body = pending.current?.body ?? {
         request_id: crypto.randomUUID(),
         mode,
-        text,
+        text:
+          mode === 'extract_photo'
+            ? 'Read this photo for a reviewed asset proposal.'
+            : text,
         credential_id: credential,
         model,
+        ...(mode === 'extract_photo' ? { photo_id: photo!.id } : {}),
         ...(mode === 'extract' || mode === 'extract_receipt'
           ? { source_id: extractSource }
           : {}),
@@ -330,6 +355,12 @@ export function ChatPanel({
         })
       }
       setTurns((current) => [...current.filter((t) => t.id !== turn.id), turn])
+      if (turn.state === 'pending') {
+        setNotice(
+          'This request is still running. Retry the same request to check its saved result.',
+        )
+        return
+      }
       if (turn.result.receipt_proposal_id)
         setViewReceipt(turn.result.receipt_proposal_id)
       if (turn.result.proposal_id) setViewProposal(turn.result.proposal_id)
@@ -342,9 +373,16 @@ export function ChatPanel({
       )
       pending.current = null
       setRetryNeeded(false)
-      setText('')
-      const meter = await request('/usage')
-      setUsage(meter.requests)
+      if (body.mode === 'extract_photo') setPhoto(null)
+      else setText('')
+      try {
+        const meter = await request('/usage')
+        setUsage(meter.requests)
+      } catch {
+        setNotice(
+          'Request saved. Daily usage could not be refreshed; reopen Chat to check it.',
+        )
+      }
     } catch (caught) {
       if (caught instanceof RequestError) {
         pending.current = null
@@ -431,6 +469,9 @@ export function ChatPanel({
             setViewReceipt('')
             pending.current = null
             setRetryNeeded(false)
+            setPhoto(null)
+            setPhotoContext((value) => value + 1)
+            setNotice('')
             setError('')
           }}
         >
@@ -595,7 +636,9 @@ export function ChatPanel({
             )}
             {busy && (
               <p role="status">
-                {mode === 'extract' || mode === 'extract_receipt'
+                {mode === 'extract' ||
+                mode === 'extract_receipt' ||
+                mode === 'extract_photo'
                   ? 'Preparing a proposal for your review…'
                   : mode === 'ask'
                     ? 'Searching your evidence and preparing an answer…'
@@ -659,6 +702,7 @@ export function ChatPanel({
               {error}
             </p>
           )}
+          {notice && <p role="status">{notice}</p>}
           <form className="chat-composer" onSubmit={(e) => void submit(e)}>
             <label>
               Action
@@ -670,6 +714,7 @@ export function ChatPanel({
                 <option value="save">Save memory</option>
                 <option value="search">Keyword search</option>
                 <option value="ask">Ask AI</option>
+                <option value="extract_photo">Read a saved photo</option>
                 <option value="extract_receipt" disabled={!extractSource}>
                   Review multiple items from selected note
                 </option>
@@ -678,14 +723,22 @@ export function ChatPanel({
                 </option>
               </select>
             </label>
-            {(mode === 'ask' ||
-              mode === 'extract' ||
-              mode === 'extract_receipt') && (
+            {mode === 'extract_photo' && (
+              <ChatPhotoPicker
+                key={`${selected}:${photoContext}`}
+                selected={photo}
+                onSelect={setPhoto}
+                disabled={busy || retryNeeded || loading}
+              />
+            )}
+            {usesAI && (
               <div className="chat-provider">
                 <p>
-                  {mode === 'extract' || mode === 'extract_receipt'
-                    ? 'Your selected provider receives only the selected saved note. Nothing enters inventory until you review and confirm the proposed items.'
-                    : 'Your selected provider receives your question, up to four recent user messages, matching evidence, relevant records and requested graph connections.'}{' '}
+                  {mode === 'extract_photo'
+                    ? 'Your selected provider receives the selected original photo. The reading is unverified and proposes at most one item; review it before adding anything to inventory.'
+                    : mode === 'extract' || mode === 'extract_receipt'
+                      ? 'Your selected provider receives only the selected saved note. Nothing enters inventory until you review and confirm the proposed items.'
+                      : 'Your selected provider receives your question, up to four recent user messages, matching evidence, relevant records and requested graph connections.'}{' '}
                   {usage}/20 AI requests used today (UTC). Provider charges may
                   apply.
                 </p>
@@ -762,31 +815,35 @@ export function ChatPanel({
                 {choiceNotice && <p role="status">{choiceNotice}</p>}
               </div>
             )}
-            <label htmlFor="chat-text">
-              {mode === 'save'
-                ? 'Memory to save'
-                : mode === 'search'
-                  ? 'Search keywords'
-                  : mode === 'extract' || mode === 'extract_receipt'
-                    ? 'Selected saved note'
-                    : 'Your question'}
-            </label>
-            <textarea
-              id="chat-text"
-              value={text}
-              maxLength={mode === 'search' ? 200 : 4000}
-              disabled={busy || retryNeeded}
-              readOnly={mode === 'extract' || mode === 'extract_receipt'}
-              rows={3}
-              onChange={(e) => setText(e.target.value)}
-            />
-            <p>
-              {mode === 'search'
-                ? 'Use 1–12 keywords. Every word must match.'
-                : mode === 'extract' || mode === 'extract_receipt'
-                  ? 'Review the proposal before creating an asset. Correct the saved note first if its text is wrong.'
-                  : 'Only Save memory adds your original text to searchable memory.'}
-            </p>
+            {mode !== 'extract_photo' && (
+              <>
+                <label htmlFor="chat-text">
+                  {mode === 'save'
+                    ? 'Memory to save'
+                    : mode === 'search'
+                      ? 'Search keywords'
+                      : mode === 'extract' || mode === 'extract_receipt'
+                        ? 'Selected saved note'
+                        : 'Your question'}
+                </label>
+                <textarea
+                  id="chat-text"
+                  value={text}
+                  maxLength={mode === 'search' ? 200 : 4000}
+                  disabled={busy || retryNeeded}
+                  readOnly={mode === 'extract' || mode === 'extract_receipt'}
+                  rows={3}
+                  onChange={(e) => setText(e.target.value)}
+                />
+                <p>
+                  {mode === 'search'
+                    ? 'Use 1–12 keywords. Every word must match.'
+                    : mode === 'extract' || mode === 'extract_receipt'
+                      ? 'Review the proposal before creating an asset. Correct the saved note first if its text is wrong.'
+                      : 'Only Save memory adds your original text to searchable memory.'}
+                </p>
+              </>
+            )}
             <div className="chat-send">
               <Button
                 type="submit"
@@ -795,11 +852,8 @@ export function ChatPanel({
                   savingChoice ||
                   loading ||
                   !!turnCursor ||
-                  !text.trim() ||
-                  ((mode === 'ask' ||
-                    mode === 'extract' ||
-                    mode === 'extract_receipt') &&
-                    (!consent || !credential || !model || usage >= 20))
+                  (mode === 'extract_photo' ? !photo : !text.trim()) ||
+                  (usesAI && (!consent || !credential || !model || usage >= 20))
                 }
               >
                 {retryNeeded
@@ -808,11 +862,13 @@ export function ChatPanel({
                     ? 'Save memory'
                     : mode === 'search'
                       ? 'Search memories'
-                      : mode === 'extract' || mode === 'extract_receipt'
-                        ? mode === 'extract_receipt'
-                          ? 'Suggest receipt items'
-                          : 'Suggest asset'
-                        : 'Ask AI'}
+                      : mode === 'extract_photo'
+                        ? 'Read selected photo'
+                        : mode === 'extract' || mode === 'extract_receipt'
+                          ? mode === 'extract_receipt'
+                            ? 'Suggest receipt items'
+                            : 'Suggest asset'
+                          : 'Ask AI'}
               </Button>
               {busy && (
                 <Button

@@ -513,3 +513,15 @@ authorization. Verification: 410 backend / 145 frontend, lint/format/types and
 package/frontend builds; desktop/narrow browser and synthetic lifecycle checks.
 Fixed existing photo-grid minimum width during 390px QA. No migration/dependency/
 provider call/redeploy. Graphify unavailable; source graph/HTML not refreshed.
+
+Saved photo Chat v0.40.0: explicit private five-item paged picker and existing
+photo extraction in the chosen conversation, with original evidence and human
+proposal review. Preserve text drafts and consent/model/budget gates; retain exact
+pending/lost-response retry identities and do not call completed writes uncertain
+when usage refresh alone fails. Reset choices/reads on every conversation intent.
+Verification: 411 backend / 159 frontend, lint/format/types and builds; synthetic
+private conversation/vision/replay test, browser source/proposal inspection and
+390px layout without overflow. Existing Chat grid/row minimum width fixed during QA.
+No migration, dependency, provider-adapter change or live call/redeploy. Graphify
+unavailable; source graph/HTML not refreshed. Uploads and multi-item photo receipts
+remain separate from this saved-photo increment.
