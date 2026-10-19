@@ -15,9 +15,11 @@ from lifegather.auth.store import Account
 from lifegather.chat.models import Conversation, Turn, Usage
 from lifegather.chat.provider_names import SUPPORTED_PROVIDERS
 from lifegather.credentials.service import PrivateSettings
+from lifegather.mailboxes.scan import GmailScanConfig
 from lifegather.memory.notes import NoteService
 from lifegather.memory.schemas import SourceInput, SourceView
 from lifegather.memory.service import MemoryError, MemoryService, fingerprint
+from lifegather.scans.service import ScanService
 
 DAILY_REQUESTS = 20
 
@@ -35,9 +37,11 @@ class TurnInput(BaseModel):
         "extract_photo",
         "extract_receipt",
         "extract_photo_receipt",
+        "scan_email",
     ]
     source_id: str = Field(default="", max_length=36)
     photo_id: str = Field(default="", max_length=36)
+    scan: GmailScanConfig | None = None
     text: str = Field(min_length=1, max_length=4000)
     credential_id: str = Field(default="", max_length=36)
     model: str = Field(default="", max_length=100, pattern=r"^[a-zA-Z0-9._:-]*$")
@@ -46,6 +50,10 @@ class TurnInput(BaseModel):
     def valid_text(self) -> "TurnInput":
         if not self.text.strip():
             raise ValueError("Text cannot be blank")
+        if self.mode == "scan_email" and self.scan is None:
+            raise ValueError("Choose an email scan scope")
+        if self.mode != "scan_email" and self.scan is not None:
+            raise ValueError("Only email scan requests include scan scope")
         if self.mode in {
             "ask",
             "extract",
@@ -62,6 +70,16 @@ class TurnInput(BaseModel):
         ):
             raise ValueError("Choose a photo first")
         return self
+
+
+def request_key(conversation_id: str, data: TurnInput) -> str:
+    # Optional scope must not change fingerprints of already saved requests.
+    excluded = (
+        ({"source_id"} if not data.source_id else set())
+        | ({"photo_id"} if not data.photo_id else set())
+        | ({"scan"} if data.scan is None else set())
+    )
+    return fingerprint([conversation_id, data.model_dump(exclude=excluded)])
 
 
 class SaveText(BaseModel):
@@ -176,15 +194,7 @@ class ChatService:
             db.connection().exec_driver_sql("BEGIN IMMEDIATE")
             conversation = self.owned(db, actor, conversation_id)
             # Preserve replay fingerprints for turns saved before extraction existed.
-            key = fingerprint(
-                [
-                    conversation_id,
-                    data.model_dump(
-                        exclude=({"source_id"} if not data.source_id else set())
-                        | ({"photo_id"} if not data.photo_id else set())
-                    ),
-                ]
-            )
+            key = request_key(conversation_id, data)
             existing = db.scalar(
                 select(Turn).where(
                     Turn.user_id == actor.id, Turn.request_id == data.request_id
@@ -223,6 +233,49 @@ class ChatService:
             result = self.view(row)
             db.commit()
             return result, True
+
+    def start_scan(
+        self, actor: Account, conversation_id: str, value: TurnInput, scans: ScanService
+    ) -> dict[str, Any]:
+        """One authorized pending request, durable job and saved Chat result."""
+        data = TurnInput.model_validate(value)
+        if (
+            data.mode != "scan_email"
+            or data.scan is None
+            or scans.engine is not self.engine
+        ):
+            raise MemoryError("Choose the connected email scan action")
+        with self.memory._write() as db:
+            self.owned(db, actor, conversation_id)
+            row = db.scalar(
+                select(Turn).where(
+                    Turn.user_id == actor.id, Turn.request_id == data.request_id
+                )
+            )
+            if row is None or row.fingerprint != request_key(conversation_id, data):
+                raise MemoryError("Chat scan request changed; start a new request")
+            if row.state != "pending":
+                return self.view(row)
+            run = scans.enqueue_in(
+                db,
+                actor,
+                "gmail_import",
+                data.scan.model_dump(),
+                "chat:" + fingerprint([conversation_id, data.request_id]),
+            )
+            row.result_json = json.dumps(
+                {
+                    "text": (
+                        "Email evidence scan queued. No AI extraction is enabled. "
+                        "The scan continues after leaving Chat; open its progress "
+                        "to inspect results or cancel."
+                    ),
+                    "scan_run_id": run["id"],
+                    "scan_scope": data.scan.model_dump(),
+                }
+            )
+            row.state = "complete"
+            return self.view(row)
 
     def finish(
         self,

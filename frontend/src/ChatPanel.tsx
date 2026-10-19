@@ -8,6 +8,7 @@ import { ChatRequestError as RequestError } from './chatRequest'
 import { readChatStream } from './chatStream'
 import { isAIProvider, aiProviderLabel } from './aiProviders'
 import { ChatPhotoPicker, type SavedChatPhoto } from './ChatPhotoPicker'
+import { ChatEmailScan, type EmailScanScope } from './ChatEmailScan'
 
 type Source = { id: string; text: string }
 type Turn = {
@@ -24,9 +25,21 @@ type Turn = {
     provider?: string
     model?: string
     records?: { id: string; name: string; kind: string }[]
+    scan_run_id?: string
     recall_limited?: boolean
   }
 }
+type ChatBody = {
+  request_id: string
+  mode: string
+  text: string
+  credential_id: string
+  model: string
+  photo_id?: string
+  source_id?: string
+  scan?: EmailScanScope
+}
+
 type Conversation = { id: string; title: string }
 type Page<T> = { items: T[]; next_cursor: string | null }
 type Credential = { id: string; kind: string; provider: string; label: string }
@@ -36,11 +49,13 @@ export function ChatPanel({
   refreshSession,
   initialReceiptSourceId = '',
   onOpenGraph,
+  onOpenScan,
 }: {
   csrfToken: string
   initialReceiptSourceId?: string
   refreshSession?: () => Promise<void>
   onOpenGraph?: (id: string) => void
+  onOpenScan?: (id: string) => void
 }) {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [conversationCursor, setConversationCursor] = useState<string | null>(
@@ -73,13 +88,14 @@ export function ChatPanel({
   const [notice, setNotice] = useState('')
   const [photo, setPhoto] = useState<SavedChatPhoto | null>(null)
   const [photoContext, setPhotoContext] = useState(0)
+  const [scanScope, setScanScope] = useState<EmailScanScope | null>(null)
   const [source, setSource] = useState<EvidenceSource | null>(null)
   const [sourceOffset, setSourceOffset] = useState<number | null>(null)
   const [opening, setOpening] = useState(false)
   const abort = useRef<AbortController | null>(null)
   const pending = useRef<{
     conversation: string
-    body: Record<string, string>
+    body: ChatBody
   } | null>(null)
   const generation = useRef(0)
   const sourceGeneration = useRef(0)
@@ -95,6 +111,7 @@ export function ChatPanel({
     'extract_photo_receipt',
   ].includes(mode)
   const usesPhoto = mode === 'extract_photo' || mode === 'extract_photo_receipt'
+  const usesScan = mode === 'scan_email'
 
   const request = useCallback(
     async (path: string, init?: RequestInit) => {
@@ -251,6 +268,7 @@ export function ChatPanel({
 
   async function openConversation(id: string) {
     cancelContextReads()
+    setScanScope(null)
     const version = ++generation.current
     pending.current = null
     setRetryNeeded(false)
@@ -360,14 +378,14 @@ export function ChatPanel({
     }
   }
 
-  async function submit(event?: FormEvent) {
+  async function submit(event: FormEvent, submittedAt: number) {
     event?.preventDefault()
     if (
       busy ||
       savingChoice ||
       loading ||
       turnCursor ||
-      (usesPhoto ? !photo : !text.trim())
+      (usesScan ? !scanScope : usesPhoto ? !photo : !text.trim())
     )
       return
     setBusy(true)
@@ -388,16 +406,29 @@ export function ChatPanel({
         setSelected(id)
         setConversations((current) => [created, ...current])
       }
-      const body = pending.current?.body ?? {
+      const body: ChatBody = pending.current?.body ?? {
         request_id: crypto.randomUUID(),
         mode,
-        text: usesPhoto
-          ? mode === 'extract_photo_receipt'
-            ? 'Read receipt lines in this photo for human review.'
-            : 'Read this photo for a reviewed asset proposal.'
-          : text,
-        credential_id: credential,
-        model,
+        text: usesScan
+          ? 'Scan connected email for original text evidence.'
+          : usesPhoto
+            ? mode === 'extract_photo_receipt'
+              ? 'Read receipt lines in this photo for human review.'
+              : 'Read this photo for a reviewed asset proposal.'
+            : text,
+        credential_id: usesScan ? '' : credential,
+        model: usesScan ? '' : model,
+        ...(usesScan
+          ? {
+              scan: {
+                ...scanScope!,
+                until_timestamp: Math.min(
+                  scanScope!.until_timestamp,
+                  submittedAt,
+                ),
+              },
+            }
+          : {}),
         ...(usesPhoto ? { photo_id: photo!.id } : {}),
         ...(mode === 'extract' || mode === 'extract_receipt'
           ? { source_id: extractSource }
@@ -456,7 +487,10 @@ export function ChatPanel({
         body.mode === 'extract_photo_receipt'
       )
         setPhoto(null)
-      else setText('')
+      else if (body.mode === 'scan_email') {
+        setScanScope(null)
+        setPhotoContext((value) => value + 1)
+      } else setText('')
       void refreshUsage()
     } catch (caught) {
       if (caught instanceof RequestError) {
@@ -537,6 +571,7 @@ export function ChatPanel({
           onClick={() => {
             cancelContextReads()
             generation.current++
+            setScanScope(null)
             setSelected('')
             setTurns([])
             setTurnCursor(null)
@@ -616,14 +651,25 @@ export function ChatPanel({
                         ? turn.mode === 'extract_receipt'
                           ? 'Suggest receipt items'
                           : 'Suggest asset'
-                        : turn.mode === 'extract_photo_receipt'
-                          ? 'Review receipt photo'
-                          : turn.mode === 'extract_photo'
-                            ? 'Read photo'
-                            : 'Ask AI'}
+                        : turn.mode === 'scan_email'
+                          ? 'Request email scan'
+                          : turn.mode === 'extract_photo_receipt'
+                            ? 'Review receipt photo'
+                            : turn.mode === 'extract_photo'
+                              ? 'Read photo'
+                              : 'Ask AI'}
                 </p>
                 <p className="chat-text">{turn.text}</p>
                 <div className="chat-response">
+                  {turn.result.scan_run_id && (
+                    <Button
+                      variant="outline"
+                      disabled={!onOpenScan}
+                      onClick={() => onOpenScan?.(turn.result.scan_run_id!)}
+                    >
+                      View email scan
+                    </Button>
+                  )}
                   {turn.result.provider && (
                     <p className="chat-label">
                       {aiProviderLabel(turn.result.provider)} ·{' '}
@@ -782,7 +828,10 @@ export function ChatPanel({
             </p>
           )}
           {notice && <p role="status">{notice}</p>}
-          <form className="chat-composer" onSubmit={(e) => void submit(e)}>
+          <form
+            className="chat-composer"
+            onSubmit={(e) => void submit(e, Math.floor(Date.now() / 1000))}
+          >
             <label>
               Action
               <select
@@ -790,11 +839,13 @@ export function ChatPanel({
                 disabled={busy || retryNeeded}
                 onChange={(e) => {
                   cancelInitialSelection()
+                  setScanScope(null)
                   setMode(e.target.value)
                 }}
               >
                 <option value="save">Save memory</option>
                 <option value="search">Keyword search</option>
+                <option value="scan_email">Request an email scan</option>
                 <option value="ask">Ask AI</option>
                 <option value="extract_photo">Read a saved photo</option>
                 <option value="extract_photo_receipt">
@@ -808,6 +859,13 @@ export function ChatPanel({
                 </option>
               </select>
             </label>
+            {usesScan && (
+              <ChatEmailScan
+                key={photoContext}
+                disabled={busy || retryNeeded || loading}
+                onChange={setScanScope}
+              />
+            )}
             {usesPhoto && (
               <ChatPhotoPicker
                 key={`${selected}:${photoContext}`}
@@ -903,7 +961,7 @@ export function ChatPanel({
                 {choiceNotice && <p role="status">{choiceNotice}</p>}
               </div>
             )}
-            {!usesPhoto && (
+            {!usesPhoto && !usesScan && (
               <>
                 <label htmlFor="chat-text">
                   {mode === 'save'
@@ -943,7 +1001,7 @@ export function ChatPanel({
                   savingChoice ||
                   loading ||
                   !!turnCursor ||
-                  (usesPhoto ? !photo : !text.trim()) ||
+                  (usesScan ? !scanScope : usesPhoto ? !photo : !text.trim()) ||
                   (usesAI && (!consent || !credential || !model || usage >= 20))
                 }
               >
@@ -953,15 +1011,17 @@ export function ChatPanel({
                     ? 'Save memory'
                     : mode === 'search'
                       ? 'Search memories'
-                      : mode === 'extract_photo_receipt'
-                        ? 'Review receipt photo'
-                        : mode === 'extract_photo'
-                          ? 'Read selected photo'
-                          : mode === 'extract' || mode === 'extract_receipt'
-                            ? mode === 'extract_receipt'
-                              ? 'Suggest receipt items'
-                              : 'Suggest asset'
-                            : 'Ask AI'}
+                      : usesScan
+                        ? 'Start email scan'
+                        : mode === 'extract_photo_receipt'
+                          ? 'Review receipt photo'
+                          : mode === 'extract_photo'
+                            ? 'Read selected photo'
+                            : mode === 'extract' || mode === 'extract_receipt'
+                              ? mode === 'extract_receipt'
+                                ? 'Suggest receipt items'
+                                : 'Suggest asset'
+                              : 'Ask AI'}
               </Button>
               {busy && (
                 <Button

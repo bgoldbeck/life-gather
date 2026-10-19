@@ -25,3 +25,12 @@ draft/context preservation and exact job navigation. Verify existing scan servic
 worker/permission/schedule behavior, full strict tests, synthetic browser and Linux
 smoke. Release v0.43.0 through the standing source/GHCR workflow. No schema or new
 dependency, live mailbox/model request, recurrence or deployment change.
+
+Accepted implementation: full 446 backend /195 frontend regressions pass, strict
+typing/lint/format/builds; affected 22 backend cases rerun after pending-request
+recovery. Browser synthetic queue, saved conversation, exact focused job and
+original evidence verified; 390px composer fits without horizontal overflow.
+Synthetic queue/worker/replay/snapshot smoke passes on host; Linux verification
+follows the source merge. Graphify is unavailable, so graph/HTML refresh could
+not run. No live Gmail or AI call. The old optional-field request fingerprints
+remain unchanged. Pending scan replay can finish enqueue after an interruption.

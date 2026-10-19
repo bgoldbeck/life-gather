@@ -44,6 +44,8 @@ async def answer(
     emit: DeltaSink | None = None,
     google_provider: Provider | None = None,
 ) -> dict[str, Any]:
+    if body.mode == "scan_email":
+        raise MemoryError("Email scans use the authenticated queue action, not AI")
     if body.mode == "save":
         original = save_text(
             chat.memory,
