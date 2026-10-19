@@ -18,6 +18,15 @@ Use the default **Assistant** action for explicit local commands:
 - Supplied manufacturer, model, serial, paint, filter dimensions, maintenance and
   specification details use the same profile service. A single current statement
   is corrected with preserved history; conflicting statements require review.
+- `Set custom "Tire size" to 205/55R16` records a named custom detail on the selected
+  asset or place. Names must be in straight double quotes; case and separators
+  normalize just as in Profiles. Add/set/update/change/record and the existing
+  polite prefixes are supported. Names retain the 48-character ASCII limit and
+  reserved identity-field rules; exact supplied values support up to 500 characters.
+  The complete original request remains evidence. A missing value asks for a full
+  command; bare follow-up values remain VIN-only. Use Profiles for unknowns, valid
+  dates or choosing among multiple current statements. The literal word `unknown`
+  in a supplied value is ordinary text, not an automatic unknown-status command.
 
 These bounded commands need no provider or API key. Other phrasings may require
 the shown command form. Choose **Ask AI** for broader questions; its existing
@@ -38,6 +47,9 @@ explicit page/record, then `workspace_organize` with that context version, exact
 user request text and a stable request ID. Calls stay within the authenticated
 account. They inherit no browser focus or another client's selection. Navigation
 results are instructions for that client's own UI, not a remote browser bridge.
+Retries of corrections inherited from a consolidated member retain that original
+subject and succeed while it belongs to the selected identity. After reversal,
+the request cannot be reused to edit a different physical item.
 These tools do not expand the app model's read-only tool allowlist.
 
 HTTP uses authenticated `POST /api/chat/context` for reads and the existing

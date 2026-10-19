@@ -12,6 +12,20 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
 
 ## Execution ledger and decisions
 
+- v0.53.0 extends explicit contextual-assistant commands to quoted named custom
+  details through the existing sourced profile service. Preserve selected-owner
+  versions, exact evidence/value, correction history, conflicts, cancellation and
+  replay. Fix inherited consolidated-member correction retries without rewriting
+  provenance or authorizing another item after reversal. No migration/dependency,
+  model write tool or provider call; unknowns/dates remain in Profiles.
+  Verification: 583 backend / 253 frontend tests, Ruff, strict types (227 files
+  including recovery smoke), formatting, wheel and production build pass. Real
+  browser custom save/correction/source/history and reload persistence pass;
+  390px has no page overflow. Linux source smoke preserves the command correction,
+  both values, originals, two owners and private credentials through recovery.
+  Code-only graph and HTML refreshed: 3,233 nodes /14,025 edges. Clean-main image
+  publication follows source acceptance; no existing installation deployment.
+
 - v0.52.0 adds [personal ZIP archives](../../PERSONAL_ARCHIVE.md) with unchanged
   owner-scoped records JSON, active photo/PDF originals and a length/hash manifest
   from one SQLite snapshot. Bound total bytes, file count and existing record

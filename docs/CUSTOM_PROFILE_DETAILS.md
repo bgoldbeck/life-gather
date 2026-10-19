@@ -26,8 +26,10 @@ history** and **View tire size history** expose the earlier versions and evidenc
 
 Names display readably in Profiles, Assets, Graph, record comparison and field
 history. A selected record's assistant context includes its custom details under
-the existing private recall rules. Chat's existing bounded edit commands remain
-limited to built-in fields; use Profiles for custom-detail writes.
+the existing private recall rules. The [contextual assistant](CONTEXTUAL_ASSISTANT.md)
+also accepts `Set custom "Tire size" to 205/55R16` while viewing an item. A single
+current statement is corrected with history; conflicting statements require review.
+Use Profiles for explicit unknowns, valid dates or choosing one conflicting version.
 
 Custom statements follow explicitly consolidated identities while retaining the
 original record for correction history. Distinct records and purchased units are

@@ -1,6 +1,6 @@
 # LifeGather
 
-[![Source version](https://img.shields.io/badge/source_version-v0.52.0-426B46)](CHANGELOG.md)
+[![Source version](https://img.shields.io/badge/source_version-v0.53.0-426B46)](CHANGELOG.md)
 
 This badge identifies the source release. Check the login screen or app header for your running container’s version.
 
@@ -13,6 +13,8 @@ It aims to help organize possessions, events, documents, and relationships while
 Profiles supports [named custom details](docs/CUSTOM_PROFILE_DETAILS.md), such as
 tire size or fuel type, with original evidence, explicit unknowns and corrections.
 Existing identity fields and physical-item matching keep their established meaning.
+The [contextual assistant](docs/CONTEXTUAL_ASSISTANT.md) can save these supplied
+details with explicit commands such as `Set custom "Tire size" to 205/55R16`.
 
 Operators can create, verify and restore [encrypted installation backups](docs/OPERATOR_RECOVERY.md)
 including every owner's database, photo/PDF originals, configuration and vault key.

@@ -3,7 +3,13 @@
 **Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
 **Date:** Updated 2026-10-17
 
-Current increment: v0.52.0 adds a [personal records and originals ZIP](docs/PERSONAL_ARCHIVE.md)
+Current increment: v0.53.0 lets the [contextual assistant](docs/CONTEXTUAL_ASSISTANT.md)
+save supplied named custom details with original evidence and correction history.
+Pinned context, reserved identity fields, conflicts and exact retries remain guarded;
+consolidated-member correction retries preserve original subjects. No migration,
+dependency, AI tool or provider request.
+
+v0.52.0 adds a [personal records and originals ZIP](docs/PERSONAL_ARCHIVE.md)
 from one owner-scoped SQLite snapshot, with exact original bytes and a hash
 manifest. Existing JSON downloads remain available. No schema, dependency or
 automatic import/restore; all-user encrypted operator recovery remains separate.

@@ -17,6 +17,8 @@ from pypdf import PdfWriter
 from sqlalchemy import text
 
 from lifegather.auth.store import AuthStore
+from lifegather.chat.context import ContextRead, ContextRef, WorkspaceContexts
+from lifegather.chat.organizer import OrganizationAction, WorkspaceOrganizer
 from lifegather.config import Settings
 from lifegather.credentials.service import PrivateSettings, read_key
 from lifegather.documents.service import DocumentService
@@ -67,6 +69,26 @@ def verify(root: Path) -> None:
             operation_key="tire",
         ),
     )
+    previous_custom = custom
+    snapshot = WorkspaceContexts(store.engine).read(
+        alice, ContextRead(page="Assets", entity_id=item.id)
+    )
+    command = OrganizationAction(
+        request_id="synthetic-chat-tire",
+        text='Set custom "Tire size" to 215/55R16',
+        context=ContextRef(
+            page="Assets", entity_id=item.id, version=snapshot["version"]
+        ),
+    )
+    organizer = WorkspaceOrganizer(store.engine)
+    changed = organizer.run(alice, command)
+    assert organizer.run(alice, command) == changed
+    custom = next(
+        detail
+        for detail in ProfileService(store.engine).get(alice, item.id)["facts"]
+        if detail.id == changed["profile_fact_id"]
+    )
+    assert custom.replaces_id == previous_custom.id and custom.value == "215/55R16"
     key = AESGCM.generate_key(bit_length=256)
     key_path = root / "source.key"
     key_path.write_bytes(key)
@@ -125,6 +147,12 @@ def verify(root: Path) -> None:
     assert any(
         detail.model_dump() == custom.model_dump()
         for detail in ProfileService(recovered.engine).get(alice, item.id)["facts"]
+    )
+    assert any(
+        detail.id == previous_custom.id and detail.value == "205/55R16"
+        for detail in ProfileService(recovered.engine).get(
+            alice, item.id, history=True
+        )["facts"]
     )
     try:
         recall.get_entity(bob, item.id)

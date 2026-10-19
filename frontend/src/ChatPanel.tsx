@@ -1097,7 +1097,7 @@ export function ChatPanel({
                 />
                 <p>
                   {mode === 'organize'
-                    ? 'Try “Edit my F150”, or “Set VIN to …” while viewing an item. Supplied profile edits are saved with history. Choose Ask AI for other questions.'
+                    ? 'Try “Edit my F150”, then ‘Set custom "Tire size" to 205/55R16’ while viewing it. Supplied details keep evidence and history. Choose Ask AI for other questions.'
                     : mode === 'search'
                       ? 'Use 1–12 keywords. Every word must match.'
                       : mode === 'extract' || mode === 'extract_receipt'
