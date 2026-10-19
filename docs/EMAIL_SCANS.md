@@ -1,5 +1,31 @@
 # Private email connections and scans
 
+## Requested scans (v0.35.0)
+
+Open Scans after connecting Gmail in Settings. Choose dates (UTC), an optional
+Gmail search and a message cap, then Start email scan. Scans do not run when mail
+arrives. No AI requests or assets are created during import. Use Memories → Email
+evidence to inspect/correct the saved text with original history preserved.
+
+Each run covers at most 31 days and 50 messages, with 20 runs per user per day.
+Only supported inline plain/HTML text is imported; attachments and remote resources
+are not fetched. Large responses stop the run safely. Text is capped at 4,000
+characters and marked when truncated or parts are omitted. Original Gmail message
+identity and headers accompany the excerpt. This is not a full mailbox backup.
+
+The server processes one item at a time with a durable checkpoint. Restart resumes
+the last committed checkpoint; at most three claims and ten minutes per claim.
+Cancel stops at the next safe boundary; already saved evidence remains. Identical
+message identities in the same user's mailbox are saved once, including reconnects.
+Changed content under the same identity fails safely rather than overwriting history.
+
+Typed handlers register source-specific scope, permission checks and bounded steps.
+The generic run service owns leases, progress, cancellation, evidence transactions
+and recovery. A handler rechecks authorization in the evidence transaction. Adding
+a source needs a handler, tests and its UI, not another queue or scheduler. No
+arbitrary plugin code can be uploaded through the app. Private MCP `scan_list` and
+`scan_get` expose read-only status and paginated evidence references.
+
 ## Gmail connection (v0.34.0)
 
 Settings → Email connections → Connect Gmail opens a separate Google read-only

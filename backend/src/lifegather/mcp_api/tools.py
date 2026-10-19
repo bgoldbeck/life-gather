@@ -77,6 +77,8 @@ from lifegather.reconciliation.receipts import (
     ReceiptService,
 )
 from lifegather.reconciliation.service import ReconciliationService
+from lifegather.scans.registry import ScanPage, ScanRead, ScanRegistry
+from lifegather.scans.service import ScanService
 
 logger = logging.getLogger(__name__)
 MAX_RESULT_BYTES = 32768
@@ -752,6 +754,26 @@ def build_server() -> MCPServer:
             ctx,
             lambda actor, memory, _: ReplacementService(memory.engine).change(
                 actor, data
+            ),
+        )
+
+    @server.tool(annotations=annotation)
+    def scan_list(data: ScanPage, ctx: ToolContext) -> dict[str, Any]:
+        """Read this user's private scan history. Does not start scans."""
+        return read(
+            ctx,
+            lambda actor, memory, _: ScanService(memory.engine, ScanRegistry([])).list(
+                actor, data.cursor
+            ),
+        )
+
+    @server.tool(annotations=annotation)
+    def scan_get(data: ScanRead, ctx: ToolContext) -> dict[str, Any]:
+        """Read a private scan and its first page of saved evidence references."""
+        return read(
+            ctx,
+            lambda actor, memory, _: ScanService(memory.engine, ScanRegistry([])).get(
+                actor, data.run_id, data.after
             ),
         )
 

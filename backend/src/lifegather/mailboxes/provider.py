@@ -73,7 +73,16 @@ class GmailProvider:
         token: str = "",
         params: dict[str, str | int] | None = None,
     ) -> dict[str, Any]:
-        if not (url == TOKEN_URL or url == GMAIL_URL + "/profile"):
+        allowed = (method == "POST" and url == TOKEN_URL) or (
+            method == "GET"
+            and (
+                url in {GMAIL_URL + "/profile", GMAIL_URL + "/messages"}
+                or re.fullmatch(
+                    re.escape(GMAIL_URL) + r"/messages/[A-Za-z0-9_-]{1,100}", url
+                )
+            )
+        )
+        if not allowed:
             raise MailboxFailure("Unsupported mailbox operation")
         try:
             async with httpx2.AsyncClient(

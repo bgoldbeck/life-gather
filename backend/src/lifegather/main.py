@@ -1,6 +1,6 @@
 import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, Request, Response
@@ -29,6 +29,7 @@ from lifegather.credentials.service import PrivateSettings, VaultError, read_key
 from lifegather.documents.routes import document_router
 from lifegather.mailboxes.provider import GmailProvider
 from lifegather.mailboxes.routes import mailbox_router
+from lifegather.mailboxes.scan import GmailImportHandler
 from lifegather.mcp_api.tools import build_server
 from lifegather.mcp_api.transport import PrivateMCP
 from lifegather.memory.notes import NoteConflict
@@ -38,6 +39,10 @@ from lifegather.photos.routes import photo_router
 from lifegather.profiles.routes import profile_router
 from lifegather.reconciliation.queue_routes import review_router
 from lifegather.reconciliation.receipt_routes import receipt_router
+from lifegather.scans.registry import ScanRegistry
+from lifegather.scans.routes import scan_router
+from lifegather.scans.service import ScanService
+from lifegather.scans.worker import ScanWorker
 from lifegather.version import __version__, build_info
 
 
@@ -78,8 +83,26 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
             app.state.private_settings = PrivateSettings(
                 store.engine, read_key(settings.vault_key_file)
             )
-            async with mcp_server.session_manager.run():
-                yield
+            app.state.scan_service = ScanService(
+                store.engine,
+                ScanRegistry(
+                    [
+                        GmailImportHandler(
+                            store.engine,
+                            app.state.private_settings,
+                            app.state.gmail_provider,
+                        )
+                    ]
+                ),
+            )
+            worker = asyncio.create_task(ScanWorker(app.state.scan_service).serve())
+            try:
+                async with mcp_server.session_manager.run():
+                    yield
+            finally:
+                worker.cancel()
+                with suppress(asyncio.CancelledError):
+                    await worker
         finally:
             store.engine.dispose()
 
@@ -108,6 +131,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(profile_router())
     app.include_router(document_router())
     app.include_router(mailbox_router())
+    app.include_router(scan_router())
     app.add_middleware(CredentialBodyLimit)
 
     @app.exception_handler(MemoryError)

@@ -23,6 +23,7 @@ from lifegather.reconciliation.receipts import (
     ReceiptRead,
     ReceiptReview,
 )
+from lifegather.scans.registry import ScanPage, ScanRead
 
 
 class Input(BaseModel):
@@ -77,6 +78,8 @@ class DiscoveryHistory(Page):
 
 
 INPUTS: dict[str, type[BaseModel]] = {
+    "scan_list": ScanPage,
+    "scan_get": ScanRead,
     "receipt_get": ReceiptRead,
     "receipt_details_get": DetailRead,
     "receipt_details_save": DetailSave,
