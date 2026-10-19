@@ -4,8 +4,31 @@ param(
     [switch]$Publish,
     # Optional convenience: require the release commit to be the remote main tip.
     [switch]$PublishLatest,
-    [switch]$CheckOnly
+    [switch]$CheckOnly,
+    # Explicitly start the browser sign-in/scope repair when publishing needs it.
+    [switch]$RepairAuthentication,
+    [Parameter(DontShow)][switch]$SourceUpdated
 )
+
+# Keep the bootstrap ahead of all publisher implementation and metadata reads.
+# Reload once after fast-forward so updated scripts/configuration are actually used.
+$ErrorActionPreference = 'Stop'
+try {
+    if ($PublishLatest -and -not $Publish) { throw '-PublishLatest requires -Publish.' }
+    $sourceChanged = & (Join-Path $PSScriptRoot 'Update-ReleaseSource.ps1') -RepositoryRoot (Split-Path -Parent $PSScriptRoot) -PublishLatest:$PublishLatest -AlreadyUpdated:$SourceUpdated
+    if ($sourceChanged) {
+        Write-Host 'Reloading updated release script before verification/build.'
+        $restartOptions = @{}
+        foreach ($key in $PSBoundParameters.Keys) { $restartOptions[$key] = $PSBoundParameters[$key] }
+        $restartOptions['SourceUpdated'] = $true
+        & $PSCommandPath @restartOptions
+        return
+    }
+} catch {
+    Write-Host "Source preflight failed: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host 'Result: FAILED. No further build or upload will run.'
+    throw
+}
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -57,7 +80,7 @@ function Show-ImageSize {
 }
 
 function Get-PublishIdentity {
-    param([string]$GhExecutable)
+    param([string]$GhExecutable, [switch]$RepairAuthentication)
     # Read only the login and response headers. Never retrieve or print a token here.
     # auth status alone does not prove that the credential has package scopes.
     $identity = Get-CheckedOutput $GhExecutable @('api', '--include', '--hostname', 'github.com', 'user', '--jq', '.login')
@@ -67,7 +90,12 @@ function Get-PublishIdentity {
         $scopes = @($scopeHeader.Groups[1].Value -split ',' | ForEach-Object { $_.Trim() })
     }
     if ($scopes -notcontains 'write:packages') {
-        throw 'GitHub credential is missing a confirmed write:packages scope. Run gh auth refresh --hostname github.com --scopes write:packages, approve in the browser, then retry. GHCR requires a compatible OAuth token or a personal access token (classic); repository write permission alone is insufficient. Nothing was uploaded.'
+        if ($RepairAuthentication) {
+            Write-Host 'Starting GitHub scope recovery. Complete the authorization in your browser.'
+            Invoke-Checked $GhExecutable @('auth', 'refresh', '--hostname', 'github.com', '--scopes', 'write:packages')
+            return Get-PublishIdentity $GhExecutable
+        }
+        throw 'GitHub credential is missing a confirmed write:packages scope. Run gh auth refresh --hostname github.com --scopes write:packages, or rerun this publisher with -RepairAuthentication to start browser recovery. GHCR requires a compatible OAuth token or a personal access token (classic); repository write permission alone is insufficient. Nothing was uploaded.'
     }
     $login = ($identity.Trim() -split '\r?\n')[-1].Trim()
     if ($login -notmatch '^[a-zA-Z0-9][a-zA-Z0-9-]{0,38}$') {
@@ -121,8 +149,20 @@ try {
             if (Test-Path -LiteralPath $cachedGh) { $ghExecutable = $cachedGh }
         }
         if (-not $ghExecutable) { throw 'Install GitHub CLI (gh) and run gh auth login first.' }
-        Invoke-Checked $ghExecutable @('auth', 'status', '--hostname', 'github.com')
-        $registryUser = Get-PublishIdentity $ghExecutable
+        $savedPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'Continue'
+            $authentication = & $ghExecutable auth status --hostname github.com 2>&1
+            $authExit = $LASTEXITCODE
+        } finally { $ErrorActionPreference = $savedPreference }
+        if ($authExit -ne 0) {
+            if (-not $RepairAuthentication) {
+                throw 'GitHub sign-in is unavailable. Run gh auth login --hostname github.com --web --scopes write:packages, or rerun this publisher with -RepairAuthentication. Complete GitHub authorization in your browser.'
+            }
+            Write-Host 'Starting GitHub sign-in recovery. Complete the authorization in your browser.'
+            Invoke-Checked $ghExecutable @('auth', 'login', '--hostname', 'github.com', '--web', '--scopes', 'write:packages')
+        } else { $authentication | Out-Host }
+        $registryUser = Get-PublishIdentity $ghExecutable -RepairAuthentication:$RepairAuthentication
         Write-Host "Publishing account: $registryUser; write:packages scope confirmed."
         Write-Host 'The account must also have write access to bgoldbeck/life-gather in GHCR; scope alone does not grant package access.'
         # Read the advertised main ref without modifying the checkout or remote.

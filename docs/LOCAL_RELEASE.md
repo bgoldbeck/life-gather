@@ -2,7 +2,26 @@
 
 Run `scripts/Publish-Container.ps1` from PowerShell on a machine with Git, uv/Python 3.13, Node/npm, and Docker's Linux engine. Publishing also needs GitHub CLI authenticated as a maintainer with `write:packages` permission. It uses local checks and GitHub Container Registry, not hosted GitHub Actions or a paid runner.
 
-The image uploads to GHCR, not into the Git repository. The script never commits/pushes source, opens/merges PRs, changes package visibility, or restarts your app/TrueNAS. Commit or safely stash outstanding changes first. To update `latest`, separately push/merge the intended source to GitHub `main`, then use a clean local `main` at that same commit. Do not include unrelated edits just to satisfy this preflight.
+The image uploads to GHCR, not into the Git repository. The script never commits/pushes source, opens/merges PRs, changes package visibility, or restarts your app/TrueNAS. Commit or safely stash outstanding changes first. The script fetches GitHub main automatically and fast-forwards clean local `main` when it is behind. Local-only commits still need to be pushed/reviewed/merged separately. Do not include unrelated edits just to satisfy this preflight.
+
+## Automatic source recovery
+
+Every invocation, including `-CheckOnly`, first refreshes Git's cached file status
+and fetches `refs/heads/main` from the configured LifeGather origin. This downloads
+Git source changes, not Docker layers. Only a clean `main` proven to be behind can
+advance, using `git merge --ff-only origin/main` after that fetch (the fast-forward
+equivalent of a pull, without a second implicit fetch). It creates no merge commit.
+
+After an update, the publisher reloads its updated script once and reads the new
+version/revision before tests or image builds. It preserves the original options.
+A second main advance stops with instructions to retry instead of looping.
+
+Dirty/staged/untracked files, index errors, local-only or diverged main commits,
+an unexpected origin, or a failed fetch stop before verification/build. Nothing is
+stashed, discarded, reset, rebased, or pushed. Feature and detached checkouts keep
+their chosen commit for ordinary builds or immutable-tag publication; `-PublishLatest`
+requires `main` and never switches branches automatically. Git uses its existing
+transport/credentials; the script does not silently install missing tools.
 
 ## Feature-completion policy
 
@@ -50,6 +69,17 @@ authenticated username for Docker sign-in and rechecks identity/scope before upl
 it never changes package permissions or prints the registry token. See
 [GitHub's container authentication documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry).
 
+To let the publisher start the sign-in or missing-scope flow when needed, opt in:
+
+```powershell
+.\scripts\Publish-Container.ps1 -Publish -PublishLatest -RepairAuthentication
+```
+
+You still approve GitHub access in the browser. Without this option, missing
+authentication/scopes produce repair instructions before expensive checks. Existing
+valid authentication is reused; no automatic package permissions, visibility or
+token rotation is performed. A denied/failed repair stops the release.
+
 Check the source only:
 
 ```powershell
@@ -70,11 +100,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Publish-Container.
 
 Use `-Publish` alone to publish only `sha-<full-commit>`, leaving `latest` unchanged. The command-line execution policy applies to this one PowerShell process; it does not modify machine/user policy. Review the script before running it. PowerShell 7 users can invoke it with `pwsh -NoProfile -File` instead.
 
-## Bandwidth and prompts
+## Bandwidth and explicit publishing
 
 The script reads locally available image sizes without pulling. It runs backend/frontend checks and validates both Compose configurations. Dependency setup (`uv sync`/`npm ci`) may download missing packages, so choose a suitable time even for check-only runs.
 
-Before building, it asks `Build the Linux image now? [y/N]`. Docker can download missing base layers. After a successful build and isolated container smoke test, it reports the resulting local image sizes. If publishing was requested, it separately asks `Upload ... now? [y/N]`. Entering anything other than `y` or `yes` declines that operation. There is no unattended/automatic approval switch.
+There are no build/upload confirmation prompts: starting the script authorizes a
+local build, and `-Publish` authorizes uploading after verification. The `.cmd`
+launcher passes `-Publish -PublishLatest`. Docker may download missing base layers.
+The script reports existing local sizes before building and the new image size
+before uploading. Choose when to start it according to your available bandwidth.
 
 Docker's image-list and inspect sizes are labeled as local engine measurements, not exact compressed transfer sizes. Actual upload depends on missing registry layers and cannot be promised from those numbers. No image is downloaded just to measure it. An upload failure can leave already-transferred layers or a successfully published commit tag; rerunning may reuse them. `latest` is updated only after the commit-tag push succeeds.
 
@@ -91,9 +125,21 @@ Offline publisher tests run without Docker/network/registry operations:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\tests\Publish-Container.Tests.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\tests\Release-Source.Tests.ps1
 ```
 
-The script was syntax-checked and exercised with mocked commands for nine success/refusal/failure paths. A real local build, isolated container smoke test, and public GHCR publication passed on 2026-10-17 from main revision `c5d4a73c944843b34cbeb355e84a5aaf0e1b09e4`. Both `latest` and the commit tag resolve to manifest `sha256:46d97058daf97bb83b7298e52d6c90357cde06f97be23837fd5d700b330310d5`; anonymous registry access and the revision label were verified afterward.
+The scripts are covered by mocked release/refusal/authentication cases and real
+temporary Git repositories, including fast-forward content, one-time script reload,
+staging preservation, feature/detached branches and divergence. Both Windows
+PowerShell 5.1 and PowerShell 7 are exercised. These tests do not build/publish an
+image, change real credentials or contact GitHub; source-only release-tool changes
+are excluded by `.dockerignore` and do not require a runtime image rebuild.
+
+Historical image measurement: a real local build, isolated container smoke test,
+and public GHCR publication passed on 2026-10-17 from main revision `c5d4a73c944843b34cbeb355e84a5aaf0e1b09e4`.
+For that release, `latest` and the commit tag resolved to manifest
+`sha256:46d97058daf97bb83b7298e52d6c90357cde06f97be23837fd5d700b330310d5`;
+anonymous registry access and the revision label were verified afterward.
 
 That release has 71,719,325 bytes of compressed runtime layers (about 71.7 MB), approximately 306 MB on disk. Compared with the prior published image, two new layers totaled 25,233,301 bytes (about 25.2 MB), plus small configuration/manifest/provenance metadata. These are measurements of this release, not a promise for later updates. The first upload attempt stopped before transfer because Windows PowerShell stripped quotes from a Docker-context template; the JSON context lookup now avoids that issue.
 

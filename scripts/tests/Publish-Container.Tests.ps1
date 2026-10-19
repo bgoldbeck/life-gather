@@ -10,6 +10,19 @@ New-Item -ItemType Directory -Path $testRoot | Out-Null
 $global:LifeGatherFakeGh = Join-Path $testRoot 'gh.ps1'
 Set-Content -LiteralPath $global:LifeGatherFakeGh -Value @'
 if ($args[0] -eq 'auth' -and $args[1] -eq 'token') { 'synthetic-token' }
+if ($args[0] -eq 'auth' -and $args[1] -eq 'status' -and $global:LifeGatherReleaseTest.NoAuth) {
+    $global:LASTEXITCODE = 1
+    return
+}
+if ($args[0] -eq 'auth' -and $args[1] -in @('login', 'refresh')) {
+    $global:LifeGatherReleaseTest.AuthRepairs++
+    if ($global:LifeGatherReleaseTest.AuthRepairFailure) {
+        $global:LASTEXITCODE = 1
+        return
+    }
+    $global:LifeGatherReleaseTest.NoAuth = $false
+    $global:LifeGatherReleaseTest.Scopes = 'repo, write:packages'
+}
 if ($args[0] -eq 'api') {
     'HTTP/2.0 200 OK'
     if (-not $global:LifeGatherReleaseTest.NoScopeHeader) {
@@ -31,8 +44,33 @@ function global:git {
     $global:LASTEXITCODE = 0
     switch ($args[0]) {
         'status' { if ($global:LifeGatherReleaseTest.Dirty) { ' M fixture.txt' } }
-        'rev-parse' { 'a' * 40 }
-        'branch' { 'main' }
+        'rev-parse' {
+            if ($args[1] -eq 'origin/main') { $global:LifeGatherReleaseTest.Remote }
+            else { $global:LifeGatherReleaseTest.Head }
+        }
+        'branch' { $global:LifeGatherReleaseTest.Branch }
+        'config' { 'https://github.com/bgoldbeck/life-gather.git' }
+        'update-index' { }
+        'fetch' {
+            $global:LifeGatherReleaseTest.Fetches++
+            if ($global:LifeGatherReleaseTest.FetchFailure) { $global:LASTEXITCODE = 1 }
+            if ($global:LifeGatherReleaseTest.DirtyAfterFetch) { $global:LifeGatherReleaseTest.Dirty = $true }
+            if ($global:LifeGatherReleaseTest.MoveAgain -and $global:LifeGatherReleaseTest.Fetches -gt 1) {
+                $global:LifeGatherReleaseTest.Remote = 'c' * 40
+            }
+        }
+        'merge-base' {
+            $behind = $args[2] -eq 'HEAD'
+            if (($behind -and $global:LifeGatherReleaseTest.Relation -ne 'behind') -or
+                (-not $behind -and $global:LifeGatherReleaseTest.Relation -ne 'ahead')) {
+                $global:LASTEXITCODE = 1
+            }
+        }
+        'merge' {
+            if ($args[1] -ne '--ff-only' -or $args[2] -ne 'origin/main') { throw 'Only fast-forward of fetched main is allowed' }
+            $global:LifeGatherReleaseTest.Head = $global:LifeGatherReleaseTest.Remote
+            $global:LifeGatherReleaseTest.Updates++
+        }
         'ls-remote' { ($global:LifeGatherReleaseTest.Remote + "`trefs/heads/main") }
         default { throw 'Unexpected git command' }
     }
@@ -60,7 +98,7 @@ function global:docker {
             if ($arguments -notcontains '--progress=plain') {
                 throw 'Build must show readable plain progress'
             }
-            if ($arguments -notcontains ('APP_REVISION=' + ('a' * 40)) -or
+            if ($arguments -notcontains ('APP_REVISION=' + $global:LifeGatherReleaseTest.Head) -or
                 -not ($arguments | Where-Object { $_ -match '^org.opencontainers.image.version=\d+\.\d+\.\d+$' })) {
                 throw 'Build must embed the revision and application version label'
             }
@@ -108,7 +146,11 @@ function Test-Release {
         [int]$ExpectedPushes = 0, [bool]$ExpectFailure = $false,
         [string]$Scopes = 'repo, write:packages', [bool]$NoScopeHeader = $false,
         [string]$RegistryUser = 'bgoldbeck', [string]$ExpectedMessage = '',
-        [bool]$SwitchAccount = $false
+        [bool]$SwitchAccount = $false,
+        [string]$Relation = 'diverged', [string]$Branch = 'main',
+        [bool]$FetchFailure = $false, [bool]$MoveAgain = $false,
+        [bool]$NoAuth = $false, [int]$ExpectedUpdates = 0, [int]$ExpectedAuthRepairs = 0,
+        [bool]$AuthRepairFailure = $false, [bool]$DirtyAfterFetch = $false
     )
     $queue = New-Object 'System.Collections.Generic.Queue[string]'
     foreach ($answer in $Answers) { $queue.Enqueue($answer) }
@@ -116,6 +158,9 @@ function Test-Release {
         Dirty = $Dirty; BuildFailure = $BuildFailure; Remote = $Remote
         Answers = $queue; Builds = 0; Pushes = 0; Checks = 0; SwitchAccount = $SwitchAccount
         Scopes = $Scopes; NoScopeHeader = $NoScopeHeader; RegistryUser = $RegistryUser
+        Head = ('a' * 40); Branch = $Branch; Relation = $Relation; FetchFailure = $FetchFailure
+        Fetches = 0; Updates = 0; MoveAgain = $MoveAgain; NoAuth = $NoAuth; AuthRepairs = 0
+        AuthRepairFailure = $AuthRepairFailure; DirtyAfterFetch = $DirtyAfterFetch
     }
     $failed = $false
     $captured = New-Object System.Text.StringBuilder
@@ -132,10 +177,17 @@ function Test-Release {
         throw "FAIL: $Name (failure=$failed builds=$($global:LifeGatherReleaseTest.Builds) pushes=$($global:LifeGatherReleaseTest.Pushes))"
     }
     if ($output -match 'synthetic-token') { throw 'Registry token leaked in logs' }
+    if ($global:LifeGatherReleaseTest.Updates -ne $ExpectedUpdates -or
+        $global:LifeGatherReleaseTest.AuthRepairs -ne $ExpectedAuthRepairs) {
+        throw "FAIL: $Name unexpected source update or authentication repair"
+    }
+    if ($ExpectFailure -and $ExpectedBuilds -eq 0 -and $global:LifeGatherReleaseTest.Checks -ne 0) {
+        throw 'Preflight refusal must happen before backend/frontend checks'
+    }
     if ($ExpectedMessage -and -not $output.Contains($ExpectedMessage)) {
         throw "FAIL: $Name must explain '$ExpectedMessage'"
     }
-    if ($Flags.Publish -and ($NoScopeHeader -or $Scopes -notmatch '(?:^|,\s*)write:packages(?:\s*,|$)') -and
+    if ($Flags.Publish -and -not $Flags.RepairAuthentication -and ($NoScopeHeader -or $Scopes -notmatch '(?:^|,\s*)write:packages(?:\s*,|$)') -and
         $global:LifeGatherReleaseTest.Checks -ne 0) {
         throw 'Missing scope must fail before backend/frontend verification, not just before building'
     }
@@ -173,6 +225,18 @@ try {
     Test-Release 'scoped latest uploads both tags' -Flags @{ Publish = $true; PublishLatest = $true } -ExpectedBuilds 1 -ExpectedPushes 2
     Test-Release 'collaborator uses its actual login' -Flags @{ Publish = $true } -RegistryUser 'synthetic-collaborator' -ExpectedBuilds 1 -ExpectedPushes 1 -ExpectedMessage 'synthetic-collaborator'
     Test-Release 'changed account cannot upload' -Flags @{ Publish = $true } -SwitchAccount $true -ExpectedBuilds 1 -ExpectFailure $true -ExpectedMessage 'account changed during the build'
+    Test-Release 'clean main updates then reloads before building' -Flags @{ Publish = $true; PublishLatest = $true } -Remote ('b' * 40) -Relation 'behind' -ExpectedUpdates 1 -ExpectedBuilds 1 -ExpectedPushes 2 -ExpectedMessage 'Reloading updated release script'
+    Test-Release 'local main ahead is protected' -Remote ('b' * 40) -Relation 'ahead' -ExpectFailure $true -ExpectedMessage 'local-only commits'
+    Test-Release 'diverged main is protected' -Remote ('b' * 40) -ExpectFailure $true -ExpectedMessage 'diverged'
+    Test-Release 'fetch failure stops before checks' -FetchFailure $true -ExpectFailure $true -ExpectedMessage 'fetch'
+    Test-Release 'second remote advance does not loop' -Remote ('b' * 40) -Relation 'behind' -MoveAgain $true -ExpectedUpdates 1 -ExpectFailure $true -ExpectedMessage 'moved again'
+    Test-Release 'feature builds keep their selected revision' -Branch 'feature/synthetic' -Remote ('b' * 40) -ExpectedBuilds 1
+    Test-Release 'latest refuses feature checkout before building' -Flags @{ Publish = $true; PublishLatest = $true } -Branch 'feature/synthetic' -ExpectFailure $true -ExpectedMessage 'main'
+    Test-Release 'missing login explains optional recovery' -Flags @{ Publish = $true } -NoAuth $true -ExpectFailure $true -ExpectedMessage '-RepairAuthentication'
+    Test-Release 'explicit login recovery continues' -Flags @{ Publish = $true; RepairAuthentication = $true } -NoAuth $true -ExpectedAuthRepairs 1 -ExpectedBuilds 1 -ExpectedPushes 1
+    Test-Release 'explicit scope recovery continues' -Flags @{ Publish = $true; RepairAuthentication = $true } -Scopes 'repo' -ExpectedAuthRepairs 1 -ExpectedBuilds 1 -ExpectedPushes 1
+    Test-Release 'denied authentication repair never builds' -Flags @{ Publish = $true; RepairAuthentication = $true } -NoAuth $true -AuthRepairFailure $true -ExpectedAuthRepairs 1 -ExpectFailure $true -ExpectedMessage 'Release stopped'
+    Test-Release 'edits arriving during fetch prevent update' -Remote ('b' * 40) -Relation 'behind' -DirtyAfterFetch $true -ExpectFailure $true -ExpectedMessage 'checkout changed'
 } finally {
     foreach ($name in @('Get-Command', 'git', 'uv', 'npm', 'Read-Host', 'docker')) {
         Remove-Item -LiteralPath "Function:\$name"
