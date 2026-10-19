@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.46.0 — Manual inventory entry
+
+- Add asset directly from Assets with a name, optional manufacturer/model/serial
+  and notes, and an affirmative current-ownership declaration. Original values are
+  retained as manual evidence and stated facts, never independent verification.
+- Preview identity matches using the shared reconciliation rules. Link explicitly
+  to an existing item or deliberately create a separate physical item. Reliable
+  serial matches block duplicate creation; ownership corrections remain effective.
+  Later receipts can enrich the same manual item through its canonical bindings.
+- Atomic saves retain provenance and safe retry identities, with private HTTP/MCP
+  adapters. Keep these write tools outside the app's provider tool allowlist.
+  No migration, schema, dependency, price/date inference or live-provider calls.
+
 ## 0.45.0 — Sourced field history and workflow attribution
 
 - Profiles, Assets and Graph can explicitly load private paged field history:

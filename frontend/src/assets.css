@@ -2,6 +2,36 @@
   max-width: 1050px;
   margin: 0 auto;
 }
+.manual-asset {
+  padding: 1rem;
+  margin-block: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--card);
+}
+.manual-asset-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 1rem;
+}
+.manual-asset-fields label {
+  display: grid;
+  gap: 0.35rem;
+}
+.manual-asset-fields input:not([type='checkbox']),
+.manual-asset-fields textarea {
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  padding: 0.5rem;
+  background: var(--background);
+  width: 100%;
+}
+.manual-asset-notes {
+  grid-column: 1 / -1;
+}
+.manual-asset button {
+  margin: 0.35rem 0.5rem 0.35rem 0;
+}
 .assets-panel h1 {
   font-size: 2rem;
   font-weight: 600;

@@ -28,3 +28,18 @@ checks and graph refresh. The user also requested persistent docked chat; implem
 that afterward in its own branch/commit/PR. Deliberately release both changes as one
 v0.46.0 image after both pass to avoid two uploads on the user's slow connection.
 No live model/mailbox calls, Actions, account changes or automatic deployment.
+
+Follow-up user decisions: persistent chat dock (bottom by default, movable to
+other edges, collapsible but never closable), no sidebar Chat destination, and
+context pinned to the page/record at message submission. Supported contextual
+profile edits must use the shared sourced profile service. Explicit requests to
+edit/open a uniquely matched item should navigate Assets to that item; ambiguity
+requires choosing a record. External MCP clients use their own explicit record
+context, never a global live browser selection. Implement these after this branch.
+
+Acceptance verified: backend Ruff/format/strict mypy; full backend 456 tests pass,
+then all five focused manual-entry tests pass after adding concurrent retry and
+undo/declaration coverage. Frontend lint/format/typecheck/build and 202 tests pass,
+including Assets-page entry and save navigation. Both Compose configs validate.
+Code-only graph/HTML refreshed (2847 nodes / 11343 edges); existing AssetsPanel
+parser coverage warning remains, so TypeScript and interaction tests are authoritative.

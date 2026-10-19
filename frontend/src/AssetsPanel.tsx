@@ -10,6 +10,7 @@ import { RecordComparison } from './RecordComparison'
 import { AssetActions } from './AssetActions'
 import { AssetPurchases } from './AssetPurchases'
 import { FieldHistory } from './FieldHistory'
+import { ManualAssetForm, type ManualAssetResult } from './ManualAssetForm'
 
 type Asset = {
   id: string
@@ -90,6 +91,8 @@ export function AssetsPanel({
   const [source, setSource] = useState<Source | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [notice, setNotice] = useState('')
   const generation = useRef(0)
   const selectedAsset = useRef('')
   const selectAsset = useCallback((id: string) => {
@@ -300,6 +303,44 @@ export function AssetsPanel({
   return (
     <section className="assets-panel" aria-label="Your assets">
       <h1>Assets</h1>
+      <Button
+        onClick={() => {
+          setAdding(true)
+          setNotice('')
+        }}
+        disabled={adding}
+      >
+        Add asset
+      </Button>
+      {adding && (
+        <ManualAssetForm
+          csrfToken={csrfToken}
+          refreshSession={refreshSession}
+          onCancel={() => setAdding(false)}
+          onOpen={open}
+          onSaved={async (result: ManualAssetResult) => {
+            setAdding(false)
+            setNotice(`${result.asset.name} saved with your stated ownership.`)
+            await open(result.asset.id)
+            const version = generation.current
+            try {
+              const page = await request(
+                `assets?query=${encodeURIComponent(search)}&include_history=${history}`,
+              )
+              if (version === generation.current) {
+                setItems(page.items)
+                setCursor(page.next_cursor)
+              }
+            } catch {
+              if (version === generation.current)
+                setError(
+                  'Asset saved. Reload the list to see the latest items.',
+                )
+            }
+          }}
+        />
+      )}
+      {notice && <p role="status">{notice}</p>}
       <p>
         Find your items and follow their original evidence. Inventory and
         ownership may be inferred.
@@ -330,7 +371,8 @@ export function AssetsPanel({
       {busy && <p role="status">Loading records…</p>}
       {!busy && !items.length && (
         <p>
-          No assets found. Confirm a supported proposal in Chat to add an item.
+          No assets found. Use Add asset, or confirm a supported proposal in
+          Chat.
         </p>
       )}
       <ul className="asset-list">

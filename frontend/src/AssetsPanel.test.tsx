@@ -5,6 +5,49 @@ import { AssetsPanel } from './AssetsPanel'
 
 afterEach(() => vi.unstubAllGlobals())
 
+it('offers Add asset on the empty page and opens a newly saved manual item', async () => {
+  let saved = false
+  const asset = {
+    id: 'new-asset',
+    name: 'Synthetic manual item',
+    source_id: 'source',
+    recorded_at: 100,
+  }
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      let value: unknown = { items: [], next_cursor: null }
+      if (url.startsWith('/api/assets?'))
+        value = { items: saved ? [asset] : [], next_cursor: null }
+      else if (url === '/api/assets/manual/preview')
+        value = { candidates: [], reliable_ids: [] }
+      else if (url === '/api/assets/manual') {
+        saved = true
+        value = { asset, source_id: 'source', created: true }
+      } else if (url === '/api/assets/new-asset')
+        value = { asset, in_inventory: true, facts: [], decisions: [] }
+      return new Response(JSON.stringify(value))
+    }),
+  )
+  render(<AssetsPanel csrfToken="csrf" />)
+  const user = userEvent.setup()
+  await user.click(screen.getByRole('button', { name: 'Add asset' }))
+  expect(
+    screen.getByRole('region', { name: 'Add asset manually' }),
+  ).toBeVisible()
+  await user.type(screen.getByLabelText('Asset name'), 'Synthetic manual item')
+  await user.click(screen.getByLabelText('I currently own this item'))
+  await user.click(screen.getByRole('button', { name: 'Save asset' }))
+  expect(
+    await screen.findByText(
+      'Synthetic manual item saved with your stated ownership.',
+    ),
+  ).toBeVisible()
+  expect(
+    await screen.findByRole('heading', { name: 'Synthetic manual item' }),
+  ).toBeVisible()
+})
+
 it('refreshes purchase associations when the current unit decision changes', async () => {
   const user = userEvent.setup()
   let corrected = false

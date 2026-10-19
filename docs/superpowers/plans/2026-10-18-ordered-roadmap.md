@@ -12,6 +12,10 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
 
 ## Execution ledger and decisions
 
+- v0.46.0 adds [manual inventory entry on Assets](../../MANUAL_ASSETS.md), with
+  original manual evidence, stated ownership and shared identity bindings. Later
+  sources can enrich the same physical item; duplicate choices remain explicit.
+
 - v0.45.0 adds [shared field history and workflow attribution](../../CHANGE_HISTORY.md)
   using the existing audit/fact store. The UI covers graph facts and preserves
   original sources, explicit correction links and unknown legacy origins. Custom

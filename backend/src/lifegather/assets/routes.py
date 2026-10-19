@@ -10,6 +10,7 @@ from lifegather.assets.batch import (
     EvidenceRestore,
 )
 from lifegather.assets.comparison import RecordComparison, RecordComparisonService
+from lifegather.assets.manual import ManualAssetCreate, ManualAssetFields, ManualAssets
 from lifegather.assets.purchases import AssetPurchases, AssetPurchasesRead
 from lifegather.assets.replacements import (
     ReplacementRecord,
@@ -26,6 +27,24 @@ Cursor = Annotated[str, Query(max_length=36)]
 
 def asset_router() -> APIRouter:
     router = APIRouter(prefix="/api/assets")
+
+    @router.post("/manual/preview")
+    def manual_preview(
+        request: Request, body: ManualAssetFields, current: Authenticated
+    ) -> dict[str, Any]:
+        return ManualAssets(request.app.state.auth_store.engine).preview(
+            current.user, body
+        )
+
+    @router.post("/manual")
+    def manual_save(
+        request: Request,
+        body: ManualAssetCreate,
+        current: Annotated[CurrentSession, Depends(require_write_session)],
+    ) -> dict[str, Any]:
+        return ManualAssets(request.app.state.auth_store.engine).save(
+            current.user, body
+        )
 
     @router.post("/comparison")
     def comparison(

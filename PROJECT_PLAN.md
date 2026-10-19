@@ -3,7 +3,10 @@
 **Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
 **Date:** Updated 2026-10-17
 
-Current increment: v0.45.0 adds shared server-owned audit origins and private
+Current increment: v0.46.0 adds explicit manual inventory entry directly on
+Assets, sharing physical identity matching, provenance, stated ownership and
+correction history with existing discovery. No new schema or AI call is required.
+v0.45.0 adds shared server-owned audit origins and private
 field history in Profiles, Assets and Graph. Preserve unknown legacy attribution,
 explicit correction links, evidence, confidence and both time dimensions.
 See [change history](docs/CHANGE_HISTORY.md). Custom asset templates remain ahead.
