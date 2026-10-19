@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.48.1 — Reliable scan focus verification
+
+- Wait for React's asynchronous result-focus effect in the saved Chat scan test,
+  retaining the focus and read-only assertions. This prevents an intermittent
+  release-check failure; application behavior and schema remain unchanged.
+
 ## 0.48.0 — Reversible two-record asset consolidation
 
 - Choose a primary record after a fresh complete bounded comparison and explicitly
