@@ -11,3 +11,19 @@ Use the existing ProfileChange/transaction/history services. Old payloads remain
 No new schema, dependency, field registry/template designer, automatic identity decision, provider lookup, maintenance scheduling or financial inference. Generic fact export, history and recovery retain the meaningful names and original bytes without a format bump. Target v0.51.0 unless main advances.
 
 Acceptance: two-owner service and authenticated HTTP/CSRF boundaries; builtin compatibility; normalization/reserved/invalid name handling; exact source, unknown/date semantics, replay/conflict/atomicity and correction identity; consolidated shared reads, distinct physical units, field history, selected-record recall and export/recovery. Test meaningful UI create/unknown/correction/error-retry interactions and stale navigation behavior. Verify real synthetic browser save/evidence/history on desktop and390px dark/light. No live records/providers. Run appropriate full tests/types/lint/format and builds, refresh code graph/HTML, repeat source clash checks and complete standing source/container release sequence. No agents.
+
+## Source acceptance
+
+552 backend / 244 frontend tests pass, with strict source/test/smoke typing,
+lint/format and wheel/frontend builds. Browser checks save a synthetic tire size,
+inspect original evidence, correct it with the name locked, retain both versions
+in field history, and preserve the record across navigation. Light appearance and
+390px dark appearance pass; an explicitly unknown custom fuel type saves through
+the real form. Page width390 and main client/scroll width375 show no page overflow.
+The temporary tab and server were closed and viewport override reset afterward.
+
+The isolated no-network/non-root/read-only Linux source smoke also preserves the
+new custom fact through encrypted backup, verification and restoration with a
+42.9 MB synthetic database. Source graph/HTML refreshed: 3,163 nodes /13,737 edges;
+AssetsPanel remains partially extracted by the AST tool while TypeScript passes.
+No migration, dependency, format, live provider or running-installation change.

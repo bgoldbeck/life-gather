@@ -5,6 +5,7 @@ import { GraphCanvas } from './GraphCanvas'
 import { FieldHistory } from './FieldHistory'
 import type { GraphData, GraphEntity, GraphFact } from './graphTypes'
 import './graph.css'
+import { factLabel } from './profileFields'
 
 type EntityPage = { items: GraphEntity[]; next_cursor: string | null }
 type SourcePage = EvidenceSource & { next_offset: number | null }
@@ -271,7 +272,7 @@ export function GraphPanel({
             {graph.facts.map((row) => (
               <li key={row.id}>
                 <Button variant="outline" onClick={() => setFact(row)}>
-                  {row.predicate.replaceAll('_', ' ')}:{' '}
+                  {factLabel(row.predicate)}:{' '}
                   {row.object_id
                     ? name(row.object_id)
                     : String(row.value ?? 'Unknown')}{' '}
@@ -291,7 +292,7 @@ export function GraphPanel({
                 field={fact.predicate}
                 onOpenSource={openSource}
               />
-              <h3>{fact.predicate.replaceAll('_', ' ')}</h3>
+              <h3>{factLabel(fact.predicate)}</h3>
               <p>
                 {name(fact.subject_id)} →{' '}
                 {fact.object_id

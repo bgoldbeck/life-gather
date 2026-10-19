@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import './record-comparison.css'
 import { AssetConsolidation } from './AssetConsolidation'
+import { customDetailLabel } from './profileFields'
 
 type Record = {
   id: string
@@ -383,7 +384,7 @@ export function RecordComparison({
                 {result.warnings.map((warning, index) => (
                   <li key={index}>
                     {warning.predicate && (
-                      <strong>{warning.predicate}: </strong>
+                      <strong>{customDetailLabel(warning.predicate)}: </strong>
                     )}
                     {warning.message}
                   </li>
@@ -444,7 +445,10 @@ export function RecordComparison({
                                   →{' '}
                                 </>
                               )}
-                              <strong>{fact.predicate}</strong>:{' '}
+                              <strong>
+                                {customDetailLabel(fact.predicate)}
+                              </strong>
+                              :{' '}
                               {fact.object_id
                                 ? (names.get(fact.object_id) ?? fact.object_id)
                                 : fact.value === null

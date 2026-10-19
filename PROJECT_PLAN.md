@@ -3,7 +3,12 @@
 **Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
 **Date:** Updated 2026-10-17
 
-Current increment: v0.50.0 adds [encrypted operator recovery](docs/OPERATOR_RECOVERY.md):
+Current increment: v0.51.0 adds [named custom sourced profile details](docs/CUSTOM_PROFILE_DETAILS.md).
+Create and correct descriptive fields through the existing private fact/history
+services, with readable labels, original evidence, unknowns and dates. Reserved
+identity fields retain their meaning. No schema, dependency or AI-tool change.
+
+v0.50.0 adds [encrypted operator recovery](docs/OPERATOR_RECOVERY.md):
 consistent whole-installation backup, authenticated verification and restore into
 a new directory, including original files, configuration and the separate vault
 key. No automatic activation, HTTP/MCP recovery endpoint, dependency or migration.

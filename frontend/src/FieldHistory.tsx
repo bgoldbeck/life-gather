@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import './field-history.css'
+import { factLabel } from './profileFields'
 
 type Origin = {
   interface: string
@@ -130,7 +131,7 @@ function FieldHistoryPage({ entityId, field, onOpenSource }: Props) {
   return (
     <section
       className="field-history"
-      aria-label={`${words(field)} change history`}
+      aria-label={`${factLabel(field)} change history`}
     >
       {(!page || page.next_cursor) && (
         <Button variant="outline" disabled={busy} onClick={() => void load()}>
@@ -138,7 +139,7 @@ function FieldHistoryPage({ entityId, field, onOpenSource }: Props) {
             ? 'Loading field history…'
             : page
               ? 'More field changes'
-              : `View ${words(field)} history`}
+              : `View ${factLabel(field)} history`}
         </Button>
       )}
       {error && <p role="alert">{error}</p>}

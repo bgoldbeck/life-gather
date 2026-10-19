@@ -12,6 +12,18 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
 
 ## Execution ledger and decisions
 
+- v0.51.0 adds [named custom sourced profile details](../../CUSTOM_PROFILE_DETAILS.md),
+  sharing exact evidence, unknowns, valid dates, immutable corrections and private
+  history/recall with existing facts. Keep built-in identity fields reserved and
+  custom labels readable across current record views. No migration or dependency;
+  reusable field templates and additional automated write planning remain ahead.
+  Verification: 552 backend / 244 frontend tests, strict types, lint/format and
+  wheel/frontend builds pass. Real synthetic browser save/correction/evidence/
+  history and navigation persistence pass in light/dark, with no page overflow
+  at 390px. Linux source smoke preserves the custom field through encrypted
+  recovery. Graph and HTML refreshed: 3,163 nodes / 13,737 edges; known partial
+  AssetsPanel AST coverage remains. Fresh-image release follows source acceptance.
+
 - v0.50.0 adds [encrypted operator recovery](../../OPERATOR_RECOVERY.md):
   consistent all-owner backup with SQLite photo/PDF originals, installation
   configuration and vault key; authenticated verification and new-directory

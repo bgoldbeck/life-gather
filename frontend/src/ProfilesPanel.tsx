@@ -4,20 +4,16 @@ import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import type { GraphEntity, GraphFact } from './graphTypes'
 import './profiles.css'
 import { FieldHistory } from './FieldHistory'
+import {
+  customProfileName,
+  editableProfileField,
+  profileFields as fields,
+  profileLabel,
+} from './profileFields'
 
 type Request = (path: string, init?: RequestInit) => Promise<unknown>
 type Fact = GraphFact & { superseded_at: number | null }
 type Page = { entity: GraphEntity; facts: Fact[]; next_cursor: string | null }
-const fields = [
-  'manufacturer',
-  'model',
-  'serial',
-  'vin',
-  'filter_dimensions',
-  'paint',
-  'maintenance',
-  'specification',
-] as const
 
 function ProfileEditor({
   id,
@@ -39,6 +35,7 @@ function ProfileEditor({
   const [history, setHistory] = useState(false)
   const [revision, setRevision] = useState(0)
   const [field, setField] = useState<string>('model')
+  const [customName, setCustomName] = useState('')
   const [value, setValue] = useState('')
   const [text, setText] = useState('')
   const [status, setStatus] = useState('stated')
@@ -80,9 +77,17 @@ function ProfileEditor({
   async function save(event: FormEvent) {
     event.preventDefault()
     if (saving.current) return
+    setNotice('')
+    if (field === 'custom' && customProfileName(customName) === null) {
+      setError(
+        'Use a custom name with letters, numbers, spaces or hyphens. For a standard detail, choose its existing type.',
+      )
+      return
+    }
     const payload = {
       entity_id: id,
       field,
+      custom_name: field === 'custom' ? customName.trim() : null,
       value: status === 'unknown' ? null : value,
       status,
       text,
@@ -115,7 +120,7 @@ function ProfileEditor({
     } catch {
       if (active.current)
         setError(
-          'Unable to save. Include the exact value in the evidence and check dates. A corrected fact may have changed; reload before retrying.',
+          'Unable to save. Include the exact value in the evidence and check the detail name and dates. A corrected fact may have changed; reload before retrying.',
         )
     } finally {
       saving.current = false
@@ -186,10 +191,8 @@ function ProfileEditor({
       <ul className="profile-facts">
         {page?.facts.map((fact) => (
           <li key={fact.id}>
-            <strong>
-              {fact.predicate.replace('profile_', '').replaceAll('_', ' ')}
-            </strong>
-            : {String(fact.value ?? 'Unknown')} ({fact.status}){' '}
+            <strong>{profileLabel(fact.predicate)}</strong>:{' '}
+            {String(fact.value ?? 'Unknown')} ({fact.status}){' '}
             {fact.superseded_at !== null && <span>— superseded</span>}
             <p>
               Valid: {fact.valid_from ?? 'Unknown'} to{' '}
@@ -212,17 +215,15 @@ function ProfileEditor({
               onOpenSource={openSource}
             />
             {fact.superseded_at === null &&
-              fields.includes(
-                fact.predicate.replace(
-                  'profile_',
-                  '',
-                ) as (typeof fields)[number],
-              ) && (
+              editableProfileField(fact.predicate) && (
                 <Button
                   variant="outline"
                   disabled={busy}
                   onClick={() => {
-                    setField(fact.predicate.replace('profile_', ''))
+                    const selected = editableProfileField(fact.predicate)
+                    if (!selected) return
+                    setField(selected.field)
+                    setCustomName(selected.customName)
                     setValue(String(fact.value ?? ''))
                     setStatus(
                       fact.status === 'verified' ? 'stated' : fact.status,
@@ -234,8 +235,7 @@ function ProfileEditor({
                     setNotice('')
                   }}
                 >
-                  Correct{' '}
-                  {fact.predicate.replace('profile_', '').replaceAll('_', ' ')}
+                  Correct {profileLabel(fact.predicate)}
                 </Button>
               )}
           </li>
@@ -262,8 +262,29 @@ function ProfileEditor({
                 {item.replaceAll('_', ' ')}
               </option>
             ))}
+            <option value="custom">Custom detail</option>
           </select>
         </label>
+        {field === 'custom' && (
+          <div>
+            <label>
+              Detail name
+              <input
+                value={customName}
+                onChange={(event) => setCustomName(event.target.value)}
+                maxLength={48}
+                required
+                disabled={busy || !!replaces}
+                placeholder="For example, Tire size"
+                aria-describedby="custom-detail-name-hint"
+              />
+            </label>
+            <p id="custom-detail-name-hint">
+              Use letters, numbers, spaces or hyphens. Standard details use
+              their existing type.
+            </p>
+          </div>
+        )}
         <label>
           Confidence
           <select
