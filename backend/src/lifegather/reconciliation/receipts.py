@@ -152,6 +152,35 @@ class ReceiptService:
         )
         discovery = self.proposals._validate(db, actor, source_id, basic)
         quantities = {int(a or b) for a, b in QUANTITY.findall(fields.quote)}
+        if not quantities and fields.quantity == 1:
+            # A shortened quote must not hide an explicit multiple beside it.
+            # Check repeated matches too; a first single-unit line cannot mask
+            # the same ambiguous passage on a later multi-unit line.
+            offset = 0
+            contexts: set[tuple[int, int]] = set()
+            for attempt in range(33):
+                position = text.find(fields.quote, offset)
+                if position < 0:
+                    break
+                if attempt == 32:
+                    raise MemoryError(
+                        "Quote is ambiguous; include the full item and quantity passage"
+                    )
+                end = position + len(fields.quote)
+                left = text.rfind("\n", 0, position) + 1
+                right = text.find("\n", end)
+                if right < 0:
+                    right = len(text)
+                if (left, right) not in contexts:
+                    contexts.add((left, right))
+                    nearby = {
+                        int(a or b) for a, b in QUANTITY.findall(text[left:right])
+                    }
+                    if nearby and nearby != {1}:
+                        raise MemoryError(
+                            "Include the explicit quantity in this item's exact quote"
+                        )
+                offset = end
         if fields.quantity_quote is not None:
             if fields.quantity_quote not in fields.quote:
                 raise MemoryError(
@@ -268,43 +297,48 @@ class ReceiptService:
     def create(
         self, actor: Account, source_id: str, value: ReceiptExtraction
     ) -> dict[str, Any]:
+        with self.memory._write() as db:
+            return self._create_in(db, actor, source_id, value)
+
+    def _create_in(
+        self, db: Session, actor: Account, source_id: str, value: ReceiptExtraction
+    ) -> dict[str, Any]:
         data = ReceiptExtraction.model_validate(value)
         self.bounded(data.items)
-        with self.memory._write() as db:
-            self.source(db, actor, source_id)
-            row = db.scalar(
-                select(ReceiptProposal).where(
-                    ReceiptProposal.user_id == actor.id,
-                    ReceiptProposal.source_id == source_id,
-                )
+        self.source(db, actor, source_id)
+        row = db.scalar(
+            select(ReceiptProposal).where(
+                ReceiptProposal.user_id == actor.id,
+                ReceiptProposal.source_id == source_id,
             )
-            if row:
-                return self.view(db, actor, row)
-            active_single(db, actor, source_id)
-            for index, item in enumerate(data.items):
-                if item.kind != "mention":
-                    raise MemoryError(
-                        "AI receipt suggestions must remain unverified mentions"
-                    )
-                self.validate(db, actor, source_id, item, index)
-            now = self.memory.clock()
-            row = ReceiptProposal(
-                id=str(uuid4()),
-                user_id=actor.id,
-                source_id=source_id,
-                state="proposed" if data.items else "no_items",
-                proposed_json=data.model_dump_json(),
-                reviewed_json=None,
-                result_json="{}",
-                request_id=None,
-                fingerprint=None,
-                recorded_at=now,
-                reviewed_at=None,
-            )
-            db.add(row)
-            db.flush()
-            self.memory._audit(db, actor, "receipt_proposed", row.id, now)
+        )
+        if row:
             return self.view(db, actor, row)
+        active_single(db, actor, source_id)
+        for index, item in enumerate(data.items):
+            if item.kind != "mention":
+                raise MemoryError(
+                    "AI receipt suggestions must remain unverified mentions"
+                )
+            self.validate(db, actor, source_id, item, index)
+        now = self.memory.clock()
+        row = ReceiptProposal(
+            id=str(uuid4()),
+            user_id=actor.id,
+            source_id=source_id,
+            state="proposed" if data.items else "no_items",
+            proposed_json=data.model_dump_json(),
+            reviewed_json=None,
+            result_json="{}",
+            request_id=None,
+            fingerprint=None,
+            recorded_at=now,
+            reviewed_at=None,
+        )
+        db.add(row)
+        db.flush()
+        self.memory._audit(db, actor, "receipt_proposed", row.id, now)
+        return self.view(db, actor, row)
 
     def check(
         self,

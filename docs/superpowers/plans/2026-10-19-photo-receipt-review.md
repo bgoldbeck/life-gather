@@ -22,3 +22,22 @@ coverage for explicit mode/selection, saved draft/review, upload/no-eager AI,
 consent/model/budget gates, retry bodies and context changes. Run all strict checks,
 synthetic browser and Linux smoke, then release v0.42.0 through the standing
 source/GHCR workflow. No schema migration, dependency or live provider call needed.
+
+Pre-merge verification: 434 backend / 188 frontend tests pass, strict mypy src/tests,
+Ruff lint/format, Prettier, oxlint, TypeScript and both builds pass. Twenty-two new
+backend tests cover atomic source/draft writes, invalid/unclear/maximum bounds,
+quote/quantity consistency, foreign/deleted originals, corrected text, concurrent
+saves, permissions, cancellation, exact replay, photo links and snapshot recovery.
+Seven new UI cases cover explicit mode/selection, gates, upload reuse, current
+conversation/draft, lost/pending retries and cached receipt display in Photos.
+Two regressions reproduced cropped quotes hiding Qty2; same-line/repeated-match
+checks now refuse that case without mistaking prices/dimensions/other lines for
+quantities. Existing full receipt/money tests pass. Accepted history is preserved.
+Browser verified original photo/transcription inspection and human confirmation of
+three distinct units from two lines, with blank prices/dates. 390px DOM width has
+no overflowing Chat elements. Composed synthetic feature smoke passes locally;
+final Linux container and publication follow source merge. Graphify unavailable.
+
+GitHub main advanced to 1d74414 with PR62 release tooling only. Preserve that
+work, reconcile the changelog and run its offline publisher/Git fixtures before
+final merge; application/version/schema did not overlap.

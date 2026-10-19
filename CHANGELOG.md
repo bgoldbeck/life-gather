@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.42.0 — Review multiple items from receipt photos
+
+- Explicit Chat receipt-photo action uses a saved/uploaded private original and
+  the existing provider permission, budget and safe retry controls. Save the first
+  unverified transcription and validated receipt draft atomically, up to eight
+  lines and twenty total physical units; no inventory or accounting writes by AI.
+- Reuse existing receipt reviews without another model request. If a photo has
+  already been transcribed, use its current text after any active single-item
+  review is resolved. Preserve the original transcription and correction history.
+- Existing receipt review retains exact quotes, quantities, distinct units,
+  conflicts, photo links and optional manually reviewed money/date claims. Photos
+  can also display a saved receipt review returned by its existing reading action.
+- Reject shortened quotes that hide a conflicting explicit quantity on the same
+  source line, including repeated ambiguous passages. Old accepted records remain;
+  affected pending reviews need a complete supporting quantity passage.
+- Add Chat mode `extract_photo_receipt`; existing request modes stay compatible.
+  No schema migration, dependency or provider-adapter change.
+
 ## 0.41.0 — Upload private photos directly in Chat
 
 - Explicitly save a JPEG/PNG/WebP original from Chat, up to 8 MiB, with a photo,
