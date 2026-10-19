@@ -12,6 +12,7 @@ def isolated_configuration(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setenv("LIFEGATHER_GOOGLE_CLIENT_SECRET", "")
     monkeypatch.setenv("LIFEGATHER_PUBLIC_URL", "http://127.0.0.1:8787")
     monkeypatch.setenv("LIFEGATHER_VAULT_KEY_FILE", "")
+    monkeypatch.setenv("LIFEGATHER_CONFIGURATION_FILE", "")
 
     for name in ("SMTP_HOST", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_SENDER"):
         monkeypatch.setenv("LIFEGATHER_" + name, "")

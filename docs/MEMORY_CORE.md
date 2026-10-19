@@ -50,7 +50,11 @@ All reads/writes filter by owner, and composite foreign keys enforce matching ow
 
 `operator_snapshot(engine, destination)` in `lifegather.memory.backup` uses SQLite's online backup API and integrity checking to create a new file with restrictive permissions. It refuses existing destinations and removes a partially created backup on failure. Choose a private destination outside served/static directories. Never expose this operator-only helper as a user/AI tool: it includes the entire database for all users, including session and encrypted-vault data.
 
-To restore, stop the application, preserve the original database and journals, and restore into a controlled private location before starting with the appropriate configuration. Tests restore to a fresh database path and verify facts, ownership boundaries, FTS data, and foreign keys. There is no destructive automatic restore command. Back up the separate vault key securely if credential decryption is needed; it is not embedded in the snapshot. Future uploaded originals will need coordinated file backup when file storage is introduced.
+For a coordinated installation backup, use [encrypted operator recovery](OPERATOR_RECOVERY.md).
+It includes the snapshot, configuration and separate vault key, validates the
+complete bundle, and restores into a new directory without starting the app.
+Photo/PDF originals currently live inside SQLite and are included. The lower-level
+snapshot helper alone does not include external configuration or the vault key.
 
 ## Verification
 

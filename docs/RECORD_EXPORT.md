@@ -9,8 +9,9 @@ or conversation.
 
 This is a structured records copy for portability and inspection. It is **not a
 complete backup**, and there is no import/restore action. Download original photos
-and PDFs separately through their existing file views. Installation recovery still
-requires the operator's database, original-file and configuration/key backups.
+and PDFs separately through their existing file views. Installation owners can use
+[encrypted operator recovery](OPERATOR_RECOVERY.md) to coordinate the whole
+database, original files and configuration/key backup.
 Never substitute a personal export for a tested installation backup.
 
 ## Contents and limits
