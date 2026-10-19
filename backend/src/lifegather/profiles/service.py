@@ -1,7 +1,8 @@
 """Sourced home/vehicle details on existing memory records, without model calls."""
 
+import re
 from datetime import date
-from typing import Any, Literal, Self
+from typing import Any, Literal, Self, get_args
 
 from pydantic import Field, model_validator
 from sqlalchemy import Engine, select
@@ -30,6 +31,7 @@ ProfileField = Literal[
     "maintenance",
     "specification",
 ]
+RESERVED_CUSTOM_NAMES = frozenset(get_args(ProfileField)) | {"kind", "profile_kind"}
 
 
 class ProfileRead(Input):
@@ -53,7 +55,8 @@ class ProfileCreate(Input):
 
 class ProfileChange(Input):
     entity_id: str = Field(min_length=1, max_length=36)
-    field: ProfileField
+    field: ProfileField | Literal["custom"]
+    custom_name: str | None = Field(default=None, min_length=1, max_length=48)
     value: str | None = Field(max_length=500)
     text: str = Field(min_length=1, max_length=4000)
     status: Literal["stated", "inferred", "unknown"] = "stated"
@@ -64,6 +67,18 @@ class ProfileChange(Input):
 
     @model_validator(mode="after")
     def sourced(self) -> Self:
+        if self.field == "custom":
+            if self.custom_name is None or not re.fullmatch(
+                r"[A-Za-z0-9]+(?:[ _-]+[A-Za-z0-9]+)*", self.custom_name.strip()
+            ):
+                raise ValueError(
+                    "Name custom details using letters, numbers, spaces or hyphens"
+                )
+            self.custom_name = re.sub(r"[ _-]+", "_", self.custom_name.strip()).lower()
+            if self.custom_name in RESERVED_CUSTOM_NAMES:
+                raise ValueError("Choose the existing detail type for this name")
+        elif self.custom_name is not None:
+            raise ValueError("Custom names require the custom detail type")
         if not self.text.strip() or (
             self.value is not None
             and (not self.value.strip() or self.value not in self.text)
@@ -76,6 +91,14 @@ class ProfileChange(Input):
         if self.valid_from and self.valid_to and self.valid_from >= self.valid_to:
             raise ValueError("End date must follow start date")
         return self
+
+    @property
+    def predicate(self) -> str:
+        if self.field == "custom":
+            if self.custom_name is None:
+                raise ValueError("Choose a custom detail name")
+            return "profile_custom_" + self.custom_name
+        return "profile_" + self.field
 
 
 class ProfileService:
@@ -152,7 +175,7 @@ class ProfileService:
             actor,
             FactInput(
                 subject_id=subject_id,
-                predicate="profile_" + data.field,
+                predicate=data.predicate,
                 value=data.value,
                 status=data.status,
                 source_id=source.id,

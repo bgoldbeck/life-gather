@@ -10,6 +10,7 @@ import { RecordComparison } from './RecordComparison'
 import { AssetActions } from './AssetActions'
 import { AssetPurchases } from './AssetPurchases'
 import { FieldHistory } from './FieldHistory'
+import { factLabel } from './profileFields'
 import { ManualAssetForm, type ManualAssetResult } from './ManualAssetForm'
 import { AssetConsolidation, type Consolidation } from './AssetConsolidation'
 import {
@@ -704,7 +705,7 @@ export function AssetsPanel({
                 onOpenSource={evidence}
               />
               <p>
-                {fact.predicate.replaceAll('_', ' ')}:{' '}
+                {factLabel(fact.predicate)}:{' '}
                 {fact.object_id
                   ? (fact.object_name ?? 'Linked item')
                   : JSON.stringify(fact.value)}{' '}

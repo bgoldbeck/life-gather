@@ -22,6 +22,7 @@ from lifegather.documents.service import DocumentService
 from lifegather.memory.schemas import EntityInput, FactInput, SourceInput
 from lifegather.memory.service import MemoryError, MemoryService
 from lifegather.photos.service import PhotoService
+from lifegather.profiles.service import ProfileChange, ProfileService
 from lifegather.recovery.__main__ import main
 from lifegather.version import __version__
 
@@ -51,6 +52,17 @@ def verify(root: Path) -> None:
             value=True,
             source_id=evidence.id,
             operation_key="owned",
+        ),
+    )
+    custom = ProfileService(store.engine).save(
+        alice,
+        ProfileChange(
+            entity_id=item.id,
+            field="custom",
+            custom_name="Tire size",
+            value="205/55R16",
+            text="Synthetic tire label: 205/55R16.",
+            operation_key="tire",
         ),
     )
     key = AESGCM.generate_key(bit_length=256)
@@ -98,6 +110,10 @@ def verify(root: Path) -> None:
     recovered = AuthStore(settings.data_dir / "auth.sqlite3")
     recall = MemoryService(recovered.engine)
     assert recall.timeline(alice, item.id)[0].model_dump() == fact.model_dump()
+    assert any(
+        detail.model_dump() == custom.model_dump()
+        for detail in ProfileService(recovered.engine).get(alice, item.id)["facts"]
+    )
     try:
         recall.get_entity(bob, item.id)
     except MemoryError:

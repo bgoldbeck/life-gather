@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.51.0 — Named custom sourced profile details
+
+- Add Custom detail to Profiles for named descriptions such as tire size or fuel
+  type. Require original evidence and an exact value or explicit unknown; preserve
+  valid-world dates, recorded history, safe retries and selected-version corrections.
+- Keep custom names separate from built-in identity fields. Normalize bounded
+  names and show readable labels across Profiles, Assets, Graph, comparison and
+  field history. Correcting a detail preserves its original field and subject.
+- Reuse private immutable facts, canonical consolidation, selected-record recall,
+  record export and encrypted recovery. Existing built-in payloads and bounded
+  chat writes remain supported. No schema, dependency, export-format, provider
+  request or deployment change; migration remains 0023.
+
 ## 0.50.1 — Recovery independent of lost operational settings
 
 - Verify and restore valid bundles even when remaining environment or dotenv
