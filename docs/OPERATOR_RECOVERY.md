@@ -7,6 +7,11 @@ installation settings and configured vault key. Personal JSON downloads remain
 separate and cannot be restored with this command. There is no HTTP/MCP/AI tool
 for installation recovery.
 
+From v0.50.1, verification and restoration ignore old Google/SMTP/public-URL and
+other operational settings, including a missing JSON configuration file. They
+retain environment/dotenv data and static paths for staging and privacy checks.
+Backup still requires the actual installation's complete valid configuration.
+
 ## Create and check a backup
 
 Run inside the installation's existing container so its configured data directory,

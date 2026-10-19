@@ -80,10 +80,15 @@ def verify(root: Path) -> None:
     flags = ["--passphrase-file", str(phrase)]
     assert main(["backup", str(bundle), *flags]) == 0
     assert bundle.stat().st_size > 40 * 1024 * 1024
+    # Recovery must not require a secret that existed only in a now-lost config.
+    os.environ["LIFEGATHER_GOOGLE_CLIENT_ID"] = "SYNTHETIC_PARTIAL_ID"
+    os.environ["LIFEGATHER_CONFIGURATION_FILE"] = str(root / "lost.json")
     assert main(["verify", str(bundle), *flags]) == 0
     destination = root / "recovered"
     assert main(["restore", str(bundle), str(destination), *flags]) == 0
     assert main(["restore", str(bundle), str(destination), *flags]) == 1
+    os.environ.pop("LIFEGATHER_GOOGLE_CLIENT_ID")
+    os.environ.pop("LIFEGATHER_CONFIGURATION_FILE")
     settings = Settings(
         configuration_file=destination / "installation.json",
         data_dir=destination / "data",
