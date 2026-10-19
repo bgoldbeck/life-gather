@@ -1,6 +1,6 @@
 # LifeGather
 
-[![Source version](https://img.shields.io/badge/source_version-v0.44.0-426B46)](CHANGELOG.md)
+[![Source version](https://img.shields.io/badge/source_version-v0.47.0-426B46)](CHANGELOG.md)
 
 This badge identifies the source release. Check the login screen or app header for your running container’s version.
 
@@ -13,6 +13,12 @@ It aims to help organize possessions, events, documents, and relationships while
 Settings provides a [private records download](docs/RECORD_EXPORT.md) with saved
 evidence and history, purchases/units, conversations and file metadata. This
 structured JSON copy excludes originals and credentials and is not a full backup.
+
+Use **Add asset** on Assets for private manual inventory entry, including
+duplicate checks and original user-stated evidence, without an AI provider.
+
+Profiles, Assets and Graph now offer [field change history](docs/CHANGE_HISTORY.md)
+with evidence, dates and recorded editing/AI workflow attribution.
 
 Chat can now [request a bounded email evidence scan](docs/EMAIL_SCANS.md)
 from an explicitly chosen connected Gmail mailbox, then open its saved progress.

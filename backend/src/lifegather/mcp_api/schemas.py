@@ -3,11 +3,15 @@ from pydantic import BaseModel, ConfigDict, Field
 from lifegather.assets.actions import AssetChange
 from lifegather.assets.batch import EvidenceMove, EvidenceMovePreview, EvidenceRestore
 from lifegather.assets.comparison import RecordComparison
+from lifegather.assets.manual import ManualAssetCreate, ManualAssetFields
 from lifegather.assets.purchases import AssetPurchasesRead
 from lifegather.assets.replacements import ReplacementRecord, ReplacementWithdraw
 from lifegather.assets.service import AssetList, AssetRead
+from lifegather.chat.context import ContextRead
+from lifegather.chat.organizer import OrganizationAction
 from lifegather.chat.service import SaveText
 from lifegather.documents.service import DocumentPage, DocumentRead
+from lifegather.memory.history import FieldHistoryRead
 from lifegather.memory.library import LibraryPage
 from lifegather.memory.notes import CorrectionInput, NoteHistoryInput
 from lifegather.photos.service import PhotoAttach, PhotoDetach, PhotoList, PhotoRead
@@ -86,6 +90,11 @@ class DiscoveryHistory(Page):
 
 
 INPUTS: dict[str, type[BaseModel]] = {
+    "workspace_context_get": ContextRead,
+    "workspace_organize": OrganizationAction,
+    "asset_manual_preview": ManualAssetFields,
+    "asset_manual_save": ManualAssetCreate,
+    "memory_field_history": FieldHistoryRead,
     "asset_record_comparison": RecordComparison,
     "purchase_list": PurchasePage,
     "purchase_get": PurchaseRead,

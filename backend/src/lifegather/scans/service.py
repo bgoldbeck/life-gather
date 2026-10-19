@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from lifegather.auth.models import User
 from lifegather.auth.store import Account
+from lifegather.memory.history import event_origin
 from lifegather.memory.models import Episode
 from lifegather.memory.notes import NoteConflict
 from lifegather.memory.service import MemoryError, MemoryService, fingerprint
@@ -258,6 +259,17 @@ class ScanService:
                     db, actor, "scan_cancel_requested", row.id, row.updated_at * 1000000
                 )
             return self.view(row)
+
+    def origin_for(self, claim: ScanClaim) -> dict[str, Any]:
+        with Session(self.engine) as db:
+            self.owned(db, claim.actor, claim.id)
+            origin = event_origin(db, claim.actor, claim.id, ("scan_requested",)) or {}
+            return {
+                **origin,
+                "interface": "worker",
+                "method": "import",
+                "related_id": claim.id,
+            }
 
     def claim(self) -> ScanClaim | None:
         with self.memory._write() as db:

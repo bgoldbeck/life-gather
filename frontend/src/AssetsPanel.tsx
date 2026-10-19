@@ -9,6 +9,8 @@ import { EvidenceBatch } from './EvidenceBatch'
 import { RecordComparison } from './RecordComparison'
 import { AssetActions } from './AssetActions'
 import { AssetPurchases } from './AssetPurchases'
+import { FieldHistory } from './FieldHistory'
+import { ManualAssetForm, type ManualAssetResult } from './ManualAssetForm'
 
 type Asset = {
   id: string
@@ -74,11 +76,15 @@ export function AssetsPanel({
   csrfToken = '',
   initialAssetId = '',
   onOpenGraph,
+  onContext,
+  contextRevision = 0,
 }: {
   refreshSession?: () => Promise<void>
   csrfToken?: string
   initialAssetId?: string
   onOpenGraph?: (id: string) => void
+  onContext?: (id: string | null) => void
+  contextRevision?: number
 }) {
   const [items, setItems] = useState<Asset[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
@@ -86,9 +92,19 @@ export function AssetsPanel({
   const [search, setSearch] = useState('')
   const [history, setHistory] = useState(false)
   const [detail, setDetail] = useState<Detail | null>(null)
+  const detailHeading = useRef<HTMLHeadingElement>(null)
+  useEffect(() => {
+    if (detail?.asset.id)
+      detailHeading.current?.scrollIntoView?.({ block: 'start' })
+  }, [detail?.asset.id])
+  useEffect(() => {
+    onContext?.(detail?.asset.id ?? null)
+  }, [detail, onContext])
   const [source, setSource] = useState<Source | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [notice, setNotice] = useState('')
   const generation = useRef(0)
   const selectedAsset = useRef('')
   const selectAsset = useCallback((id: string) => {
@@ -145,7 +161,7 @@ export function AssetsPanel({
       controller.abort()
       selectAsset('')
     }
-  }, [request, search, history, initialAssetId, selectAsset])
+  }, [request, search, history, initialAssetId, selectAsset, contextRevision])
 
   async function more() {
     const version = ++generation.current
@@ -299,6 +315,44 @@ export function AssetsPanel({
   return (
     <section className="assets-panel" aria-label="Your assets">
       <h1>Assets</h1>
+      <Button
+        onClick={() => {
+          setAdding(true)
+          setNotice('')
+        }}
+        disabled={adding}
+      >
+        Add asset
+      </Button>
+      {adding && (
+        <ManualAssetForm
+          csrfToken={csrfToken}
+          refreshSession={refreshSession}
+          onCancel={() => setAdding(false)}
+          onOpen={open}
+          onSaved={async (result: ManualAssetResult) => {
+            setAdding(false)
+            setNotice(`${result.asset.name} saved with your stated ownership.`)
+            await open(result.asset.id)
+            const version = generation.current
+            try {
+              const page = await request(
+                `assets?query=${encodeURIComponent(search)}&include_history=${history}`,
+              )
+              if (version === generation.current) {
+                setItems(page.items)
+                setCursor(page.next_cursor)
+              }
+            } catch {
+              if (version === generation.current)
+                setError(
+                  'Asset saved. Reload the list to see the latest items.',
+                )
+            }
+          }}
+        />
+      )}
+      {notice && <p role="status">{notice}</p>}
       <p>
         Find your items and follow their original evidence. Inventory and
         ownership may be inferred.
@@ -329,7 +383,8 @@ export function AssetsPanel({
       {busy && <p role="status">Loading records…</p>}
       {!busy && !items.length && (
         <p>
-          No assets found. Confirm a supported proposal in Chat to add an item.
+          No assets found. Use Add asset, or confirm a supported proposal in
+          Chat.
         </p>
       )}
       <ul className="asset-list">
@@ -357,7 +412,7 @@ export function AssetsPanel({
       )}
       {detail && (
         <section className="asset-detail" aria-label="Asset details">
-          <h2>{detail.asset.name}</h2>
+          <h2 ref={detailHeading}>{detail.asset.name}</h2>
           {onOpenGraph && (
             <Button
               variant="outline"
@@ -571,6 +626,11 @@ export function AssetsPanel({
           </p>
           {detail.facts.map((fact) => (
             <article key={fact.id}>
+              <FieldHistory
+                entityId={detail.asset.id}
+                field={fact.predicate}
+                onOpenSource={evidence}
+              />
               <p>
                 {fact.predicate.replaceAll('_', ' ')}:{' '}
                 {fact.object_id

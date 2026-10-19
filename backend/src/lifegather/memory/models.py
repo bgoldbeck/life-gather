@@ -4,6 +4,7 @@ from sqlalchemy import (
     CheckConstraint,
     ForeignKey,
     ForeignKeyConstraint,
+    Index,
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -134,11 +135,15 @@ class Evidence(Base):
 
 class Audit(Base):
     __tablename__ = "memory_audit"
+    __table_args__ = (
+        Index("ix_audit_owned_target", "user_id", "target_id", "operation"),
+    )
     id: Mapped[str] = mapped_column(primary_key=True)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     operation: Mapped[str]
     target_id: Mapped[str]
     recorded_at: Mapped[int]
+    provenance_json: Mapped[str | None]
 
 
 class NoteRevision(Base):

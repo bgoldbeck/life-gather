@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import { GraphCanvas } from './GraphCanvas'
+import { FieldHistory } from './FieldHistory'
 import type { GraphData, GraphEntity, GraphFact } from './graphTypes'
 import './graph.css'
 
@@ -13,16 +14,23 @@ export function GraphPanel({
   refreshSession,
   onOpenAsset,
   initialEntityId = '',
+  onContext,
+  contextRevision = 0,
 }: {
   csrfToken: string
   refreshSession?: () => Promise<void>
   onOpenAsset?: (id: string) => void
   initialEntityId?: string
+  onContext?: (id: string | null) => void
+  contextRevision?: number
 }) {
   const [page, setPage] = useState<EntityPage | null>(null)
   const [selected, setSelected] = useState(initialEntityId)
   const [depth, setDepth] = useState(1)
   const [graph, setGraph] = useState<GraphData | null>(null)
+  useEffect(() => {
+    onContext?.(graph?.entity.id ?? null)
+  }, [graph, onContext])
   const [fact, setFact] = useState<GraphFact | null>(null)
   const [source, setSource] = useState<SourcePage | null>(null)
   const [busy, setBusy] = useState(false)
@@ -94,7 +102,7 @@ export function GraphPanel({
       window.clearTimeout(timer)
       controller.abort()
     }
-  }, [selected, depth, request])
+  }, [selected, depth, request, contextRevision])
   async function entities(cursor = '') {
     try {
       setPage(
@@ -277,6 +285,12 @@ export function GraphPanel({
           )}
           {fact && (
             <section className="graph-fact" aria-label="Selected connection">
+              <FieldHistory
+                key={`${fact.subject_id}:${fact.predicate}`}
+                entityId={fact.subject_id}
+                field={fact.predicate}
+                onOpenSource={openSource}
+              />
               <h3>{fact.predicate.replaceAll('_', ' ')}</h3>
               <p>
                 {name(fact.subject_id)} →{' '}

@@ -74,7 +74,7 @@ COLLECTIONS = (
         "fingerprint",
     ),
     Projection(Evidence, "id fact_id source_id quote recorded_at"),
-    Projection(Audit, "id operation target_id recorded_at"),
+    Projection(Audit, "id operation target_id recorded_at provenance_json"),
     Projection(
         NoteRevision,
         "id root_source_id previous_source_id source_id request_id "

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.44.0 — Download private records with preserved history
+## 0.47.0 — Download private records with preserved history
 
 - Settings can explicitly download a versioned JSON copy of saved evidence,
   graph statements/provenance/corrections, reviewed purchase quantities and exact
@@ -14,6 +14,43 @@
   headers. UI validates file format, freezes duplicate clicks, handles failures
   and ignores late responses after leaving Settings; release download URLs.
 - No schema migration, dependency, AI/provider call or deployment change.
+
+## 0.46.0 — Manual inventory and a persistent contextual assistant
+
+- Add asset directly from Assets with a name, optional manufacturer/model/serial
+  and notes, and an affirmative current-ownership declaration. Original values are
+  retained as manual evidence and stated facts, never independent verification.
+- Preview identity matches using the shared reconciliation rules. Link explicitly
+  to an existing item or deliberately create a separate physical item. Reliable
+  serial matches block duplicate creation; ownership corrections remain effective.
+  Later receipts can enrich the same manual item through its canonical bindings.
+- Atomic saves retain provenance and safe retry identities, with private HTTP/MCP
+  adapters. Keep these write tools outside the app's provider tool allowlist.
+  No migration, schema, dependency, price/date inference or live-provider calls.
+- Keep Chat mounted across pages in a collapsible edge dock, with bottom docking
+  by default and account-scoped layout preferences. Show the selected record.
+- Explicit local commands open uniquely named assets and save supplied profile
+  details with provenance, stale-version checks and atomic saved replies. Ambiguous
+  names require a choice; missing VINs are requested rather than invented.
+- Pin each message's record before sending; delayed replies and saved history
+  cannot redirect a user who moved elsewhere. Ask AI gains bounded sourced recall
+  for the selected record. MCP context stays explicit and owner-scoped; no browser
+  bridge, unrestricted model writes or additional migration is introduced.
+
+## 0.45.0 — Sourced field history and workflow attribution
+
+- Profiles, Assets and Graph can explicitly load private paged field history:
+  exact values, explicit previous versions, statement status, recorded/valid dates,
+  source excerpts and links. Independent statements remain separate.
+- Existing audit events now retain server-owned interface, initiation and workflow,
+  with provider/model where known for AI extraction/discovery. Scheduled scan
+  initiation survives worker recovery; reviewed suggestions retain their original
+  proposal attribution separately from the review itself. Retries do not relabel
+  earlier events. No credentials or document-supplied provenance are accepted.
+- Migration `0022_change_origins` adds a nullable audit column and owner/target
+  lookup index. Older origins stay unknown; no guessed backfill or fact rewrite.
+  Existing source/action histories remain. The history UI covers graph facts;
+  custom asset forms/templates and universal undo remain future work.
 
 ## 0.43.0 — Request email evidence scans from Chat
 

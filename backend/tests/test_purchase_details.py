@@ -338,6 +338,7 @@ def test_deleted_pdf_preserves_purchase_history_without_new_writes(
     auth.engine.dispose()
 
 
+@pytest.mark.usefixtures("legacy_audit_writer")
 def test_upgrade_preserves_confirmed_receipt(tmp_path: Path) -> None:
     from alembic import command
     from alembic.config import Config
@@ -466,6 +467,7 @@ def test_currency_change_requires_matching_source_quote(tmp_path: Path) -> None:
     auth.engine.dispose()
 
 
+@pytest.mark.usefixtures("legacy_audit_writer")
 def test_currency_migration_preserves_usd_history_and_legacy_replay(
     tmp_path: Path,
 ) -> None:

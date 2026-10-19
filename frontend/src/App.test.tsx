@@ -12,7 +12,6 @@ describe('LifeGather shell', () => {
       name: 'Main navigation',
     })
     for (const name of [
-      'Chat',
       'Overview',
       'Assets',
       'Memories',
@@ -25,6 +24,12 @@ describe('LifeGather shell', () => {
       'A little less to remember.',
     )
     expect(screen.getByText('Your story starts here')).toBeVisible()
+    expect(
+      within(navigation).queryByRole('button', { name: 'Chat' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('region', { name: 'LifeGather assistant' }),
+    ).toBeVisible()
   })
 
   it('opens the available memory library and returns to overview', async () => {

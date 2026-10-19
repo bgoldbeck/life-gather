@@ -42,3 +42,21 @@ download, explicit scope, uncertain/read failure, session expiry, duplicate-clic
 unmount cleanup and keyboard/narrow browser. Full strict verification, synthetic
 Linux smoke, v0.44.0 source/GHCR release. No migration/dependency/live call/deploy.
 Graphify is unavailable; use actual source/tests and report refresh limitation.
+
+Reconciliation before release: main advanced to 3d5a1c3 (v0.46.0), containing
+field-change origins (migration 0022), manual inventory and the contextual Chat
+dock. Preserve those implementations and release this export as v0.47.0. Add the
+new nullable audit provenance_json to the explicit projection; preserve unknown
+legacy attribution. Retest against current main, including the persistent dock.
+Original v0.44 scope/version above describes the earlier baseline, not a release.
+
+Acceptance on reconciled main: 479 backend /222 frontend tests pass, strict source
+and test types, lint/format and package/frontend builds. New audit origins and
+unknown legacy values retain their exact representation. Standalone synthetic
+quantity/JPY/history/metadata/privacy/snapshot smoke passes. Actual browser file
+contains 45 records across 23 collections and 18 audit origins, with no foreign
+data or stored credential. Confirmed v0.47 download beside the contextual dock and
+390px layout with expanded/collapsed assistant. Browser download handoffs stalled
+despite bounded waits; avoid repeating them. No live data/provider/deployment.
+Graphify is unavailable in this checkout's tool environment; graph/HTML refresh
+could not run. Linux container verification follows the merged source.

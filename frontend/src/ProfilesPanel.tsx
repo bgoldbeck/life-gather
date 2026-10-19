@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import type { GraphEntity, GraphFact } from './graphTypes'
 import './profiles.css'
+import { FieldHistory } from './FieldHistory'
 
 type Request = (path: string, init?: RequestInit) => Promise<unknown>
 type Fact = GraphFact & { superseded_at: number | null }
@@ -22,12 +23,19 @@ function ProfileEditor({
   id,
   request,
   onOpenGraph,
+  onContext,
+  contextRevision = 0,
 }: {
   id: string
   request: Request
   onOpenGraph?: (id: string) => void
+  onContext?: (id: string | null) => void
+  contextRevision?: number
 }) {
   const [page, setPage] = useState<Page | null>(null)
+  useEffect(() => {
+    onContext?.(page?.entity.id ?? null)
+  }, [page, onContext])
   const [history, setHistory] = useState(false)
   const [revision, setRevision] = useState(0)
   const [field, setField] = useState<string>('model')
@@ -68,7 +76,7 @@ function ProfileEditor({
           setError('Unable to load profile details.')
       })
     return () => controller.abort()
-  }, [id, history, revision, request])
+  }, [id, history, revision, request, contextRevision])
   async function save(event: FormEvent) {
     event.preventDefault()
     if (saving.current) return
@@ -197,6 +205,12 @@ function ProfileEditor({
                 Open original evidence
               </Button>
             ))}
+            <FieldHistory
+              key={`${id}:${fact.predicate}:${revision}`}
+              entityId={id}
+              field={fact.predicate}
+              onOpenSource={openSource}
+            />
             {fact.superseded_at === null &&
               fields.includes(
                 fact.predicate.replace(
@@ -344,10 +358,14 @@ export function ProfilesPanel({
   csrfToken,
   refreshSession,
   onOpenGraph,
+  onContext,
+  contextRevision,
 }: {
   csrfToken: string
   refreshSession?: () => Promise<void>
   onOpenGraph?: (id: string) => void
+  onContext?: (id: string | null) => void
+  contextRevision?: number
 }) {
   const [page, setPage] = useState<{
     items: GraphEntity[]
@@ -518,6 +536,8 @@ export function ProfilesPanel({
           id={selected}
           request={request}
           onOpenGraph={onOpenGraph}
+          onContext={onContext}
+          contextRevision={contextRevision}
         />
       )}
     </section>

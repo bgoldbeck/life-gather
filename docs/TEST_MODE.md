@@ -7,6 +7,9 @@ The script downloads the latest image before stopping the existing app, then
 recreates that container with test login enabled. It preserves the named volume
 and refuses unexpected storage or custom LifeGather settings. Start Docker Desktop
 first. This helper uses your connection when you run it, but builds/uploads no image.
+The Windows launcher closes automatically on success. On failure it keeps the
+error visible until you press a key. Running it from an existing terminal returns
+to that terminal after success.
 If container startup fails after recreation, the volume is still retained; correct
 the reported Docker error and rerun. It does not promise a database rollback.
 

@@ -36,6 +36,10 @@ is exceeded, the server refuses the entire download. It never emits a partial
 file labeled complete. Ask the installation owner for a backup if these bounds
 are insufficient. A failed download does not change data; retry explicitly.
 
+Change origins from the current field-history workflow are retained in each audit
+row's `provenance_json`. Unknown legacy attribution remains null; the export does
+not guess who made an old change or relabel its confidence.
+
 ## File format
 
 The envelope identifies `format: "lifegather-records/1"`, `application_version`,

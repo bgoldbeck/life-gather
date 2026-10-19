@@ -315,7 +315,10 @@ def test_existing_chat_fingerprints_do_not_gain_empty_scan_field(
         stored = db.get(Turn, row["id"])
         assert stored is not None
         assert stored.fingerprint == fingerprint(
-            [conversation, data.model_dump(exclude={"source_id", "photo_id", "scan"})]
+            [
+                conversation,
+                data.model_dump(exclude={"source_id", "photo_id", "scan", "context"}),
+            ]
         )
     result = chat.finish(actor, row["id"], {"text": "Saved original."})
     replay, fresh = chat.begin(actor, conversation, data)

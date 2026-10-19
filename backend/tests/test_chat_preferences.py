@@ -1,10 +1,12 @@
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from lifegather.main import create_app
 
 
+@pytest.mark.usefixtures("legacy_audit_writer")
 def test_chat_preference_migration_preserves_existing_settings(tmp_path: Path) -> None:
     from alembic import command
     from alembic.config import Config

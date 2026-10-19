@@ -1,0 +1,305 @@
+.authenticated-shell {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.app-layout {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+.authenticated-shell > .app-layout {
+  flex: 1;
+  height: auto;
+}
+.authenticated-shell > .test-mode-banner {
+  flex-shrink: 0;
+}
+.app-layout > .sidebar {
+  min-height: 0;
+  overflow: auto;
+}
+.app-layout > .workspace {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.topbar {
+  flex-shrink: 0;
+}
+.workspace-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(90px, 1fr) minmax(min(380px, 60vh), 50%);
+  grid-template-areas: 'page' 'chat';
+}
+.workspace-body > .main-content {
+  grid-area: page;
+  overflow: auto;
+  min-height: 0;
+  width: 100%;
+  isolation: isolate;
+  height: 100%;
+  margin: 0 auto;
+}
+.workspace-body.dock-top {
+  grid-template-areas: 'chat' 'page';
+  grid-template-rows: minmax(min(380px, 60vh), 50%) minmax(90px, 1fr);
+}
+.workspace-body.dock-left,
+.workspace-body.dock-right {
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: minmax(320px, 38%) minmax(0, 1fr);
+  grid-template-areas: 'chat page';
+}
+.workspace-body.dock-right {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 38%);
+  grid-template-areas: 'page chat';
+}
+.workspace-body.dock-collapsed {
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'page' 'chat';
+}
+.assistant-dock {
+  grid-area: chat;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+  border: 1px solid var(--border);
+  box-shadow: 0 -3px 18px #00000008;
+}
+.dock-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+.dock-toolbar strong {
+  margin-right: auto;
+}
+.dock-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.dock-toolbar select,
+.dock-toolbar button {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.5rem;
+  color: var(--foreground);
+}
+.dock-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.6rem 1rem;
+}
+.dock-content[hidden],
+.chat-conversations[hidden] {
+  display: none;
+}
+.dock-content .chat-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.dock-content .chat-heading h2 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.dock-content .chat-heading p {
+  font-size: 0.8rem;
+}
+.dock-content .chat-panel > button {
+  align-self: flex-start;
+  padding: 0.1rem 0;
+  height: 1.7rem;
+  font-size: 0.8rem;
+}
+.dock-content .chat-layout {
+  flex: 1;
+  min-height: 0;
+  gap: 0.8rem;
+  margin-top: 0.3rem;
+  grid-template-columns: minmax(120px, 23%) minmax(0, 1fr);
+}
+.chat-layout.conversations-hidden {
+  grid-template-columns: minmax(0, 1fr);
+}
+.dock-content .chat-layout.conversations-hidden {
+  grid-template-columns: minmax(0, 1fr);
+}
+.dock-content .chat-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+}
+.dock-content .chat-messages {
+  flex: 1 0 75px;
+  min-height: 75px;
+  max-height: none;
+}
+.dock-content .chat-empty {
+  padding: 0.4rem;
+  font-size: 0.8rem;
+}
+.dock-content .chat-empty h2 {
+  font-size: 0.95rem;
+  margin-bottom: 0.3rem;
+}
+.dock-content .chat-empty p + p {
+  display: none;
+}
+.dock-content .chat-composer {
+  flex-shrink: 0;
+  margin-top: 0.3rem;
+  gap: 0.4rem;
+  padding: 0.55rem;
+}
+.dock-content .chat-composer:has(#chat-text):not(:has(.chat-provider)) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.dock-content
+  .chat-composer:has(#chat-text):not(:has(.chat-provider))
+  > label:first-child {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.dock-content
+  .chat-composer:has(#chat-text):not(:has(.chat-provider))
+  > label:first-child
+  select {
+  width: auto;
+  max-width: 85%;
+  padding: 0.25rem;
+}
+.dock-content
+  .chat-composer:has(#chat-text):not(:has(.chat-provider))
+  > label[for='chat-text'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.dock-content
+  .chat-composer:has(#chat-text):not(:has(.chat-provider))
+  > textarea {
+  grid-column: 1;
+  grid-row: 2;
+}
+.dock-content
+  .chat-composer:has(#chat-text):not(:has(.chat-provider))
+  > .chat-send {
+  grid-column: 2;
+  grid-row: 2;
+  align-items: center;
+}
+.dock-content .chat-composer:has(#chat-text):not(:has(.chat-provider)) > p {
+  grid-column: 1 / -1;
+}
+.dock-content .chat-composer label {
+  font-size: 0.8rem;
+}
+.dock-content .chat-composer textarea {
+  min-height: 50px;
+  height: 55px;
+}
+.dock-content .chat-composer p {
+  font-size: 0.75rem;
+  margin: 0.2rem 0;
+}
+.dock-content .chat-conversations {
+  overflow: auto;
+}
+@media (max-width: 800px) {
+  .app-layout {
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar {
+    padding: 0.45rem 0.7rem;
+    flex-shrink: 0;
+  }
+  .sidebar .brand {
+    font-size: 1.1rem;
+  }
+  .sidebar .brand-mark {
+    width: 28px;
+    height: 28px;
+  }
+  .sidebar .tagline,
+  .sidebar .sidebar-note {
+    display: none;
+  }
+  .sidebar nav {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    margin-top: 0.3rem;
+    gap: 0.2rem;
+  }
+  .sidebar .nav-button {
+    flex-shrink: 0;
+    width: auto;
+    padding: 0.4rem 0.6rem;
+  }
+  .workspace {
+    flex: 1;
+    height: auto;
+  }
+  .topbar {
+    padding: 0.5rem 0.75rem;
+    min-height: 40px;
+    font-size: 0.75rem;
+  }
+  .account-actions {
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+  .workspace-body.dock-left,
+  .workspace-body.dock-right,
+  .workspace-body.dock-top,
+  .workspace-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(90px, 1fr) minmax(min(330px, 60vh), 53%);
+    grid-template-areas: 'page' 'chat';
+  }
+  .workspace-body.dock-collapsed {
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .dock-toolbar {
+    gap: 0.4rem;
+    padding: 0.4rem 0.6rem;
+  }
+  .dock-content {
+    padding: 0.4rem 0.6rem;
+  }
+  .dock-content .chat-heading {
+    gap: 0.4rem;
+  }
+  .dock-content .chat-heading button {
+    font-size: 0.75rem;
+    padding: 0.3rem;
+  }
+  .dock-content .chat-composer > p {
+    display: none;
+  }
+}

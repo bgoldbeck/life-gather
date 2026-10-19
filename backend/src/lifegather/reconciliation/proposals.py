@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from lifegather.auth.store import Account
 from lifegather.memory.models import Entity
 from lifegather.memory.notes import NoteConflict, NoteService
+from lifegather.memory.origins import change_origin
 from lifegather.memory.service import (
     MemoryError,
     MemoryService,
@@ -343,7 +344,10 @@ class ProposalService:
     def review(self, actor: Account, value: ProposalReview) -> dict[str, Any]:
         data = ProposalReview.model_validate(value)
         signature = fingerprint(data.model_dump())
-        with self.memory._write() as db:
+        with (
+            self.memory._write() as db,
+            change_origin(method="review", related_id=data.proposal_id),
+        ):
             row = self._owned(db, actor, data.proposal_id)
             used = db.scalar(
                 select(AssetProposal.id).where(

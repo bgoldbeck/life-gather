@@ -34,7 +34,9 @@ from lifegather.mailboxes.scan import GmailImportHandler
 from lifegather.mcp_api.tools import build_server
 from lifegather.mcp_api.transport import PrivateMCP
 from lifegather.memory.export_routes import export_router
+from lifegather.memory.history_routes import history_router
 from lifegather.memory.notes import NoteConflict
+from lifegather.memory.origins import change_origin
 from lifegather.memory.routes import graph_router, library_router
 from lifegather.memory.service import MemoryError
 from lifegather.photos.routes import photo_router
@@ -148,6 +150,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(library_router())
     app.include_router(export_router())
     app.include_router(profile_router())
+    app.include_router(history_router())
     app.include_router(document_router())
     app.include_router(mailbox_router())
     app.include_router(scan_router())
@@ -181,7 +184,23 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     async def private_auth_responses(
         request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
-        response = await call_next(request)
+        path = request.url.path
+        method = "unspecified"
+        if path.startswith("/api/profiles"):
+            method = "manual_entry"
+        elif path.endswith("/review") or path.startswith("/api/review"):
+            method = "review"
+        elif path.startswith("/api/assets/") or "/correction" in path:
+            method = "correction"
+        elif path.startswith(("/api/photos", "/api/documents")):
+            method = "import"
+        external = path.rstrip("/") == "/mcp"
+        with change_origin(
+            interface="mcp" if external else "web",
+            initiator="external_client" if external else "account_request",
+            method="unspecified" if external else method,
+        ):
+            response = await call_next(request)
         if request.url.path.startswith(("/auth/", "/api/")):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Referrer-Policy"] = "no-referrer"

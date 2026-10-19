@@ -1,6 +1,14 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react'
 import { Button } from '@/components/ui/button'
 import './chat.css'
+import { contextKey, type WorkspaceContext } from './workspaceContext'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import { ReceiptProposalCard } from './ReceiptProposalCard'
 import { AssetProposalCard } from './AssetProposalCard'
@@ -27,6 +35,10 @@ type Turn = {
     records?: { id: string; name: string; kind: string }[]
     scan_run_id?: string
     recall_limited?: boolean
+    navigation?: { page: string; entity_id: string; name: string }
+    choices?: { id: string; name: string }[]
+    context?: WorkspaceContext
+    changed_entity_id?: string
   }
 }
 type ChatBody = {
@@ -38,6 +50,7 @@ type ChatBody = {
   photo_id?: string
   source_id?: string
   scan?: EmailScanScope
+  context?: WorkspaceContext
 }
 
 type Conversation = { id: string; title: string }
@@ -50,13 +63,31 @@ export function ChatPanel({
   initialReceiptSourceId = '',
   onOpenGraph,
   onOpenScan,
+  onOpenAsset,
+  onRecordChanged,
+  context,
+  contextLoading = false,
+  compact = false,
+  defaultMode = 'save',
 }: {
   csrfToken: string
   initialReceiptSourceId?: string
   refreshSession?: () => Promise<void>
   onOpenGraph?: (id: string) => void
   onOpenScan?: (id: string) => void
+  onOpenAsset?: (id: string) => void
+  onRecordChanged?: (id: string) => void
+  context?: WorkspaceContext | null
+  contextLoading?: boolean
+  compact?: boolean
+  defaultMode?: string
 }) {
+  const contextNow = useRef(context)
+  useLayoutEffect(() => {
+    contextNow.current = context
+  }, [context])
+  const handledNavigation = useRef(new Set<string>())
+  const [showConversations, setShowConversations] = useState(!compact)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [conversationCursor, setConversationCursor] = useState<string | null>(
     null,
@@ -64,10 +95,11 @@ export function ChatPanel({
   const [paging, setPaging] = useState(false)
   const [selected, setSelected] = useState('')
   const [turns, setTurns] = useState<Turn[]>([])
+  const messages = useRef<HTMLDivElement>(null)
   const [turnCursor, setTurnCursor] = useState<string | null>(null)
   const [text, setText] = useState('')
   const [mode, setMode] = useState(
-    initialReceiptSourceId ? 'extract_receipt' : 'save',
+    initialReceiptSourceId ? 'extract_receipt' : defaultMode,
   )
   const [extractSource, setExtractSource] = useState('')
   const [viewProposal, setViewProposal] = useState('')
@@ -82,6 +114,10 @@ export function ChatPanel({
   const [usage, setUsage] = useState(0)
   const [busy, setBusy] = useState(false)
   const [draft, setDraft] = useState('')
+  useEffect(() => {
+    if (messages.current)
+      messages.current.scrollTop = messages.current.scrollHeight
+  }, [turns, draft])
   const [retryNeeded, setRetryNeeded] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -187,6 +223,8 @@ export function ChatPanel({
           request('/preferences', { signal: controller.signal }),
         ])
         if (!alive) return
+        if (!Array.isArray(page.items))
+          throw new Error('Invalid conversation page')
         setConversations(page.items)
         setConversationCursor(page.next_cursor)
         setConsent(settings.allow_external_ai === true)
@@ -385,9 +423,17 @@ export function ChatPanel({
       savingChoice ||
       loading ||
       turnCursor ||
+      contextLoading ||
       (usesScan ? !scanScope : usesPhoto ? !photo : !text.trim())
     )
       return
+    const sentContext = context
+      ? {
+          page: context.page,
+          entity_id: context.entity_id,
+          version: context.version,
+        }
+      : undefined
     setBusy(true)
     cancelContextReads()
     setDraft('')
@@ -409,6 +455,7 @@ export function ChatPanel({
       const body: ChatBody = pending.current?.body ?? {
         request_id: crypto.randomUUID(),
         mode,
+        ...(sentContext ? { context: sentContext } : {}),
         text: usesScan
           ? 'Scan connected email for original text evidence.'
           : usesPhoto
@@ -469,6 +516,18 @@ export function ChatPanel({
           'This request is still running. Retry the same request to check its saved result.',
         )
         return
+      }
+      if (
+        turn.state === 'complete' &&
+        !handledNavigation.current.has(turn.request_id)
+      ) {
+        handledNavigation.current.add(turn.request_id)
+        if (contextKey(contextNow.current) === contextKey(body.context)) {
+          if (turn.result.navigation)
+            onOpenAsset?.(turn.result.navigation.entity_id)
+          if (turn.result.changed_entity_id)
+            onRecordChanged?.(turn.result.changed_entity_id)
+        }
       }
       if (turn.result.receipt_proposal_id)
         setViewReceipt(turn.result.receipt_proposal_id)
@@ -562,8 +621,19 @@ export function ChatPanel({
     <section className="chat-panel" aria-labelledby="chat-title">
       <div className="chat-heading">
         <div>
-          <h1 id="chat-title">Chat</h1>
-          <p>Keep the original. Find it again.</p>
+          {compact ? (
+            <h2 id="chat-title">Your personal assistant</h2>
+          ) : (
+            <h1 id="chat-title">Chat</h1>
+          )}
+          {context && (
+            <p className="chat-context">
+              Context: {context.page}
+              {context.name ? ` / ${context.name}` : ''}
+            </p>
+          )}
+          {contextLoading && <p role="status">Updating page context…</p>}
+          {!compact && <p>Keep the original. Find it again.</p>}
         </div>
         <Button
           variant="outline"
@@ -589,8 +659,21 @@ export function ChatPanel({
           New conversation
         </Button>
       </div>
-      <div className="chat-layout">
-        <aside className="chat-conversations" aria-label="Conversations">
+      <Button
+        variant="ghost"
+        aria-expanded={showConversations}
+        onClick={() => setShowConversations((value) => !value)}
+      >
+        {showConversations ? 'Hide conversations' : 'Your conversations'}
+      </Button>
+      <div
+        className={`chat-layout ${showConversations ? '' : 'conversations-hidden'}`}
+      >
+        <aside
+          className="chat-conversations"
+          aria-label="Conversations"
+          hidden={!showConversations}
+        >
           <h2>Your conversations</h2>
           {!loading && !conversations.length && (
             <p>Your first conversation starts here.</p>
@@ -620,6 +703,7 @@ export function ChatPanel({
         <div className="chat-content">
           <div
             className="chat-messages"
+            ref={messages}
             aria-live="polite"
             aria-busy={busy || loading}
           >
@@ -642,25 +726,49 @@ export function ChatPanel({
               <article className="chat-turn" key={turn.id}>
                 <p className="chat-label">
                   You ·{' '}
-                  {turn.mode === 'save'
-                    ? 'Save memory'
-                    : turn.mode === 'search'
-                      ? 'Keyword search'
-                      : turn.mode === 'extract' ||
-                          turn.mode === 'extract_receipt'
-                        ? turn.mode === 'extract_receipt'
-                          ? 'Suggest receipt items'
-                          : 'Suggest asset'
-                        : turn.mode === 'scan_email'
-                          ? 'Request email scan'
-                          : turn.mode === 'extract_photo_receipt'
-                            ? 'Review receipt photo'
-                            : turn.mode === 'extract_photo'
-                              ? 'Read photo'
-                              : 'Ask AI'}
+                  {turn.mode === 'organize'
+                    ? 'Assistant'
+                    : turn.mode === 'save'
+                      ? 'Save memory'
+                      : turn.mode === 'search'
+                        ? 'Keyword search'
+                        : turn.mode === 'extract' ||
+                            turn.mode === 'extract_receipt'
+                          ? turn.mode === 'extract_receipt'
+                            ? 'Suggest receipt items'
+                            : 'Suggest asset'
+                          : turn.mode === 'scan_email'
+                            ? 'Request email scan'
+                            : turn.mode === 'extract_photo_receipt'
+                              ? 'Review receipt photo'
+                              : turn.mode === 'extract_photo'
+                                ? 'Read photo'
+                                : 'Ask AI'}
                 </p>
                 <p className="chat-text">{turn.text}</p>
                 <div className="chat-response">
+                  {turn.result.context?.name && (
+                    <p>For {turn.result.context.name}</p>
+                  )}
+                  {turn.result.navigation && (
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        onOpenAsset?.(turn.result.navigation!.entity_id)
+                      }
+                    >
+                      Open {turn.result.navigation.name}
+                    </Button>
+                  )}
+                  {turn.result.choices?.map((item, index) => (
+                    <Button
+                      key={item.id}
+                      variant="outline"
+                      onClick={() => onOpenAsset?.(item.id)}
+                    >
+                      Open {item.name} (record {index + 1})
+                    </Button>
+                  ))}
                   {turn.result.scan_run_id && (
                     <Button
                       variant="outline"
@@ -843,6 +951,7 @@ export function ChatPanel({
                   setMode(e.target.value)
                 }}
               >
+                <option value="organize">Assistant</option>
                 <option value="save">Save memory</option>
                 <option value="search">Keyword search</option>
                 <option value="scan_email">Request an email scan</option>
@@ -964,13 +1073,15 @@ export function ChatPanel({
             {!usesPhoto && !usesScan && (
               <>
                 <label htmlFor="chat-text">
-                  {mode === 'save'
-                    ? 'Memory to save'
-                    : mode === 'search'
-                      ? 'Search keywords'
-                      : mode === 'extract' || mode === 'extract_receipt'
-                        ? 'Selected saved note'
-                        : 'Your question'}
+                  {mode === 'organize'
+                    ? 'Message your assistant'
+                    : mode === 'save'
+                      ? 'Memory to save'
+                      : mode === 'search'
+                        ? 'Search keywords'
+                        : mode === 'extract' || mode === 'extract_receipt'
+                          ? 'Selected saved note'
+                          : 'Your question'}
                 </label>
                 <textarea
                   id="chat-text"
@@ -985,11 +1096,13 @@ export function ChatPanel({
                   }}
                 />
                 <p>
-                  {mode === 'search'
-                    ? 'Use 1–12 keywords. Every word must match.'
-                    : mode === 'extract' || mode === 'extract_receipt'
-                      ? 'Review the proposal before creating an asset. Correct the saved note first if its text is wrong.'
-                      : 'Only Save memory adds your original text to searchable memory.'}
+                  {mode === 'organize'
+                    ? 'Try “Edit my F150”, or “Set VIN to …” while viewing an item. Supplied profile edits are saved with history. Choose Ask AI for other questions.'
+                    : mode === 'search'
+                      ? 'Use 1–12 keywords. Every word must match.'
+                      : mode === 'extract' || mode === 'extract_receipt'
+                        ? 'Review the proposal before creating an asset. Correct the saved note first if its text is wrong.'
+                        : 'Only Save memory adds your original text to searchable memory.'}
                 </p>
               </>
             )}
@@ -1001,27 +1114,30 @@ export function ChatPanel({
                   savingChoice ||
                   loading ||
                   !!turnCursor ||
+                  contextLoading ||
                   (usesScan ? !scanScope : usesPhoto ? !photo : !text.trim()) ||
                   (usesAI && (!consent || !credential || !model || usage >= 20))
                 }
               >
                 {retryNeeded
                   ? 'Retry same request'
-                  : mode === 'save'
-                    ? 'Save memory'
-                    : mode === 'search'
-                      ? 'Search memories'
-                      : usesScan
-                        ? 'Start email scan'
-                        : mode === 'extract_photo_receipt'
-                          ? 'Review receipt photo'
-                          : mode === 'extract_photo'
-                            ? 'Read selected photo'
-                            : mode === 'extract' || mode === 'extract_receipt'
-                              ? mode === 'extract_receipt'
-                                ? 'Suggest receipt items'
-                                : 'Suggest asset'
-                              : 'Ask AI'}
+                  : mode === 'organize'
+                    ? 'Send'
+                    : mode === 'save'
+                      ? 'Save memory'
+                      : mode === 'search'
+                        ? 'Search memories'
+                        : usesScan
+                          ? 'Start email scan'
+                          : mode === 'extract_photo_receipt'
+                            ? 'Review receipt photo'
+                            : mode === 'extract_photo'
+                              ? 'Read selected photo'
+                              : mode === 'extract' || mode === 'extract_receipt'
+                                ? mode === 'extract_receipt'
+                                  ? 'Suggest receipt items'
+                                  : 'Suggest asset'
+                                : 'Ask AI'}
               </Button>
               {busy && (
                 <Button

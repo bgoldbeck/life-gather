@@ -22,6 +22,7 @@ from lifegather.main import create_app
 from lifegather.memory import export
 from lifegather.memory.export import COLLECTIONS, ExportLimitError, RecordExport
 from lifegather.memory.notes import CorrectionInput, NoteService
+from lifegather.memory.origins import change_origin
 from lifegather.memory.schemas import EntityInput, FactInput, SourceInput
 from lifegather.photos.service import PhotoService
 from lifegather.reconciliation.purchase_details import PurchaseDetails
@@ -42,6 +43,45 @@ def test_empty_export_has_explicit_scope_and_no_account_identity(
     assert "not a restorable backup" in data["purpose"]
     assert data["excluded"] and actor.id.encode() not in raw
     assert b"a@example.test" not in raw
+
+
+def test_export_preserves_new_change_origins_and_unknown_legacy_values(
+    tmp_path: Path,
+) -> None:
+    from sqlalchemy import update
+
+    from lifegather.memory.models import Audit
+
+    auth, actor, _, memory, _ = setup(tmp_path)
+    first = memory.ingest(actor, SourceInput(text="Synthetic legacy evidence"))
+    with Session(auth.engine) as db, db.begin():
+        db.execute(
+            update(Audit)
+            .where(Audit.target_id == first.id)
+            .values(provenance_json=None)
+        )
+    with change_origin(
+        interface="web", initiator="account_request", method="manual_entry"
+    ):
+        second = memory.ingest(actor, SourceInput(text="Synthetic attributed evidence"))
+    rows = json.loads(RecordExport(auth.engine).download(actor))["collections"][
+        "memory_audit"
+    ]
+    assert (
+        next(row for row in rows if row["target_id"] == first.id)["provenance_json"]
+        is None
+    )
+    origin = next(row for row in rows if row["target_id"] == second.id)[
+        "provenance_json"
+    ]
+    assert json.loads(origin) == {
+        "interface": "web",
+        "initiator": "account_request",
+        "method": "manual_entry",
+        "provider": None,
+        "model": None,
+        "related_id": None,
+    }
 
 
 def test_export_preserves_source_fact_correction_and_distinct_unit_history(
