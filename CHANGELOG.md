@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.45.0 — Sourced field history and workflow attribution
+
+- Profiles, Assets and Graph can explicitly load private paged field history:
+  exact values, explicit previous versions, statement status, recorded/valid dates,
+  source excerpts and links. Independent statements remain separate.
+- Existing audit events now retain server-owned interface, initiation and workflow,
+  with provider/model where known for AI extraction/discovery. Scheduled scan
+  initiation survives worker recovery; reviewed suggestions retain their original
+  proposal attribution separately from the review itself. Retries do not relabel
+  earlier events. No credentials or document-supplied provenance are accepted.
+- Migration `0022_change_origins` adds a nullable audit column and owner/target
+  lookup index. Older origins stay unknown; no guessed backfill or fact rewrite.
+  Existing source/action histories remain. The history UI covers graph facts;
+  custom asset forms/templates and universal undo remain future work.
+
 ## 0.43.0 — Request email evidence scans from Chat
 
 - Choose a connected Gmail mailbox, past UTC dates, optional filter and up to

@@ -11,6 +11,7 @@ from lifegather.chat.service import ChatService, SaveText, TurnInput, save_text
 from lifegather.chat.streaming import AnswerPreview, DeltaSink
 from lifegather.credentials.service import PrivateSettings
 from lifegather.memory.notes import NoteService
+from lifegather.memory.origins import change_origin
 from lifegather.memory.service import MemoryError
 from lifegather.photos.service import PhotoService
 from lifegather.reconciliation.proposals import (
@@ -185,6 +186,15 @@ async def answer(
         active()
         return result.value
 
+    def save_extraction(operation: Callable[[], dict[str, Any]]) -> dict[str, Any]:
+        with change_origin(
+            method="ai_extraction",
+            provider=selected_provider,
+            model=body.model,
+            related_id=conversation_id,
+        ):
+            return operation()
+
     if body.mode == "extract_receipt" or (
         body.mode == "extract_photo_receipt" and note is not None
     ):
@@ -220,7 +230,9 @@ async def answer(
             )
         )
         active()
-        saved = ReceiptService(chat.engine).create(actor, note.id, receipt)
+        saved = save_extraction(
+            lambda: ReceiptService(chat.engine).create(actor, note.id, receipt)
+        )
         return {
             "text": (
                 "Review each receipt line, quantity and possible duplicate "
@@ -262,8 +274,10 @@ async def answer(
             )
         )
         active()
-        saved_receipt = photos.save_receipt_reading(
-            actor, body.photo_id, reading_receipt.model_dump()
+        saved_receipt = save_extraction(
+            lambda: photos.save_receipt_reading(
+                actor, body.photo_id, reading_receipt.model_dump()
+            )
         )
         return {
             "text": (
@@ -313,7 +327,9 @@ async def answer(
         ):
             raise MemoryError("Photo reading must remain an unverified mention")
         active()
-        proposal = photos.save_reading(actor, body.photo_id, reading.model_dump())
+        proposal = save_extraction(
+            lambda: photos.save_reading(actor, body.photo_id, reading.model_dump())
+        )
         return {
             "text": (
                 "AI transcription is unverified. Check it against the "
@@ -349,7 +365,7 @@ async def answer(
             )
         )
         active()
-        proposal = proposals.create(actor, note.id, extracted)
+        proposal = save_extraction(lambda: proposals.create(actor, note.id, extracted))
         return {
             "text": "Review this proposal before adding anything to inventory.",
             "provider": selected_provider,

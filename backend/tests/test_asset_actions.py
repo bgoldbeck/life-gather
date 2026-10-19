@@ -272,6 +272,7 @@ def test_http_mcp_authentication_and_bounds() -> None:
         )
 
 
+@pytest.mark.usefixtures("legacy_audit_writer")
 def test_upgrade_keeps_existing_inventory_and_owner_foreign_keys(
     tmp_path: Path,
 ) -> None:

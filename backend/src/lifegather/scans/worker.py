@@ -5,6 +5,7 @@ from collections.abc import Callable
 
 from sqlalchemy.exc import OperationalError
 
+from lifegather.memory.origins import change_origin
 from lifegather.scans.registry import ScanContext
 from lifegather.scans.service import LeaseLost, ScanCanceled, ScanService
 
@@ -30,14 +31,15 @@ class ScanWorker:
         try:
             handler = self.scans.registry.get(claim.handler_key)
             cursor = claim.cursor
-            async with asyncio.timeout(600):
-                while True:
-                    context.check()
-                    batch = await handler.step(context, claim.config, cursor)
-                    self.scans.commit_batch(claim, batch)
-                    if batch.next_cursor is None:
-                        break
-                    cursor = batch.next_cursor
+            with change_origin(**self.scans.origin_for(claim)):
+                async with asyncio.timeout(600):
+                    while True:
+                        context.check()
+                        batch = await handler.step(context, claim.config, cursor)
+                        self.scans.commit_batch(claim, batch)
+                        if batch.next_cursor is None:
+                            break
+                        cursor = batch.next_cursor
         except ScanCanceled:
             self.scans.finish(claim, "canceled")
         except LeaseLost:

@@ -85,6 +85,7 @@ def test_revisions_paging_withdrawal_replay_and_tenant_foreign_keys(
     auth.engine.dispose()
 
 
+@pytest.mark.usefixtures("legacy_audit_writer")
 def test_migration_preserves_existing_canonical_purchase(tmp_path: Path) -> None:
     from alembic import command
     from alembic.config import Config

@@ -433,6 +433,7 @@ def test_validation_and_review_history_pagination(tmp_path: Path) -> None:
     assert restored.previous_decision_id == dismissed.decision_id
 
 
+@pytest.mark.usefixtures("legacy_audit_writer")
 def test_prior_memory_alias_prevents_duplicate_and_upgrade_preserves_data(
     tmp_path: Path,
 ) -> None:

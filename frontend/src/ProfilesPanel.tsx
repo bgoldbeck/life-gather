@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import type { GraphEntity, GraphFact } from './graphTypes'
 import './profiles.css'
+import { FieldHistory } from './FieldHistory'
 
 type Request = (path: string, init?: RequestInit) => Promise<unknown>
 type Fact = GraphFact & { superseded_at: number | null }
@@ -197,6 +198,12 @@ function ProfileEditor({
                 Open original evidence
               </Button>
             ))}
+            <FieldHistory
+              key={`${id}:${fact.predicate}:${revision}`}
+              entityId={id}
+              field={fact.predicate}
+              onOpenSource={openSource}
+            />
             {fact.superseded_at === null &&
               fields.includes(
                 fact.predicate.replace(

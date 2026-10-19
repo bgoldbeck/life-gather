@@ -42,8 +42,10 @@ from lifegather.mcp_api.schemas import (
     Search,
     SourceRead,
 )
+from lifegather.memory.history import FieldHistory, FieldHistoryRead
 from lifegather.memory.library import LibraryPage, MemoryLibrary
 from lifegather.memory.notes import CorrectionInput, NoteHistoryInput, NoteService
+from lifegather.memory.origins import change_origin
 from lifegather.memory.schemas import FactView
 from lifegather.memory.service import MemoryError, MemoryService
 from lifegather.photos.service import (
@@ -148,7 +150,8 @@ def read(
 ) -> dict[str, Any]:
     actor, memory, discovery = authority(ctx)
     try:
-        result = encode(operation(actor, memory, discovery))
+        with change_origin(interface="mcp", initiator="external_client"):
+            result = encode(operation(actor, memory, discovery))
         if (
             len(json.dumps(result, ensure_ascii=False).encode("utf-8"))
             > MAX_RESULT_BYTES
@@ -186,6 +189,15 @@ def build_server() -> MCPServer:
         idempotent_hint=True,
         open_world_hint=False,
     )
+
+    @server.tool(annotations=annotation)
+    def memory_field_history(
+        data: FieldHistoryRead, ctx: ToolContext
+    ) -> dict[str, Any]:
+        """Read private field versions, evidence and recorded workflow origins."""
+        return read(
+            ctx, lambda actor, memory, _: FieldHistory(memory.engine).get(actor, data)
+        )
 
     @server.tool(annotations=annotation)
     def receipt_details_get(data: DetailRead, ctx: ToolContext) -> dict[str, Any]:

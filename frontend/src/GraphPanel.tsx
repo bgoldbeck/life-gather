@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import { GraphCanvas } from './GraphCanvas'
+import { FieldHistory } from './FieldHistory'
 import type { GraphData, GraphEntity, GraphFact } from './graphTypes'
 import './graph.css'
 
@@ -277,6 +278,12 @@ export function GraphPanel({
           )}
           {fact && (
             <section className="graph-fact" aria-label="Selected connection">
+              <FieldHistory
+                key={`${fact.subject_id}:${fact.predicate}`}
+                entityId={fact.subject_id}
+                field={fact.predicate}
+                onOpenSource={openSource}
+              />
               <h3>{fact.predicate.replaceAll('_', ' ')}</h3>
               <p>
                 {name(fact.subject_id)} →{' '}

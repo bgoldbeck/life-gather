@@ -32,3 +32,12 @@ immutable sources/facts and audit records, not a competing history store.
 
 No asset templates, new vehicle forms, odometer subsystem, free-form agent writes,
 live mailbox/model calls, credential logging or retroactive guesses in this slice.
+
+Implementation acceptance: v0.45.0 / migration 0022. Backend Ruff/format/strict
+mypy pass; full backend 452 tests pass, with 18 focused HTTP/MCP/origin tests
+rerun after explicit MCP adapter attribution. Frontend lint/format/production
+build and 198 interaction tests pass. Both Compose configurations validate.
+Legacy upgrade fixtures seed the historical audit format instead of incorrectly
+using a new ORM column against an old schema. Code-only Graphify and HTML refreshed
+(2797 nodes / 11173 edges); AssetsPanel has the existing parser-coverage warning,
+so TypeScript/build/tests remain authoritative. No live provider/mailbox calls.

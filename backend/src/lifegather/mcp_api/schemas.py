@@ -8,6 +8,7 @@ from lifegather.assets.replacements import ReplacementRecord, ReplacementWithdra
 from lifegather.assets.service import AssetList, AssetRead
 from lifegather.chat.service import SaveText
 from lifegather.documents.service import DocumentPage, DocumentRead
+from lifegather.memory.history import FieldHistoryRead
 from lifegather.memory.library import LibraryPage
 from lifegather.memory.notes import CorrectionInput, NoteHistoryInput
 from lifegather.photos.service import PhotoAttach, PhotoDetach, PhotoList, PhotoRead
@@ -86,6 +87,7 @@ class DiscoveryHistory(Page):
 
 
 INPUTS: dict[str, type[BaseModel]] = {
+    "memory_field_history": FieldHistoryRead,
     "asset_record_comparison": RecordComparison,
     "purchase_list": PurchasePage,
     "purchase_get": PurchaseRead,

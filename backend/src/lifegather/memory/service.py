@@ -108,6 +108,8 @@ class MemoryService:
     def _audit(
         self, db: Session, actor: Account, operation: str, target: str, now: int
     ) -> None:
+        from lifegather.memory.origins import origin_json
+
         db.add(
             Audit(
                 id=str(uuid4()),
@@ -115,6 +117,7 @@ class MemoryService:
                 operation=operation,
                 target_id=target,
                 recorded_at=now,
+                provenance_json=origin_json(),
             )
         )
 

@@ -17,6 +17,7 @@ from lifegather.chat.provider_names import SUPPORTED_PROVIDERS
 from lifegather.credentials.service import PrivateSettings
 from lifegather.mailboxes.scan import GmailScanConfig
 from lifegather.memory.notes import NoteService
+from lifegather.memory.origins import change_origin
 from lifegather.memory.schemas import SourceInput, SourceView
 from lifegather.memory.service import MemoryError, MemoryService, fingerprint
 from lifegather.scans.service import ScanService
@@ -92,15 +93,16 @@ class SaveText(BaseModel):
 
 def save_text(memory: MemoryService, actor: Account, data: SaveText) -> SourceView:
     data = SaveText.model_validate(data)
-    return memory.ingest(
-        actor,
-        SourceInput(
-            text=data.text,
-            source_type="conversation",
-            namespace="chat-memory",
-            external_id=data.request_id,
-        ),
-    )
+    with change_origin(method="user_statement"):
+        return memory.ingest(
+            actor,
+            SourceInput(
+                text=data.text,
+                source_type="conversation",
+                namespace="chat-memory",
+                external_id=data.request_id,
+            ),
+        )
 
 
 class ChatService:

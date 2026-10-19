@@ -3,7 +3,11 @@
 **Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
 **Date:** Updated 2026-10-17
 
-Current increment: v0.43.0 adds explicit bounded Gmail text-evidence scans from
+Current increment: v0.45.0 adds shared server-owned audit origins and private
+field history in Profiles, Assets and Graph. Preserve unknown legacy attribution,
+explicit correction links, evidence, confidence and both time dimensions.
+See [change history](docs/CHANGE_HISTORY.md). Custom asset templates remain ahead.
+v0.43.0 adds explicit bounded Gmail text-evidence scans from
 Chat, with atomic queue/result saving and existing Scans progress/cancellation.
 Conversational AI purchase discovery and free-form agent planning remain ahead.
 v0.42.0 adds explicit multi-item receipt-photo reading in Chat,

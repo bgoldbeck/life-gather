@@ -16,7 +16,9 @@ from lifegather.credentials.service import PrivateSettings
 from lifegather.mailboxes.discovery import GmailDiscoveryHandler
 from lifegather.mailboxes.provider import GmailGrant
 from lifegather.mailboxes.service import Mailboxes
+from lifegather.memory.history import FieldHistory, FieldHistoryRead
 from lifegather.memory.notes import CorrectionInput, NoteService
+from lifegather.memory.origins import change_origin
 from lifegather.memory.schemas import SourceInput
 from lifegather.memory.service import MemoryError, MemoryService
 from lifegather.reconciliation.queue import ReviewPage, ReviewService
@@ -135,11 +137,20 @@ def test_email_discovery_groups_order_evidence_and_reuses_completed_extraction(
     tmp_path: Path,
 ) -> None:
     auth, actor, bob, memory, reconcile, _, ai, scans, config = harness(tmp_path)
-    run = scans.enqueue(actor, "gmail_discovery", config, "first")
+    with change_origin(interface="scheduler", initiator="scheduled", method="import"):
+        run = scans.enqueue(actor, "gmail_discovery", config, "first")
     asyncio.run(ScanWorker(scans).run_once())
     result = scans.get(actor, run["id"])
     assert result["state"] == "completed"
     assert len(reconcile.inventory(actor)) == 1
+    asset = reconcile.inventory(actor)[0]
+    history = FieldHistory(auth.engine).get(
+        actor, FieldHistoryRead(entity_id=asset, field="owned")
+    )
+    origin = history["items"][0]["origin"]
+    assert origin["initiator"] == "scheduled" and origin["interface"] == "worker"
+    assert origin["method"] == "ai_inference" and origin["provider"] == "openai"
+    assert origin["model"] == config["model"] and origin["related_id"] == run["id"]
     assert len(memory.export_page(actor, "sources")["items"]) == 2
     assert result["items"][0]["metadata"]["created"] == 1
     assert result["items"][1]["metadata"]["enriched"] == 1
