@@ -78,6 +78,7 @@ from lifegather.reconciliation.receipts import (
 )
 from lifegather.reconciliation.service import ReconciliationService
 from lifegather.scans.registry import ScanPage, ScanRead, ScanRegistry
+from lifegather.scans.schedules import ScheduleService
 from lifegather.scans.service import ScanService
 
 logger = logging.getLogger(__name__)
@@ -775,6 +776,16 @@ def build_server() -> MCPServer:
             lambda actor, memory, _: ScanService(memory.engine, ScanRegistry([])).get(
                 actor, data.run_id, data.after
             ),
+        )
+
+    @server.tool(annotations=annotation)
+    def scan_schedule_list(data: ScanPage, ctx: ToolContext) -> dict[str, Any]:
+        """Read this user's private schedules and next-run times; never dispatch."""
+        return read(
+            ctx,
+            lambda actor, memory, _: ScheduleService(
+                ScanService(memory.engine, ScanRegistry([]))
+            ).list(actor),
         )
 
     return server

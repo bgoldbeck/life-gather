@@ -66,6 +66,10 @@ class ScanHandler(Protocol):
 
     def prepare(self, actor: Account, config: BaseModel) -> PreparedScan: ...
 
+    def window(
+        self, config: dict[str, Any], since: int, until: int
+    ) -> dict[str, Any]: ...
+
     def authorize(
         self, db: Session, actor: Account, config: dict[str, Any]
     ) -> None: ...

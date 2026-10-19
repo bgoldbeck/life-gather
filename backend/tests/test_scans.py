@@ -35,6 +35,9 @@ class SyntheticHandler:
     def prepare(self, actor: Account, config: BaseModel) -> PreparedScan:
         return PreparedScan("synthetic", config.model_dump())
 
+    def window(self, config: dict[str, Any], since: int, until: int) -> dict[str, Any]:
+        return config
+
     def authorize(self, db: Session, actor: Account, config: dict[str, Any]) -> None:
         pass
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
+import { ScanSchedulesPanel } from './ScanSchedulesPanel'
 
 type Mailbox = { id: string; address: string; connected: boolean }
 type Run = {
@@ -116,11 +117,10 @@ export function ScansPanel({ csrfToken }: { csrfToken: string }) {
           if (controller.signal.aborted) return
           setResult(detail)
         }
-        if (
+        const active =
           page.items.some((row) => ['queued', 'running'].includes(row.state)) ||
           (detail && ['queued', 'running'].includes(detail.state))
-        )
-          timer = setTimeout(() => void load(), 2000)
+        timer = setTimeout(() => void load(), active ? 2000 : 15000)
       } catch {
         if (!controller.signal.aborted)
           setError(
@@ -148,11 +148,12 @@ export function ScansPanel({ csrfToken }: { csrfToken: string }) {
         config: {
           mailbox_id: mailbox,
           from_timestamp: Date.parse(from + 'T00:00:00Z') / 1000,
-          until_timestamp:
+          until_timestamp: Math.floor(
             Math.min(
               Date.now() / 1000,
               Date.parse(until + 'T00:00:00Z') / 1000 + 86400,
-            ) | 0,
+            ),
+          ),
           query,
           max_messages: limit,
         },
@@ -243,6 +244,16 @@ export function ScansPanel({ csrfToken }: { csrfToken: string }) {
   return (
     <section className="space-y-5">
       <h2 className="text-xl font-semibold">Scans</h2>
+      <ScanSchedulesPanel
+        csrfToken={csrfToken}
+        mailboxes={mailboxes}
+        onRun={(id) => {
+          setSelected(id)
+          setAfter(0)
+          setResult(null)
+          setReload((value) => value + 1)
+        }}
+      />
       <p className="text-muted-foreground">
         Import private email text as evidence on request. This scan does not
         send mail to AI or create inventory items. Attachments are omitted. Find

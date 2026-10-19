@@ -76,6 +76,12 @@ class GmailImportHandler:
             ).revision
         return PreparedScan("gmail:" + values["mailbox_id"], values)
 
+    def window(self, config: dict[str, Any], since: int, until: int) -> dict[str, Any]:
+        values = {
+            key: value for key, value in config.items() if key != "mailbox_revision"
+        }
+        return {**values, "from_timestamp": since, "until_timestamp": until}
+
     def authorize(self, db: Session, actor: Account, config: dict[str, Any]) -> None:
         self.validate(db, actor, config)
 

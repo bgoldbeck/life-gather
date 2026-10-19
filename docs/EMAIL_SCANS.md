@@ -1,5 +1,45 @@
 # Private email connections and scans
 
+## Daily/weekly schedules (v0.36.0)
+
+Scans → Scheduled scans creates a schedule for a connected Gmail mailbox. Choose
+a timezone such as `America/Los_Angeles`, daily/weekly frequency and local time,
+the preceding 1–30 days, search and message cap. The app must be running; your
+browser can be closed and you can be signed out. Work is queued when the worker
+checks due schedules; a busy single worker can delay dispatch. There is no
+email-arrival trigger, paid external scheduler or additional service.
+
+Five schedules per user are supported; edit an existing schedule to reuse a slot.
+Manual and scheduled runs share the 20-runs/day/user cap and one active run per
+mailbox. Overlapping occurrences are skipped and shown in schedule status. A
+disconnected or changed local mailbox grant, unavailable handler or invalid scope
+blocks and pauses dispatch. Reconnect in Settings and explicitly Resume; this
+adopts the current connection. A remote provider failure is shown on the run;
+check that run and reconnect if needed. No credentials appear in the schedule API.
+
+After downtime only the latest missed occurrence is queued; older missed windows
+are not replayed. Each run reads a frozen window ending at its scheduled UTC
+instant. Overlapping lookbacks safely deduplicate email evidence. Message caps can
+leave mail unprocessed, so narrow the query or dates if a run reports truncation.
+This scheduler is not a guarantee that every mailbox message will be imported.
+
+Schedules preserve local calendar time through timezone changes: a missing spring
+time advances to the first valid local minute; a repeated autumn time runs once
+at its first occurrence. Pause prevents new dispatch and retains history; cancel
+an already queued/running job separately. Editing or resuming resets the next run
+to a future occurrence, with optimistic revisions to protect concurrent edits.
+Restore the database/vault as usual; schedules and jobs are durable SQLite data.
+
+Source handlers materialize date windows through a typed contract. Recurrence,
+dispatch, leases, cancellation and checkpoints remain independent of Gmail. Only
+server-registered handlers are accepted; there is no arbitrary uploaded code.
+Private MCP `scan_schedule_list` reads status without starting work. App chat
+remains read-only; conversational scan-start tools are not enabled in this slice.
+
+Timezone implementation follows Python's first-party
+[zoneinfo documentation](https://docs.python.org/3.13/library/zoneinfo.html), using
+the `tzdata` package when system IANA data is unavailable.
+
 ## Requested scans (v0.35.0)
 
 Open Scans after connecting Gmail in Settings. Choose dates (UTC), an optional

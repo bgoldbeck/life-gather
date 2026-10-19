@@ -79,3 +79,26 @@ mailbox scan or Docker action is part of this implementation verification.
 
 Early-visibility rule applied: publish this kickoff plan and repository rule now;
 unfinished implementation/tests remain uncommitted until they pass verification.
+
+Step 3 completed in source: owned daily/weekly calendar schedules materialize
+handler scope and dispatch into the existing runner. Atomic enqueue/next due,
+latest-only catch-up, overlap status, explicit pause/resume, stale edit protection,
+local connection revision checks and restored database dispatch are implemented.
+UI supports create/edit/retry/pause/resume/last-run inspection; private MCP lists
+schedules without starting scans. Source-specific window logic remains in handlers.
+
+Step 3 verified: 354 full backend / 133 frontend tests pass; Ruff lint/format,
+strict mypy (172 files), TypeScript/Oxlint/Prettier, wheel/frontend builds pass.
+Graph refreshed 2400 nodes / 9344 edges. Nine schedule tests cover spring gaps,
+autumn repeats, weekly/quarter-hour/half-hour zones, invalid configuration,
+concurrent dispatch, latest catch-up, overlap, owner isolation, stale changes,
+five-schedule cap, replay conflicts, paused edits, snapshot recovery, frozen Gmail
+windows, changed-grant block/resume, API CSRF/body limits and private MCP. UI tests
+cover create/pause, revision-aware edit/run navigation and exact create retry.
+
+Root-only self-review completed: no personal-data/model calls or credentials in
+responses; no custom code upload, email-arrival trigger or per-source scheduler.
+Remote provider failures appear on the run; local changed/disconnected grants
+block dispatch until explicit resume. Conversational scan-start and automatic
+receipt extraction from email are intentionally outside this evidence-import slice.
+No live Gmail verification, container build/upload or redeployment performed.
