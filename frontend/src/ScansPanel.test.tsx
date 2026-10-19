@@ -5,6 +5,83 @@ import { ScansPanel } from './ScansPanel'
 
 afterEach(() => vi.unstubAllGlobals())
 
+it('explicitly selects purchase discovery and its private AI connection', async () => {
+  const user = userEvent.setup()
+  let saved: Record<string, unknown> | null = null
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        saved = JSON.parse(String(init.body))
+        return new Response(
+          JSON.stringify({ id: 'discovered', state: 'completed' }),
+        )
+      }
+      const value = url.includes('mailboxes')
+        ? {
+            items: [
+              {
+                id: 'mailbox',
+                address: 'synthetic@example.test',
+                connected: true,
+              },
+            ],
+          }
+        : url.includes('credentials')
+          ? {
+              items: [
+                {
+                  id: 'ai',
+                  kind: 'ai',
+                  provider: 'openai',
+                  label: 'Synthetic AI',
+                },
+              ],
+            }
+          : url.endsWith('settings')
+            ? { allow_external_ai: true }
+            : url.includes('/scans/discovered')
+              ? {
+                  id: 'discovered',
+                  state: 'completed',
+                  handler_key: 'gmail_discovery',
+                  items: [
+                    {
+                      sequence: 1,
+                      source_id: null,
+                      label: 'Receipt',
+                      state: 'saved',
+                      reason: '',
+                      metadata: { created: 1, enriched: 0, review: 1 },
+                    },
+                  ],
+                }
+              : { items: [] }
+      return new Response(JSON.stringify(value))
+    }),
+  )
+  const navigate = vi.fn()
+  render(<ScansPanel csrfToken="csrf" onNavigate={navigate} />)
+  await screen.findAllByText('synthetic@example.test')
+  await user.click(screen.getByLabelText('Discover purchases with AI'))
+  await screen.findByRole('option', { name: 'Synthetic AI (openai)' })
+  await user.selectOptions(
+    screen.getByLabelText('Discovery AI connection'),
+    'ai',
+  )
+  await user.type(screen.getByLabelText('Discovery model'), 'synthetic-model')
+  await user.click(screen.getByRole('button', { name: /^Start email scan$/ }))
+  await screen.findByText(/1 created · 0 enriched · 1 need review/)
+  expect(saved).toMatchObject({
+    handler_key: 'gmail_discovery',
+    config: { credential_id: 'ai', model: 'synthetic-model' },
+  })
+  await user.click(
+    screen.getByRole('button', { name: 'Review uncertain matches' }),
+  )
+  expect(navigate).toHaveBeenCalledWith('Review')
+})
+
 it('requires an explicit request and reuses its identity after an uncertain response', async () => {
   const user = userEvent.setup()
   const writes: RequestInit[] = []

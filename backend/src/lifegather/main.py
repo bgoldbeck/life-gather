@@ -27,6 +27,7 @@ from lifegather.credentials.middleware import CredentialBodyLimit
 from lifegather.credentials.routes import private_router
 from lifegather.credentials.service import PrivateSettings, VaultError, read_key
 from lifegather.documents.routes import document_router
+from lifegather.mailboxes.discovery import GmailDiscoveryHandler
 from lifegather.mailboxes.provider import GmailProvider
 from lifegather.mailboxes.routes import mailbox_router
 from lifegather.mailboxes.scan import GmailImportHandler
@@ -94,7 +95,17 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
                             store.engine,
                             app.state.private_settings,
                             app.state.gmail_provider,
-                        )
+                        ),
+                        GmailDiscoveryHandler(
+                            store.engine,
+                            app.state.private_settings,
+                            app.state.gmail_provider,
+                            {
+                                "openai": app.state.chat_provider,
+                                "anthropic": app.state.claude_provider,
+                                "google": app.state.google_provider,
+                            },
+                        ),
                     ]
                 ),
             )

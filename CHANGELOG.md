@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.38.0 — Requested and scheduled Gmail purchase discovery
+
+- Opt into AI discovery in Scans or daily/weekly schedules using your private
+  OpenAI, Claude or Gemini connection. Evidence-only scans remain available.
+- Validate exact quotes, quantities and labelled order/line identities before
+  deterministic inferred inventory writes; reuse canonical purchased units across
+  messages. Weak matches, shipments and cancellations require existing Review.
+- Cache completed extraction, including empty results, atomically with evidence,
+  decisions and scan checkpoints. Recheck consent, credential revision, lease,
+  cancellation and source corrections before committing. Reuse the daily AI budget.
+- Result counts link to evidence, review and asset correction. Migration
+  `0021_email_discovery` adds the private cache; no existing record rewrite.
+  Inline email text only; attachments, monetary extraction and live verification
+  remain outside this release. See [usage and limits](docs/EMAIL_DISCOVERY.md).
+
 ## 0.37.0 — Reviewed cross-source purchase evidence
 
 - Purchases connects saved order, receipt, shipment and payment evidence to the

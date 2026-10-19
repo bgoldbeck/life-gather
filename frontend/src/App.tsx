@@ -220,7 +220,7 @@ export function Workspace({
           ) : view === 'Review' ? (
             <ReviewPanel csrfToken={csrfToken} />
           ) : view === 'Scans' ? (
-            <ScansPanel csrfToken={csrfToken} />
+            <ScansPanel csrfToken={csrfToken} onNavigate={setView} />
           ) : view === 'Purchases' ? (
             <PurchasesPanel
               csrfToken={csrfToken}

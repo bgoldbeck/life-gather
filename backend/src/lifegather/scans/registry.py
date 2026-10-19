@@ -3,7 +3,7 @@
 import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy.orm import Session
@@ -37,6 +37,21 @@ class ScanEvidence:
     label: str
     reason: str = ""
     metadata: dict[str, str | int | bool] = field(default_factory=dict)
+    processing: dict[str, Any] = field(default_factory=dict)
+
+
+@runtime_checkable
+class ScanProcessor(Protocol):
+    """Optional derived writes, inside the queue's authorized checkpoint."""
+
+    def commit_in(
+        self,
+        db: Session,
+        actor: Account,
+        config: dict[str, Any],
+        source_id: str,
+        item: ScanEvidence,
+    ) -> dict[str, str | int | bool]: ...
 
 
 @dataclass(frozen=True)
