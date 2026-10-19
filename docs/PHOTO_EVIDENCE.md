@@ -1,5 +1,25 @@
 # Photographs, attachments, and graph evidence
 
+## Direct Chat upload (v0.41.0)
+
+Choose **Read a saved photo** in Chat, then choose a file under **Or upload a new
+photo** and select **Save photo privately**. Accept JPEG/PNG/WebP up to 8 MiB;
+the existing server also enforces image dimensions, single-frame decoding, private
+storage quotas and filename validation. Choose a general photo, receipt or
+nameplate purpose. Saving selects the original in the current Chat but creates no
+conversation, AI request, gallery attachment or inventory item. It works without
+external-AI permission. Use **Read selected photo** separately when ready; existing
+permission, connection/model, budget and human-review requirements still apply.
+
+Originals remain in Photos if you change the action, start another conversation or
+leave Chat. The upload does not send an unsaved text draft to a provider. A lost or
+server-error response freezes the original file/purpose for **Retry same photo
+upload**. The existing private content hash reuses an active original rather than
+creating a duplicate. You can inspect Photos after leaving an uncertain upload;
+leaving does not cancel or delete a server-side save. Client callbacks after leaving
+the picker are ignored. A new original also remains available in the saved picker;
+appended library pages deduplicate it. No schema, API or provider-adapter change.
+
 ## Saved-photo reading in Chat (v0.40.0)
 
 Choose **Read a saved photo** in Chat, load the private five-item paged library,
@@ -12,7 +32,8 @@ Transcription remains unverified and at most one identifiable item is proposed.
 Inspect the source and review the proposal before inventory changes. Other chat
 messages and an unsent text draft are not sent to the photo extractor; switching
 back to text preserves that draft. Arbitrary photo questions and multi-item photo
-receipts are not supported by this action. Upload new images in Photos first.
+receipts are not supported by this action. Uploads are available in Chat as of
+v0.41.0, as well as in Photos.
 
 Uncertain responses retain the exact request and freeze the choice for safe retry.
 A still-pending turn can be checked again without generating a new request ID.

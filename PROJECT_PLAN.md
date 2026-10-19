@@ -3,9 +3,11 @@
 **Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
 **Date:** Updated 2026-10-17
 
-Current increment: v0.40.0 adds explicit saved-photo reading in the current Chat,
+Current increment: v0.41.0 adds explicit private photo uploads directly in Chat,
+then a separate AI reading using the existing single-item review flow.
+v0.40.0 adds explicit saved-photo reading in the current Chat,
 using the existing private original, configured provider and single-item review.
-New uploads remain in Photos; multi-item photo extraction remains ahead.
+Multi-item photo extraction remains ahead.
 v0.39.0 adds [complete bounded current-record comparison](docs/RECORD_COMPARISON.md)
 before duplicate corrections, preserving conflicts, quantities and provenance.
 The read-only comparison makes no merge decision; full consolidation remains ahead.

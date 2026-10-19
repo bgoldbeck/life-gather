@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import './photos.css'
+import { ChatPhotoUpload } from './ChatPhotoUpload'
 
 export type SavedChatPhoto = { id: string; filename: string; purpose: string }
 
 export function ChatPhotoPicker({
+  csrfToken,
   selected,
   onSelect,
   disabled,
 }: {
+  csrfToken: string
   selected: SavedChatPhoto | null
   onSelect: (photo: SavedChatPhoto | null) => void
   disabled: boolean
@@ -16,6 +19,7 @@ export function ChatPhotoPicker({
   const [items, setItems] = useState<SavedChatPhoto[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [uploadBusy, setUploadBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const controller = useRef<AbortController | null>(null)
@@ -40,7 +44,17 @@ export function ChatPhotoPicker({
       if (!response.ok) throw new Error()
       const page = await response.json()
       if (pending.signal.aborted) return
-      setItems((old) => [...(more ? old : []), ...page.items])
+      setItems((old) => {
+        const rows: SavedChatPhoto[] = more ? [...old] : []
+        const known = new Set(rows.map((photo) => photo.id))
+        for (const photo of page.items) {
+          if (!known.has(photo.id)) {
+            rows.push(photo)
+            known.add(photo.id)
+          }
+        }
+        return rows
+      })
       setCursor(page.next_cursor)
       if (!more && !page.items.length)
         setMessage('No saved private photos. Upload one in Photos first.')
@@ -59,12 +73,12 @@ export function ChatPhotoPicker({
       <h3>Choose a saved private photo</h3>
       <p>
         Load your private library, then select one original to read. Choosing a
-        photo makes no AI request. Upload new images in Photos.
+        photo makes no AI request. You can also upload a new original below.
       </p>
       <Button
         type="button"
         variant="outline"
-        disabled={disabled || busy}
+        disabled={disabled || busy || uploadBusy}
         onClick={() => void load()}
       >
         Load saved Chat photos
@@ -75,7 +89,7 @@ export function ChatPhotoPicker({
             <Button
               type="button"
               variant="outline"
-              disabled={disabled || busy}
+              disabled={disabled || busy || uploadBusy}
               aria-pressed={selected?.id === photo.id}
               aria-label={`Choose photo ${photo.filename}`}
               onClick={() => onSelect(photo)}
@@ -95,7 +109,7 @@ export function ChatPhotoPicker({
         <Button
           type="button"
           variant="outline"
-          disabled={disabled || busy}
+          disabled={disabled || busy || uploadBusy}
           onClick={() => void load(true)}
         >
           More saved Chat photos
@@ -107,7 +121,7 @@ export function ChatPhotoPicker({
           <Button
             type="button"
             variant="outline"
-            disabled={disabled || busy}
+            disabled={disabled || busy || uploadBusy}
             onClick={() => onSelect(null)}
           >
             Clear Chat photo
@@ -117,6 +131,21 @@ export function ChatPhotoPicker({
       {busy && <p role="status">Loading saved photo choices…</p>}
       {message && <p role="status">{message}</p>}
       {error && <p role="alert">{error}</p>}
+      <ChatPhotoUpload
+        csrfToken={csrfToken}
+        disabled={disabled || busy}
+        onBusy={setUploadBusy}
+        onStart={() => onSelect(null)}
+        onSaved={(photo) => {
+          setItems((old) => [
+            photo,
+            ...old.filter((row) => row.id !== photo.id),
+          ])
+          onSelect(photo)
+          setError('')
+          setMessage('')
+        }}
+      />
     </section>
   )
 }

@@ -25,8 +25,10 @@ function harness({
   usage = 0,
   hasConnection = true,
   savedModel = 'synthetic-model',
+  uploadResponse = undefined as Promise<Response> | undefined,
 } = {}) {
   const writes: { path: string; body: Record<string, string> }[] = []
+  const uploads: RequestInit[] = []
   let usageReads = 0
   const fetcher = vi.fn(async (path: string, init?: RequestInit) => {
     if (path === '/api/settings') return json({ allow_external_ai: consent })
@@ -60,6 +62,11 @@ function harness({
       })
     if (path === '/api/chat/conversations' && init?.method === 'POST')
       return json({ id: 'new', title: 'New conversation' })
+    if (path.startsWith('/api/photos?') && init?.method === 'POST') {
+      uploads.push(init)
+      if (uploadResponse) return uploadResponse
+      return json(photo, 201)
+    }
     if (path.startsWith('/api/photos?'))
       return json({ items: [photo], next_cursor: null })
     if (path.includes('/turns') && init?.method === 'POST') {
@@ -99,7 +106,7 @@ function harness({
     throw new Error('Unexpected synthetic request: ' + path)
   })
   vi.stubGlobal('fetch', fetcher)
-  return { writes, fetcher }
+  return { writes, fetcher, uploads }
 }
 async function choosePhoto() {
   const user = userEvent.setup()
@@ -349,3 +356,125 @@ it('supports private photo paging and retrying failed metadata reads', async () 
   ).toBe(true)
   expect(writes).toEqual([])
 })
+
+it('uploads in the current Chat without reading automatically and preserves a text draft', async () => {
+  const { writes, uploads, fetcher } = harness()
+  render(<ChatPanel csrfToken="csrf" />)
+  const user = userEvent.setup()
+  await user.click(
+    await screen.findByRole('button', { name: 'Current conversation' }),
+  )
+  await user.type(
+    screen.getByLabelText('Memory to save'),
+    'Keep this upload draft.',
+  )
+  await user.selectOptions(screen.getByLabelText('Action'), 'extract_photo')
+  const original = new File(['synthetic image'], 'Synthetic nameplate.jpg', {
+    type: 'image/jpeg',
+  })
+  await user.upload(screen.getByLabelText('Upload a photo in Chat'), original)
+  expect(uploads).toHaveLength(0)
+  await user.click(screen.getByRole('button', { name: 'Save photo privately' }))
+  expect(
+    await screen.findByText(
+      /Photo saved privately. Uploading made no AI request/,
+    ),
+  ).toBeVisible()
+  expect(uploads).toHaveLength(1)
+  expect(uploads[0].body).toBe(original)
+  expect(writes).toHaveLength(0)
+  expect(
+    fetcher.mock.calls.some(
+      ([path, init]) =>
+        path === '/api/chat/conversations' && init?.method === 'POST',
+    ),
+  ).toBe(false)
+  expect(
+    screen.getByRole('button', {
+      name: 'Choose photo Synthetic nameplate.jpg',
+    }),
+  ).toHaveAttribute('aria-pressed', 'true')
+  await user.selectOptions(screen.getByLabelText('Action'), 'save')
+  expect(screen.getByLabelText('Memory to save')).toHaveValue(
+    'Keep this upload draft.',
+  )
+  await user.selectOptions(screen.getByLabelText('Action'), 'extract_photo')
+  await user.click(
+    screen.getByRole('button', { name: 'Load saved Chat photos' }),
+  )
+  await user.click(
+    await screen.findByRole('button', {
+      name: 'Choose photo Synthetic nameplate.jpg',
+    }),
+  )
+  await user.click(screen.getByRole('button', { name: 'Read selected photo' }))
+  expect(
+    await screen.findByRole('region', { name: 'Saved photo proposal' }),
+  ).toBeVisible()
+  expect(writes).toHaveLength(1)
+  expect(writes[0].path).toBe('/api/chat/conversations/current/turns')
+  expect(writes[0].body.photo_id).toBe(photo.id)
+  expect(writes[0].body.text).not.toContain('upload draft')
+})
+
+it('can save a private Chat photo without external AI permission but cannot read it', async () => {
+  const { uploads, writes } = harness({ consent: false, hasConnection: false })
+  render(<ChatPanel csrfToken="csrf" />)
+  const user = userEvent.setup()
+  await screen.findByRole('button', { name: 'Current conversation' })
+  await user.selectOptions(screen.getByLabelText('Action'), 'extract_photo')
+  await user.upload(
+    screen.getByLabelText('Upload a photo in Chat'),
+    new File(['synthetic'], 'private.jpg', { type: 'image/jpeg' }),
+  )
+  await user.click(screen.getByRole('button', { name: 'Save photo privately' }))
+  expect(
+    await screen.findByText(
+      /Photo saved privately. Uploading made no AI request/,
+    ),
+  ).toBeVisible()
+  expect(uploads).toHaveLength(1)
+  expect(writes).toHaveLength(0)
+  expect(
+    screen.getByRole('button', { name: 'Read selected photo' }),
+  ).toBeDisabled()
+})
+
+it.each([201, 503])(
+  'drops a late upload after New conversation and blocks reading an older selection while saving (%s)',
+  async (status) => {
+    let release!: (value: Response) => void
+    const uploadResponse = new Promise<Response>((resolve) => {
+      release = resolve
+    })
+    const { writes, uploads } = harness({ uploadResponse })
+    render(<ChatPanel csrfToken="csrf" />)
+    const user = await choosePhoto()
+    expect(
+      screen.getByRole('button', { name: 'Read selected photo' }),
+    ).toBeEnabled()
+    await user.upload(
+      screen.getByLabelText('Upload a photo in Chat'),
+      new File(['synthetic'], 'new.jpg', { type: 'image/jpeg' }),
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Save photo privately' }),
+    )
+    expect(uploads).toHaveLength(1)
+    expect(
+      screen.getByRole('button', { name: 'Read selected photo' }),
+    ).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: 'Load saved Chat photos' }),
+    ).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'New conversation' }))
+    await act(async () => release(json(photo, status)))
+    expect(screen.queryByText(/Photo saved privately/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Selected photo:/)).not.toBeInTheDocument()
+    expect(writes).toHaveLength(0)
+    expect(
+      screen.getByRole('button', { name: 'Read selected photo' }),
+    ).toBeDisabled()
+  },
+)

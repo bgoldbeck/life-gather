@@ -13,7 +13,6 @@ from lifegather.chat.runner import PhotoReading
 from lifegather.chat.service import ChatService
 from lifegather.credentials.keygen import generate
 from lifegather.main import create_app
-from lifegather.photos.service import PhotoService
 from lifegather.reconciliation.service import ReconciliationService
 
 
@@ -58,7 +57,18 @@ def test_saved_photo_read_stays_in_selected_conversation_and_reuses_reading(
             "save",
             "Synthetic preexisting conversation memory.",
         ).json()
-        photo = PhotoService(chat.engine).upload(actor, image_bytes(), "synthetic.jpg")
+        upload_headers = {
+            **headers,
+            "Content-Type": "application/octet-stream",
+            "X-File-Name": "synthetic.jpg",
+        }
+        uploaded = client.post(
+            "/api/photos?purpose=nameplate",
+            headers=upload_headers,
+            content=image_bytes(),
+        )
+        assert uploaded.status_code == 201 and provider.calls == 0
+        photo = uploaded.json()
         credential = app.state.private_settings.save(
             actor, "ai", "openai", "Synthetic", "synthetic-only"
         )
@@ -119,5 +129,56 @@ def test_saved_photo_read_stays_in_selected_conversation_and_reuses_reading(
         assert (
             client.get(f"/api/chat/sources/{source}", headers=foreign).status_code
             == 400
+        )
+        assert ReconciliationService(chat.engine).inventory(actor) == []
+
+
+def test_chat_upload_is_private_deduplicated_and_needs_no_ai_permission() -> None:
+    app = create_app()
+    with TestClient(app) as client:
+        headers, actor = signed_headers(app, "upload-owner")
+        foreign, foreign_actor = signed_headers(app, "upload-foreign")
+        upload_headers = {
+            **headers,
+            "Content-Type": "application/octet-stream",
+            "X-File-Name": "Synthetic%20label.jpg",
+        }
+        raw = image_bytes()
+        denied = {
+            k: v for k, v in upload_headers.items() if k.lower() != "x-csrf-token"
+        }
+        assert (
+            client.post("/api/photos", headers=denied, content=raw).status_code == 403
+        )
+        result = client.post(
+            "/api/photos?purpose=nameplate", headers=upload_headers, content=raw
+        )
+        assert result.status_code == 201
+        photo = result.json()
+        replay = client.post(
+            "/api/photos?purpose=nameplate", headers=upload_headers, content=raw
+        )
+        assert replay.status_code == 201 and replay.json() == photo
+        assert photo["filename"] == "Synthetic label.jpg"
+        assert photo["purpose"] == "nameplate" and photo["source_id"] is None
+        listed = client.get("/api/photos", headers=headers).json()["items"]
+        assert [row["id"] for row in listed] == [photo["id"]]
+        assert client.get("/api/photos", headers=foreign).json()["items"] == []
+        assert (
+            client.get(
+                f"/api/photos/{photo['id']}/original", headers=foreign
+            ).status_code
+            == 400
+        )
+        second = client.post(
+            "/api/photos", headers={**foreign, "X-File-Name": "other.jpg"}, content=raw
+        )
+        assert second.status_code == 201 and second.json()["id"] != photo["id"]
+        chat = ChatService(app.state.auth_store.engine)
+        assert (
+            chat.usage(actor)["requests"] == chat.usage(foreign_actor)["requests"] == 0
+        )
+        assert (
+            client.get("/api/chat/conversations", headers=headers).json()["items"] == []
         )
         assert ReconciliationService(chat.engine).inventory(actor) == []
