@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.47.0 — Download private records with preserved history
+
+- Settings can explicitly download a versioned JSON copy of saved evidence,
+  graph statements/provenance/corrections, reviewed purchase quantities and exact
+  money, conversations and photo/PDF metadata with extracted text.
+- One owner-scoped read snapshot preserves original IDs, status, unknowns, dates
+  and historical claims. Fixed projections exclude account/authentication data,
+  stored credentials, settings, connector/scan configuration and processing caches.
+  Binary originals/previews are excluded; this is not a restorable backup.
+- Refuse the entire file above 10,000 rows or 16 MiB. No partial downloads or
+  server-side temporary copies. Require session/origin/CSRF and safe attachment
+  headers. UI validates file format, freezes duplicate clicks, handles failures
+  and ignores late responses after leaving Settings; release download URLs.
+- No schema migration, dependency, AI/provider call or deployment change.
+
 ## 0.46.0 — Manual inventory and a persistent contextual assistant
 
 - Add asset directly from Assets with a name, optional manufacturer/model/serial

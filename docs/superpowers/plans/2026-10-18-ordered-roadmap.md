@@ -83,6 +83,8 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
     purchase reconciliation; verify service access/cost before configuring it.
 14. User-facing export/backup/restore/privacy controls over the existing owner-scoped
     services, with clear scope and retention and tested recovery boundaries.
+    v0.47.0 adds bounded consistent private JSON record downloads with history,
+    exact money/units and file metadata. Original-file bundles and restore remain ahead.
 15. Life management: independently verified warranty/insurance/maintenance/recall/
     consumable/subscription/timeline/dashboard increments with sourced records.
 16. Additional sources: retailer exports, cloud files, contacts/calendar and home
@@ -581,3 +583,16 @@ types, lint/format and package/frontend builds. Synthetic browser import, saved
 conversation/result/evidence navigation and 390px form pass. Queue/worker/replay/
 snapshot smoke uses synthetic transport. No schema/dependency/provider-adapter/
 live-call/redeployment change. Graphify unavailable; graph/HTML not refreshed.
+
+Private record export v0.47.0: explicit Settings download, one SQLite snapshot,
+23 frozen owner-scoped collections, original/correction history, audit origins,
+exact reviewed money and distinct units, chat and file metadata. Credentials,
+authentication/configuration/processing caches and binary originals are excluded;
+this is not a restorable backup. Refuse above 10,000 rows or 16 MiB without partial
+files. UI validates format/safe filename, handles failures and abandons late reads.
+Reconciled onto current main 3d5a1c3 including migration 0022/manual assets/contextual
+assistant. Verification: 479 backend /222 frontend, strict types/lint/format/builds,
+actual synthetic browser download (45 records, 23 collections, 18 audit origins),
+390px with the dock, standalone quantity/JPY/history/privacy/snapshot smoke.
+No new migration/dependency/provider call/deployment. Graphify unavailable locally;
+graph/HTML refresh could not run. Linux smoke and source/GHCR release follow.

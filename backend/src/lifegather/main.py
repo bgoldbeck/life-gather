@@ -33,6 +33,7 @@ from lifegather.mailboxes.routes import mailbox_router
 from lifegather.mailboxes.scan import GmailImportHandler
 from lifegather.mcp_api.tools import build_server
 from lifegather.mcp_api.transport import PrivateMCP
+from lifegather.memory.export_routes import export_router
 from lifegather.memory.history_routes import history_router
 from lifegather.memory.notes import NoteConflict
 from lifegather.memory.origins import change_origin
@@ -147,6 +148,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(receipt_router())
     app.include_router(graph_router())
     app.include_router(library_router())
+    app.include_router(export_router())
     app.include_router(profile_router())
     app.include_router(history_router())
     app.include_router(document_router())

@@ -1,6 +1,6 @@
 # LifeGather
 
-[![Source version](https://img.shields.io/badge/source_version-v0.46.0-426B46)](CHANGELOG.md)
+[![Source version](https://img.shields.io/badge/source_version-v0.47.0-426B46)](CHANGELOG.md)
 
 This badge identifies the source release. Check the login screen or app header for your running container’s version.
 
@@ -9,6 +9,10 @@ LifeGather is a private, self-hosted personal-memory application built around an
 It aims to help organize possessions, events, documents, and relationships while preserving the original sources, tracking changes over time, and distinguishing facts from inferences and unknowns.
 
 ## Project status
+
+Settings provides a [private records download](docs/RECORD_EXPORT.md) with saved
+evidence and history, purchases/units, conversations and file metadata. This
+structured JSON copy excludes originals and credentials and is not a full backup.
 
 Use **Add asset** on Assets for private manual inventory entry, including
 duplicate checks and original user-stated evidence, without an AI provider.

@@ -3,7 +3,11 @@
 **Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
 **Date:** Updated 2026-10-17
 
-Current increment: v0.46.0 adds explicit manual inventory entry directly on
+Current increment: v0.47.0 adds [private record downloads](docs/RECORD_EXPORT.md)
+from a consistent owner-scoped snapshot with history, quantities and exact money.
+Original-file exports and user-facing import/restore remain ahead.
+
+v0.46.0 adds explicit manual inventory entry directly on
 Assets, sharing physical identity matching, provenance, stated ownership and
 correction history with existing discovery. No new schema or AI call is required.
 The same deliberately bundled release adds a persistent docked assistant,
