@@ -12,6 +12,17 @@ First release loop: sign in with Google, configure an individual AI connection, 
 
 User decision, 2026-10-17: provide Light and Dark modes selectable in app Settings as part of the first usable UI. Preserve the selected preference per user. The soft cream/sage/green design in `.references/lifegather-soft-green-light-theme.png` is a pleasant reference for color and mood. Create a complementary dark palette, including semantic states, text, borders, focus indicators, charts, and graph connections, with accessible contrast in both modes. Do not rely only on color to distinguish connection/evidence status. Implement theme support alongside the early UI; the screenshot's placeholder content is not a requirement to preserve its layout or copy.
 
+## Power Center and navigation additions
+
+User decisions, 2026-10-20: [Power Center and dockable navigation](2026-10-20-power-center-design.md)
+adds a primary Power Center destination, capability-based readiness scoring,
+health/freshness checks with explanations and remedies, and precise post-connection
+capability summaries. The primary navigation panel defaults left, docks at any
+edge and resizes independently of the existing right-default contextual assistant.
+These requirements are planned; the screenshot is illustrative, not proof of
+implemented integrations. See the [current capability and remaining-work inventory](../../CAPABILITIES_AND_REMAINING_WORK.md)
+for reconciled status rather than historical stage descriptions.
+
 ## Accounts and privacy
 
 - Any Google account can register without invitations or an email allowlist. First login creates an empty private workspace. Open registration does not itself authorize public internet deployment.

@@ -12,6 +12,14 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
 
 ## Execution ledger and decisions
 
+- Design update, 2026-10-20: [Power Center and dockable navigation](../specs/2026-10-20-power-center-design.md)
+  records the new primary capability/health page and a resizable navigation panel
+  defaulting left with four-edge docking. Both remain unimplemented. The separate
+  contextual assistant already docks/resizes and defaults right. See the
+  [consolidated current capability and outstanding-work inventory](../../CAPABILITIES_AND_REMAINING_WORK.md)
+  before treating historical exclusions below as unfinished features. This update
+  changes design/reference documents only; it does not start roadmap implementation.
+
 - v0.55.1 corrects maintenance evidence currentness in keyword/AI recall and
   source inspection. Owner-bound typed revision metadata identifies historical
   statements and follows the current source within existing evidence limits.

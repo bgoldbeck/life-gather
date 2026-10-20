@@ -1,7 +1,12 @@
 # LifeGather — Product and Engineering Plan
 
 **Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
-**Date:** Updated 2026-10-17
+**Date:** Updated 2026-10-20
+
+Current capability inventory and consolidated outstanding scope:
+[what LifeGather can do and what remains](docs/CAPABILITIES_AND_REMAINING_WORK.md).
+User design additions, 2026-10-20: [Power Center and dockable navigation](docs/superpowers/specs/2026-10-20-power-center-design.md).
+These are design requirements, not implemented pages or integrations.
 
 Current increment: v0.55.1 corrects maintenance evidence recall: older matching
 statements link to the current typed revision, and source inspection labels
@@ -246,6 +251,15 @@ Explicit deletion/export/backup operations should have their own guarded flows r
 ## 8. Frontend information architecture
 
 **Navigation:** Chat, Assets, Graph, Documents, Review, Settings; Overview and richer dashboards follow useful data. Chat is primary, and correction/recovery remain directly accessible.
+
+**Navigation update, 2026-10-20 (planned):** Add **Power Center** as a primary
+destination for actual capabilities, connection health and data freshness, with
+actionable recovery and precise capability-unlock explanations. Its Power Level
+must measure useful readiness rather than count connected services. Make the
+primary navigation panel dockable left/right/top/bottom and resizable, defaulting
+left, with per-account remembered layout and accessible controls. This is separate
+from the implemented right-default resizable assistant. See the linked design;
+keep all existing destinations and private configuration workflows accessible.
 
 **MVP views:**
 - **Chat:** streamed answer, source citations, tool-activity states, confirmation dialogs for proposed changes.
