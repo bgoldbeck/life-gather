@@ -17,6 +17,11 @@ VIN, serial, model and filter dimensions use their existing detail types. Custom
 details are descriptive statements and do not become identity-matching identifiers.
 There is no shared field registry or template designer in this increment.
 
+The planned [editable asset types](superpowers/specs/2026-10-20-custom-asset-types-design.md)
+extend manual entry with editable starter templates and private custom types.
+They must preserve these existing sourced details and their history; this page
+describes the currently delivered per-record workflow.
+
 Use **Correct tire size** (or the matching field name) to choose a saved current
 statement to correct. Its name stays locked, the exact previous statement is
 superseded, and its evidence and history remain available. Add a separate detail

@@ -12,6 +12,20 @@ First release loop: sign in with Google, configure an individual AI connection, 
 
 User decision, 2026-10-17: provide Light and Dark modes selectable in app Settings as part of the first usable UI. Preserve the selected preference per user. The soft cream/sage/green design in `.references/lifegather-soft-green-light-theme.png` is a pleasant reference for color and mood. Create a complementary dark palette, including semantic states, text, borders, focus indicators, charts, and graph connections, with accessible contrast in both modes. Do not rely only on color to distinguish connection/evidence status. Implement theme support alongside the early UI; the screenshot's placeholder content is not a requirement to preserve its layout or copy.
 
+User references saved 2026-10-20: [standard dark](../../../.references/lifegather-standard-dark-theme.png)
+uses blue/slate and teal/cyan; [earthy dark](../../../.references/lifegather-earthy-dark-theme.png)
+uses forest/olive, gold and cream. Preserve both as palette references, with accessible
+contrast and semantic states. Screenshot services, metrics and records are illustrative.
+
+## Editable asset types
+
+User decisions, 2026-10-20: provide editable Vehicle, Appliance, Electronics,
+Furniture and Tools & Equipment defaults, plus private user-created types selectable
+when manually adding assets. Users can add fields later without losing existing
+values, sources or history. See [editable asset types](2026-10-20-custom-asset-types-design.md)
+for isolation, stable identifiers and acceptance criteria. Reusable types remain
+planned; existing named per-record profile details do not implement a template registry.
+
 ## Power Center and navigation additions
 
 User decisions, 2026-10-20: [Power Center and dockable navigation](2026-10-20-power-center-design.md)
