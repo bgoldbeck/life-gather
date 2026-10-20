@@ -50,3 +50,33 @@ correction to v0.55.0 recall, so use patch version 0.55.1.
 
 This kickoff commit precedes implementation. Final acceptance is recorded below
 only after verification.
+
+## Verified source acceptance
+
+The old-only completion keyword regression first failed against v0.55.0. The
+final implementation preserves old fields and follows the reopened source with
+unknown dates. Seven maintenance recall cases cover three states, owners,
+namespace spoofing, small byte budgets, eight-source limits, HTTP/MCP agreement,
+fake-provider citations and exact Chat replay. Existing identity tests also check
+original/canonical source targets through consolidation and reversal. Follow-up
+reads are capped at eight even if concurrent edits keep advancing a head.
+
+Final full backend: **623 passed in 467.97s**. An earlier direct pytest run had
+one installed-metadata mismatch after the patch bump; refreshing the editable
+package with locked uv sync resolved it before the final clean full rerun.
+Frontend: **287 passed across 51 files**, plus TypeScript, lint, format and Vite.
+Ruff/format and strict mypy pass for 241 files including the recovery script.
+The v0.55.1 wheel was built and inspected for version and bounded recall code.
+
+Actual synthetic browser inspection verified historical/current sources,
+keyboard current-statement navigation, preserved originals, unknown completion,
+reload and current-first keyword results without AI. Desktop and 390px light/dark
+layouts pass without page overflow; original appearance/dock/viewport were
+restored and the temporary tab/server closed. Source-only Linux recovery passed
+with a 42,934,272-byte database, original statements, current task heads and two
+owner boundaries. Fresh release-image verification follows clean-main merge.
+
+Final code-only Graphify extraction and HTML refresh: 3,454 nodes / 14,803 edges,
+one worker, no model calls. A repeated fetch found main unchanged at `83b4a7a`,
+with no competing PRs or migration/version collisions. No source schema,
+dependency, provider access, model write permission or deployment change.

@@ -45,14 +45,22 @@ class RecallTools:
         trace: list[dict[str, Any]] = []
         truncated = False
 
-        def add_source(identifier: str) -> bool:
+        def add_source(identifier: str, followups: int = 0) -> bool:
             if identifier in sources:
                 return True
-            if len(sources) >= 8:
+            if len(sources) >= 8 or followups >= 8:
                 return False
             source = memory.get_source(actor, identifier)
             text = source.text.encode()[:1200].decode(errors="ignore")
             current = NoteService(memory.engine).current(actor, identifier)
+            metadata = self.chat.source_metadata(actor, source)
+            maintenance = metadata.get("maintenance_context")
+            if maintenance and not maintenance["is_current_revision"]:
+                # Keep the current citation ahead of history when the byte cap
+                # later evicts evidence from the end. Never relabel old text.
+                add_source(maintenance["current_source_id"], followups + 1)
+                if len(sources) >= 8:
+                    return False
             sources[identifier] = {
                 "id": source.id,
                 "text": text,
@@ -61,12 +69,12 @@ class RecallTools:
                 "event_date": source.event_date.isoformat()
                 if source.event_date
                 else None,
-                **self.chat.source_metadata(actor, source),
+                **metadata,
                 "current_note_source_id": current.id,
                 "has_later_note_correction": current.id != source.id,
             }
             if current.id != source.id and len(sources) < 8:
-                add_source(current.id)
+                add_source(current.id, followups + 1)
             return True
 
         def sourced(fact: FactView) -> dict[str, Any] | None:

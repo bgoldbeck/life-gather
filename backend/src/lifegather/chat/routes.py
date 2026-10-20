@@ -23,6 +23,7 @@ from lifegather.chat.runner import answer
 from lifegather.chat.service import ChatService, SaveText, TurnInput
 from lifegather.chat.streaming import DeltaSink
 from lifegather.documents.service import DocumentService
+from lifegather.maintenance.service import MaintenanceService
 from lifegather.memory.notes import CorrectionInput, NoteService
 from lifegather.memory.service import MemoryError
 from lifegather.photos.service import PhotoService
@@ -98,6 +99,9 @@ def chat_router() -> APIRouter:
             "asset_context": ActionService(service(request).engine).source_context(
                 current.user, source_id
             ),
+            "maintenance_context": MaintenanceService(
+                service(request).engine
+            ).source_context(current.user, source_id),
             "asset_proposal_id": ProposalService(service(request).engine).for_source(
                 current.user, source_id
             ),

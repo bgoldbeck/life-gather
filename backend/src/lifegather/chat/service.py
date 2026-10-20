@@ -443,6 +443,7 @@ class ChatService:
     def source_metadata(self, actor: Account, source: SourceView) -> dict[str, Any]:
         """Shared provenance and current correction state for all recall paths."""
         from lifegather.documents.service import DocumentService
+        from lifegather.maintenance.service import MaintenanceService
         from lifegather.photos.service import PhotoService
 
         result: dict[str, Any] = {
@@ -482,6 +483,14 @@ class ChatService:
         context = ActionService(self.engine).source_context(actor, source.id)
         if context is not None:
             result["asset_context"] = context
+        maintenance = MaintenanceService(self.engine).source_context(actor, source.id)
+        if maintenance is not None:
+            result["maintenance_context"] = maintenance
+            result["status"] = (
+                "current manual maintenance statement; not independently verified"
+                if maintenance["is_current_revision"]
+                else "historical maintenance statement; superseded revision"
+            )
         return result
 
     def evidence(self, actor: Account, query: str) -> list[dict[str, Any]]:
@@ -505,22 +514,33 @@ class ChatService:
             {"kind": "source", "id": identifier} for identifier in action_ids
         ] + matches
         sources: dict[str, Any] = {}
-        for match in matches:
-            identifier = match["id"]
-            if match["kind"] == "entity":
-                identifier = self.memory.get_entity(actor, identifier).source_id
-            source = NoteService(self.engine).current(actor, identifier)
-            identifier = source.id
-            sources[identifier] = {
-                "id": identifier,
+
+        def add(source: SourceView, metadata: dict[str, Any]) -> None:
+            if len(sources) >= 8:
+                return
+            sources[source.id] = {
+                "id": source.id,
                 "text": source.text[:2000],
                 "recorded_at": source.recorded_at,
                 "event_date": source.event_date.isoformat()
                 if source.event_date
                 else None,
-                "status": "corrected note; not independently verified"
-                if source.namespace == "chat-note-correction"
-                else "original statement; not independently verified",
+                **metadata,
             }
-            sources[identifier].update(self.source_metadata(actor, source))
+
+        for match in matches:
+            identifier = match["id"]
+            if match["kind"] == "entity":
+                identifier = self.memory.get_entity(actor, identifier).source_id
+            source = NoteService(self.engine).current(actor, identifier)
+            metadata = self.source_metadata(actor, source)
+            maintenance = metadata.get("maintenance_context")
+            if maintenance and not maintenance["is_current_revision"]:
+                current = self.memory.get_source(
+                    actor, maintenance["current_source_id"]
+                )
+                add(current, self.source_metadata(actor, current))
+            add(source, metadata)
+            if len(sources) >= 8:
+                break
         return list(sources.values())[:8]

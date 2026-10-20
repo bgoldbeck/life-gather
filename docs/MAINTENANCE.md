@@ -1,5 +1,12 @@
 # Your maintenance tasks
 
+Keyword search and Ask AI follow matching earlier task statements to the current
+revision, within existing recall limits. Original evidence identifies whether
+the inspected statement is current or historical and links explicitly to the
+current statement. Dates omitted from the current task remain unknown even when
+an earlier completion supplied a date. Typed plans are still user statements,
+not independently verified work or recommended maintenance intervals.
+
 In **Profiles**, select the existing asset or place, then **Add maintenance task**.
 Supply a title and original statement. Leave **Due date is known** unchecked when
 you do not know a date; checking it requires an actual calendar date. Review the

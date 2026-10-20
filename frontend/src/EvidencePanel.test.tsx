@@ -15,6 +15,86 @@ const current: EvidenceSource = {
   },
 }
 
+it('keeps earlier maintenance text visible and explicitly opens its current statement', async () => {
+  const user = userEvent.setup()
+  const open = vi.fn().mockResolvedValue(undefined)
+  const source: EvidenceSource = {
+    id: 'old-task-source',
+    text: 'My original completion statement.',
+    maintenance_context: {
+      task_id: 'task',
+      revision_id: 'old-revision',
+      is_current_revision: false,
+      current_source_id: 'reopened-source',
+      target: { id: 'car', name: 'Synthetic car', kind: 'asset' },
+      state: 'completed',
+      due_on: null,
+      completed_on: null,
+      timezone: 'America/Los_Angeles',
+    },
+  }
+  const view = render(
+    <EvidencePanel
+      source={source}
+      nextOffset={null}
+      opening={false}
+      onOpen={open}
+      onClose={vi.fn()}
+      request={vi.fn()}
+    />,
+  )
+  expect(screen.getByRole('status')).toHaveTextContent(
+    'Earlier maintenance statement',
+  )
+  expect(screen.getByText(/Recorded task state: completed/)).toHaveTextContent(
+    'Completion date: Unknown',
+  )
+  expect(screen.getByText(source.text)).toBeVisible()
+  await user.click(
+    screen.getByRole('button', { name: 'View current maintenance statement' }),
+  )
+  expect(open).toHaveBeenCalledWith('reopened-source')
+  expect(screen.getByText(source.text)).toBeVisible()
+  view.rerender(
+    <EvidencePanel
+      source={source}
+      nextOffset={null}
+      opening={true}
+      onOpen={open}
+      onClose={vi.fn()}
+      request={vi.fn()}
+    />,
+  )
+  expect(
+    screen.getByRole('button', { name: 'View current maintenance statement' }),
+  ).toBeDisabled()
+  view.rerender(
+    <EvidencePanel
+      source={{
+        ...source,
+        maintenance_context: {
+          ...source.maintenance_context!,
+          is_current_revision: true,
+          state: 'open',
+        },
+      }}
+      nextOffset={null}
+      opening={false}
+      onOpen={open}
+      onClose={vi.fn()}
+      request={vi.fn()}
+    />,
+  )
+  expect(screen.getByRole('status')).toHaveTextContent(
+    'Current maintenance statement',
+  )
+  expect(
+    screen.queryByRole('button', {
+      name: 'View current maintenance statement',
+    }),
+  ).not.toBeInTheDocument()
+})
+
 it.each([
   [
     { ownership_statement_current_version: false },

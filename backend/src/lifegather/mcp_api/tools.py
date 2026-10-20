@@ -571,6 +571,9 @@ def build_server() -> MCPServer:
                 "asset_context": ActionService(memory.engine).source_context(
                     actor, data.source_id
                 ),
+                "maintenance_context": MaintenanceService(memory.engine).source_context(
+                    actor, data.source_id
+                ),
                 "photo": PhotoService(memory.engine).source_photo(
                     actor, data.source_id
                 ),

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.55.1 — Current maintenance evidence in recall
+
+- When keyword search or Ask AI finds an older maintenance statement, include
+  its current source first and label the original revision as historical. Typed
+  state and explicitly unknown dates stay separate from old completion text.
+  Retain the existing evidence count and byte limits; omitted current evidence
+  cannot establish the current state from a historical statement.
+- Share owner-bound revision metadata across chat, source inspection and MCP.
+  Source namespaces alone grant no task authority. Preserve original entity IDs
+  and display current identity after consolidation/reversal.
+- Label current/earlier maintenance statements in the source viewer and offer
+  an explicit current-statement link while retaining the original text.
+- No migration, dependency, provider schema, consent or model write-tool change.
+
 ## 0.55.0 — Sourced maintenance tasks and due dates
 
 - Add manual maintenance tasks to existing asset/place Profiles, with explicit
