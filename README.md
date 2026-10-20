@@ -1,6 +1,6 @@
 # LifeGather
 
-[![Source version](https://img.shields.io/badge/source_version-v0.54.0-426B46)](CHANGELOG.md)
+[![Source version](https://img.shields.io/badge/source_version-v0.55.0-426B46)](CHANGELOG.md)
 
 This badge identifies the source release. Check the login screen or app header for your running container’s version.
 
@@ -9,6 +9,11 @@ LifeGather is a private, self-hosted personal-memory application built around an
 It aims to help organize possessions, events, documents, and relationships while preserving the original sources, tracking changes over time, and distinguishing facts from inferences and unknowns.
 
 ## Project status
+
+Profiles offers [sourced maintenance tasks](docs/MAINTENANCE.md), with optional
+calendar dates, an explicit timezone and preserved completion/correction history.
+The Maintenance view lists tasks across your records. No automatic reminders or
+maintenance intervals are inferred.
 
 Your conversations offers [reviewed transcript deletion](docs/CONVERSATION_PRIVACY.md)
 with a fresh count, separate pending-request stop and explicit permanent confirmation.

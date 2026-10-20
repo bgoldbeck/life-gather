@@ -12,6 +12,21 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
 
 ## Execution ledger and decisions
 
+- v0.55.0 adds [sourced one-off maintenance tasks](../../MAINTENANCE.md) to existing
+  Profiles and a global Maintenance view. Optional calendar dates, explicit
+  timezone, current state and original revision sources preserve unknowns and
+  distinguish world dates from recording time. Serialize fresh-version changes
+  and stable replay; keep original linked IDs through consolidation and protect
+  comparison/reversal versions. Migration 0024 adds two private typed tables;
+  records format 3 explicitly exports all task history. No recurrence, notifications,
+  inferred interval/fitment, dependency, model write tool or provider call.
+  Verification: 616 backend /286 frontend tests, strict types (240 files), lint,
+  formatting, wheel and production build pass. Actual browser create/completion/
+  reopen/source/history/reload and 390px light/dark keyboard layouts pass. Linux
+  source recovery retains task history, originals, two owners and vault secrets.
+  Graph and HTML refreshed: 3,438 nodes /14,764 edges. Clean-main image release
+  and fresh-image recovery verification follow source acceptance.
+
 - v0.54.0 adds [reviewed conversation deletion](../../CONVERSATION_PRIVACY.md):
   exact private counts, fresh-version checks, separate pending stop and explicit
   permanent confirmation. Retain independent source/graph/file/scan/settings/usage

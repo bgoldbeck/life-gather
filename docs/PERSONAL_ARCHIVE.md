@@ -12,9 +12,9 @@ backup, including all users and installation secrets.
 
 ## Contents
 
-- `records.json`: the existing `lifegather-records/2` copy of your source text,
+- `records.json`: the `lifegather-records/3` copy of your source text,
   entities, original/corrected facts, history, distinct purchased units, exact
-  monetary claims, conversations and file metadata/text. Its own exclusions still
+  monetary claims, maintenance tasks/revisions, conversations and file metadata/text. Its own exclusions still
   describe this JSON file; original bytes live in the separate archive members.
 - `originals/photos/…` and `originals/documents/…`: your active saved photo and PDF
   originals, byte for byte. Names use safe UUID identifiers and conservative file
@@ -55,4 +55,5 @@ The authenticated, CSRF-protected `POST /api/export/archive` accepts an empty JS
 object and returns an attachment with `application/zip`, `no-store` and `nosniff`.
 It rejects arbitrary body fields/owner overrides. Existing `POST /api/export/records`
 and records-format compatibility are unchanged. No new MCP/model tool, dependency,
-schema or migration is added; migration remains 0023.
+schema or migration is added by the archive operation. Maintenance records use
+the application's later migration 0024; archives preserve their full sourced history.

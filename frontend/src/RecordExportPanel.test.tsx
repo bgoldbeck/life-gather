@@ -202,7 +202,11 @@ it('locks archive choice while preparing and discards a late ZIP response after 
   expect(create).not.toHaveBeenCalled()
 })
 
-it.each(['lifegather-records/1', 'lifegather-records/2'])(
+it.each([
+  'lifegather-records/1',
+  'lifegather-records/2',
+  'lifegather-records/3',
+])(
   'downloads supported format %s only after an explicit private request',
   async (format) => {
     const { fetcher, create, click, revoke } = downloadHarness(

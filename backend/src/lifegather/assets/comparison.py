@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from lifegather.assets.batch import EvidenceMovePreview
 from lifegather.assets.purchases import AssetPurchases, AssetPurchasesRead
 from lifegather.auth.store import Account
+from lifegather.maintenance.models import MaintenanceRevision, MaintenanceTask
 from lifegather.memory.models import Alias, Assertion, Evidence
 from lifegather.memory.notes import NoteService
 from lifegather.memory.schemas import EntityView
@@ -233,6 +234,31 @@ class RecordComparisonService:
                     break
                 cursor = page["next_cursor"]
         receipts = bounded("receipt_lines", receipt_rows)
+        maintenance = list(
+            db.execute(
+                select(MaintenanceTask, MaintenanceRevision)
+                .join(
+                    MaintenanceRevision,
+                    (MaintenanceRevision.user_id == MaintenanceTask.user_id)
+                    & (MaintenanceRevision.task_id == MaintenanceTask.id),
+                )
+                .where(
+                    MaintenanceTask.user_id == actor.id,
+                    MaintenanceRevision.user_id == actor.id,
+                    MaintenanceTask.entity_id.in_(identifiers),
+                    MaintenanceRevision.superseded_at.is_(None),
+                )
+                .order_by(MaintenanceTask.id)
+                .limit(21)
+            )
+        )
+        # Keep the empty result contract identical for existing consolidation
+        # receipts. Adding an empty section would invalidate old reversal tokens.
+        if maintenance:
+            result["limits"] = {**LIMITS, "maintenance": 20}
+            result["counts"]["maintenance"] = len(maintenance)
+            if len(maintenance) > 20:
+                result["limited_sections"].append("maintenance")
         if result["limited_sections"]:
             return self._incomplete(result)
         sources = {entity.source_id for entity in entities}
@@ -243,6 +269,7 @@ class RecordComparisonService:
         sources.update(row.source_id for row in purchase_rows)
         sources.update(row.source_id for row in purchase_records)
         sources.update(row["source_id"] for row in receipts)
+        sources.update(row.source_id for _, row in maintenance)
         bounded("sources", sorted(sources))
         if result["limited_sections"]:
             return self._incomplete(result)
@@ -349,6 +376,24 @@ class RecordComparisonService:
                 evidence_service.view(db, actor, row) for row in purchase_rows
             ],
         }
+        if maintenance:
+            result["sections"]["maintenance"] = [
+                {
+                    "id": task.id,
+                    "revision_id": row.id,
+                    "asset_id": task.entity_id,
+                    "title": row.title,
+                    "due_on": row.due_on.isoformat() if row.due_on else None,
+                    "timezone": row.timezone,
+                    "state": row.state,
+                    "completed_on": row.completed_on.isoformat()
+                    if row.completed_on
+                    else None,
+                    "source_id": row.source_id,
+                    "recorded_at": row.recorded_at,
+                }
+                for task, row in maintenance
+            ]
         result["warnings"] = self._warnings(result)
         if len(json.dumps(result, ensure_ascii=False).encode()) > MAX_BYTES:
             result["limited_sections"].append("response_bytes")

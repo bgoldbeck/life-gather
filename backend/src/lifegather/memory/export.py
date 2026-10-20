@@ -12,6 +12,7 @@ from lifegather.auth.models import Base
 from lifegather.auth.store import Account
 from lifegather.chat.models import Conversation, Turn
 from lifegather.documents.models import Document
+from lifegather.maintenance.models import MaintenanceRevision, MaintenanceTask
 from lifegather.memory.models import (
     Alias,
     Assertion,
@@ -35,7 +36,7 @@ from lifegather.reconciliation.proposal_models import AssetProposal
 from lifegather.reconciliation.receipt_models import ReceiptDetail, ReceiptProposal
 from lifegather.version import __version__
 
-FORMAT = "lifegather-records/2"
+FORMAT = "lifegather-records/3"
 MAX_RECORDS = 10_000
 MAX_BYTES = 16 * 1024 * 1024
 
@@ -57,6 +58,15 @@ class Projection:
 # Frozen format contract: additions need explicit privacy review and tests.
 # Never select an entire ORM row or infer exportability from a user_id column.
 COLLECTIONS = (
+    Projection(
+        MaintenanceTask,
+        "id entity_id source_id request_id fingerprint recorded_at",
+    ),
+    Projection(
+        MaintenanceRevision,
+        "id task_id previous_id title due_on timezone state completed_on source_id "
+        "request_id fingerprint recorded_at superseded_at",
+    ),
     Projection(
         AssetConsolidation,
         "id primary_id secondary_id source_id request_id fingerprint state_token "

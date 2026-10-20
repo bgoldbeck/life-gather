@@ -16,6 +16,7 @@ PageName = Literal[
     "Overview",
     "Assets",
     "Profiles",
+    "Maintenance",
     "Graph",
     "Memories",
     "Photos",

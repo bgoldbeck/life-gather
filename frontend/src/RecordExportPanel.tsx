@@ -104,7 +104,8 @@ export function RecordExportPanel({
             file !== null &&
             'format' in file &&
             (file.format === 'lifegather-records/1' ||
-              file.format === 'lifegather-records/2')
+              file.format === 'lifegather-records/2' ||
+              file.format === 'lifegather-records/3')
         }
       } catch {
         // A successful HTTP response must still contain the expected file format.
@@ -162,8 +163,9 @@ export function RecordExportPanel({
       <p>
         Save a JSON copy of your evidence text, graph facts and correction
         history, reviewed purchases and quantities, conversations, and photo/PDF
-        metadata and extracted text. Includes historical and unverified records
-        with their original IDs, sources and status.
+        metadata and extracted text, and maintenance tasks with their revisions.
+        Includes historical and unverified records with their original IDs,
+        sources and status.
       </p>
       <p>
         Original images and PDF files are excluded from JSON. Choose ZIP below

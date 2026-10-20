@@ -30,6 +30,7 @@ import { BuildInfo, type Build } from './BuildInfo'
 import { AppearanceSettings } from './AppearanceSettings'
 import { GraphPanel } from './GraphPanel'
 import { ProfilesPanel } from './ProfilesPanel'
+import { MaintenancePanel } from './MaintenancePanel'
 import { DocumentsPanel } from './DocumentsPanel'
 import { MailboxesPanel } from './MailboxesPanel'
 import { ScansPanel } from './ScansPanel'
@@ -66,6 +67,11 @@ const navigation = [
     name: 'Profiles',
     icon: Boxes,
     description: 'Sourced home and vehicle details.',
+  },
+  {
+    name: 'Maintenance',
+    icon: CircleCheck,
+    description: 'Your stated tasks, due dates and completion history.',
   },
   { name: 'Overview', icon: LayoutDashboard, description: '' },
   {
@@ -125,6 +131,7 @@ export function Workspace({
   )
   const [graphEntityId, setGraphEntityId] = useState('')
   const [assetId, setAssetId] = useState('')
+  const [profileId, setProfileId] = useState('')
   const [receiptSourceId, setReceiptSourceId] = useState('')
   const [scanRunId, setScanRunId] = useState('')
   const [expandAssistant, setExpandAssistant] = useState(0)
@@ -281,10 +288,25 @@ export function Workspace({
                 <PhotosPanel csrfToken={csrfToken} />
               ) : view === 'Profiles' ? (
                 <ProfilesPanel
+                  key={profileId}
+                  initialEntityId={profileId}
                   onContext={profileContext}
                   contextRevision={contextRevision}
                   csrfToken={csrfToken}
                   refreshSession={refreshSession}
+                  onOpenGraph={(id) => {
+                    setGraphEntityId(id)
+                    setView('Graph')
+                  }}
+                />
+              ) : view === 'Maintenance' ? (
+                <MaintenancePanel
+                  csrfToken={csrfToken}
+                  refreshSession={refreshSession}
+                  onOpenProfile={(id) => {
+                    setProfileId(id)
+                    setView('Profiles')
+                  }}
                   onOpenGraph={(id) => {
                     setGraphEntityId(id)
                     setView('Graph')

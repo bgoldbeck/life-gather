@@ -157,5 +157,5 @@ def test_migration_preserves_existing_accounts(tmp_path: Path) -> None:
     with store.engine.connect() as connection:
         assert (
             connection.scalar(text("SELECT version_num FROM alembic_version"))
-            == "0023_asset_consolidation"
+            == "0024_maintenance"
         )

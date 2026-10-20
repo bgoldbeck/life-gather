@@ -40,6 +40,14 @@ from lifegather.chat.context import ContextRead, WorkspaceContexts
 from lifegather.chat.organizer import OrganizationAction, WorkspaceOrganizer
 from lifegather.chat.service import SaveText, save_text
 from lifegather.documents.service import DocumentPage, DocumentRead, DocumentService
+from lifegather.maintenance.schemas import (
+    MaintenanceChange,
+    MaintenanceCreate,
+    MaintenanceHistory,
+    MaintenancePage,
+    MaintenanceRead,
+)
+from lifegather.maintenance.service import MaintenanceService
 from lifegather.mcp_api.schemas import (
     DiscoveryHistory,
     DiscoveryRead,
@@ -345,6 +353,72 @@ def build_server() -> MCPServer:
             ctx,
             lambda actor, memory, _: ProfileService(memory.engine).get(
                 actor, data.entity_id, history=data.history, cursor=data.cursor
+            ),
+        )
+
+    @server.tool(annotations=annotation)
+    def maintenance_list(data: MaintenancePage, ctx: ToolContext) -> dict[str, Any]:
+        """Read private manual tasks with stated dates, never recommendations."""
+        return read(
+            ctx,
+            lambda actor, memory, _: MaintenanceService(memory.engine).list(
+                actor, data
+            ),
+        )
+
+    @server.tool(annotations=annotation)
+    def maintenance_get(data: MaintenanceRead, ctx: ToolContext) -> dict[str, Any]:
+        """Read a private task's current revision, stated dates and linked record."""
+        return read(
+            ctx,
+            lambda actor, memory, _: MaintenanceService(memory.engine).get(
+                actor, data.task_id
+            ),
+        )
+
+    @server.tool(annotations=annotation)
+    def maintenance_history(
+        data: MaintenanceHistory, ctx: ToolContext
+    ) -> dict[str, Any]:
+        """Read original maintenance revisions and their source references."""
+        return read(
+            ctx,
+            lambda actor, memory, _: MaintenanceService(memory.engine).history(
+                actor, data
+            ),
+        )
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        )
+    )
+    def maintenance_create(data: MaintenanceCreate, ctx: ToolContext) -> dict[str, Any]:
+        """Save an explicitly requested manual task; never infer dates or intervals."""
+        return read(
+            ctx,
+            lambda actor, memory, _: MaintenanceService(memory.engine).create(
+                actor, data
+            ),
+        )
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        )
+    )
+    def maintenance_revise(data: MaintenanceChange, ctx: ToolContext) -> dict[str, Any]:
+        """Save an explicit fresh-version change; keep every original revision."""
+        return read(
+            ctx,
+            lambda actor, memory, _: MaintenanceService(memory.engine).revise(
+                actor, data
             ),
         )
 

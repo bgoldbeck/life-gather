@@ -7,6 +7,8 @@ afterEach(() => vi.unstubAllGlobals())
 
 it('creates an explicitly separate home record and opens its empty profile', async () => {
   const fetcher = vi.fn(async (path: string, init?: RequestInit) => {
+    if (path.startsWith('/api/maintenance'))
+      return new Response(JSON.stringify({ items: [], next_cursor: null }))
     const entity = {
       id: 'home',
       name: 'Synthetic home',
@@ -52,6 +54,8 @@ it('creates an explicitly separate home record and opens its empty profile', asy
 
 it('saves an exact sourced specification and exposes correction history', async () => {
   const fetcher = vi.fn(async (path: string, init?: RequestInit) => {
+    if (path.startsWith('/api/maintenance'))
+      return new Response(JSON.stringify({ items: [], next_cursor: null }))
     const entity = {
       id: 'car',
       name: 'Synthetic car',
