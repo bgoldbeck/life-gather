@@ -38,4 +38,27 @@ and digest identify an exact build. A short Git revision beside the app version
 distinguishes different builds of the same version. A source merge does not update
 an existing container; the release still needs a new image and explicit redeploy.
 
+Since v0.58.1, Vite reads the same backend version file when compiling the UI.
+Docker passes `APP_REVISION` into both frontend and backend builds; no second
+version string is maintained. The UI displays its loaded bundle's build, rather
+than adopting newer server metadata while still executing old code. Session checks
+on focus/every minute show an update notice when versions differ, or when both
+known revisions differ (including rollback). Missing revision metadata alone is
+not evidence of a new build. No automatic reload discards unsaved drafts; the
+notice's Reload action uses an ordinary page reload.
+
+Startup HTML and non-hashed static resources use `no-cache, must-revalidate`,
+including conditional 304 responses and missing files. Successful hashed assets
+under `/assets/` use one-year immutable caching. HTTP APIs keep `no-store`.
+Pre-v0.58.1 tabs need a reload once to acquire the fix; these headers cannot update
+JavaScript already executing in memory. No service worker, live-redeploy mechanism
+or browser-storage clearing is introduced.
+
+The v0.58.1 verification passed 644 backend tests, strict mypy/Ruff/format and
+package builds; 307 frontend tests, lint/types/format and production build.
+Synthetic browser deployment testing verified the minute-based notice, pinned
+loaded version, retained unsent draft and explicit ordinary reload. Local HTTP
+checks verified revalidation and immutable asset headers. Source graph/HTML were
+refreshed (3,623 nodes / 14,856 edges; two files have partial/no symbol extraction).
+
 The README source-version badge links to the changelog. Update its value with the single version source during releases; the backend version test checks synchronization. It describes source, not Docker deployment.

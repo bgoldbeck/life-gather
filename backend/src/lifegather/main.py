@@ -1,4 +1,5 @@
 import asyncio
+import re
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager, suppress
 from urllib.parse import urlsplit
@@ -216,6 +217,19 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
         if request.url.path.startswith(("/auth/", "/api/")):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Referrer-Policy"] = "no-referrer"
+        elif settings.static_dir is not None and path not in {"/mcp", "/health"}:
+            hashed_asset = re.fullmatch(
+                r"/assets/[^/]+-[A-Za-z0-9_-]{8,}\."
+                r"(?:js|css|woff2?|ttf|otf|png|jpe?g|gif|svg|webp|avif|ico)",
+                path,
+            )
+            response.headers["Cache-Control"] = (
+                "public, max-age=31536000, immutable"
+                if hashed_asset
+                and response.status_code in {200, 206, 304}
+                and not response.headers.get("content-type", "").startswith("text/html")
+                else "no-cache, must-revalidate"
+            )
         response.headers["Referrer-Policy"] = "no-referrer"
         return response
 

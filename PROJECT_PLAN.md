@@ -16,7 +16,12 @@ with private originals, bounded local extraction, reviewed searchable text and
 source locations. Implemented in v0.56.0 with selectable previews, review/search,
 format-aware originals and archive/recovery coverage. See [Documents](docs/DOCUMENTS.md).
 
-Current increment: v0.58.0 adds private Power Center readiness, source filters,
+Current correction: v0.58.1 prevents stale UI/version confusion after deployment:
+startup pages revalidate, loaded UI build labels stay pinned and session checks
+offer an explicit Reload when the server build changes. Drafts are not discarded
+automatically. No migration/dependency; see [Versioning](docs/VERSIONING.md).
+
+v0.58.0 adds private Power Center readiness, source filters,
 observed health/freshness, recovery links and connection capability explanations.
 Local checks never probe providers or start ingestion; live model/grant health
 without processing evidence remains unknown. No migration or dependency.

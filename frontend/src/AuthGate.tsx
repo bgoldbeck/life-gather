@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button'
 import { EmailAccess } from './EmailAccess'
 import { readEmailLink } from './emailLink'
 import { BuildInfo, type Build } from './BuildInfo'
+import { ClientUpdateNotice } from './ClientUpdate'
+import { clientBuild } from './clientBuild'
 import { useAppearance, type Theme } from './appearance'
 
 type Account = { id: string; name: string; email: string }
@@ -48,6 +50,9 @@ export function AuthGate({
     }
   }, [])
   const [session, setSession] = useState<Session | null>(null)
+  const [loadedBuild, setLoadedBuild] = useState<Build | undefined>(
+    clientBuild ?? undefined,
+  )
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   useAppearance(session?.user ? (session.appearance ?? 'system') : 'system')
@@ -59,6 +64,7 @@ export function AuthGate({
       })
       if (!response.ok) throw new Error('Session check failed')
       const data: Session = await response.json()
+      setLoadedBuild((current) => current ?? data.build)
       setSession(data)
       setError('')
     } catch {
@@ -133,6 +139,7 @@ export function AuthGate({
   if (session && link) {
     return (
       <main className="auth-page">
+        <ClientUpdateNotice loaded={loadedBuild} current={session.build} />
         {testBanner}
         <section className="auth-card">
           {link.purpose === 'link' && !session.user ? (
@@ -161,6 +168,7 @@ export function AuthGate({
   if (session?.user) {
     return (
       <div className="authenticated-shell">
+        <ClientUpdateNotice loaded={loadedBuild} current={session.build} />
         {testBanner}
         {error && <p role="alert">{error}</p>}
         {children(
@@ -171,7 +179,7 @@ export function AuthGate({
           refresh,
           !!session.email_password_enabled,
           !!session.email_delivery_enabled,
-          session.build,
+          loadedBuild,
           session.appearance,
         )}
       </div>
@@ -183,6 +191,7 @@ export function AuthGate({
   )
   return (
     <main className="auth-page">
+      <ClientUpdateNotice loaded={loadedBuild} current={session?.build} />
       <section className="auth-card" aria-labelledby="login-heading">
         {testBanner}
         <img src="/brand/lifegather-icon.png" width="56" height="56" alt="" />
@@ -225,7 +234,7 @@ export function AuthGate({
             onSignedIn={refresh}
           />
         )}
-        <BuildInfo build={session?.build} />
+        <BuildInfo build={loadedBuild} />
       </section>
     </main>
   )
