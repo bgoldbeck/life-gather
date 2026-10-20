@@ -10,6 +10,11 @@ User design additions, 2026-10-20: [Power Center and dockable navigation](docs/s
 in v0.58.0; [navigation docking](docs/NAVIGATION.md) is delivered in v0.57.0,
 independently of the existing right-default contextual assistant.
 
+Planned user addition, 2026-10-20: [editable asset types](docs/superpowers/specs/2026-10-20-custom-asset-types-design.md)
+provides Vehicle, Appliance, Electronics, Furniture and Tools & Equipment as editable
+defaults, private custom types selectable during manual entry, and safe later field
+additions preserving existing evidence/history. This is design scope, not delivered functionality.
+
 User addition, 2026-10-20: [broader document support](docs/superpowers/specs/2026-10-20-broader-document-support-design.md)
 targets Word (`.docx`), Excel (`.xlsx`), plain text, Markdown and CSV alongside PDF,
 with private originals, bounded local extraction, reviewed searchable text and

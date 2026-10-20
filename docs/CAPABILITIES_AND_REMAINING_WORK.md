@@ -69,7 +69,7 @@ Review current source, dependencies and acceptance criteria before each incremen
 | Timelines and dashboards | Useful cross-domain timelines, real-data overview/insights and financial summaries after their source domains exist. | Record/history views and graph; screenshot totals are not real metrics. |
 | More sources | Outlook/iCloud, calendar/contacts/photos, cloud files, watched local folders/document scanners, retailer exports and home devices; investment/vehicle/insurance services require separate scoping. | Gmail plus manual local uploads and three AI provider adapters. Screenshot logos do not mean support. |
 | Additional AI runtimes | Revisit managed Antigravity only if its official contract can meet bounded output/usage needs; evaluate other providers/local extraction separately. | OpenAI, Claude, Gemini; Antigravity is deferred for documented API limitations. |
-| Asset customization | Reusable asset templates and broader correction/undo coverage where supported safely. | Named sourced profile fields, field history and specific reversible decisions. |
+| Asset customization | [Editable starter/custom asset types](superpowers/specs/2026-10-20-custom-asset-types-design.md) selectable during manual entry: Vehicle, Appliance, Electronics, Furniture and Tools & Equipment; safe later field additions and broader correction/undo where supported. | Named sourced profile fields, field history and specific reversible decisions; reusable types remain planned. |
 
 ## Operational verification and deferred decisions
 
