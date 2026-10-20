@@ -12,6 +12,12 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
 
 ## Execution ledger and decisions
 
+- User addition, 2026-10-20: [broader document support](../specs/2026-10-20-broader-document-support-design.md)
+  adds planned Word `.docx`, Excel `.xlsx`, text, Markdown and CSV support to the
+  existing private PDF workflow. Preserve original files, reviewed source context,
+  bounded parsing and export/recovery coverage. Formats remain unimplemented;
+  this records scope without starting application implementation.
+
 - Design update, 2026-10-20: [Power Center and dockable navigation](../specs/2026-10-20-power-center-design.md)
   records the new primary capability/health page and a resizable navigation panel
   defaulting left with four-edge docking. Both remain unimplemented. The separate

@@ -23,6 +23,14 @@ These requirements are planned; the screenshot is illustrative, not proof of
 implemented integrations. See the [current capability and remaining-work inventory](../../CAPABILITIES_AND_REMAINING_WORK.md)
 for reconciled status rather than historical stage descriptions.
 
+## Broader document support
+
+User decision, 2026-10-20: extend the private document workflow beyond PDF to
+Word (`.docx`), Excel (`.xlsx`), plain text, Markdown and CSV. Preserve original
+files, source locations, reviewed-text provenance, isolation and recovery.
+See [broader document support](2026-10-20-broader-document-support-design.md)
+for the planned scope and acceptance criteria; these formats are not yet implemented.
+
 ## Accounts and privacy
 
 - Any Google account can register without invitations or an email allowlist. First login creates an empty private workspace. Open registration does not itself authorize public internet deployment.

@@ -8,6 +8,11 @@ Current capability inventory and consolidated outstanding scope:
 User design additions, 2026-10-20: [Power Center and dockable navigation](docs/superpowers/specs/2026-10-20-power-center-design.md).
 These are design requirements, not implemented pages or integrations.
 
+User addition, 2026-10-20: [broader document support](docs/superpowers/specs/2026-10-20-broader-document-support-design.md)
+targets Word (`.docx`), Excel (`.xlsx`), plain text, Markdown and CSV alongside PDF,
+with private originals, bounded local extraction, reviewed searchable text and
+source locations. This remains planned; current Documents uploads are PDF-only.
+
 Current increment: v0.55.1 corrects maintenance evidence recall: older matching
 statements link to the current typed revision, and source inspection labels
 historical task statements. No schema or provider permission change.

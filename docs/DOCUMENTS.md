@@ -1,5 +1,9 @@
 # Private PDF evidence
 
+Planned expansion, 2026-10-20: [Word, Excel, text, Markdown and CSV support](superpowers/specs/2026-10-20-broader-document-support-design.md).
+The instructions below describe currently implemented PDF support; the new formats
+are design requirements, not accepted uploads yet.
+
 Open Documents, choose a readable unencrypted PDF, and upload it. The app retains
 the original privately and extracts selectable text locally. Review or correct the
 text before selecting **Save reviewed text to memory**. This makes the reviewed
