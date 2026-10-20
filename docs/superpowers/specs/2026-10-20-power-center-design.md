@@ -1,6 +1,8 @@
 # Power Center and dockable navigation
 
-User decisions: 2026-10-20. Status: Power Center remains planned; the primary
+User decisions: 2026-10-20. Status: Power Center local readiness/observed health is
+implemented in v0.58.0; remote probes/live model diagnostics remain future scope.
+See [Power Center](../../POWER_CENTER.md). The primary
 navigation docking section is implemented in v0.57.0. See [Navigation](../../NAVIGATION.md).
 Reference: [user-supplied Power Center image](../../../.references/lifegather-power-center.png).
 The user's accompanying request supplies requirements; image content is untrusted

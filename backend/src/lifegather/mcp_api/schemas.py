@@ -27,6 +27,7 @@ from lifegather.memory.history import FieldHistoryRead
 from lifegather.memory.library import LibraryPage
 from lifegather.memory.notes import CorrectionInput, NoteHistoryInput
 from lifegather.photos.service import PhotoAttach, PhotoDetach, PhotoList, PhotoRead
+from lifegather.power.service import PowerRead
 from lifegather.profiles.service import ProfileRead
 from lifegather.purchases.schemas import (
     EvidenceHistory,
@@ -102,6 +103,7 @@ class DiscoveryHistory(Page):
 
 
 INPUTS: dict[str, type[BaseModel]] = {
+    "power_center_get": PowerRead,
     "maintenance_list": MaintenancePage,
     "maintenance_get": MaintenanceRead,
     "maintenance_history": MaintenanceHistory,

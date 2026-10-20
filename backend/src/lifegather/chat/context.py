@@ -13,6 +13,7 @@ from lifegather.memory.models import Assertion
 from lifegather.memory.service import MemoryError, MemoryService, fingerprint
 
 PageName = Literal[
+    "Power Center",
     "Overview",
     "Assets",
     "Profiles",
