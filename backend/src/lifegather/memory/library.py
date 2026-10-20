@@ -16,7 +16,9 @@ from lifegather.memory.service import MemoryError, MemoryService
 class LibraryPage(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     query: str = Field(default="", max_length=200)
-    kind: Literal["all", "notes", "photos", "pdfs", "emails", "other"] = "all"
+    kind: Literal["all", "notes", "photos", "pdfs", "documents", "emails", "other"] = (
+        "all"
+    )
     include_history: bool = False
     cursor: str = Field(default="", max_length=36)
     limit: int = Field(default=25, ge=1, le=25)
@@ -54,13 +56,17 @@ class MemoryLibrary:
             "pdfs": "pdf-memory",
         }
         email = namespace.startswith("gmail-memory:")
-        if data.kind == "emails":
+        if data.kind == "documents":
+            statement = statement.where(
+                namespace.in_(["pdf-memory", "document-memory"])
+            )
+        elif data.kind == "emails":
             statement = statement.where(email)
         elif data.kind in categories:
             statement = statement.where(namespace == categories[data.kind])
         elif data.kind == "other":
             statement = statement.where(
-                namespace.not_in(list(categories.values())), ~email
+                namespace.not_in([*categories.values(), "document-memory"]), ~email
             )
         if not data.include_history:
             statement = statement.where(current)

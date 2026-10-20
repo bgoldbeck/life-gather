@@ -1,6 +1,7 @@
-"""Owner-scoped original PDFs, extraction review and immutable source links."""
+"""Owner-scoped original documents, extraction review and immutable source links."""
 
 import hashlib
+import json
 from collections.abc import Callable
 from typing import Any, Self
 from uuid import uuid4
@@ -10,7 +11,8 @@ from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
 
 from lifegather.auth.store import Account
-from lifegather.documents.extractor import MAX_BYTES, extract_pdf
+from lifegather.documents.extractor import MAX_BYTES, extract_document
+from lifegather.documents.formats import MIMES, PreviewOptions
 from lifegather.documents.models import Document
 from lifegather.memory.notes import NoteConflict, NoteService
 from lifegather.memory.schemas import SourceInput
@@ -46,6 +48,10 @@ class DocumentDelete(DocumentRead):
     expected_updated_at: int = Field(ge=0)
 
 
+class DocumentPreview(DocumentRead, PreviewOptions):
+    pass
+
+
 class DocumentService:
     def __init__(self, engine: Engine) -> None:
         self.engine = engine
@@ -67,8 +73,11 @@ class DocumentService:
         return {
             "id": row.id,
             "filename": row.filename,
+            "format": row.format,
+            "mime": MIMES.get(row.format, "application/octet-stream"),
+            "extraction_metadata": json.loads(row.extraction_metadata),
             "size": row.size,
-            "pages": row.pages,
+            "pages": row.pages if row.format == "pdf" else None,
             "text_truncated": row.text_truncated,
             "source_id": row.source_id,
             "created_at": row.created_at,
@@ -109,7 +118,7 @@ class DocumentService:
         with Session(self.engine) as db:
             row = self.owned(db, actor, identifier)
             if row.deleted_at is not None or row.original is None:
-                raise MemoryError("Original PDF was deleted")
+                raise MemoryError("Original document was deleted")
             return row.original
 
     def upload(
@@ -118,15 +127,17 @@ class DocumentService:
         raw: bytes,
         filename: str,
         active: Callable[[], None] | None = None,
+        options: PreviewOptions | None = None,
     ) -> dict[str, Any]:
         if (
             not filename
             or len(filename) > 200
-            or not filename.lower().endswith(".pdf")
+            or filename.rsplit(".", 1)[-1].lower() not in MIMES
             or any(ord(c) < 32 or c in "/\\" for c in filename)
             or len(raw) > MAX_BYTES
         ):
-            raise MemoryError("Choose an unencrypted PDF of at most 8 MiB and 10 pages")
+            raise MemoryError("Choose a supported document of at most 8 MiB")
+        extension = filename.rsplit(".", 1)[-1].lower()
         digest = hashlib.sha256(raw).hexdigest()
         with Session(self.engine) as db:
             existing = db.scalar(
@@ -141,9 +152,12 @@ class DocumentService:
             if existing is not None:
                 return self.view(existing)
         try:
-            extracted = extract_pdf(raw)
+            extracted = extract_document(raw, extension, options or PreviewOptions())
         except Exception:
-            raise MemoryError("PDF could not be read within its limits") from None
+            raise MemoryError(
+                "Document could not be read within its limits; "
+                "check format, encoding and selection"
+            ) from None
         with self.memory._write() as db:
             if active:
                 active()
@@ -164,13 +178,15 @@ class DocumentService:
                 ).where(Document.user_id == actor.id, Document.deleted_at.is_(None))
             ).one()
             if count >= 200 or size + len(raw) > 256 * 1024 * 1024:
-                raise MemoryError("Private PDF storage quota reached")
+                raise MemoryError("Private document storage quota reached")
             now = self.memory.clock()
             row = Document(
                 id=str(uuid4()),
                 user_id=actor.id,
                 content_hash=digest,
                 filename=filename,
+                format=extension,
+                extraction_metadata=json.dumps(extracted.metadata, ensure_ascii=False),
                 size=len(raw),
                 pages=extracted.pages,
                 extracted_text=extracted.text,
@@ -185,6 +201,24 @@ class DocumentService:
             db.flush()
             self.memory._audit(db, actor, "document_uploaded", row.id, now)
             return self.view(row)
+
+    def preview(self, actor: Account, value: DocumentPreview) -> dict[str, Any]:
+        data = DocumentPreview.model_validate(value)
+        with Session(self.engine) as db:
+            row = self.owned(db, actor, data.document_id)
+            if row.deleted_at is not None or row.original is None:
+                raise MemoryError("Original document was deleted")
+            extension, raw = row.format, row.original
+        try:
+            return extract_document(
+                raw,
+                extension,
+                PreviewOptions.model_validate(data.model_dump(exclude={"document_id"})),
+            ).model_dump()
+        except Exception:
+            raise MemoryError(
+                "Preview failed; check encoding, delimiter and worksheet/range limits"
+            ) from None
 
     def save_text(self, actor: Account, value: DocumentText) -> dict[str, Any]:
         data = DocumentText.model_validate(value)
@@ -206,7 +240,9 @@ class DocumentService:
                 SourceInput(
                     text=data.text,
                     source_type="import",
-                    namespace="pdf-memory",
+                    namespace="pdf-memory"
+                    if row.format == "pdf"
+                    else "document-memory",
                     external_id=row.id,
                 ),
             )

@@ -13,7 +13,9 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from lifegather.recovery.envelope import CHUNK_BYTES, RecoveryError
 
-SUPPORTED_MIGRATIONS = frozenset({"0023_asset_consolidation", "0024_maintenance"})
+SUPPORTED_MIGRATIONS = frozenset(
+    {"0023_asset_consolidation", "0024_maintenance", "0025_document_formats"}
+)
 
 
 @dataclass(frozen=True)
@@ -72,7 +74,7 @@ def validate_database(
                 raise RecoveryError(
                     "Snapshot migration is not supported by this release"
                 )
-            if revisions[0][0] == "0024_maintenance":
+            if revisions[0][0] in ("0024_maintenance", "0025_document_formats"):
                 # A current schema marker must include complete typed task storage.
                 # Older accepted snapshots deliberately need no maintenance tables.
                 db.execute(
@@ -90,6 +92,13 @@ def validate_database(
                     "AND r.task_id=t.id AND r.superseded_at IS NULL) LIMIT 1"
                 ).fetchone():
                     raise RecoveryError("Snapshot maintenance history is incomplete")
+            if revisions[0][0] == "0025_document_formats":
+                if db.execute(
+                    "SELECT 1 FROM documents WHERE format NOT IN "
+                    "('pdf','docx','xlsx','txt','md','csv') "
+                    "OR NOT json_valid(extraction_metadata) LIMIT 1"
+                ).fetchone():
+                    raise RecoveryError("Snapshot document metadata is invalid")
             fingerprints = db.execute(
                 "SELECT id,fingerprint FROM vault_key LIMIT 2"
             ).fetchall()

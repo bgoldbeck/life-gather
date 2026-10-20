@@ -1,6 +1,7 @@
 # Broader document support
 
-User decision: 2026-10-20. Status: planned feature; current document uploads are PDF-only.
+User decision: 2026-10-20. Status: implemented in source v0.56.0; operational behavior
+and limitations are recorded in [Documents](../../DOCUMENTS.md).
 Use the existing private Documents/evidence workflow, extended to support Word,
 Excel, plain text, Markdown and CSV. Deliver bounded format increments without
 regressing PDF handling, existing sources or original-file downloads.

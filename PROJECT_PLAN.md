@@ -6,14 +6,19 @@
 Current capability inventory and consolidated outstanding scope:
 [what LifeGather can do and what remains](docs/CAPABILITIES_AND_REMAINING_WORK.md).
 User design additions, 2026-10-20: [Power Center and dockable navigation](docs/superpowers/specs/2026-10-20-power-center-design.md).
-These are design requirements, not implemented pages or integrations.
+Power Center and navigation docking remain design requirements until their releases.
 
 User addition, 2026-10-20: [broader document support](docs/superpowers/specs/2026-10-20-broader-document-support-design.md)
 targets Word (`.docx`), Excel (`.xlsx`), plain text, Markdown and CSV alongside PDF,
 with private originals, bounded local extraction, reviewed searchable text and
-source locations. This remains planned; current Documents uploads are PDF-only.
+source locations. Implemented in v0.56.0 with selectable previews, review/search,
+format-aware originals and archive/recovery coverage. See [Documents](docs/DOCUMENTS.md).
 
-Current increment: v0.55.1 corrects maintenance evidence recall: older matching
+Current increment: v0.56.0 adds broader private document evidence and format-aware
+original/archive/recovery handling with migration 0025. Reviewable local extraction
+supports DOCX/XLSX/TXT/Markdown/CSV alongside PDF; no AI, macros or formula execution.
+
+v0.55.1 corrects maintenance evidence recall: older matching
 statements link to the current typed revision, and source inspection labels
 historical task statements. No schema or provider permission change.
 v0.55.0 adds [sourced maintenance tasks](docs/MAINTENANCE.md).

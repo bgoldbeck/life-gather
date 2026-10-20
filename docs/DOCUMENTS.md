@@ -1,8 +1,50 @@
-# Private PDF evidence
+# Private document evidence
 
-Planned expansion, 2026-10-20: [Word, Excel, text, Markdown and CSV support](superpowers/specs/2026-10-20-broader-document-support-design.md).
-The instructions below describe currently implemented PDF support; the new formats
-are design requirements, not accepted uploads yet.
+From v0.56.0 Documents accepts PDF, Word `.docx`, Excel `.xlsx`, plain text `.txt`,
+Markdown `.md` and CSV `.csv`. Every original remains private and downloadable.
+Extraction is local and needs no AI connection. Review/correct text before **Save
+reviewed text to memory** makes it searchable. This creates no assets, verified
+facts or accounting records. [Design](superpowers/specs/2026-10-20-broader-document-support-design.md).
+
+Text/Markdown previews retain line numbers; Markdown is shown as plain text. Word
+main-body paragraphs and tables have location labels; headers, drawings, footnotes
+and layout may be omitted. No Word page numbers are invented. Excel lists worksheets
+and lets you preview a range up to 200 rows/50 columns (default A1:AX200); cells retain
+sheet/address and raw stored value/type. Number/date formatting is not applied.
+Formulas are never run and cached values are explicitly possibly stale/missing.
+CSV previews retain row/column positions and allow delimiter/header selection.
+
+Text defaults to strict UTF-8 with BOM handling; UTF-16 BOMs are recognized. Choose
+UTF-16 or Windows-1252 explicitly when needed before upload. CSV delimiter detection
+is a suggestion; confirm or change it. **Preview selection** never changes the saved
+original or a reviewed source. **Use preview as reviewed text** explicitly replaces
+the unsaved text draft; saving remains a separate action.
+
+All types share the 8 MiB file, 4,000 extracted/reviewed character, 200 active file
+and 256 MiB per-user limits. Partial text/selected ranges are labelled. OOXML
+archives are bounded to 500 entries, 2 MiB per entry and 16 MiB total expansion;
+workbooks support up to 10 sheets. Password-protected and macro-enabled files,
+legacy `.doc`/`.xls`, PowerPoint, OpenDocument and OCR are unsupported. External
+links, connections, embedded programs and document instructions never execute.
+
+Metadata includes validated format/MIME and parser provenance, with no invented
+page count for non-PDFs. Downloads are attachments with safe format extensions.
+Memory's Reviewed documents filter covers all formats; Reviewed PDF text remains
+available. Source inspection, immutable corrections and original deletion retain
+the existing evidence/history policy. JSON includes format/extraction metadata;
+ZIP and encrypted installation recovery preserve new originals byte-for-byte.
+Migration `0025_document_formats` backfills existing rows as PDF without changing
+their IDs, bytes or source links; downgrade refuses while non-PDF rows exist.
+
+New format parsers use the Python standard library inside a separate process with
+the existing 8-second timeout and Linux 256 MiB/5-second CPU bounds. DTD/entity
+declarations, unsafe archive paths, duplicate parts and oversized XML are rejected.
+The worker has a minimal environment without application secrets; it is bounded
+parsing, not a general operating-system sandbox. See Python's official
+[XML security](https://docs.python.org/3.13/library/xml.html#xml-vulnerabilities)
+and [ZIP archive documentation](https://docs.python.org/3.13/library/zipfile.html).
+
+## Existing PDF behavior
 
 Open Documents, choose a readable unencrypted PDF, and upload it. The app retains
 the original privately and extracts selectable text locally. Review or correct the

@@ -7,6 +7,9 @@ credentials or published image. Release counts and branch names are not capabili
 scores. Historical documents sometimes say later features are missing; the latest
 release ledger and feature documents take precedence.
 
+Subsequent source update: v0.56.0 adds broader documents and migration 0025; the
+baseline above identifies the original audit, with delivered changes noted below.
+
 ## Available workflows
 
 These 12 categories are a human-readable grouping, not a percentage of completion.
@@ -18,7 +21,7 @@ update did not rerun the application suites or exercise live providers/mailboxes
 | Private accounts | Use Google or configured verified email/password login; maintain private records, credentials and jobs per user. | SMTP delivery needs configuration/live verification; no shared spaces. |
 | Personal memory | Save notes, search them, inspect sources, correct statements and retain earlier history. | No guarantee of semantic recall for every paraphrase. |
 | Inventory | Add possessions manually or through reviewed discovery, browse them and correct ownership/identity. | A name match never proves two physical items are the same; inferred ownership is labelled. |
-| Evidence library | Upload private photos/PDFs, review extracted text and link/reuse photos on assets. | Gallery attachment alone does not prove a claim; parsing and extraction are bounded. |
+| Evidence library | Upload private photos plus PDF, DOCX, XLSX, TXT, Markdown and CSV documents; review searchable text, select tabular previews and link/reuse photos on assets. | v0.56.0 adds documents; no macros/formula execution, OCR, legacy Office or guaranteed layout preservation. |
 | Receipt processing | Review multiple receipt items and quantities; keep separate physical units; save sourced money/date claims. | Six explicit currencies: USD, EUR, GBP, CAD, AUD, JPY. Money/date review is not automatic accounting. |
 | Purchase reconciliation | Associate order, receipt, shipment and payment evidence with the same purchase; correct and reverse supported decisions. | No payment allocation/refund ledger; shipment evidence alone is not proof of delivery. |
 | Duplicate correction | Compare records, explicitly consolidate two eligible assets and reverse when safe. | No bulk/chained consolidation; conflicting identities and sibling units are guarded. |
@@ -50,7 +53,7 @@ Review current source, dependencies and acceptance criteria before each incremen
 | Navigation docking | Left default, four-edge docking, resizing, remembered per-account layout, accessible controls and assistant coexistence. | Assistant docking/resizing already exists, right default. |
 | Assistant breadth | Broader supported conversational edits/planning, conversational AI purchase-discovery initiation and arbitrary supported image questions; explicit permission boundaries. | Streaming recall, deterministic supplied-field edits, photo upload/reading and Chat text-evidence scan requests. |
 | Extraction | Automatic evidence-validated price/date extraction and broader financial/document extraction; email attachments. | Reviewed PDFs/multi-item receipts, explicit sourced money/date claims, inline-email item discovery. |
-| Broader documents | Add Word `.docx`, Excel `.xlsx`, text `.txt`, Markdown `.md` and CSV `.csv` uploads, bounded local extraction, review/search and original-file provenance. See the [document support design](superpowers/specs/2026-10-20-broader-document-support-design.md). | Documents currently accepts PDF; photos have their separate existing workflow. |
+| Broader documents | Additional formats, richer layout/OCR and broader document extraction require separately scoped increments. | v0.56.0 adds DOCX, XLSX, TXT, Markdown and CSV alongside PDF with bounded local review, source locations and original preservation; see [Documents](DOCUMENTS.md). |
 | Reconciliation | Larger/bulk/chained consolidation where justified, fuller shipment/unit workflows and financial allocation, split/combined payments, refunds/returns accounting. | Two-record reversible consolidation, replacement links and reversible evidence moves/grouping. |
 | Photo experience | Saved-photo attachment picking in Chat, event galleries and remaining direct photo/graph navigation workflows. | Chat upload/saved-photo reading, asset galleries, existing photo reuse/removal and receipt-photo review. |
 | Web research | Explicitly requested, dated cited research with external-data permissions and identity uncertainty. | Local sourced recall is separate. |

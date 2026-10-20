@@ -29,7 +29,8 @@ User decision, 2026-10-20: extend the private document workflow beyond PDF to
 Word (`.docx`), Excel (`.xlsx`), plain text, Markdown and CSV. Preserve original
 files, source locations, reviewed-text provenance, isolation and recovery.
 See [broader document support](2026-10-20-broader-document-support-design.md)
-for the planned scope and acceptance criteria; these formats are not yet implemented.
+for scope and acceptance criteria; v0.56.0 implements these five formats with
+documented bounded extraction and existing private review/evidence semantics.
 
 ## Accounts and privacy
 

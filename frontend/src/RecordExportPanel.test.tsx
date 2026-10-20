@@ -53,7 +53,9 @@ it('downloads original evidence only after an explicit ZIP choice', async () => 
   )
   const user = userEvent.setup()
   const view = render(<RecordExportPanel csrfToken="csrf-private" />)
-  const choice = screen.getByLabelText('Include original photos and PDFs (ZIP)')
+  const choice = screen.getByLabelText(
+    'Include original photos and documents (ZIP)',
+  )
   expect(choice).not.toBeChecked()
   expect(fetcher).not.toHaveBeenCalled()
   await user.click(choice)
@@ -103,7 +105,7 @@ it('uses a safe ZIP filename when the server attachment name is unsafe', async (
   const user = userEvent.setup()
   render(<RecordExportPanel csrfToken="csrf" />)
   await user.click(
-    screen.getByLabelText('Include original photos and PDFs (ZIP)'),
+    screen.getByLabelText('Include original photos and documents (ZIP)'),
   )
   await user.click(
     screen.getByRole('button', { name: 'Download archive (ZIP)' }),
@@ -134,7 +136,7 @@ it.each(['mime', 'header', 'footer', 'short'])(
     const user = userEvent.setup()
     render(<RecordExportPanel csrfToken="csrf" />)
     await user.click(
-      screen.getByLabelText('Include original photos and PDFs (ZIP)'),
+      screen.getByLabelText('Include original photos and documents (ZIP)'),
     )
     await user.click(
       screen.getByRole('button', { name: 'Download archive (ZIP)' }),
@@ -154,7 +156,7 @@ it.each([413, 409])(
     const user = userEvent.setup()
     render(<RecordExportPanel csrfToken="csrf" />)
     await user.click(
-      screen.getByLabelText('Include original photos and PDFs (ZIP)'),
+      screen.getByLabelText('Include original photos and documents (ZIP)'),
     )
     await user.click(
       screen.getByRole('button', { name: 'Download archive (ZIP)' }),
@@ -164,7 +166,7 @@ it.each([413, 409])(
     )
     expect(create).not.toHaveBeenCalled()
     await user.click(
-      screen.getByLabelText('Include original photos and PDFs (ZIP)'),
+      screen.getByLabelText('Include original photos and documents (ZIP)'),
     )
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(
@@ -181,7 +183,9 @@ it('locks archive choice while preparing and discards a late ZIP response after 
   const { fetcher, create } = downloadHarness(pending)
   const user = userEvent.setup()
   const view = render(<RecordExportPanel csrfToken="csrf" />)
-  const choice = screen.getByLabelText('Include original photos and PDFs (ZIP)')
+  const choice = screen.getByLabelText(
+    'Include original photos and documents (ZIP)',
+  )
   await user.click(choice)
   const button = screen.getByRole('button', { name: 'Download archive (ZIP)' })
   fireEvent.click(button)
@@ -219,9 +223,9 @@ it.each([
     const user = userEvent.setup()
     const view = render(<RecordExportPanel csrfToken="csrf-private" />)
     expect(fetcher).not.toHaveBeenCalled()
-    expect(screen.getByText(/Original images and PDF files/)).toHaveTextContent(
-      'not a complete backup',
-    )
+    expect(
+      screen.getByText(/Original images and document files/),
+    ).toHaveTextContent('not a complete backup')
     expect(screen.getByText(/Up to 10,000 records/)).toHaveTextContent(
       'no partial file',
     )

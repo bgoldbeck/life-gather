@@ -463,7 +463,8 @@ class ChatService:
         document = DocumentService(self.engine).source_document(actor, source.id)
         if document is not None:
             result["status"] = (
-                "user-reviewed PDF text; extraction/layout may be incomplete"
+                f"user-reviewed {document.get('format', 'pdf').upper()} text; "
+                "extraction/layout may be incomplete"
             )
             result["document"] = {
                 "id": document["id"],

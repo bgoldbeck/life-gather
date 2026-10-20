@@ -50,7 +50,7 @@ describe('Private settings', () => {
     ).not.toBeChecked()
     await user.click(
       screen.getByRole('checkbox', {
-        name: 'Include original photos and PDFs (ZIP)',
+        name: 'Include original photos and documents (ZIP)',
       }),
     )
     expect(consent).toBe(false)

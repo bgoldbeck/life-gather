@@ -188,7 +188,7 @@ def test_deleted_pdf_blocks_manual_and_automatic_proposals(tmp_path: Path) -> No
         DocumentDelete(document_id=doc["id"], expected_updated_at=doc["updated_at"]),
     )
     for action in ("auto", "new"):
-        with pytest.raises(MemoryError, match="PDF was deleted"):
+        with pytest.raises(MemoryError, match="document was deleted"):
             service.review(actor, review(proposal["id"], action=action))
     assert (
         service.review(actor, review(proposal["id"], action="reject", fields=None))[

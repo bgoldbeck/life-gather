@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.56.0 — Word, Excel, text, Markdown and CSV evidence
+
+- Documents now preserves and locally extracts DOCX, XLSX, TXT, Markdown and CSV
+  alongside PDF. Review before saving searchable text; preserve source locations,
+  original bytes, correction history and private owner boundaries.
+- Add worksheet/range and encoding/CSV delimiter/header previews, with an explicit
+  action to replace a review draft. Formula text and possibly stale/missing cached
+  values remain distinct; no macros, formulas, links or document instructions run.
+- Bound Office archive/XML expansion and reuse isolated parser time/memory limits.
+  Main-body Word extraction, raw Excel cell values, 4,000-character text and selected
+  range limits are explicit; legacy Office, encrypted/macro-enabled files and OCR
+  remain unsupported. No external model call or new dependency.
+- Migration 0025 preserves existing PDFs and adds format/parser metadata. Refuse
+  lossy downgrade with non-PDF records. Original downloads and private ZIP archives
+  retain correct extensions/MIME; encrypted recovery accepts and verifies the new
+  schema while retaining older supported snapshots. No running app redeployment.
+
 ## 0.55.1 — Current maintenance evidence in recall
 
 - When keyword search or Ask AI finds an older maintenance statement, include

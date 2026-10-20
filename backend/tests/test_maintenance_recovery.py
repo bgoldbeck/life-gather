@@ -15,7 +15,7 @@ def test_recovery_refuses_incomplete_current_maintenance_storage(
 ) -> None:
     store, alice, _, vehicle = prepared(tmp_path)
     task = MaintenanceService(store.engine).create(alice, plan(vehicle))
-    assert validate_database(store.path, None).migration == "0024_maintenance"
+    assert validate_database(store.path, None).migration == "0025_document_formats"
     with store.engine.begin() as db:
         if damage == "missing_tables":
             db.exec_driver_sql("DROP TABLE maintenance_revisions")
