@@ -6,7 +6,8 @@
 Current capability inventory and consolidated outstanding scope:
 [what LifeGather can do and what remains](docs/CAPABILITIES_AND_REMAINING_WORK.md).
 User design additions, 2026-10-20: [Power Center and dockable navigation](docs/superpowers/specs/2026-10-20-power-center-design.md).
-Power Center and navigation docking remain design requirements until their releases.
+Power Center remains planned; [navigation docking](docs/NAVIGATION.md) is delivered
+in v0.57.0, independently of the existing right-default contextual assistant.
 
 User addition, 2026-10-20: [broader document support](docs/superpowers/specs/2026-10-20-broader-document-support-design.md)
 targets Word (`.docx`), Excel (`.xlsx`), plain text, Markdown and CSV alongside PDF,
@@ -14,7 +15,11 @@ with private originals, bounded local extraction, reviewed searchable text and
 source locations. Implemented in v0.56.0 with selectable previews, review/search,
 format-aware originals and archive/recovery coverage. See [Documents](docs/DOCUMENTS.md).
 
-Current increment: v0.56.0 adds broader private document evidence and format-aware
+Current increment: v0.57.0 adds four-edge dockable/resizable primary navigation,
+left default, per-account browser preferences, pointer/keyboard controls, reset
+and compact fallback while retaining page/chat drafts. No migration or new dependency.
+
+v0.56.0 adds broader private document evidence and format-aware
 original/archive/recovery handling with migration 0025. Reviewable local extraction
 supports DOCX/XLSX/TXT/Markdown/CSV alongside PDF; no AI, macros or formula execution.
 
@@ -262,13 +267,14 @@ Explicit deletion/export/backup operations should have their own guarded flows r
 
 **Navigation:** Chat, Assets, Graph, Documents, Review, Settings; Overview and richer dashboards follow useful data. Chat is primary, and correction/recovery remain directly accessible.
 
-**Navigation update, 2026-10-20 (planned):** Add **Power Center** as a primary
+**Navigation update, 2026-10-20:** Plan **Power Center** as a primary
 destination for actual capabilities, connection health and data freshness, with
 actionable recovery and precise capability-unlock explanations. Its Power Level
 must measure useful readiness rather than count connected services. Make the
 primary navigation panel dockable left/right/top/bottom and resizable, defaulting
 left, with per-account remembered layout and accessible controls. This is separate
-from the implemented right-default resizable assistant. See the linked design;
+from the implemented right-default resizable assistant. Navigation docking is
+implemented in v0.57.0; Power Center remains planned. See the linked design;
 keep all existing destinations and private configuration workflows accessible.
 
 **MVP views:**

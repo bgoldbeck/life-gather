@@ -1,0 +1,196 @@
+.app-layout.navigation-shell {
+  display: grid;
+  grid-template-columns: var(--navigation-width) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'navigation workspace';
+}
+.navigation-shell > .workspace {
+  grid-area: workspace;
+  min-width: 0;
+  min-height: 0;
+}
+.navigation-panel {
+  grid-area: navigation;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  background: var(--sidebar-surface);
+  border: 1px solid var(--border);
+}
+.navigation-shell .sidebar {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 1rem;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+}
+.navigation-shell .brand {
+  order: 0;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.navigation-shell .brand-mark {
+  width: 32px;
+  height: 32px;
+  margin-right: 8px;
+}
+.navigation-controls {
+  order: 1;
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  margin-top: 0.7rem;
+  font-size: 0.75rem;
+}
+.navigation-controls label {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+.navigation-controls select {
+  min-width: 0;
+  max-width: 100%;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  background: var(--card);
+  color: var(--foreground);
+}
+.navigation-shell .sidebar-caption {
+  order: 2;
+  margin: 0.6rem 0 1rem;
+}
+.navigation-shell nav {
+  order: 3;
+}
+.navigation-shell .sidebar-note {
+  order: 4;
+  padding: 2rem 0 0.5rem;
+}
+.app-layout.navigation-right {
+  grid-template-columns: minmax(0, 1fr) var(--navigation-width);
+  grid-template-areas: 'workspace navigation';
+}
+.app-layout.navigation-top {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--navigation-height) minmax(0, 1fr);
+  grid-template-areas: 'navigation' 'workspace';
+}
+.app-layout.navigation-bottom {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) var(--navigation-height);
+  grid-template-areas: 'workspace' 'navigation';
+}
+.navigation-top .sidebar,
+.navigation-bottom .sidebar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: 'brand controls' 'nav nav';
+  align-content: start;
+  gap: 0.5rem;
+  padding: 0.7rem 1rem;
+}
+.navigation-top .brand,
+.navigation-bottom .brand {
+  grid-area: brand;
+}
+.navigation-top .navigation-controls,
+.navigation-bottom .navigation-controls {
+  grid-area: controls;
+  justify-content: end;
+  margin: 0;
+}
+.navigation-top .sidebar-caption,
+.navigation-bottom .sidebar-caption,
+.navigation-top .sidebar-note,
+.navigation-bottom .sidebar-note {
+  display: none;
+}
+.navigation-top nav,
+.navigation-bottom nav {
+  grid-area: nav;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0;
+}
+.navigation-top .nav-button,
+.navigation-bottom .nav-button {
+  width: auto;
+  flex-shrink: 0;
+  height: 36px;
+  padding: 0.4rem 0.6rem;
+}
+.navigation-resizer {
+  position: absolute;
+  z-index: 3;
+  background: var(--border);
+  touch-action: none;
+  user-select: none;
+  border-radius: 4px;
+}
+.navigation-resizer:hover,
+.navigation-resizer:focus-visible {
+  background: var(--foreground);
+  outline: 2px solid var(--foreground);
+  outline-offset: 1px;
+}
+.navigation-controls :focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.navigation-resize-left,
+.navigation-resize-right {
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  cursor: col-resize;
+}
+.navigation-resize-left {
+  right: -3px;
+}
+.navigation-resize-right {
+  left: -3px;
+}
+.navigation-resize-top,
+.navigation-resize-bottom {
+  left: 0;
+  right: 0;
+  height: 7px;
+  cursor: row-resize;
+}
+.navigation-resize-top {
+  bottom: -3px;
+}
+.navigation-resize-bottom {
+  top: -3px;
+}
+.app-layout.navigation-compact {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.navigation-compact .navigation-panel {
+  max-height: min(160px, 30dvh);
+}
+.navigation-compact .sidebar {
+  padding: 0.5rem 0.7rem;
+}
+.navigation-compact .brand {
+  font-size: 17px;
+}
+.navigation-compact .brand-mark {
+  width: 26px;
+  height: 26px;
+  margin-right: 6px;
+}
+.navigation-compact nav {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+.navigation-compact .nav-button {
+  font-size: 12px;
+}

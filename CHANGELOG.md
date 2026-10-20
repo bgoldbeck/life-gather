@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.57.0 — Dockable, resizable primary navigation
+
+- The navigation sidebar defaults left and can dock at any of the four edges.
+  Resize its divider with pointer drag or arrows/Home/End; Shift uses a larger
+  keyboard step. Horizontal docks reflow destination labels and keep overflow
+  within navigation. All existing destinations remain available.
+- Remember separate width/height and position per account in this browser;
+  validate saved values, clamp to the viewport and offer Reset navigation layout.
+  Compact screens use top navigation without overwriting the desktop preference.
+- Keep the current page, unsaved assistant draft and independent assistant layout
+  while moving navigation. No migration, backend domain/API or dependency change;
+  Power Center itself remains a separately planned feature.
+
 ## 0.56.0 — Word, Excel, text, Markdown and CSV evidence
 
 - Documents now preserves and locally extracts DOCX, XLSX, TXT, Markdown and CSV

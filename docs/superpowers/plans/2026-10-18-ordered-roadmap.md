@@ -12,6 +12,27 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
 
 ## Execution ledger and decisions
 
+- v0.57.0 implements [dockable primary navigation](../../NAVIGATION.md): left
+  default, four edges, separate bounded width/height, pointer and keyboard resizing,
+  reset and per-account browser layout. Compact top navigation preserves desktop
+  preference. The current page, chat draft and independently docked assistant stay
+  mounted; no domain API, schema or dependency change. Power Center remains planned.
+  Verification: 298 frontend tests, types/lint/format/build, backend version tests
+  (3 passed), strict backend types/lint/format and wheel build pass. Real browser
+  checks cover all edges, pointer/keyboard resizing, reload/reset, same-edge assistant,
+  Light/Dark and 390px with no page overflow. Self-review covered account storage,
+  pointer cancellation, viewport bounds, keyboard/focus and stable mounted children.
+  Code-only source graph and HTML refreshed: 3,564 nodes /14,643 edges; test-file
+  AST omissions are covered by the passing frontend compiler and interaction suite.
+  Clean-main full checks, image smoke/publication and actual-image recovery follow.
+
+- v0.56.0 source PR82 and immutable/latest image publication are complete at
+  `d55c72ed864226e4e16276c1774b89f8532e739e`, remote digest
+  `sha256:ae217bb8203e77e1e91d4792cb66ff928cc405da96dbeb3a49b897c879e0e7c8`.
+  Actual-image Linux backup/verify/restore covers all new formats and legacy PDF,
+  two owners and exact original bytes; packaged CSV upload/review also passed.
+  Remote linux/amd64 version/revision labels match. No existing app was redeployed.
+
 - v0.56.0 implements broader private document evidence: DOCX/XLSX/TXT/Markdown/CSV
   alongside PDF, bounded local parsing, selectable previews, reviewed source
   locations, private format metadata and correct original/archive extensions.
