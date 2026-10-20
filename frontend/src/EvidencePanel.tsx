@@ -9,6 +9,17 @@ export type EvidenceSource = {
   document?: { id: string; filename: string; deleted_at: number | null } | null
   receipt_proposal_id?: string | null
   asset_proposal_id?: string | null
+  maintenance_context?: {
+    task_id: string
+    revision_id: string
+    is_current_revision: boolean
+    current_source_id: string
+    target: { id: string; name: string; kind: string }
+    state: string
+    due_on: string | null
+    completed_on: string | null
+    timezone: string
+  } | null
   asset_context?: {
     asset_name: string
     operation: string
@@ -171,6 +182,33 @@ export function EvidencePanel({
             ? 'Current saved note'
             : 'Earlier version — a newer correction is available.'}
         </p>
+      )}
+      {source.maintenance_context && (
+        <div>
+          <p role="status">
+            {source.maintenance_context.is_current_revision
+              ? 'Current maintenance statement'
+              : 'Earlier maintenance statement — a newer revision is available.'}
+          </p>
+          <p>
+            {source.maintenance_context.target.name} · Recorded task state:{' '}
+            {source.maintenance_context.state}. Due date:{' '}
+            {source.maintenance_context.due_on ?? 'Unknown'}. Completion date:{' '}
+            {source.maintenance_context.completed_on ?? 'Unknown'} ·{' '}
+            {source.maintenance_context.timezone}.
+          </p>
+          {!source.maintenance_context.is_current_revision && (
+            <Button
+              variant="outline"
+              disabled={opening || saving}
+              onClick={() =>
+                void onOpen(source.maintenance_context!.current_source_id)
+              }
+            >
+              View current maintenance statement
+            </Button>
+          )}
+        </div>
       )}
       <p className="chat-text">{source.text}</p>
       {source.document && (

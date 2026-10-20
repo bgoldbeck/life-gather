@@ -30,6 +30,10 @@ def test_tasks_follow_identity_and_preserve_links_and_reversal_guards(
     assert merged["entity_id"] == records[1].id
     assert merged["target"]["id"] == records[0].id
     assert merged["revision"] == original["revision"]
+    context = maintenance.source_context(alice, original["revision"]["source_id"])
+    assert context is not None
+    assert context["entity_id"] == records[1].id
+    assert context["target"]["id"] == records[0].id
     assert (
         maintenance.list(alice, MaintenancePage(entity_id=records[0].id))["items"][0][
             "id"
@@ -53,6 +57,8 @@ def test_tasks_follow_identity_and_preserve_links_and_reversal_guards(
         ),
     )
     assert maintenance.get(alice, created["id"])["target"]["id"] == records[1].id
+    context = maintenance.source_context(alice, original["revision"]["source_id"])
+    assert context is not None and context["target"]["id"] == records[1].id
     with pytest.raises(MemoryError, match="changed"):
         maintenance.revise(alice, change(merged, "stale-after-reverse"))
     again = consolidation.apply(

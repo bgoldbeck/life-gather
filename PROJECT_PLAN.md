@@ -3,7 +3,10 @@
 **Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
 **Date:** Updated 2026-10-17
 
-Current increment: v0.55.0 adds [sourced maintenance tasks](docs/MAINTENANCE.md).
+Current increment: v0.55.1 corrects maintenance evidence recall: older matching
+statements link to the current typed revision, and source inspection labels
+historical task statements. No schema or provider permission change.
+v0.55.0 adds [sourced maintenance tasks](docs/MAINTENANCE.md).
 Explicit manual plans, optional calendar dates/timezones, completion/cancellation
 and preserved revisions are available in Profiles and the global Maintenance view.
 Fresh versions and stable retries protect changes; original record links survive

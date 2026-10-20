@@ -218,6 +218,19 @@ def verify(root: Path) -> None:
         == maintenance_history
     )
     assert recovered_maintenance.list(bob, MaintenancePage(state="all"))["items"] == []
+    current_source_id = recovered_task["revision"]["source_id"]
+    old_source_id = original_task["revision"]["source_id"]
+    task_context = recovered_maintenance.source_context(alice, old_source_id)
+    assert task_context is not None and not task_context["is_current_revision"]
+    assert task_context["current_source_id"] == current_source_id
+    assert task_context["state"] == "open" and task_context["due_on"] is None
+    assert recovered_maintenance.source_context(bob, old_source_id) is None
+    task_evidence = ChatService(recovered.engine).evidence(alice, "maintenance")
+    assert any(
+        entry["id"] == current_source_id
+        and entry["maintenance_context"]["state"] == "completed"
+        for entry in task_evidence
+    )
     assert ConversationPrivacy(recovered.engine).delete(
         alice, removed_conversation, deletion
     )["deleted"]

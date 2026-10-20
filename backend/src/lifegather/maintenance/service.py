@@ -44,6 +44,51 @@ class MaintenanceService:
         self.engine = engine
         self.memory = MemoryService(engine, clock)
 
+    def source_context(self, actor: Account, source_id: str) -> dict[str, Any] | None:
+        """Describe this exact statement, separately from the current head.
+
+        Only a real owner-bound revision FK grants typed task provenance. A
+        caller-supplied source namespace or text cannot impersonate a task.
+        """
+        with Session(self.engine) as db:
+            db.connection().exec_driver_sql("BEGIN")
+            matches = list(
+                db.scalars(
+                    select(MaintenanceRevision)
+                    .where(
+                        MaintenanceRevision.user_id == actor.id,
+                        MaintenanceRevision.source_id == source_id,
+                    )
+                    .limit(2)
+                )
+            )
+            if len(matches) != 1:
+                return None
+            row = matches[0]
+            task = self._task(db, actor, row.task_id)
+            head = self._head(db, actor, task)
+            target = self._target(db, actor, task.entity_id)
+            return {
+                "task_id": task.id,
+                "entity_id": task.entity_id,
+                "target": {"id": target.id, "name": target.name, "kind": target.kind},
+                "revision_id": row.id,
+                "source_id": row.source_id,
+                "title": row.title,
+                "due_on": row.due_on.isoformat() if row.due_on else None,
+                "timezone": row.timezone,
+                "state": row.state,
+                "completed_on": row.completed_on.isoformat()
+                if row.completed_on
+                else None,
+                "recorded_at": row.recorded_at,
+                "superseded_at": row.superseded_at,
+                "is_current_revision": row.id == head.id,
+                "current_revision_id": head.id,
+                "current_source_id": head.source_id,
+                "read_at": max(self.memory.clock(), row.recorded_at, head.recorded_at),
+            }
+
     @staticmethod
     def _task(db: Session, actor: Account, identifier: str) -> MaintenanceTask:
         row = db.scalar(

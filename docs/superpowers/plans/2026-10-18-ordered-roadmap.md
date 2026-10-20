@@ -12,6 +12,17 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
 
 ## Execution ledger and decisions
 
+- v0.55.1 corrects maintenance evidence currentness in keyword/AI recall and
+  source inspection. Owner-bound typed revision metadata identifies historical
+  statements and follows the current source within existing evidence limits.
+  Unknown current dates remain unknown; source namespaces grant no task authority.
+  No migration, dependency, provider schema or model permission change.
+  Verification: 623 backend /287 frontend tests, strict types (241 files), lint,
+  formatting, wheel/production builds, synthetic desktop/390px light/dark source
+  inspection and keyboard/current-first search, and source-only Linux recovery
+  pass. Code-only graph/HTML refreshed (3,454 nodes /14,803 edges). Initial local
+  editable metadata mismatch resolved with uv sync before the final full rerun.
+
 - v0.55.0 adds [sourced one-off maintenance tasks](../../MAINTENANCE.md) to existing
   Profiles and a global Maintenance view. Optional calendar dates, explicit
   timezone, current state and original revision sources preserve unknowns and
