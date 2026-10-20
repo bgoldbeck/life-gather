@@ -7,6 +7,7 @@ import {
   type FormEvent,
 } from 'react'
 import { Button } from '@/components/ui/button'
+import { Trash2 } from 'lucide-react'
 import './chat.css'
 import { contextKey, type WorkspaceContext } from './workspaceContext'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
@@ -17,6 +18,7 @@ import { readChatStream } from './chatStream'
 import { isAIProvider, aiProviderLabel } from './aiProviders'
 import { ChatPhotoPicker, type SavedChatPhoto } from './ChatPhotoPicker'
 import { ChatEmailScan, type EmailScanScope } from './ChatEmailScan'
+import { ConversationDelete } from './ConversationDelete'
 
 type Source = { id: string; text: string }
 type Turn = {
@@ -94,6 +96,19 @@ export function ChatPanel({
   )
   const [paging, setPaging] = useState(false)
   const [selected, setSelected] = useState('')
+  const [deletionTarget, setDeletionTarget] = useState<Conversation | null>(
+    null,
+  )
+  const deletedConversations = useRef(new Set<string>())
+  const deletionFocus = useRef<HTMLButtonElement | null>(null)
+  const conversationToggle = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (!deletionTarget && deletionFocus.current) {
+      if (deletionFocus.current.isConnected) deletionFocus.current.focus()
+      else conversationToggle.current?.focus()
+      deletionFocus.current = null
+    }
+  }, [deletionTarget])
   const [turns, setTurns] = useState<Turn[]>([])
   const messages = useRef<HTMLDivElement>(null)
   const [turnCursor, setTurnCursor] = useState<string | null>(null)
@@ -225,7 +240,11 @@ export function ChatPanel({
         if (!alive) return
         if (!Array.isArray(page.items))
           throw new Error('Invalid conversation page')
-        setConversations(page.items)
+        setConversations(
+          page.items.filter(
+            (row: Conversation) => !deletedConversations.current.has(row.id),
+          ),
+        )
         setConversationCursor(page.next_cursor)
         setConsent(settings.allow_external_ai === true)
         setCredentials(
@@ -305,6 +324,7 @@ export function ChatPanel({
   }
 
   async function openConversation(id: string) {
+    if (deletionTarget || deletedConversations.current.has(id)) return
     cancelContextReads()
     setScanScope(null)
     const version = ++generation.current
@@ -350,7 +370,7 @@ export function ChatPanel({
         const known = new Set(current.map((row) => row.id))
         const next = [...current]
         for (const row of page.items) {
-          if (!known.has(row.id)) {
+          if (!known.has(row.id) && !deletedConversations.current.has(row.id)) {
             known.add(row.id)
             next.push(row)
           }
@@ -420,6 +440,7 @@ export function ChatPanel({
     event?.preventDefault()
     if (
       busy ||
+      deletionTarget ||
       savingChoice ||
       loading ||
       turnCursor ||
@@ -617,6 +638,31 @@ export function ChatPanel({
     }
   }
 
+  function conversationDeleted(id: string) {
+    deletedConversations.current.add(id)
+    conversationPage.current?.abort()
+    conversationPage.current = null
+    setPaging(false)
+    setConversations((current) => current.filter((row) => row.id !== id))
+    if (selected === id) {
+      cancelContextReads()
+      generation.current++
+      abort.current?.abort()
+      pending.current = null
+      setRetryNeeded(false)
+      setSelected('')
+      setTurns([])
+      setTurnCursor(null)
+      setDraft('')
+      clearEvidence()
+      setViewProposal('')
+      setViewReceipt('')
+      setError('')
+    }
+    setNotice('Conversation deleted. Other saved records were retained.')
+    setDeletionTarget(null)
+  }
+
   return (
     <section className="chat-panel" aria-labelledby="chat-title">
       <div className="chat-heading">
@@ -637,7 +683,7 @@ export function ChatPanel({
         </div>
         <Button
           variant="outline"
-          disabled={busy || loading}
+          disabled={busy || loading || !!deletionTarget}
           onClick={() => {
             cancelContextReads()
             generation.current++
@@ -660,38 +706,57 @@ export function ChatPanel({
         </Button>
       </div>
       <Button
+        ref={conversationToggle}
         variant="ghost"
         aria-expanded={showConversations}
+        disabled={!!deletionTarget}
         onClick={() => setShowConversations((value) => !value)}
       >
         {showConversations ? 'Hide conversations' : 'Your conversations'}
       </Button>
       <div
-        className={`chat-layout ${showConversations ? '' : 'conversations-hidden'}`}
+        className={`chat-layout ${showConversations && !deletionTarget ? '' : 'conversations-hidden'}`}
       >
         <aside
           className="chat-conversations"
           aria-label="Conversations"
-          hidden={!showConversations}
+          hidden={!showConversations || !!deletionTarget}
         >
           <h2>Your conversations</h2>
           {!loading && !conversations.length && (
             <p>Your first conversation starts here.</p>
           )}
           {conversations.map((c) => (
-            <Button
-              key={c.id}
-              variant="ghost"
-              disabled={busy || loading}
-              aria-current={selected === c.id ? 'true' : undefined}
-              onClick={() => void openConversation(c.id)}
-            >
-              {c.title}
-            </Button>
+            <div className="chat-conversation-row" key={c.id}>
+              <Button
+                variant="ghost"
+                disabled={busy || loading || !!deletionTarget}
+                aria-current={selected === c.id ? 'true' : undefined}
+                onClick={() => void openConversation(c.id)}
+              >
+                {c.title}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="conversation-delete-action"
+                disabled={busy || loading || !!deletionTarget}
+                aria-label={`Review deletion of ${c.title}`}
+                onClick={(event) => {
+                  deletionFocus.current = event.currentTarget
+                  conversationPage.current?.abort()
+                  conversationPage.current = null
+                  setPaging(false)
+                  setDeletionTarget(c)
+                }}
+              >
+                <Trash2 aria-hidden="true" />
+              </Button>
+            </div>
           ))}
           {conversationCursor && (
             <Button
-              disabled={busy || loading || paging}
+              disabled={busy || loading || paging || !!deletionTarget}
               variant="outline"
               onClick={() => void moreConversations()}
             >
@@ -701,455 +766,476 @@ export function ChatPanel({
           {paging && <p role="status">Loading more conversations…</p>}
         </aside>
         <div className="chat-content">
-          <div
-            className="chat-messages"
-            ref={messages}
-            aria-live="polite"
-            aria-busy={busy || loading}
-          >
-            {loading && <p role="status">Loading conversations…</p>}
-            {!loading && !turns.length && (
-              <div className="chat-empty">
-                <h2>A place for the details</h2>
-                <p>
-                  Save a note in your own words, search using a few keywords, or
-                  ask OpenAI, Claude or Google Gemini about your saved evidence.
-                </p>
-                <p>
-                  Saving and keyword search work without AI. Notes are original
-                  statements; they do not create verified facts or inventory
-                  items.
-                </p>
-              </div>
-            )}
-            {turns.map((turn) => (
-              <article className="chat-turn" key={turn.id}>
-                <p className="chat-label">
-                  You ·{' '}
-                  {turn.mode === 'organize'
-                    ? 'Assistant'
-                    : turn.mode === 'save'
-                      ? 'Save memory'
-                      : turn.mode === 'search'
-                        ? 'Keyword search'
-                        : turn.mode === 'extract' ||
-                            turn.mode === 'extract_receipt'
-                          ? turn.mode === 'extract_receipt'
-                            ? 'Suggest receipt items'
-                            : 'Suggest asset'
-                          : turn.mode === 'scan_email'
-                            ? 'Request email scan'
-                            : turn.mode === 'extract_photo_receipt'
-                              ? 'Review receipt photo'
-                              : turn.mode === 'extract_photo'
-                                ? 'Read photo'
-                                : 'Ask AI'}
-                </p>
-                <p className="chat-text">{turn.text}</p>
-                <div className="chat-response">
-                  {turn.result.context?.name && (
-                    <p>For {turn.result.context.name}</p>
-                  )}
-                  {turn.result.navigation && (
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        onOpenAsset?.(turn.result.navigation!.entity_id)
-                      }
-                    >
-                      Open {turn.result.navigation.name}
-                    </Button>
-                  )}
-                  {turn.result.choices?.map((item, index) => (
-                    <Button
-                      key={item.id}
-                      variant="outline"
-                      onClick={() => onOpenAsset?.(item.id)}
-                    >
-                      Open {item.name} (record {index + 1})
-                    </Button>
-                  ))}
-                  {turn.result.scan_run_id && (
-                    <Button
-                      variant="outline"
-                      disabled={!onOpenScan}
-                      onClick={() => onOpenScan?.(turn.result.scan_run_id!)}
-                    >
-                      View email scan
-                    </Button>
-                  )}
-                  {turn.result.provider && (
-                    <p className="chat-label">
-                      {aiProviderLabel(turn.result.provider)} ·{' '}
-                      {turn.result.model}
-                    </p>
-                  )}
-                  <p className="chat-text">
-                    {turn.result.text ||
-                      (turn.state === 'pending'
-                        ? 'This request may still be running. Reopen the conversation to check.'
-                        : 'This request was interrupted. No automatic retry was made.')}
-                  </p>
-                  {turn.state === 'failed' && (
-                    <p role="status">Request failed</p>
-                  )}
-                  {!!turn.result.records?.length && (
-                    <div className="chat-records">
-                      <p>Records inspected</p>
-                      {turn.result.records.map((record, index) =>
-                        onOpenGraph ? (
-                          <Button
-                            key={record.id}
-                            variant="outline"
-                            onClick={() => onOpenGraph(record.id)}
-                            aria-label={`Open ${record.name} in graph (record ${index + 1})`}
-                          >
-                            {record.name} · {record.kind}
-                          </Button>
-                        ) : (
-                          <p key={record.id}>
-                            {record.name} · {record.kind}
-                          </p>
-                        ),
-                      )}
-                    </div>
-                  )}
-                  {turn.result.recall_limited && (
-                    <p>
-                      This reply used a limited selection of records. Other
-                      evidence may exist.
-                    </p>
-                  )}
-                  {turn.result.receipt_proposal_id && (
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        setViewReceipt(turn.result.receipt_proposal_id!)
-                      }
-                    >
-                      View receipt review
-                    </Button>
-                  )}
-                  {turn.result.proposal_id && (
-                    <Button
-                      variant="outline"
-                      onClick={() => setViewProposal(turn.result.proposal_id!)}
-                    >
-                      View asset proposal
-                    </Button>
-                  )}
-                  {turn.result.sources?.map((s, i) => (
-                    <Button
-                      key={s.id}
-                      variant="outline"
-                      disabled={opening || loading}
-                      onClick={() => void openSource(s.id)}
-                    >
-                      Source {i + 1}: {s.text.slice(0, 55)}
-                    </Button>
-                  ))}
-                </div>
-              </article>
-            ))}
-            {draft && (
-              <section className="chat-draft" aria-label="Reply draft">
-                <p className="chat-label">
-                  Generating · draft not yet validated or saved
-                </p>
-                <p className="chat-text">{draft}</p>
-              </section>
-            )}
-            {turnCursor && (
-              <Button
-                disabled={loading || busy}
-                onClick={() => void moreTurns()}
-              >
-                Load later messages
-              </Button>
-            )}
-            {busy && (
-              <p role="status">
-                {mode === 'extract' || mode === 'extract_receipt' || usesPhoto
-                  ? 'Preparing a proposal for your review…'
-                  : mode === 'ask'
-                    ? 'Searching your evidence and preparing an answer…'
-                    : 'Saving your request…'}
-              </p>
-            )}
-          </div>
-          {source && (
-            <EvidencePanel
-              key={source.id}
-              source={source}
-              nextOffset={sourceOffset}
-              opening={opening}
-              onOpen={openSource}
-              onClose={clearEvidence}
+          {deletionTarget && (
+            <ConversationDelete
+              key={deletionTarget.id}
+              id={deletionTarget.id}
+              title={deletionTarget.title}
               request={request}
-              onViewReceipt={setViewReceipt}
-              onSuggestReceipt={
-                busy || retryNeeded
-                  ? undefined
-                  : () => {
-                      cancelInitialSelection()
-                      setExtractSource(source.id)
-                      setText(source.text)
-                      setMode('extract_receipt')
-                      clearEvidence()
-                      setViewReceipt('')
-                    }
-              }
-              onViewProposal={(id) => setViewProposal(id)}
-              onSuggest={
-                busy || retryNeeded
-                  ? undefined
-                  : () => {
-                      cancelInitialSelection()
-                      setExtractSource(source.id)
-                      setText(source.text)
-                      setMode('extract')
-                      clearEvidence()
-                      setViewProposal('')
-                    }
-              }
+              onDeleted={conversationDeleted}
+              onCancel={() => setDeletionTarget(null)}
             />
           )}
-          {viewReceipt && (
-            <ReceiptProposalCard
-              key={viewReceipt}
-              id={viewReceipt}
-              csrfToken={csrfToken}
-              onOpen={openSource}
-            />
-          )}
-          {viewProposal && (
-            <AssetProposalCard
-              key={viewProposal}
-              id={viewProposal}
-              request={request}
-              onOpen={openSource}
-            />
-          )}
-          {error && (
-            <p role="alert" className="chat-error">
-              {error}
-            </p>
-          )}
-          {notice && <p role="status">{notice}</p>}
-          <form
-            className="chat-composer"
-            onSubmit={(e) => void submit(e, Math.floor(Date.now() / 1000))}
-          >
-            <label>
-              Action
-              <select
-                value={mode}
-                disabled={busy || retryNeeded}
-                onChange={(e) => {
-                  cancelInitialSelection()
-                  setScanScope(null)
-                  setMode(e.target.value)
-                }}
-              >
-                <option value="organize">Assistant</option>
-                <option value="save">Save memory</option>
-                <option value="search">Keyword search</option>
-                <option value="scan_email">Request an email scan</option>
-                <option value="ask">Ask AI</option>
-                <option value="extract_photo">Read a saved photo</option>
-                <option value="extract_photo_receipt">
-                  Review a receipt photo
-                </option>
-                <option value="extract_receipt" disabled={!extractSource}>
-                  Review multiple items from selected note
-                </option>
-                <option value="extract" disabled={!extractSource}>
-                  Suggest asset from selected note
-                </option>
-              </select>
-            </label>
-            {usesScan && (
-              <ChatEmailScan
-                key={photoContext}
-                disabled={busy || retryNeeded || loading}
-                onChange={setScanScope}
-              />
-            )}
-            {usesPhoto && (
-              <ChatPhotoPicker
-                key={`${selected}:${photoContext}`}
-                csrfToken={csrfToken}
-                selected={photo}
-                onSelect={setPhoto}
-                disabled={busy || retryNeeded || loading}
-              />
-            )}
-            {usesAI && (
-              <div className="chat-provider">
-                <p>
-                  {mode === 'extract_photo_receipt'
-                    ? 'Your selected provider receives the selected original photo, or its current saved transcription if already read. Receipt suggestions and transcription are unverified; inspect every line and quantity before confirming inventory. At most eight lines and twenty total units are reviewed.'
-                    : mode === 'extract_photo'
-                      ? 'Your selected provider receives the selected original photo. The reading is unverified and proposes at most one item; review it before adding anything to inventory.'
-                      : mode === 'extract' || mode === 'extract_receipt'
-                        ? 'Your selected provider receives only the selected saved note. Nothing enters inventory until you review and confirm the proposed items.'
-                        : 'Your selected provider receives your question, up to four recent user messages, matching evidence, relevant records and requested graph connections.'}{' '}
-                  {usage}/20 AI requests used today (UTC). Provider charges may
-                  apply.
-                </p>
-                {!consent && (
-                  <p>Enable external AI access in Settings to continue.</p>
-                )}
-                {!credentials.length && (
+          <div className="chat-saved-content" hidden={!!deletionTarget}>
+            <div
+              className="chat-messages"
+              ref={messages}
+              aria-live="polite"
+              aria-busy={busy || loading}
+            >
+              {loading && <p role="status">Loading conversations…</p>}
+              {!loading && !turns.length && (
+                <div className="chat-empty">
+                  <h2>A place for the details</h2>
                   <p>
-                    Add an AI connection with provider “openai”, “anthropic”
-                    (Claude) or “google” (Gemini) in Settings.
+                    Save a note in your own words, search using a few keywords,
+                    or ask OpenAI, Claude or Google Gemini about your saved
+                    evidence.
                   </p>
-                )}
-                <label>
-                  AI connection
-                  <select
-                    value={credential}
-                    disabled={busy || savingChoice || retryNeeded || loading}
-                    onChange={(e) => {
-                      setCredential(e.target.value)
-                      setModel('')
-                      setChoiceNotice('')
-                    }}
-                  >
-                    <option value="">Choose a credential</option>
-                    {credentials.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label} · {aiProviderLabel(c.provider)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Model ID
-                  <input
-                    value={model}
-                    disabled={busy || savingChoice || retryNeeded || loading}
-                    maxLength={100}
-                    placeholder="Enter a model available to your API account"
-                    onChange={(e) => {
-                      setModel(e.target.value)
-                      setChoiceNotice('')
-                    }}
-                  />
-                </label>
-                <div className="chat-send">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={
-                      busy ||
-                      loading ||
-                      savingChoice ||
-                      retryNeeded ||
-                      !credential ||
-                      !model
-                    }
-                    onClick={() => void saveChoice()}
-                  >
-                    Remember AI choice
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={busy || loading || savingChoice || retryNeeded}
-                    onClick={() => void saveChoice(true)}
-                  >
-                    Forget saved AI choice
-                  </Button>
+                  <p>
+                    Saving and keyword search work without AI. Notes are
+                    original statements; they do not create verified facts or
+                    inventory items.
+                  </p>
                 </div>
-                <p>
-                  Remembering a choice does not enable external AI or send any
-                  records.
-                </p>
-                {choiceNotice && <p role="status">{choiceNotice}</p>}
-              </div>
-            )}
-            {!usesPhoto && !usesScan && (
-              <>
-                <label htmlFor="chat-text">
-                  {mode === 'organize'
-                    ? 'Message your assistant'
-                    : mode === 'save'
-                      ? 'Memory to save'
-                      : mode === 'search'
-                        ? 'Search keywords'
-                        : mode === 'extract' || mode === 'extract_receipt'
-                          ? 'Selected saved note'
-                          : 'Your question'}
-                </label>
-                <textarea
-                  id="chat-text"
-                  value={text}
-                  maxLength={mode === 'search' ? 200 : 4000}
-                  disabled={busy || retryNeeded}
-                  readOnly={mode === 'extract' || mode === 'extract_receipt'}
-                  rows={3}
-                  onChange={(e) => {
-                    cancelInitialSelection()
-                    setText(e.target.value)
-                  }}
-                />
-                <p>
-                  {mode === 'organize'
-                    ? 'Try “Edit my F150”, then ‘Set custom "Tire size" to 205/55R16’ while viewing it. Supplied details keep evidence and history. Choose Ask AI for other questions.'
-                    : mode === 'search'
-                      ? 'Use 1–12 keywords. Every word must match.'
-                      : mode === 'extract' || mode === 'extract_receipt'
-                        ? 'Review the proposal before creating an asset. Correct the saved note first if its text is wrong.'
-                        : 'Only Save memory adds your original text to searchable memory.'}
-                </p>
-              </>
-            )}
-            <div className="chat-send">
-              <Button
-                type="submit"
-                disabled={
-                  busy ||
-                  savingChoice ||
-                  loading ||
-                  !!turnCursor ||
-                  contextLoading ||
-                  (usesScan ? !scanScope : usesPhoto ? !photo : !text.trim()) ||
-                  (usesAI && (!consent || !credential || !model || usage >= 20))
-                }
-              >
-                {retryNeeded
-                  ? 'Retry same request'
-                  : mode === 'organize'
-                    ? 'Send'
-                    : mode === 'save'
-                      ? 'Save memory'
-                      : mode === 'search'
-                        ? 'Search memories'
-                        : usesScan
-                          ? 'Start email scan'
-                          : mode === 'extract_photo_receipt'
-                            ? 'Review receipt photo'
-                            : mode === 'extract_photo'
-                              ? 'Read selected photo'
-                              : mode === 'extract' || mode === 'extract_receipt'
-                                ? mode === 'extract_receipt'
-                                  ? 'Suggest receipt items'
-                                  : 'Suggest asset'
-                                : 'Ask AI'}
-              </Button>
-              {busy && (
+              )}
+              {turns.map((turn) => (
+                <article className="chat-turn" key={turn.id}>
+                  <p className="chat-label">
+                    You ·{' '}
+                    {turn.mode === 'organize'
+                      ? 'Assistant'
+                      : turn.mode === 'save'
+                        ? 'Save memory'
+                        : turn.mode === 'search'
+                          ? 'Keyword search'
+                          : turn.mode === 'extract' ||
+                              turn.mode === 'extract_receipt'
+                            ? turn.mode === 'extract_receipt'
+                              ? 'Suggest receipt items'
+                              : 'Suggest asset'
+                            : turn.mode === 'scan_email'
+                              ? 'Request email scan'
+                              : turn.mode === 'extract_photo_receipt'
+                                ? 'Review receipt photo'
+                                : turn.mode === 'extract_photo'
+                                  ? 'Read photo'
+                                  : 'Ask AI'}
+                  </p>
+                  <p className="chat-text">{turn.text}</p>
+                  <div className="chat-response">
+                    {turn.result.context?.name && (
+                      <p>For {turn.result.context.name}</p>
+                    )}
+                    {turn.result.navigation && (
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          onOpenAsset?.(turn.result.navigation!.entity_id)
+                        }
+                      >
+                        Open {turn.result.navigation.name}
+                      </Button>
+                    )}
+                    {turn.result.choices?.map((item, index) => (
+                      <Button
+                        key={item.id}
+                        variant="outline"
+                        onClick={() => onOpenAsset?.(item.id)}
+                      >
+                        Open {item.name} (record {index + 1})
+                      </Button>
+                    ))}
+                    {turn.result.scan_run_id && (
+                      <Button
+                        variant="outline"
+                        disabled={!onOpenScan}
+                        onClick={() => onOpenScan?.(turn.result.scan_run_id!)}
+                      >
+                        View email scan
+                      </Button>
+                    )}
+                    {turn.result.provider && (
+                      <p className="chat-label">
+                        {aiProviderLabel(turn.result.provider)} ·{' '}
+                        {turn.result.model}
+                      </p>
+                    )}
+                    <p className="chat-text">
+                      {turn.result.text ||
+                        (turn.state === 'pending'
+                          ? 'This request may still be running. Reopen the conversation to check.'
+                          : 'This request was interrupted. No automatic retry was made.')}
+                    </p>
+                    {turn.state === 'failed' && (
+                      <p role="status">Request failed</p>
+                    )}
+                    {!!turn.result.records?.length && (
+                      <div className="chat-records">
+                        <p>Records inspected</p>
+                        {turn.result.records.map((record, index) =>
+                          onOpenGraph ? (
+                            <Button
+                              key={record.id}
+                              variant="outline"
+                              onClick={() => onOpenGraph(record.id)}
+                              aria-label={`Open ${record.name} in graph (record ${index + 1})`}
+                            >
+                              {record.name} · {record.kind}
+                            </Button>
+                          ) : (
+                            <p key={record.id}>
+                              {record.name} · {record.kind}
+                            </p>
+                          ),
+                        )}
+                      </div>
+                    )}
+                    {turn.result.recall_limited && (
+                      <p>
+                        This reply used a limited selection of records. Other
+                        evidence may exist.
+                      </p>
+                    )}
+                    {turn.result.receipt_proposal_id && (
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          setViewReceipt(turn.result.receipt_proposal_id!)
+                        }
+                      >
+                        View receipt review
+                      </Button>
+                    )}
+                    {turn.result.proposal_id && (
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          setViewProposal(turn.result.proposal_id!)
+                        }
+                      >
+                        View asset proposal
+                      </Button>
+                    )}
+                    {turn.result.sources?.map((s, i) => (
+                      <Button
+                        key={s.id}
+                        variant="outline"
+                        disabled={opening || loading}
+                        onClick={() => void openSource(s.id)}
+                      >
+                        Source {i + 1}: {s.text.slice(0, 55)}
+                      </Button>
+                    ))}
+                  </div>
+                </article>
+              ))}
+              {draft && (
+                <section className="chat-draft" aria-label="Reply draft">
+                  <p className="chat-label">
+                    Generating · draft not yet validated or saved
+                  </p>
+                  <p className="chat-text">{draft}</p>
+                </section>
+              )}
+              {turnCursor && (
                 <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void stop()}
+                  disabled={loading || busy}
+                  onClick={() => void moreTurns()}
                 >
-                  Stop
+                  Load later messages
                 </Button>
               )}
+              {busy && (
+                <p role="status">
+                  {mode === 'extract' || mode === 'extract_receipt' || usesPhoto
+                    ? 'Preparing a proposal for your review…'
+                    : mode === 'ask'
+                      ? 'Searching your evidence and preparing an answer…'
+                      : 'Saving your request…'}
+                </p>
+              )}
             </div>
-          </form>
+            {source && (
+              <EvidencePanel
+                key={source.id}
+                source={source}
+                nextOffset={sourceOffset}
+                opening={opening}
+                onOpen={openSource}
+                onClose={clearEvidence}
+                request={request}
+                onViewReceipt={setViewReceipt}
+                onSuggestReceipt={
+                  busy || retryNeeded
+                    ? undefined
+                    : () => {
+                        cancelInitialSelection()
+                        setExtractSource(source.id)
+                        setText(source.text)
+                        setMode('extract_receipt')
+                        clearEvidence()
+                        setViewReceipt('')
+                      }
+                }
+                onViewProposal={(id) => setViewProposal(id)}
+                onSuggest={
+                  busy || retryNeeded
+                    ? undefined
+                    : () => {
+                        cancelInitialSelection()
+                        setExtractSource(source.id)
+                        setText(source.text)
+                        setMode('extract')
+                        clearEvidence()
+                        setViewProposal('')
+                      }
+                }
+              />
+            )}
+            {viewReceipt && (
+              <ReceiptProposalCard
+                key={viewReceipt}
+                id={viewReceipt}
+                csrfToken={csrfToken}
+                onOpen={openSource}
+              />
+            )}
+            {viewProposal && (
+              <AssetProposalCard
+                key={viewProposal}
+                id={viewProposal}
+                request={request}
+                onOpen={openSource}
+              />
+            )}
+            {error && (
+              <p role="alert" className="chat-error">
+                {error}
+              </p>
+            )}
+            {notice && <p role="status">{notice}</p>}
+            <form
+              className="chat-composer"
+              onSubmit={(e) => void submit(e, Math.floor(Date.now() / 1000))}
+            >
+              <label>
+                Action
+                <select
+                  value={mode}
+                  disabled={busy || retryNeeded}
+                  onChange={(e) => {
+                    cancelInitialSelection()
+                    setScanScope(null)
+                    setMode(e.target.value)
+                  }}
+                >
+                  <option value="organize">Assistant</option>
+                  <option value="save">Save memory</option>
+                  <option value="search">Keyword search</option>
+                  <option value="scan_email">Request an email scan</option>
+                  <option value="ask">Ask AI</option>
+                  <option value="extract_photo">Read a saved photo</option>
+                  <option value="extract_photo_receipt">
+                    Review a receipt photo
+                  </option>
+                  <option value="extract_receipt" disabled={!extractSource}>
+                    Review multiple items from selected note
+                  </option>
+                  <option value="extract" disabled={!extractSource}>
+                    Suggest asset from selected note
+                  </option>
+                </select>
+              </label>
+              {usesScan && (
+                <ChatEmailScan
+                  key={photoContext}
+                  disabled={busy || retryNeeded || loading}
+                  onChange={setScanScope}
+                />
+              )}
+              {usesPhoto && (
+                <ChatPhotoPicker
+                  key={`${selected}:${photoContext}`}
+                  csrfToken={csrfToken}
+                  selected={photo}
+                  onSelect={setPhoto}
+                  disabled={busy || retryNeeded || loading}
+                />
+              )}
+              {usesAI && (
+                <div className="chat-provider">
+                  <p>
+                    {mode === 'extract_photo_receipt'
+                      ? 'Your selected provider receives the selected original photo, or its current saved transcription if already read. Receipt suggestions and transcription are unverified; inspect every line and quantity before confirming inventory. At most eight lines and twenty total units are reviewed.'
+                      : mode === 'extract_photo'
+                        ? 'Your selected provider receives the selected original photo. The reading is unverified and proposes at most one item; review it before adding anything to inventory.'
+                        : mode === 'extract' || mode === 'extract_receipt'
+                          ? 'Your selected provider receives only the selected saved note. Nothing enters inventory until you review and confirm the proposed items.'
+                          : 'Your selected provider receives your question, up to four recent user messages, matching evidence, relevant records and requested graph connections.'}{' '}
+                    {usage}/20 AI requests used today (UTC). Provider charges
+                    may apply.
+                  </p>
+                  {!consent && (
+                    <p>Enable external AI access in Settings to continue.</p>
+                  )}
+                  {!credentials.length && (
+                    <p>
+                      Add an AI connection with provider “openai”, “anthropic”
+                      (Claude) or “google” (Gemini) in Settings.
+                    </p>
+                  )}
+                  <label>
+                    AI connection
+                    <select
+                      value={credential}
+                      disabled={busy || savingChoice || retryNeeded || loading}
+                      onChange={(e) => {
+                        setCredential(e.target.value)
+                        setModel('')
+                        setChoiceNotice('')
+                      }}
+                    >
+                      <option value="">Choose a credential</option>
+                      {credentials.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.label} · {aiProviderLabel(c.provider)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Model ID
+                    <input
+                      value={model}
+                      disabled={busy || savingChoice || retryNeeded || loading}
+                      maxLength={100}
+                      placeholder="Enter a model available to your API account"
+                      onChange={(e) => {
+                        setModel(e.target.value)
+                        setChoiceNotice('')
+                      }}
+                    />
+                  </label>
+                  <div className="chat-send">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={
+                        busy ||
+                        loading ||
+                        savingChoice ||
+                        retryNeeded ||
+                        !credential ||
+                        !model
+                      }
+                      onClick={() => void saveChoice()}
+                    >
+                      Remember AI choice
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={busy || loading || savingChoice || retryNeeded}
+                      onClick={() => void saveChoice(true)}
+                    >
+                      Forget saved AI choice
+                    </Button>
+                  </div>
+                  <p>
+                    Remembering a choice does not enable external AI or send any
+                    records.
+                  </p>
+                  {choiceNotice && <p role="status">{choiceNotice}</p>}
+                </div>
+              )}
+              {!usesPhoto && !usesScan && (
+                <>
+                  <label htmlFor="chat-text">
+                    {mode === 'organize'
+                      ? 'Message your assistant'
+                      : mode === 'save'
+                        ? 'Memory to save'
+                        : mode === 'search'
+                          ? 'Search keywords'
+                          : mode === 'extract' || mode === 'extract_receipt'
+                            ? 'Selected saved note'
+                            : 'Your question'}
+                  </label>
+                  <textarea
+                    id="chat-text"
+                    value={text}
+                    maxLength={mode === 'search' ? 200 : 4000}
+                    disabled={busy || retryNeeded}
+                    readOnly={mode === 'extract' || mode === 'extract_receipt'}
+                    rows={3}
+                    onChange={(e) => {
+                      cancelInitialSelection()
+                      setText(e.target.value)
+                    }}
+                  />
+                  <p>
+                    {mode === 'organize'
+                      ? 'Try “Edit my F150”, then ‘Set custom "Tire size" to 205/55R16’ while viewing it. Supplied details keep evidence and history. Choose Ask AI for other questions.'
+                      : mode === 'search'
+                        ? 'Use 1–12 keywords. Every word must match.'
+                        : mode === 'extract' || mode === 'extract_receipt'
+                          ? 'Review the proposal before creating an asset. Correct the saved note first if its text is wrong.'
+                          : 'Only Save memory adds your original text to searchable memory.'}
+                  </p>
+                </>
+              )}
+              <div className="chat-send">
+                <Button
+                  type="submit"
+                  disabled={
+                    busy ||
+                    savingChoice ||
+                    loading ||
+                    !!turnCursor ||
+                    contextLoading ||
+                    (usesScan
+                      ? !scanScope
+                      : usesPhoto
+                        ? !photo
+                        : !text.trim()) ||
+                    (usesAI &&
+                      (!consent || !credential || !model || usage >= 20))
+                  }
+                >
+                  {retryNeeded
+                    ? 'Retry same request'
+                    : mode === 'organize'
+                      ? 'Send'
+                      : mode === 'save'
+                        ? 'Save memory'
+                        : mode === 'search'
+                          ? 'Search memories'
+                          : usesScan
+                            ? 'Start email scan'
+                            : mode === 'extract_photo_receipt'
+                              ? 'Review receipt photo'
+                              : mode === 'extract_photo'
+                                ? 'Read selected photo'
+                                : mode === 'extract' ||
+                                    mode === 'extract_receipt'
+                                  ? mode === 'extract_receipt'
+                                    ? 'Suggest receipt items'
+                                    : 'Suggest asset'
+                                  : 'Ask AI'}
+                </Button>
+                {busy && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void stop()}
+                  >
+                    Stop
+                  </Button>
+                )}
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </section>

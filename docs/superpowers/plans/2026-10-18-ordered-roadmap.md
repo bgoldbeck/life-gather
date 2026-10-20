@@ -12,6 +12,20 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
 
 ## Execution ledger and decisions
 
+- v0.54.0 adds [reviewed conversation deletion](../../CONVERSATION_PRIVACY.md):
+  exact private counts, fresh-version checks, separate pending stop and explicit
+  permanent confirmation. Retain independent source/graph/file/scan/settings/usage
+  data and existing copies; one content-free audit supports deletion replay.
+  Serialize chat completion with stopping/deletion to fix stale completion races.
+  Preserve drafts and other conversations; reject late responses/restored entries.
+  No migration/dependency, model/MCP deletion tool or live installation change.
+  Verification: 592 backend /266 frontend tests; Ruff, strict types (229 files),
+  formatting, wheel and production build pass. Actual browser review/cancel,
+  draft/focus/source retention and desktop light/390px dark layouts pass. Linux
+  source recovery preserves the deletion receipt, absent transcript and independent
+  originals/records/secrets. Graph and HTML refreshed: 3,298 nodes /14,252 edges.
+  Clean-main publication and fresh-image recovery follow source acceptance.
+
 - v0.53.0 extends explicit contextual-assistant commands to quoted named custom
   details through the existing sourced profile service. Preserve selected-owner
   versions, exact evidence/value, correction history, conflicts, cancellation and
