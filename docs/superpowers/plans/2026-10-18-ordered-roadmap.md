@@ -12,6 +12,36 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
 
 ## Execution ledger and decisions
 
+- v0.56.0 implements broader private document evidence: DOCX/XLSX/TXT/Markdown/CSV
+  alongside PDF, bounded local parsing, selectable previews, reviewed source
+  locations, private format metadata and correct original/archive extensions.
+  Migration 0025 preserves PDFs and refuses lossy downgrade. Recovery covers all
+  formats; no OCR, legacy Office, macros, formula execution or external model call.
+  Verification: 639 backend tests, followed by 49 affected tests after the final
+  export unknown-page-count check; 289 frontend tests, strict types, lint/format,
+  wheel/frontend builds and four offline release-script suites pass. Real synthetic
+  browser Word upload/review/source and Excel sheet/range/review persistence pass
+  in Light/Dark and 390px without page overflow. Linux mounted-source recovery
+  preserves all five new formats plus legacy PDF, original hashes and two owners.
+  Self-review covered parser bounds, owner/CSRF/session authority, preview races,
+  migration/data preservation and original-file consumers. Code-only graph/HTML
+  refreshed: 3,550 nodes /14,612 edges; known partial AST coverage remains.
+  Clean-main image publication and actual-image recovery follow source acceptance.
+
+- User addition, 2026-10-20: [broader document support](../specs/2026-10-20-broader-document-support-design.md)
+  adds planned Word `.docx`, Excel `.xlsx`, text, Markdown and CSV support to the
+  existing private PDF workflow. Preserve original files, reviewed source context,
+  bounded parsing and export/recovery coverage. Formats remain unimplemented;
+  this records scope without starting application implementation.
+
+- Design update, 2026-10-20: [Power Center and dockable navigation](../specs/2026-10-20-power-center-design.md)
+  records the new primary capability/health page and a resizable navigation panel
+  defaulting left with four-edge docking. Both remain unimplemented. The separate
+  contextual assistant already docks/resizes and defaults right. See the
+  [consolidated current capability and outstanding-work inventory](../../CAPABILITIES_AND_REMAINING_WORK.md)
+  before treating historical exclusions below as unfinished features. This update
+  changes design/reference documents only; it does not start roadmap implementation.
+
 - v0.55.1 corrects maintenance evidence currentness in keyword/AI recall and
   source inspection. Owner-bound typed revision metadata identifies historical
   statements and follows the current source within existing evidence limits.

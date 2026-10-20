@@ -1,6 +1,6 @@
 # LifeGather
 
-[![Source version](https://img.shields.io/badge/source_version-v0.55.1-426B46)](CHANGELOG.md)
+[![Source version](https://img.shields.io/badge/source_version-v0.56.0-426B46)](CHANGELOG.md)
 
 This badge identifies the source release. Check the login screen or app header for your running container’s version.
 
@@ -171,7 +171,8 @@ The [persistent review queue](docs/REVIEW_QUEUE.md) collects pending proposals a
 
 [OpenAI, Claude and Google Gemini connections](docs/AI_PROVIDERS.md) now share evidence-backed chat, reviewed extraction, photos, permission and usage limits. Live provider access has not been verified.
 
-[Private PDF evidence](docs/DOCUMENTS.md) supports original downloads and reviewed
+[Private document evidence](docs/DOCUMENTS.md) supports PDF, DOCX, XLSX, text,
+Markdown and CSV originals, bounded local previews and reviewed
 text capture. Light/dark appearance, sourced home/vehicle profiles, streaming chat
 and an evidence-backed graph are implemented in source; deployment is separate.
 

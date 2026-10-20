@@ -8,7 +8,47 @@ from io import BytesIO
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from lifegather.documents.formats import ExtractedDocument, PreviewOptions
+
 MAX_BYTES = 8 * 1024 * 1024
+
+
+def extract_document(
+    raw: bytes, extension: str, options: PreviewOptions
+) -> ExtractedDocument:
+    if extension == "pdf":
+        pdf = extract_pdf(raw)
+        return ExtractedDocument(
+            **pdf.model_dump(),
+            metadata={"parser_version": "pypdf/6.21.1", "warnings": []},
+        )
+    environment = {
+        key: os.environ[key]
+        for key in ("PATH", "SYSTEMROOT", "WINDIR")
+        if key in os.environ
+    }
+    environment.update(
+        PYTHONUTF8="1", PYTHONIOENCODING="utf-8", PYTHONDONTWRITEBYTECODE="1"
+    )
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "lifegather.documents.format_worker",
+            extension,
+            options.model_dump_json(),
+        ],
+        input=raw,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        check=True,
+        timeout=8,
+        env=environment,
+        creationflags=0x08000000 if os.name == "nt" else 0,
+    )
+    if len(result.stdout) > 32768:
+        raise ValueError("Document extraction exceeded limit")
+    return ExtractedDocument.model_validate_json(result.stdout)
 
 
 class ExtractedPDF(BaseModel):

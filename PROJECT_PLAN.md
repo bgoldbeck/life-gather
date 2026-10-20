@@ -1,9 +1,24 @@
 # LifeGather — Product and Engineering Plan
 
 **Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
-**Date:** Updated 2026-10-17
+**Date:** Updated 2026-10-20
 
-Current increment: v0.55.1 corrects maintenance evidence recall: older matching
+Current capability inventory and consolidated outstanding scope:
+[what LifeGather can do and what remains](docs/CAPABILITIES_AND_REMAINING_WORK.md).
+User design additions, 2026-10-20: [Power Center and dockable navigation](docs/superpowers/specs/2026-10-20-power-center-design.md).
+Power Center and navigation docking remain design requirements until their releases.
+
+User addition, 2026-10-20: [broader document support](docs/superpowers/specs/2026-10-20-broader-document-support-design.md)
+targets Word (`.docx`), Excel (`.xlsx`), plain text, Markdown and CSV alongside PDF,
+with private originals, bounded local extraction, reviewed searchable text and
+source locations. Implemented in v0.56.0 with selectable previews, review/search,
+format-aware originals and archive/recovery coverage. See [Documents](docs/DOCUMENTS.md).
+
+Current increment: v0.56.0 adds broader private document evidence and format-aware
+original/archive/recovery handling with migration 0025. Reviewable local extraction
+supports DOCX/XLSX/TXT/Markdown/CSV alongside PDF; no AI, macros or formula execution.
+
+v0.55.1 corrects maintenance evidence recall: older matching
 statements link to the current typed revision, and source inspection labels
 historical task statements. No schema or provider permission change.
 v0.55.0 adds [sourced maintenance tasks](docs/MAINTENANCE.md).
@@ -246,6 +261,15 @@ Explicit deletion/export/backup operations should have their own guarded flows r
 ## 8. Frontend information architecture
 
 **Navigation:** Chat, Assets, Graph, Documents, Review, Settings; Overview and richer dashboards follow useful data. Chat is primary, and correction/recovery remain directly accessible.
+
+**Navigation update, 2026-10-20 (planned):** Add **Power Center** as a primary
+destination for actual capabilities, connection health and data freshness, with
+actionable recovery and precise capability-unlock explanations. Its Power Level
+must measure useful readiness rather than count connected services. Make the
+primary navigation panel dockable left/right/top/bottom and resizable, defaulting
+left, with per-account remembered layout and accessible controls. This is separate
+from the implemented right-default resizable assistant. See the linked design;
+keep all existing destinations and private configuration workflows accessible.
 
 **MVP views:**
 - **Chat:** streamed answer, source citations, tool-activity states, confirmation dialogs for proposed changes.

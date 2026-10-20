@@ -162,18 +162,18 @@ export function RecordExportPanel({
       <h2 id="record-export-heading">Download your records</h2>
       <p>
         Save a JSON copy of your evidence text, graph facts and correction
-        history, reviewed purchases and quantities, conversations, and photo/PDF
-        metadata and extracted text, and maintenance tasks with their revisions.
-        Includes historical and unverified records with their original IDs,
-        sources and status.
+        history, reviewed purchases and quantities, conversations, and
+        photo/document metadata and extracted text, and maintenance tasks with
+        their revisions. Includes historical and unverified records with their
+        original IDs, sources and status.
       </p>
       <p>
-        Original images and PDF files are excluded from JSON. Choose ZIP below
-        to include your active saved originals. Stored credentials, sign-in
-        data, settings, scan schedules and processing caches remain excluded.
-        This is a records copy, not a complete backup; it cannot be restored
-        through the app. Installation recovery remains the installation owner's
-        responsibility.
+        Original images and document files are excluded from JSON. Choose ZIP
+        below to include your active saved originals. Stored credentials,
+        sign-in data, settings, scan schedules and processing caches remain
+        excluded. This is a records copy, not a complete backup; it cannot be
+        restored through the app. Installation recovery remains the installation
+        owner's responsibility.
       </p>
       <p>
         Up to 10,000 records and 16 MiB. If your export exceeds either limit, no
@@ -192,7 +192,7 @@ export function RecordExportPanel({
             setNotice('')
           }}
         />
-        Include original photos and PDFs (ZIP)
+        Include original photos and documents (ZIP)
       </label>
       {includeOriginals && (
         <p>

@@ -162,7 +162,7 @@ COLLECTIONS = (
     Projection(PhotoAsset, "id photo_id asset_id recorded_at"),
     Projection(
         Document,
-        "id content_hash filename size pages extracted_text "
+        "id content_hash filename size pages extracted_text format extraction_metadata "
         "text_truncated source_id created_at updated_at deleted_at",
     ),
 )
@@ -255,7 +255,12 @@ class RecordExport:
                     )
                 if count:
                     append(",")
-                encode(dict(row))
+                record = dict(row)
+                # The legacy storage column is PDF-specific, not a page count
+                # inferred for reflowable/tabular documents.
+                if table.name == "documents" and record["format"] != "pdf":
+                    record["pages"] = None
+                encode(record)
                 count += 1
                 total += 1
             counts[table.name] = count

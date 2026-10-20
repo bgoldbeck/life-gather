@@ -125,13 +125,15 @@ class ProposalService:
         from lifegather.documents.models import Document
 
         document = db.scalar(
-            select(Document).where(
-                Document.user_id == actor.id, Document.source_id == root
+            select(Document.id).where(
+                Document.user_id == actor.id,
+                Document.source_id == root,
+                Document.deleted_at.is_not(None),
             )
         )
-        if document and document.deleted_at is not None:
+        if document is not None:
             raise MemoryError(
-                "The original PDF was deleted; this proposal cannot be accepted"
+                "The original document was deleted; this proposal cannot be accepted"
             )
         return source.text
 

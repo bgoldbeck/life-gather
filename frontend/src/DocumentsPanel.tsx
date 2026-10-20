@@ -2,12 +2,15 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import './documents.css'
+import { DocumentPreview, type ExtractionMetadata } from './DocumentPreview'
 
 type Document = {
   id: string
   filename: string
+  format?: string
+  extraction_metadata?: ExtractionMetadata
   size: number
-  pages: number
+  pages: number | null
   extracted_text?: string
   text_truncated: boolean
   source_id: string | null
@@ -97,7 +100,7 @@ function DocumentEditor({
       setDoc(next)
       setText('')
       setStatus(
-        'Original PDF and extraction deleted. Saved source history is retained.',
+        'Original document and extraction deleted. Saved source history is retained.',
       )
       await onChanged()
     } catch {
@@ -108,27 +111,50 @@ function DocumentEditor({
     }
   }
   return (
-    <section className="document-editor" aria-label="PDF review">
+    <section className="document-editor" aria-label="Document review">
       <h2>{doc.filename}</h2>
       <p>
-        {doc.pages} page(s) · {(doc.size / 1048576).toFixed(2)} MiB
+        {(doc.format ?? 'pdf').toUpperCase()} ·{' '}
+        {(doc.format ?? 'pdf') === 'pdf' && `${doc.pages} page(s) · `}
+        {(doc.size / 1048576).toFixed(2)} MiB
       </p>
       {error && <p role="alert">{error}</p>}
       {status && <p role="status">{status}</p>}
       {doc.deleted_at === null ? (
         <>
           <a href={`/api/documents/${doc.id}/original`} download>
-            Download original PDF
+            Download original document
           </a>
           <p>
-            PDF text may lose layout or omit scanned content. Compare it with
-            the original before saving. No PDF scripts or links are run by
-            extraction.
+            Extraction may omit layout or content. Compare it with the original
+            before saving. No scripts, macros, formulas or external links are
+            run.
           </p>
+          {doc.extraction_metadata?.warnings?.map((warning, index) => (
+            <p key={index}>{warning}</p>
+          ))}
+          {doc.extraction_metadata?.encoding && (
+            <p>
+              Text encoding: {doc.extraction_metadata.encoding}.{' '}
+              {doc.format === 'csv' &&
+                `Detected delimiter: ${JSON.stringify(doc.extraction_metadata.delimiter)}. Confirm this in the preview before saving.`}
+            </p>
+          )}
+          {!doc.source_id && (
+            <DocumentPreview
+              id={doc.id}
+              format={doc.format ?? 'pdf'}
+              metadata={doc.extraction_metadata ?? {}}
+              request={request}
+              onUse={setText}
+              disabled={busy}
+            />
+          )}
           {doc.text_truncated && (
             <p role="status">
               Extraction was limited to the first 4,000 characters. The complete
-              original PDF is preserved.
+              original document is preserved. Selected sheets/ranges may omit
+              other content.
             </p>
           )}
           {!doc.extracted_text?.trim() && (
@@ -159,7 +185,7 @@ function DocumentEditor({
             </form>
           )}
           <details>
-            <summary>Delete original PDF</summary>
+            <summary>Delete original document</summary>
             <p>
               Deletion removes the original file and automatic extraction
               permanently. Reviewed text, facts and their history remain in
@@ -184,7 +210,7 @@ function DocumentEditor({
           </details>
         </>
       ) : (
-        <p>The original PDF has been deleted.</p>
+        <p>The original document has been deleted.</p>
       )}
       {doc.source_id && (
         <Button
@@ -221,6 +247,7 @@ export function DocumentsPanel({
 }) {
   const [page, setPage] = useState<Page | null>(null)
   const [selected, setSelected] = useState<Document | null>(null)
+  const [encoding, setEncoding] = useState('utf-8-sig')
   const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -240,7 +267,7 @@ export function DocumentsPanel({
         },
       })
       if (response.status === 401) await refreshSession?.()
-      if (!response.ok) throw new Error('PDF request failed')
+      if (!response.ok) throw new Error('Document request failed')
       return response.json()
     },
     [csrfToken, refreshSession],
@@ -257,7 +284,7 @@ export function DocumentsPanel({
         if (!controller.signal.aborted) setPage(data as Page)
       })
       .catch(() => {
-        if (!controller.signal.aborted) setError('Unable to load PDFs.')
+        if (!controller.signal.aborted) setError('Unable to load documents.')
       })
     return () => {
       active.current = false
@@ -269,7 +296,7 @@ export function DocumentsPanel({
     event.preventDefault()
     if (busy || !file) return
     if (file.size > 8 * 1024 * 1024) {
-      setError('Choose a PDF no larger than 8 MiB.')
+      setError('Choose a document no larger than 8 MiB.')
       return
     }
     setBusy(true)
@@ -277,15 +304,18 @@ export function DocumentsPanel({
     const controller = new AbortController()
     uploadAbort.current = controller
     try {
-      const doc = (await request('documents', {
-        method: 'POST',
-        body: file,
-        headers: {
-          'Content-Type': 'application/pdf',
-          'X-File-Name': encodeURIComponent(file.name),
+      const doc = (await request(
+        'documents?encoding=' + encodeURIComponent(encoding),
+        {
+          method: 'POST',
+          body: file,
+          headers: {
+            'Content-Type': file.type || 'application/octet-stream',
+            'X-File-Name': encodeURIComponent(file.name),
+          },
+          signal: controller.signal,
         },
-        signal: controller.signal,
-      })) as Document
+      )) as Document
       if (!active.current) return
       selectionVersion.current++
       setSelected(doc)
@@ -293,7 +323,7 @@ export function DocumentsPanel({
     } catch {
       if (active.current)
         setError(
-          'Unable to upload. Choose a readable, unencrypted PDF of at most 8 MiB and 10 pages, then retry.',
+          'Unable to upload. Check the supported format, encoding and 8 MiB limit. PDF and Office files must be unencrypted. Then retry.',
         )
     } finally {
       if (active.current) setBusy(false)
@@ -306,7 +336,7 @@ export function DocumentsPanel({
       if (active.current && version === selectionVersion.current)
         setSelected(doc)
     } catch {
-      if (active.current) setError('Unable to open this PDF.')
+      if (active.current) setError('Unable to open this document.')
     }
   }
   async function more() {
@@ -329,7 +359,7 @@ export function DocumentsPanel({
           ],
         }))
     } catch {
-      if (active.current) setError('Unable to load more PDFs.')
+      if (active.current) setError('Unable to load more documents.')
     } finally {
       if (active.current) setBusy(false)
     }
@@ -338,30 +368,43 @@ export function DocumentsPanel({
     <section className="documents-panel">
       <h1>Documents</h1>
       <p>
-        Private PDF evidence. Review extracted text before making it searchable
-        in memory.
+        Private PDF, Word, Excel, text, Markdown and CSV evidence. Review
+        extracted text before making it searchable in memory.
       </p>
       {error && <p role="alert">{error}</p>}
       <form onSubmit={(e) => void upload(e)}>
         <label>
-          PDF file
+          Document file
           <input
             type="file"
-            accept=".pdf,application/pdf"
+            accept=".pdf,.docx,.xlsx,.txt,.md,.csv"
             disabled={busy}
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           />
         </label>
+        <label>
+          Upload text encoding
+          <select
+            value={encoding}
+            onChange={(e) => setEncoding(e.target.value)}
+            disabled={busy}
+          >
+            <option value="utf-8-sig">UTF-8 (default)</option>
+            <option value="utf-16">UTF-16</option>
+            <option value="cp1252">Windows-1252</option>
+          </select>
+        </label>
         <p>
-          Up to 8 MiB and 10 pages. Scanned PDFs may need a manual
-          transcription.
+          Up to 8 MiB; PDFs up to 10 pages. Office files must be .docx/.xlsx
+          without passwords or macros. Extraction is limited to 4,000
+          characters; previews support up to 200 rows and 50 columns. No OCR.
         </p>
         <Button type="submit" disabled={busy || !file}>
-          Upload PDF
+          Upload document
         </Button>
       </form>
-      {busy && <p role="status">Working on your private PDF…</p>}
-      {page && !page.items.length && <p>No PDFs uploaded yet.</p>}
+      {busy && <p role="status">Working on your private document…</p>}
+      {page && !page.items.length && <p>No documents uploaded yet.</p>}
       <ul>
         {page?.items.map((doc) => (
           <li key={doc.id}>
@@ -374,7 +417,7 @@ export function DocumentsPanel({
       </ul>
       {page?.next_cursor && (
         <Button disabled={busy} onClick={() => void more()}>
-          More PDFs
+          More documents
         </Button>
       )}
       {selected && (

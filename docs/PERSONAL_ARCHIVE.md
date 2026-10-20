@@ -1,6 +1,6 @@
 # Your records and original evidence files
 
-In **Settings → Download your records**, select **Include original photos and PDFs
+In **Settings → Download your records**, select **Include original photos and documents
 (ZIP)**, then **Download archive (ZIP)**. Leave it unchecked for the existing JSON
 records download. No AI connection, vault key or external provider permission is
 needed. Preparing a download changes no saved record and makes no provider request.
@@ -16,7 +16,7 @@ backup, including all users and installation secrets.
   entities, original/corrected facts, history, distinct purchased units, exact
   monetary claims, maintenance tasks/revisions, conversations and file metadata/text. Its own exclusions still
   describe this JSON file; original bytes live in the separate archive members.
-- `originals/photos/…` and `originals/documents/…`: your active saved photo and PDF
+- `originals/photos/…` and `originals/documents/…`: your active saved photo and document
   originals, byte for byte. Names use safe UUID identifiers and conservative file
   extensions; original filenames remain in the JSON records and manifest.
 - `manifest.json`: `lifegather-personal-archive/1`, application version, snapshot

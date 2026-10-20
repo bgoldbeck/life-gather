@@ -167,6 +167,57 @@ def verify(root: Path) -> None:
     document = DocumentService(store.engine).upload(
         bob, pdf.getvalue(), "synthetic.pdf"
     )
+    # Exercise the actual new parser workers and bytes through Linux recovery.
+    new_originals = {
+        "txt": b"Synthetic text 0012",
+        "md": b"# Synthetic Markdown\nFilter 0012",
+        "csv": b"Serial;Amount\n0012;19.90\n",
+    }
+    for kind in ("docx", "xlsx"):
+        output = BytesIO()
+        with ZipFile(output, "w") as archive:
+            archive.writestr("[Content_Types].xml", "<Types/>")
+            if kind == "docx":
+                archive.writestr(
+                    "word/document.xml",
+                    '<w:document xmlns:w="http://schemas.openxmlformats.org/'
+                    'wordprocessingml/2006/main"><w:body><w:p><w:r>'
+                    "<w:t>Synthetic filter 0012</w:t></w:r></w:p></w:body>"
+                    "</w:document>",
+                )
+            else:
+                archive.writestr(
+                    "xl/workbook.xml",
+                    '<workbook xmlns="http://schemas.openxmlformats.org/'
+                    'spreadsheetml/2006/main" xmlns:r="http://schemas.'
+                    'openxmlformats.org/officeDocument/2006/relationships">'
+                    '<sheets><sheet name="Inventory" r:id="r1"/>'
+                    "</sheets></workbook>",
+                )
+                archive.writestr(
+                    "xl/_rels/workbook.xml.rels",
+                    '<Relationships><Relationship Id="r1" '
+                    'Target="worksheets/sheet1.xml"/></Relationships>',
+                )
+                archive.writestr(
+                    "xl/worksheets/sheet1.xml",
+                    '<worksheet xmlns="http://schemas.openxmlformats.org/'
+                    'spreadsheetml/2006/main"><sheetData><row r="1">'
+                    '<c r="A1" t="inlineStr"><is><t>0012</t></is></c>'
+                    "</row></sheetData></worksheet>",
+                )
+        new_originals[kind] = output.getvalue()
+    new_documents = {
+        kind: DocumentService(store.engine).upload(bob, raw, "synthetic." + kind)
+        for kind, raw in new_originals.items()
+    }
+    with ZipFile(BytesIO(PersonalArchive(store.engine).download(bob))) as package:
+        manifest = json.loads(package.read("manifest.json"))
+        members = {item["id"]: item for item in manifest["originals"]}
+        for kind, entry in new_documents.items():
+            member = members[entry["id"]]
+            assert member["path"].endswith("." + kind)
+            assert package.read(member["path"]) == new_originals[kind]
     with store.engine.begin() as db:
         db.execute(text("CREATE TABLE synthetic_padding (value BLOB)"))
         db.execute(text("INSERT INTO synthetic_padding VALUES (zeroblob(41943040))"))
@@ -208,6 +259,16 @@ def verify(root: Path) -> None:
     )
     assert read_key(settings.vault_key_file) == key
     recovered = AuthStore(settings.data_dir / "auth.sqlite3")
+    for kind, entry in new_documents.items():
+        documents = DocumentService(recovered.engine)
+        assert documents.get(bob, entry["id"])["format"] == kind
+        assert documents.binary(bob, entry["id"]) == new_originals[kind]
+        try:
+            documents.binary(alice, entry["id"])
+        except MemoryError:
+            pass
+        else:
+            raise AssertionError("Cross-owner recovered document access")
     recovered_maintenance = MaintenanceService(recovered.engine)
     recovered_task = recovered_maintenance.get(alice, planned["id"])
     assert recovered_task["revision"]["id"] == completed_task["revision_id"]

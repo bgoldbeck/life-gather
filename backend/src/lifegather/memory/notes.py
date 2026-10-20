@@ -53,7 +53,10 @@ class NoteService:
                 source.source_type == "conversation"
                 and source.namespace in NOTE_NAMESPACES
             )
-            or (source.source_type == "import" and source.namespace == "pdf-memory")
+            or (
+                source.source_type == "import"
+                and source.namespace in ("pdf-memory", "document-memory")
+            )
             or (
                 source.source_type == "email"
                 and source.namespace.startswith("gmail-memory:")

@@ -19,6 +19,7 @@ const label: Record<string, string> = {
   notes: 'Saved note',
   photos: 'Photo transcription',
   pdfs: 'Reviewed PDF text',
+  documents: 'Reviewed documents',
   emails: 'Email evidence',
   other: 'Other evidence',
 }
@@ -248,6 +249,7 @@ export function MemoriesPanel({
             <option value="notes">Saved notes</option>
             <option value="photos">Photo transcriptions</option>
             <option value="pdfs">Reviewed PDF text</option>
+            <option value="documents">Reviewed documents (all formats)</option>
             <option value="emails">Email evidence</option>
             <option value="other">Other evidence</option>
           </select>

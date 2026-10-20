@@ -23,6 +23,8 @@ class Document(Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     content_hash: Mapped[str]
     filename: Mapped[str]
+    format: Mapped[str] = mapped_column(default="pdf", server_default="pdf")
+    extraction_metadata: Mapped[str] = mapped_column(default="{}", server_default="{}")
     size: Mapped[int]
     pages: Mapped[int]
     extracted_text: Mapped[str]

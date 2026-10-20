@@ -1,7 +1,7 @@
 # Encrypted operator backup and recovery
 
 Available in source v0.50.0. These local operator commands recover an entire
-installation: **every user's** records, original photo/PDF bytes, conversations,
+installation: **every user's** records, original photo/document bytes, conversations,
 authentication/session state, processing jobs and schedules, private credentials,
 installation settings and configured vault key. Personal JSON downloads remain
 separate and cannot be restored with this command. There is no HTTP/MCP/AI tool
@@ -141,5 +141,5 @@ docker run --rm --network none --read-only --cap-drop ALL \
 ```
 
 This exercises the actual CLI with a database larger than 40 MiB, JSON facts,
-two owners, photo/PDF originals, a private credential, restored file permissions
+two owners, photo/document originals, a private credential, restored file permissions
 and existing-destination refusal. It never starts the app or opens live storage.

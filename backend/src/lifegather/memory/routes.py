@@ -21,7 +21,9 @@ def library_router() -> APIRouter:
         request: Request,
         current: Authenticated,
         query: Annotated[str, Query(max_length=200)] = "",
-        kind: Literal["all", "notes", "photos", "pdfs", "emails", "other"] = "all",
+        kind: Literal[
+            "all", "notes", "photos", "pdfs", "documents", "emails", "other"
+        ] = "all",
         include_history: bool = False,
         cursor: Annotated[str, Query(max_length=36)] = "",
         limit: Annotated[int, Query(ge=1, le=25)] = 25,

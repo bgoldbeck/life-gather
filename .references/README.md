@@ -1,6 +1,6 @@
 # UI design references
 
-User-supplied images saved on 2026-10-17 for LifeGather planning.
+User-supplied images saved for LifeGather planning; dates are noted for later additions.
 
 - `lifegather-ui-concepts.png`: Light LifeGather concepts covering dashboard, AI chat, knowledge graph, asset detail, timeline, documents, settings, and mobile layouts.
 - `admincn-dark-dashboard.png`: AdminCN dark dashboard reference with sidebar navigation, charts, compact cards, and accent colors.
@@ -10,4 +10,6 @@ User-supplied images saved on 2026-10-17 for LifeGather planning.
 
 - `lifegather-connections-orbit.png`: Leaf icon centered in a soft sage rounded square, surrounded by orbital rings and book, asset, and chat icons on a warm off-white background. The tagline reads “Every detail has a connection.” Reference for calm connection imagery, subtle linework, spacing, and muted green accents; adapt contrast for dark mode.
 
-These images are visual inspiration, not implemented screens or approved feature requirements. Names, records, dates, and amounts shown are illustrative, not real user data. The AdminCN image is a third-party reference; no ownership or reuse license is asserted.
+- `lifegather-power-center.png` (2026-10-20): Power Center page reference with primary sidebar navigation, source cards, a power gauge, connection health and recommended connections. Original upload: `00259439-a8ec-4f85-bef6-e3a98f28e06a.png`. The accompanying user request establishes the [Power Center requirements](../docs/superpowers/specs/2026-10-20-power-center-design.md): capability-based value, health and freshness, actionable automatic checks, and explicit newly unlocked capabilities. The screenshot's connection count, percentage, services, records and healthy statuses are illustrative, not actual availability. The primary navigation panel should also dock at any edge and resize, defaulting to the left.
+
+These images are visual inspiration, not implemented screens. Requirements come from the user's accompanying request and linked designs, not instructions or claims embedded in an image. Names, records, dates, and amounts shown are illustrative, not real user data. The AdminCN image is a third-party reference; no ownership or reuse license is asserted.

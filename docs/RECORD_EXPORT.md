@@ -2,7 +2,7 @@
 
 In **Settings → Download your records**, select **Download records (JSON)**.
 The app prepares one consistent copy of your records and starts a file download.
-For original photos/PDFs as well, opt into the [personal ZIP archive](PERSONAL_ARCHIVE.md).
+For original photos/documents as well, opt into the [personal ZIP archive](PERSONAL_ARCHIVE.md).
 No AI connection, vault key or provider permission is needed. Nothing is uploaded
 to another service or changed in your workspace. Keep the downloaded file private:
 it preserves your saved content, including anything sensitive you put in a note
@@ -10,7 +10,7 @@ or conversation.
 
 This is a structured records copy for portability and inspection. It is **not a
 complete backup**, and there is no import/restore action. JSON contains metadata;
-the ZIP option adds active original photos/PDFs, or download them individually
+the ZIP option adds active original photos/documents, or download them individually
 through their existing file views. Installation owners can use
 [encrypted operator recovery](OPERATOR_RECOVERY.md) to coordinate the whole
 database, original files and configuration/key backup.
@@ -21,12 +21,12 @@ Never substitute a personal export for a tested installation backup.
 The export includes original source text; entities, aliases, facts and evidence;
 original and superseding corrections; review decisions and distinct purchased
 units; reviewed receipt/purchase claims; asset-action history; conversations and
-their saved turns; photo metadata/gallery links; and PDF metadata/extracted text.
+their saved turns; photo metadata/gallery links; and document format/metadata/extracted text.
 Manual maintenance tasks and all their sourced revisions are included as well.
 Historical, inferred, unknown and unverified entries keep those statuses. A record
 in this file is not automatically a verified fact or a current inventory item.
 
-Original image/preview/PDF bytes are omitted, including deleted originals. Metadata
+Original image/preview/document bytes are omitted, including deleted originals. Metadata
 retains deletion markers. Extracted document text that was removed on deletion is
 not recreated. Previously saved source evidence follows the existing preserved
 history rules. Credentials, sign-in/account records, settings, mailbox connection
@@ -61,7 +61,7 @@ UTC `snapshot_at`, purpose, exclusions, per-collection `counts` and `total_recor
 | `maintenance_tasks`, `maintenance_revisions` | Original record links, stated dates/timezones and preserved task history |
 | `purchase_evidence` | Cross-source purchase claims and revisions |
 | `chat_conversations`, `chat_turns` | Conversations and saved requests/results |
-| `photos`, `photo_assets`, `documents` | Metadata, links and extracted PDF text; no binary files |
+| `photos`, `photo_assets`, `documents` | Metadata, links and extracted document text; no binary files |
 
 Rows retain stored IDs and references, source quotes, quantities, states, valid
 dates and system-recorded timestamps. The owner discriminator `user_id` is omitted;

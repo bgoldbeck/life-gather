@@ -6,7 +6,12 @@ export type EvidenceSource = {
   id: string
   text: string
   photo?: { id: string; deleted_at: number | null } | null
-  document?: { id: string; filename: string; deleted_at: number | null } | null
+  document?: {
+    id: string
+    filename: string
+    format?: string
+    deleted_at: number | null
+  } | null
   receipt_proposal_id?: string | null
   asset_proposal_id?: string | null
   maintenance_context?: {
@@ -172,7 +177,13 @@ export function EvidencePanel({
           )}
         </div>
       ) : source.document ? (
-        <p>Reviewed PDF text or correction · not independently verified</p>
+        <p>
+          Reviewed{' '}
+          {source.document?.format && source.document.format !== 'pdf'
+            ? 'document'
+            : 'PDF'}{' '}
+          text or correction · not independently verified
+        </p>
       ) : (
         <p>Original statement · not independently verified</p>
       )}
@@ -214,16 +225,27 @@ export function EvidencePanel({
       {source.document && (
         <div>
           <p>
-            Reviewed PDF text: {source.document.filename}. Text may omit layout
-            or scanned content.
+            Reviewed{' '}
+            {source.document.format && source.document.format !== 'pdf'
+              ? 'document'
+              : 'PDF'}{' '}
+            text: {source.document.filename}. Text may omit layout or scanned
+            content.
           </p>
           {source.document.deleted_at === null ? (
             <a href={`/api/documents/${source.document.id}/original`} download>
-              Download original PDF
+              Download original{' '}
+              {source.document.format && source.document.format !== 'pdf'
+                ? 'document'
+                : 'PDF'}
             </a>
           ) : (
             <p>
-              The original PDF has been deleted; saved source history remains.
+              The original{' '}
+              {source.document.format && source.document.format !== 'pdf'
+                ? 'document'
+                : 'PDF'}{' '}
+              has been deleted; saved source history remains.
             </p>
           )}
         </div>

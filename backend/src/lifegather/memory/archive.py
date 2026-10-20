@@ -18,6 +18,7 @@ from sqlalchemy import Connection, Engine, Table, func, literal_column, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from lifegather.auth.store import Account
+from lifegather.documents.formats import MIMES
 from lifegather.documents.models import Document
 from lifegather.memory.export import EXCLUSIONS, FORMAT, ExportLimitError, RecordExport
 from lifegather.photos.models import Photo
@@ -59,6 +60,9 @@ class _Original:
             "image/webp": "webp",
             "application/pdf": "pdf",
         }.get(self.mime, "bin")
+        extension = next(
+            (key for key, mime in MIMES.items() if mime == self.mime), extension
+        )
         return f"originals/{self.category}/{UUID(self.identifier).hex}.{extension}"
 
 
@@ -85,6 +89,8 @@ def _originals(connection: Connection, actor: Account) -> list[_Original]:
         ]
         if model is Photo:
             columns.append(table.c.mime)
+        else:
+            columns.append(table.c.format)
         rows = connection.execute(
             select(*columns)
             .where(table.c.user_id == actor.id, table.c.deleted_at.is_(None))
@@ -109,7 +115,7 @@ def _originals(connection: Connection, actor: Account) -> list[_Original]:
                 row["id"],
                 row["rowid"],
                 row["filename"],
-                row["mime"] if model is Photo else "application/pdf",
+                row["mime"] if model is Photo else MIMES[row["format"]],
                 row["size"],
                 row["content_hash"],
             )
