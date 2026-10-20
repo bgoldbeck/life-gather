@@ -19,7 +19,8 @@ adds a primary Power Center destination, capability-based readiness scoring,
 health/freshness checks with explanations and remedies, and precise post-connection
 capability summaries. The primary navigation panel defaults left, docks at any
 edge and resizes independently of the existing right-default contextual assistant.
-These requirements are planned; the screenshot is illustrative, not proof of
+Power Center remains planned; navigation docking is delivered in v0.57.0.
+The screenshot is illustrative, not proof of
 implemented integrations. See the [current capability and remaining-work inventory](../../CAPABILITIES_AND_REMAINING_WORK.md)
 for reconciled status rather than historical stage descriptions.
 

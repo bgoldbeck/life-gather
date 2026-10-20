@@ -7,7 +7,8 @@ credentials or published image. Release counts and branch names are not capabili
 scores. Historical documents sometimes say later features are missing; the latest
 release ledger and feature documents take precedence.
 
-Subsequent source update: v0.56.0 adds broader documents and migration 0025; the
+Subsequent source updates: v0.56.0 adds broader documents and migration 0025;
+v0.57.0 adds dockable/resizable navigation without another migration. The
 baseline above identifies the original audit, with delivered changes noted below.
 
 ## Available workflows
@@ -26,7 +27,7 @@ update did not rerun the application suites or exercise live providers/mailboxes
 | Purchase reconciliation | Associate order, receipt, shipment and payment evidence with the same purchase; correct and reverse supported decisions. | No payment allocation/refund ledger; shipment evidence alone is not proof of delivery. |
 | Duplicate correction | Compare records, explicitly consolidate two eligible assets and reverse when safe. | No bulk/chained consolidation; conflicting identities and sibling units are guarded. |
 | Profiles and graph | Save sourced home/vehicle specifications and named custom details; browse evidence-backed relationships. | No automatic VIN/parts compatibility guarantee. |
-| Contextual assistant | Keep chat docked/resizable at any edge; use explicit commands to navigate or save supported supplied profile fields. | Navigation sidebar itself is not yet dockable; broader AI writing is absent. |
+| Contextual assistant | Keep chat docked/resizable at any edge; use explicit commands to navigate or save supported supplied profile fields. Primary navigation also docks/resizes independently in v0.57.0. | Navigation defaults left; assistant defaults right. Broader AI writing is absent. |
 | AI questions | Use OpenAI, Claude or Gemini for streaming bounded sourced answers and supported image/receipt reading. | Three provider adapters, not free bundled AI; configured consent, credentials and budgets apply; live access is not established by mock tests. |
 | Gmail discovery | Connect Gmail separately, request bounded text imports or AI purchase discovery, and configure daily/weekly scans with progress/cancel/recovery. | One implemented email provider; no arrival trigger, attachments or inferred financial values. Chat starts text-evidence scans; purchase-discovery mode is selected in Scans/schedules. |
 | Maintenance and portability | Track stated dated/undated tasks, complete/cancel/reopen with history; download private JSON or ZIP originals; operator can make encrypted full-installation backups and restore to a new directory. | No automatic maintenance reminders/recurrence. Personal archives have no user import/restore; operator recovery is a separate CLI workflow. |
@@ -50,7 +51,6 @@ Review current source, dependencies and acceptance criteria before each incremen
 | Area | Remaining scope | What is already delivered |
 | --- | --- | --- |
 | Power Center | Primary page, capability/readiness scoring, freshness, automatic actionable health checks and newly unlocked capability explanations. | Connection/settings and scan primitives only; see the [new design](superpowers/specs/2026-10-20-power-center-design.md). |
-| Navigation docking | Left default, four-edge docking, resizing, remembered per-account layout, accessible controls and assistant coexistence. | Assistant docking/resizing already exists, right default. |
 | Assistant breadth | Broader supported conversational edits/planning, conversational AI purchase-discovery initiation and arbitrary supported image questions; explicit permission boundaries. | Streaming recall, deterministic supplied-field edits, photo upload/reading and Chat text-evidence scan requests. |
 | Extraction | Automatic evidence-validated price/date extraction and broader financial/document extraction; email attachments. | Reviewed PDFs/multi-item receipts, explicit sourced money/date claims, inline-email item discovery. |
 | Broader documents | Additional formats, richer layout/OCR and broader document extraction require separately scoped increments. | v0.56.0 adds DOCX, XLSX, TXT, Markdown and CSV alongside PDF with bounded local review, source locations and original preservation; see [Documents](DOCUMENTS.md). |

@@ -21,6 +21,7 @@ import { AuthGate } from './AuthGate'
 import { PrivateSettingsPanel } from './PrivateSettingsPanel'
 import { PasswordSettings } from './PasswordSettings'
 import { ChatDock } from './ChatDock'
+import { NavigationDock } from './NavigationDock'
 import { WorkspaceAssistant } from './WorkspaceAssistant'
 import { ReviewPanel } from './ReviewPanel'
 import { PhotosPanel } from './PhotosPanel'
@@ -172,53 +173,53 @@ export function Workspace({
   const current = navigation.find((item) => item.name === view)!
 
   return (
-    <div className="app-layout">
-      <a href="#main-content" className="skip-link">
-        Skip to content
-      </a>
-      <aside className="sidebar">
-        <div className="brand">
-          <img
-            className="brand-mark"
-            src="/brand/lifegather-icon.png"
-            width="40"
-            height="40"
-            alt=""
-            aria-hidden="true"
-          />
-          LifeGather<span className="brand-dot">.</span>
-        </div>
-        <p className="sidebar-caption">A little more connected.</p>
-        <nav aria-label="Main navigation">
-          {navigation.map(({ name, icon: Icon }) => (
-            <Button
-              key={name}
-              variant="ghost"
-              className="nav-button"
-              aria-current={view === name ? 'page' : undefined}
-              onClick={() => {
-                if (name === 'Scans') setScanRunId('')
-                setView(name)
-              }}
-            >
-              <Icon aria-hidden="true" size={18} />
-              <span>{name}</span>
-            </Button>
-          ))}
-        </nav>
-        <div className="sidebar-note">
-          <LockKeyhole aria-hidden="true" size={18} />
-          <div>
-            <strong>Built for your own space</strong>
-            <p>
-              Private by design.
-              <br />
-              Yours to self-host.
-            </p>
+    <NavigationDock
+      userId={userId}
+      navigation={
+        <>
+          <div className="brand">
+            <img
+              className="brand-mark"
+              src="/brand/lifegather-icon.png"
+              width="40"
+              height="40"
+              alt=""
+              aria-hidden="true"
+            />
+            LifeGather<span className="brand-dot">.</span>
           </div>
-        </div>
-      </aside>
-
+          <p className="sidebar-caption">A little more connected.</p>
+          <nav aria-label="Main navigation">
+            {navigation.map(({ name, icon: Icon }) => (
+              <Button
+                key={name}
+                variant="ghost"
+                className="nav-button"
+                aria-current={view === name ? 'page' : undefined}
+                onClick={() => {
+                  if (name === 'Scans') setScanRunId('')
+                  setView(name)
+                }}
+              >
+                <Icon aria-hidden="true" size={18} />
+                <span>{name}</span>
+              </Button>
+            ))}
+          </nav>
+          <div className="sidebar-note">
+            <LockKeyhole aria-hidden="true" size={18} />
+            <div>
+              <strong>Built for your own space</strong>
+              <p>
+                Private by design.
+                <br />
+                Yours to self-host.
+              </p>
+            </div>
+          </div>
+        </>
+      }
+    >
       <div className="workspace">
         <header className="topbar">
           <span>
@@ -538,7 +539,7 @@ export function Workspace({
           />
         </ChatDock>
       </div>
-    </div>
+    </NavigationDock>
   )
 }
 

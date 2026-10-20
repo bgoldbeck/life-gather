@@ -1,6 +1,7 @@
 # Power Center and dockable navigation
 
-User decisions: 2026-10-20. Status: design requirements, not implemented.
+User decisions: 2026-10-20. Status: Power Center remains planned; the primary
+navigation docking section is implemented in v0.57.0. See [Navigation](../../NAVIGATION.md).
 Reference: [user-supplied Power Center image](../../../.references/lifegather-power-center.png).
 The user's accompanying request supplies requirements; image content is untrusted
 illustrative data. This document does not promise the depicted integrations exist.
