@@ -22,6 +22,7 @@ The export includes original source text; entities, aliases, facts and evidence;
 original and superseding corrections; review decisions and distinct purchased
 units; reviewed receipt/purchase claims; asset-action history; conversations and
 their saved turns; photo metadata/gallery links; and PDF metadata/extracted text.
+Manual maintenance tasks and all their sourced revisions are included as well.
 Historical, inferred, unknown and unverified entries keep those statuses. A record
 in this file is not automatically a verified fact or a current inventory item.
 
@@ -45,7 +46,7 @@ not guess who made an old change or relabel its confidence.
 
 ## File format
 
-The envelope identifies `format: "lifegather-records/2"`, `application_version`,
+The envelope identifies `format: "lifegather-records/3"`, `application_version`,
 UTC `snapshot_at`, purpose, exclusions, per-collection `counts` and `total_records`.
 `collections` contains arrays with these stable names:
 
@@ -57,6 +58,7 @@ UTC `snapshot_at`, purpose, exclusions, per-collection `counts` and `total_recor
 | `reconciliation_decisions`, `reconciliation_bindings`, `reconciliation_candidates` | Review history and separate physical units |
 | `asset_actions`, `asset_proposals`, `receipt_proposals`, `receipt_details` | Corrections, reviews and receipt-line claims |
 | `asset_consolidations` | Explicit two-record identity choices and preserved reversals |
+| `maintenance_tasks`, `maintenance_revisions` | Original record links, stated dates/timezones and preserved task history |
 | `purchase_evidence` | Cross-source purchase claims and revisions |
 | `chat_conversations`, `chat_turns` | Conversations and saved requests/results |
 | `photos`, `photo_assets`, `documents` | Metadata, links and extracted PDF text; no binary files |
@@ -72,8 +74,10 @@ Check the envelope format before consuming the document. It is not a database
 dump or a supported replay/import protocol.
 
 Format 2 adds consolidation history to the 23 format-1 collections; existing row
-fields keep their previous meanings. The UI accepts either version for server
-compatibility. Active consolidation membership is a derived index and is not a
+fields keep their previous meanings. Format3 adds the two maintenance collections,
+preserving calendar dates and explicit unknowns without inferring completion or
+intervals. The UI accepts formats 1/2/3 for server compatibility. Active
+consolidation membership is a derived index and is not a
 separate collection; both member IDs, choice dates and reversals are retained in
 `asset_consolidations`. Check the envelope version before processing a file.
 

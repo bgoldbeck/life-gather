@@ -256,6 +256,10 @@ class ConsolidationService:
                     fact["recorded_at"] + 1
                     for fact in preview["comparison"]["sections"]["statements"]
                 ),
+                *(
+                    task["recorded_at"] + 1
+                    for task in preview["comparison"]["sections"].get("maintenance", [])
+                ),
                 (
                     db.scalar(
                         select(func.max(Decision.recorded_at)).where(

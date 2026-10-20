@@ -4,6 +4,7 @@ import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import type { GraphEntity, GraphFact } from './graphTypes'
 import './profiles.css'
 import { FieldHistory } from './FieldHistory'
+import { MaintenancePanel } from './MaintenancePanel'
 import {
   customProfileName,
   editableProfileField,
@@ -17,12 +18,16 @@ type Page = { entity: GraphEntity; facts: Fact[]; next_cursor: string | null }
 
 function ProfileEditor({
   id,
+  csrfToken,
+  refreshSession,
   request,
   onOpenGraph,
   onContext,
   contextRevision = 0,
 }: {
   id: string
+  csrfToken: string
+  refreshSession?: () => Promise<void>
   request: Request
   onOpenGraph?: (id: string) => void
   onContext?: (id: string | null) => void
@@ -357,6 +362,12 @@ function ProfileEditor({
           </Button>
         )}
       </form>
+      <MaintenancePanel
+        entityId={id}
+        csrfToken={csrfToken}
+        refreshSession={refreshSession}
+        onOpenGraph={onOpenGraph}
+      />
       {source && (
         <EvidencePanel
           key={source.id}
@@ -377,12 +388,14 @@ function ProfileEditor({
 
 export function ProfilesPanel({
   csrfToken,
+  initialEntityId = '',
   refreshSession,
   onOpenGraph,
   onContext,
   contextRevision,
 }: {
   csrfToken: string
+  initialEntityId?: string
   refreshSession?: () => Promise<void>
   onOpenGraph?: (id: string) => void
   onContext?: (id: string | null) => void
@@ -392,7 +405,7 @@ export function ProfilesPanel({
     items: GraphEntity[]
     next_cursor: string | null
   } | null>(null)
-  const [selected, setSelected] = useState('')
+  const [selected, setSelected] = useState(initialEntityId)
   const [name, setName] = useState('')
   const [kind, setKind] = useState('home')
   const [text, setText] = useState('')
@@ -485,11 +498,11 @@ export function ProfilesPanel({
       {error && <p role="alert">{error}</p>}
       <label>
         Existing record
-        <select
-          value={page?.items.some((n) => n.id === selected) ? selected : ''}
-          onChange={(e) => setSelected(e.target.value)}
-        >
+        <select value={selected} onChange={(e) => setSelected(e.target.value)}>
           <option value="">Choose an asset or place</option>
+          {selected && !page?.items.some((item) => item.id === selected) && (
+            <option value={selected}>Selected record</option>
+          )}
           {page?.items
             .filter((n) => ['asset', 'place'].includes(n.kind))
             .map((n) => (
@@ -555,6 +568,8 @@ export function ProfilesPanel({
         <ProfileEditor
           key={selected}
           id={selected}
+          csrfToken={csrfToken}
+          refreshSession={refreshSession}
           request={request}
           onOpenGraph={onOpenGraph}
           onContext={onContext}

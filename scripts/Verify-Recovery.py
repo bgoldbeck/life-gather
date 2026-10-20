@@ -24,6 +24,13 @@ from lifegather.chat.service import ChatService, TurnInput
 from lifegather.config import Settings
 from lifegather.credentials.service import PrivateSettings, read_key
 from lifegather.documents.service import DocumentService
+from lifegather.maintenance.schemas import (
+    MaintenanceChange,
+    MaintenanceCreate,
+    MaintenanceHistory,
+    MaintenancePage,
+)
+from lifegather.maintenance.service import MaintenanceService
 from lifegather.memory.archive import PersonalArchive
 from lifegather.memory.schemas import EntityInput, FactInput, SourceInput
 from lifegather.memory.service import MemoryError, MemoryService
@@ -91,6 +98,41 @@ def verify(root: Path) -> None:
         if detail.id == changed["profile_fact_id"]
     )
     assert custom.replaces_id == previous_custom.id and custom.value == "215/55R16"
+    maintenance = MaintenanceService(store.engine)
+    planned = maintenance.create(
+        alice,
+        MaintenanceCreate(
+            entity_id=item.id,
+            title="Synthetic filter inspection",
+            due_on=None,
+            timezone="America/Los_Angeles",
+            text="My synthetic inspection plan; the due date is unknown.",
+            request_id="synthetic-maintenance-create",
+        ),
+    )
+    original_task = maintenance.get(alice, planned["id"])
+    task_change = MaintenanceChange.model_validate(
+        {
+            "task_id": planned["id"],
+            "state_token": original_task["state_token"],
+            "title": "Synthetic filter inspection",
+            "due_on": "2026-10-20",
+            "timezone": "America/Los_Angeles",
+            "state": "completed",
+            "completed_on": "2026-10-19",
+            "text": "I stated an inspection due 2026-10-20, completed 2026-10-19.",
+            "request_id": "synthetic-maintenance-complete",
+        }
+    )
+    completed_task = maintenance.revise(alice, task_change)
+    assert maintenance.revise(alice, task_change) == completed_task
+    maintenance_history = maintenance.history(
+        alice, MaintenanceHistory(task_id=planned["id"])
+    )
+    assert [entry["state"] for entry in maintenance_history["items"]] == [
+        "open",
+        "completed",
+    ]
     chat = ChatService(store.engine)
     removed_conversation = chat.create(alice)["id"]
     transient, _ = chat.begin(
@@ -137,6 +179,8 @@ def verify(root: Path) -> None:
         assert original["id"] == photo["id"]
         assert package.read(original["path"]) == image.getvalue()
         assert custom.id.encode() in package.read("records.json")
+        assert planned["id"].encode() in package.read("records.json")
+        assert completed_task["revision_id"].encode() in package.read("records.json")
     assert document["id"].encode() not in personal
     assert b"Synthetic ephemeral transcript to remove" not in personal
     os.environ["LIFEGATHER_DATA_DIR"] = str(source)
@@ -164,6 +208,16 @@ def verify(root: Path) -> None:
     )
     assert read_key(settings.vault_key_file) == key
     recovered = AuthStore(settings.data_dir / "auth.sqlite3")
+    recovered_maintenance = MaintenanceService(recovered.engine)
+    recovered_task = recovered_maintenance.get(alice, planned["id"])
+    assert recovered_task["revision"]["id"] == completed_task["revision_id"]
+    assert recovered_task["revision"]["due_on"] == "2026-10-20"
+    assert recovered_task["revision"]["completed_on"] == "2026-10-19"
+    assert (
+        recovered_maintenance.history(alice, MaintenanceHistory(task_id=planned["id"]))
+        == maintenance_history
+    )
+    assert recovered_maintenance.list(bob, MaintenancePage(state="all"))["items"] == []
     assert ConversationPrivacy(recovered.engine).delete(
         alice, removed_conversation, deletion
     )["deleted"]

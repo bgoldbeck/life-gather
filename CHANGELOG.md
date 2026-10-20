@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.55.0 — Sourced maintenance tasks and due dates
+
+- Add manual maintenance tasks to existing asset/place Profiles, with explicit
+  unknown or stated calendar dates, an IANA timezone and open/completed/canceled
+  states. The global Maintenance view lists current revisions, dated tasks first,
+  and links back to the correct profile. Due status uses each task's local date.
+- Preserve every original statement and immutable revision. Fresh edit versions,
+  serialized writes, exact request retries and monotonic recording times protect
+  completion, cancellation, reopening and corrections. Earlier dates and states
+  remain in history; completion dates are never automatically filled.
+- Preserve original linked record IDs through consolidation and project current
+  identity on reads. Bounded comparisons include task statements; task changes
+  invalidate stale consolidation/reversal checks. Empty comparisons retain the
+  previous token contract for existing identity receipts.
+- Migration `0024_maintenance` adds owner-constrained typed task/revision tables.
+  Personal records format 3 explicitly includes both collections; ZIP format 1
+  continues with the current records payload. Downloads accept records formats
+  1/2/3. Recovery accepts migration 0023 and 0024 snapshots and validates current task
+  storage. Back up before an operator downgrade, which removes the new task tables.
+- Add private HTTP/MCP adapters and responsive source/history views. No new
+  dependency, automatic recurrence/notifications, maintenance recommendation,
+  model write tool, provider call or existing-installation deployment.
+
 ## 0.54.0 — Reviewed private conversation deletion
 
 - Add an explicit review action in Your conversations, showing the saved request

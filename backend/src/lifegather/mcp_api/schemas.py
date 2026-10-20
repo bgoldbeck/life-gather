@@ -16,6 +16,13 @@ from lifegather.chat.context import ContextRead
 from lifegather.chat.organizer import OrganizationAction
 from lifegather.chat.service import SaveText
 from lifegather.documents.service import DocumentPage, DocumentRead
+from lifegather.maintenance.schemas import (
+    MaintenanceChange,
+    MaintenanceCreate,
+    MaintenanceHistory,
+    MaintenancePage,
+    MaintenanceRead,
+)
 from lifegather.memory.history import FieldHistoryRead
 from lifegather.memory.library import LibraryPage
 from lifegather.memory.notes import CorrectionInput, NoteHistoryInput
@@ -95,6 +102,11 @@ class DiscoveryHistory(Page):
 
 
 INPUTS: dict[str, type[BaseModel]] = {
+    "maintenance_list": MaintenancePage,
+    "maintenance_get": MaintenanceRead,
+    "maintenance_history": MaintenanceHistory,
+    "maintenance_create": MaintenanceCreate,
+    "maintenance_revise": MaintenanceChange,
     "asset_consolidation_preview": ConsolidationPair,
     "asset_consolidate": Consolidate,
     "asset_consolidation_reverse": ReverseConsolidation,

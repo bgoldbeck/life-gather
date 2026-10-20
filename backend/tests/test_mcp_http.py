@@ -173,6 +173,8 @@ def test_mcp_discovery_and_owner_scoped_memory_reads() -> None:
                 "photo_attach",
                 "purchase_evidence_save",
                 "purchase_evidence_withdraw",
+                "maintenance_create",
+                "maintenance_revise",
             }
         )
         assert all(

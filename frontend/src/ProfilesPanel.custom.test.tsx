@@ -48,6 +48,8 @@ async function setup({
   const posts: Detail[] = []
   let rows = correction ? [fact('old', 'Regular')] : []
   const fetcher = vi.fn(async (path: string, init?: RequestInit) => {
+    if (path.startsWith('/api/maintenance'))
+      return Response.json({ items: [], next_cursor: null })
     if (path.startsWith('/api/graph/entities'))
       return Response.json({ items: [entity], next_cursor: null })
     if (path.startsWith('/api/history/fields'))

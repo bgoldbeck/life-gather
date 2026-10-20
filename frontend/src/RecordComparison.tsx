@@ -46,6 +46,18 @@ export type Comparison = {
     statement_ids?: string[]
   }[]
   sections: {
+    maintenance?: {
+      id: string
+      revision_id: string
+      asset_id: string
+      title: string
+      due_on: string | null
+      timezone: string
+      state: string
+      completed_on: string | null
+      source_id: string
+      recorded_at: number
+    }[]
     statements?: Fact[]
     aliases?: {
       id: string
@@ -110,6 +122,7 @@ const sectionLabels: { [key: string]: string } = {
   purchase_evidence: 'Purchase evidence',
   receipt_lines: 'Receipt lines',
   sources: 'Original sources',
+  maintenance: 'Maintenance tasks',
   response_bytes: 'Comparison size',
 }
 
@@ -541,6 +554,29 @@ export function RecordComparison({
                           </li>
                         ))}
                     </ul>
+                    {result.sections.maintenance?.some(
+                      (row) => row.asset_id === record.id,
+                    ) && (
+                      <>
+                        <h5>Stated maintenance tasks</h5>
+                        <ul>
+                          {result.sections.maintenance
+                            .filter((row) => row.asset_id === record.id)
+                            .map((row) => (
+                              <li key={row.id}>
+                                {row.title} · {row.state}. Due:{' '}
+                                {row.due_on ?? 'Unknown'} · {row.timezone}.
+                                Completion date: {row.completed_on ?? 'Unknown'}
+                                .
+                                {source(
+                                  row.source_id,
+                                  'View maintenance statement',
+                                )}
+                              </li>
+                            ))}
+                        </ul>
+                      </>
+                    )}
                   </article>
                 ))}
               </div>

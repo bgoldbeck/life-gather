@@ -3,7 +3,14 @@
 **Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
 **Date:** Updated 2026-10-17
 
-Current increment: v0.54.0 adds [reviewed conversation deletion](docs/CONVERSATION_PRIVACY.md).
+Current increment: v0.55.0 adds [sourced maintenance tasks](docs/MAINTENANCE.md).
+Explicit manual plans, optional calendar dates/timezones, completion/cancellation
+and preserved revisions are available in Profiles and the global Maintenance view.
+Fresh versions and stable retries protect changes; original record links survive
+identity consolidation. Migration 0024 adds typed task/history tables; personal
+records format 3 includes their history. No automatic intervals, reminders or AI calls.
+
+v0.54.0 adds [reviewed conversation deletion](docs/CONVERSATION_PRIVACY.md).
 Fresh owner-scoped previews, separate pending-request stopping and explicit
 confirmation remove one transcript while retaining independently saved records.
 Minimal deletion receipts permit safe retries; late completions cannot restore
