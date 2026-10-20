@@ -52,6 +52,12 @@
   gap: 1.5rem;
   margin-top: 1.5rem;
 }
+.chat-layout.conversations-hidden {
+  grid-template-columns: minmax(0, 1fr);
+}
+.chat-conversations[hidden] {
+  display: none;
+}
 .chat-conversations {
   display: flex;
   flex-direction: column;
@@ -74,6 +80,50 @@
 }
 .chat-conversations button[aria-current='true'] {
   background: var(--accent);
+}
+.chat-conversation-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.25rem;
+  align-items: start;
+}
+.chat-conversations .conversation-delete-action {
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: 0.5rem;
+}
+.dock-content .chat-conversation-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+.dock-content .conversation-delete-action {
+  justify-self: end;
+}
+.chat-saved-content {
+  display: contents;
+}
+.chat-saved-content[hidden] {
+  display: none;
+}
+.conversation-delete {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+  background: var(--card);
+  overflow-wrap: anywhere;
+}
+.conversation-delete h2 {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.conversation-delete p {
+  font-size: 0.9rem;
+}
+.conversation-delete button {
+  white-space: normal;
+  height: auto;
+  min-height: 2rem;
 }
 .chat-messages {
   min-height: 260px;

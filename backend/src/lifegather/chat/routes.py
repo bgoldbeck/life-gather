@@ -13,6 +13,12 @@ from lifegather.auth.store import CurrentSession
 from lifegather.chat.context import ContextRead, WorkspaceContexts
 from lifegather.chat.organizer import HELP
 from lifegather.chat.preferences import ChatChoice, ChatPreferences
+from lifegather.chat.privacy import (
+    ConversationDelete,
+    ConversationPreview,
+    ConversationPrivacy,
+    ConversationToken,
+)
 from lifegather.chat.runner import answer
 from lifegather.chat.service import ChatService, SaveText, TurnInput
 from lifegather.chat.streaming import DeltaSink
@@ -161,6 +167,39 @@ def chat_router() -> APIRouter:
     @router.post("/requests/{request_id}/cancel")
     def cancel(request: Request, request_id: str, current: Mutation) -> dict[str, Any]:
         return service(request).cancel(current.user, request_id)
+
+    @router.post("/conversations/{conversation_id}/deletion-preview")
+    def deletion_preview(
+        request: Request,
+        conversation_id: Annotated[str, PathParam(min_length=1, max_length=36)],
+        body: ConversationPreview,
+        current: Mutation,
+    ) -> dict[str, Any]:
+        return ConversationPrivacy(service(request).engine).preview(
+            current.user, conversation_id
+        )
+
+    @router.post("/conversations/{conversation_id}/stop-pending")
+    def deletion_stop(
+        request: Request,
+        conversation_id: Annotated[str, PathParam(min_length=1, max_length=36)],
+        body: ConversationToken,
+        current: Mutation,
+    ) -> dict[str, Any]:
+        return ConversationPrivacy(service(request).engine).stop(
+            current.user, conversation_id, body
+        )
+
+    @router.post("/conversations/{conversation_id}/delete")
+    def deletion_apply(
+        request: Request,
+        conversation_id: Annotated[str, PathParam(min_length=1, max_length=36)],
+        body: ConversationDelete,
+        current: Mutation,
+    ) -> dict[str, Any]:
+        return ConversationPrivacy(service(request).engine).delete(
+            current.user, conversation_id, body
+        )
 
     async def run(
         request: Request,

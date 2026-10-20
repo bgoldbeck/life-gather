@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.54.0 — Reviewed private conversation deletion
+
+- Add an explicit review action in Your conversations, showing the saved request
+  count and retention scope before permanent transcript deletion. Require a fresh
+  owner-scoped version token and explicit confirmation; changed conversations
+  require review again. Stop pending/interrupted chat requests as a separate action.
+- Remove only that conversation and its requests/replies. Retain independently
+  saved memories, profile corrections, files, purchases, scans, settings, credentials
+  and usage. Existing exports, backups and provider-side history remain unchanged.
+  A minimal content-free deletion audit permits safe replay.
+- Serialize terminal chat transitions with cancellation/deletion, fixing a
+  reproduced late-completion race that could overwrite a successful stop. Preserve
+  unsent drafts and other conversations; ignore late loads and stale pagination.
+  No migration, dependency, provider request, model/MCP deletion tool or deployment.
+  Migration remains 0023.
+
 ## 0.53.0 — Custom details through the contextual assistant
 
 - Save explicitly supplied named details with commands such as `Set custom "Tire

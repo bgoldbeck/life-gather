@@ -13,3 +13,34 @@ Delete only the owned Turn rows and Conversation, atomically, after fresh review
 UI: explicit review action beside each Your conversations entry and a focused ConversationDelete component. Show title, exact count, retained scope, pending stop/re-review, Cancel and an explicit permanent-delete confirmation. Prevent duplicate mutations and stale/late/unmounted responses. Remove only the deleted entry; deleting the active conversation clears saved turns/evidence/selection/retry state, preserves unsent draft and other conversations, and invalidates late loads/pagination so removed entries cannot reappear. Review of another conversation must preserve current conversation state. Accessible keyboard/focus behavior and responsive semantic colors; no destructive action hidden in normal navigation.
 
 Acceptance: two owners/multiple conversations, stale previews after append/completion/cancellation, invalid confirmation/owner overrides, pending/interrupted stop flow, late finish and concurrent deletion/replay, rollback and one content-free tombstone. Retain independently saved memory/custom history, files/scans/credentials/settings/usage. Deleted-ID append/recall/organize refuse; JSON/ZIP omit transcript rows while retained source copies remain explicit. HTTP session/CSRF/isolation. UI preview/cancel/stop, failures/conflicts/duplicate clicks/late-unmount, selected vs other deletion, paging and draft preservation. Browser verifies review/cancel and retained data at desktop/390px; final deletion is tested programmatically on isolated synthetic fixtures. Full checks/builds, graph+HTML, final clash checks and standing source/image release. No live personal data deletion, provider calls, existing-installation deployment or security-setting change.
+
+## Implementation and acceptance evidence
+
+The service and three HTTP adapters implement aggregate-only snapshot previews,
+serialized fresh-version mutations, a separate pending stop, explicit confirmation
+and atomic owner-scoped deletion receipts. Completion now shares the immediate
+writer guard: a deterministic race test reproduced the old stale completion
+overwriting cancellation and passes with the guarded terminal transition.
+
+Nine backend privacy cases cover isolation, state changes, deletion replay and
+rollback, metadata-only bulk previews, strict HTTP/session/CSRF boundaries and
+retention of exact record collections, photo/PDF bytes, vault secrets, queued scans
+and usage. The pre-existing scan transport test now holds its worker paused while
+checking a queued fixture; actual worker progress/cancellation tests remain real.
+This removes a reproduced fixture race where the worker finished before the test's
+cancel assertion. The final full backend run passes all 592 cases (436.27s).
+
+All 266 frontend tests across 48 files pass, including 13 new privacy interactions.
+Ruff lint/format and strict mypy pass for 229 source/test/smoke files; TypeScript,
+frontend lint/format and production build pass. The wheel contains the new privacy
+service. Code-only, single-worker Graphify extraction and HTML export completed:
+3,298 nodes and 14,252 edges, with no model calls or configuration changes.
+
+Actual isolated browser review/cancel preserves the unsent draft, transcript and
+custom profile correction, and returns focus to the review action. Desktop light
+and 390px dark layouts pass with no page overflow; review uses the full assistant
+width. No real records were deleted. A mounted-source Linux smoke preserves the
+deletion receipt, absent transcript, source corrections, originals, both owners
+and private credentials through encrypted recovery of a 42.9 MB synthetic database.
+Clean-main image publication and fresh-image recovery verification follow source
+acceptance; no existing installation is redeployed.

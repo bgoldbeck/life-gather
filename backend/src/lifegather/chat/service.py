@@ -339,7 +339,7 @@ class ChatService:
         result: dict[str, Any],
         state: str = "complete",
     ) -> dict[str, Any]:
-        with Session(self.engine) as db, db.begin():
+        with self.memory._write() as db:
             row = db.scalar(
                 select(Turn).where(Turn.user_id == actor.id, Turn.id == turn_id)
             )

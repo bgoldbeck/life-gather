@@ -42,6 +42,10 @@ A delayed reply also cannot navigate after the user changes context; its explici
 Open button remains available. Refreshing the browser reloads saved conversations;
 unsent drafts are session-only.
 
+In **Your conversations**, use the trash/review action to [review permanent
+transcript deletion](CONVERSATION_PRIVACY.md). Saved memories and changes made
+through chat remain independent; review states the retained scope before deletion.
+
 External authenticated MCP clients can call `workspace_context_get` with an
 explicit page/record, then `workspace_organize` with that context version, exact
 user request text and a stable request ID. Calls stay within the authenticated

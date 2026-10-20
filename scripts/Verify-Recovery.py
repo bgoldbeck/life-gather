@@ -19,6 +19,8 @@ from sqlalchemy import text
 from lifegather.auth.store import AuthStore
 from lifegather.chat.context import ContextRead, ContextRef, WorkspaceContexts
 from lifegather.chat.organizer import OrganizationAction, WorkspaceOrganizer
+from lifegather.chat.privacy import ConversationDelete, ConversationPrivacy
+from lifegather.chat.service import ChatService, TurnInput
 from lifegather.config import Settings
 from lifegather.credentials.service import PrivateSettings, read_key
 from lifegather.documents.service import DocumentService
@@ -89,6 +91,25 @@ def verify(root: Path) -> None:
         if detail.id == changed["profile_fact_id"]
     )
     assert custom.replaces_id == previous_custom.id and custom.value == "215/55R16"
+    chat = ChatService(store.engine)
+    removed_conversation = chat.create(alice)["id"]
+    transient, _ = chat.begin(
+        alice,
+        removed_conversation,
+        TurnInput(
+            request_id="synthetic-deletion",
+            mode="search",
+            text="Synthetic ephemeral transcript to remove",
+        ),
+    )
+    chat.finish(alice, transient["id"], {"text": "Synthetic ephemeral reply to remove"})
+    privacy = ConversationPrivacy(store.engine)
+    deletion = ConversationDelete(
+        preview_token=privacy.preview(alice, removed_conversation)["preview_token"],
+        confirmed=True,
+    )
+    assert privacy.delete(alice, removed_conversation, deletion)["deleted"]
+    assert privacy.delete(alice, removed_conversation, deletion)["deleted"]
     key = AESGCM.generate_key(bit_length=256)
     key_path = root / "source.key"
     key_path.write_bytes(key)
@@ -117,6 +138,7 @@ def verify(root: Path) -> None:
         assert package.read(original["path"]) == image.getvalue()
         assert custom.id.encode() in package.read("records.json")
     assert document["id"].encode() not in personal
+    assert b"Synthetic ephemeral transcript to remove" not in personal
     os.environ["LIFEGATHER_DATA_DIR"] = str(source)
     os.environ["LIFEGATHER_VAULT_KEY_FILE"] = str(key_path)
     phrase = root / "phrase"
@@ -142,6 +164,10 @@ def verify(root: Path) -> None:
     )
     assert read_key(settings.vault_key_file) == key
     recovered = AuthStore(settings.data_dir / "auth.sqlite3")
+    assert ConversationPrivacy(recovered.engine).delete(
+        alice, removed_conversation, deletion
+    )["deleted"]
+    assert ChatService(recovered.engine).conversations(alice)["items"] == []
     recall = MemoryService(recovered.engine)
     assert recall.timeline(alice, item.id)[0].model_dump() == fact.model_dump()
     assert any(

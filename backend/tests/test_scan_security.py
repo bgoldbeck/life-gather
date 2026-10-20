@@ -51,12 +51,20 @@ def test_cancel_keeps_saved_evidence_and_snapshot_resumes(tmp_path: Path) -> Non
     auth.engine.dispose()
 
 
-def test_scan_http_and_mcp_are_owner_bound_and_csrf_protected() -> None:
+def test_scan_http_and_mcp_are_owner_bound_and_csrf_protected(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from fastapi.testclient import TestClient
     from test_mcp_http import rpc, signed_headers
 
     from lifegather.main import create_app
 
+    async def paused_worker(self: ScanWorker) -> None:
+        await asyncio.Event().wait()
+
+    # This test inspects a queued fixture across several HTTP/MCP requests.
+    # Worker progress/cancellation is exercised separately above and in test_scans.
+    monkeypatch.setattr(ScanWorker, "serve", paused_worker)
     app = create_app()
     with TestClient(app) as client:
         alice, actor = signed_headers(app, "scan-alice")

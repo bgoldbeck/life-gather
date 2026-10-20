@@ -3,7 +3,13 @@
 **Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
 **Date:** Updated 2026-10-17
 
-Current increment: v0.53.0 lets the [contextual assistant](docs/CONTEXTUAL_ASSISTANT.md)
+Current increment: v0.54.0 adds [reviewed conversation deletion](docs/CONVERSATION_PRIVACY.md).
+Fresh owner-scoped previews, separate pending-request stopping and explicit
+confirmation remove one transcript while retaining independently saved records.
+Minimal deletion receipts permit safe retries; late completions cannot restore
+canceled or deleted requests. No migration, dependency or model deletion tool.
+
+v0.53.0 lets the [contextual assistant](docs/CONTEXTUAL_ASSISTANT.md)
 save supplied named custom details with original evidence and correction history.
 Pinned context, reserved identity fields, conflicts and exact retries remain guarded;
 consolidated-member correction retries preserve original subjects. No migration,
