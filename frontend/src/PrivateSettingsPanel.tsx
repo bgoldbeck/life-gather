@@ -14,9 +14,11 @@ type Page = { items: Entry[]; next_cursor: string | null }
 export function PrivateSettingsPanel({
   csrfToken,
   refreshSession,
+  onChanged,
 }: {
   csrfToken: string
   refreshSession?: () => Promise<void>
+  onChanged?: () => void
 }) {
   const [preferences, setPreferences] = useState<Preferences | null>(null)
   const [items, setItems] = useState<Entry[]>([])
@@ -105,6 +107,7 @@ export function PrivateSettingsPanel({
         current ? { ...current, allow_external_ai: value } : current,
       )
       setNotice('Privacy preference saved.')
+      onChanged?.()
     } catch (caught) {
       setError((caught as Error).message)
     } finally {
@@ -137,6 +140,7 @@ export function PrivateSettingsPanel({
       setLabel('')
       await load()
       setNotice('Credential saved. It has not been checked with the provider.')
+      onChanged?.()
     } catch (caught) {
       setError((caught as Error).message)
     } finally {
@@ -158,6 +162,7 @@ export function PrivateSettingsPanel({
       setNotice(
         'Credential removed from LifeGather. Revoke it at the provider too if needed.',
       )
+      onChanged?.()
     } catch (caught) {
       setError((caught as Error).message)
     } finally {

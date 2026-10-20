@@ -36,9 +36,15 @@ import { DocumentsPanel } from './DocumentsPanel'
 import { MailboxesPanel } from './MailboxesPanel'
 import { ScansPanel } from './ScansPanel'
 import { PurchasesPanel } from './PurchasesPanel'
+import { PowerCenter } from './PowerCenter'
 import type { Theme } from './appearance'
 
 const navigation = [
+  {
+    name: 'Power Center',
+    icon: Sparkles,
+    description: 'Capabilities, health and useful next actions.',
+  },
   {
     name: 'Photos',
     icon: BookOpen,
@@ -137,6 +143,8 @@ export function Workspace({
   const [scanRunId, setScanRunId] = useState('')
   const [expandAssistant, setExpandAssistant] = useState(0)
   const [contextRevision, setContextRevision] = useState(0)
+  const [powerRevision, setPowerRevision] = useState(0)
+  const powerChanged = () => setPowerRevision((value) => value + 1)
   const [record, setRecord] = useState<{
     page: View
     id: string | null
@@ -246,16 +254,28 @@ export function Workspace({
             <main id="main-content" className="main-content">
               {view === 'Settings' ? (
                 <>
+                  <PowerCenter
+                    compact
+                    userId={userId}
+                    changeSignal={powerRevision}
+                    onNavigate={setView}
+                    onOpenAssistant={openAssistant}
+                    refreshSession={refreshSession}
+                  />
                   <AppearanceSettings
                     theme={appearance}
                     csrfToken={csrfToken}
                     refreshSession={refreshSession}
                   />
                   <PrivateSettingsPanel
+                    onChanged={powerChanged}
                     csrfToken={csrfToken}
                     refreshSession={refreshSession}
                   />
-                  <MailboxesPanel csrfToken={csrfToken} />
+                  <MailboxesPanel
+                    csrfToken={csrfToken}
+                    onChanged={powerChanged}
+                  />
                   <PasswordSettings
                     configured={passwordEnabled}
                     deliveryEnabled={deliveryEnabled}
@@ -263,6 +283,17 @@ export function Workspace({
                     refreshSession={refreshSession}
                   />
                 </>
+              ) : view === 'Power Center' ? (
+                <PowerCenter
+                  userId={userId}
+                  onNavigate={setView}
+                  refreshSession={refreshSession}
+                  onOpenAssistant={openAssistant}
+                  onOpenScan={(id) => {
+                    setScanRunId(id)
+                    setView('Scans')
+                  }}
+                />
               ) : view === 'Review' ? (
                 <ReviewPanel csrfToken={csrfToken} />
               ) : view === 'Scans' ? (

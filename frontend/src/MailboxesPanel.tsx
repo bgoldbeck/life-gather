@@ -16,9 +16,11 @@ type Page = {
 export function MailboxesPanel({
   csrfToken,
   onAuthorize = (url) => window.location.assign(url),
+  onChanged,
 }: {
   csrfToken: string
   onAuthorize?: (url: string) => void
+  onChanged?: () => void
 }) {
   const [page, setPage] = useState<Page | null>(null)
   const [busy, setBusy] = useState(true)
@@ -116,6 +118,7 @@ export function MailboxesPanel({
       setNotice(
         'Local mailbox credentials removed. Saved evidence remains private and available.',
       )
+      onChanged?.()
     } catch {
       if (alive.current)
         setError(

@@ -1,0 +1,157 @@
+.power-center {
+  max-width: 76rem;
+  margin: 0 auto;
+  min-width: 0;
+}
+.power-heading,
+.power-source-heading,
+.power-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.power-heading h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  letter-spacing: -0.04em;
+}
+.power-center h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.6rem;
+}
+.power-center h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.power-center p {
+  line-height: 1.6;
+  margin: 0.5rem 0;
+  overflow-wrap: anywhere;
+}
+.power-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--primary);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+.power-meta {
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+}
+.power-summary,
+.power-sources {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.power-summary [data-slot='card-content'],
+.power-sources [data-slot='card-content'] {
+  padding: 1.2rem;
+  min-width: 0;
+}
+.power-summary strong {
+  display: block;
+  font-size: 2rem;
+  color: var(--primary);
+}
+.power-summary {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+}
+.power-issues {
+  padding: 0;
+  list-style: none;
+}
+.power-issues li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  padding: 0.8rem 0;
+}
+.power-issues li > div {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+.power-issues strong {
+  margin-right: 0.5rem;
+}
+.power-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.power-filters label {
+  display: grid;
+  gap: 0.4rem;
+}
+.power-filters select {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  background: var(--card);
+  color: var(--foreground);
+}
+.power-capabilities {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: 0.8rem;
+}
+.power-capability {
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  padding: 1rem;
+  min-width: 0;
+}
+.power-capability > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+.power-capability > div > span {
+  font-size: 0.8rem;
+}
+.power-changes {
+  border: 1px solid var(--warning-border);
+  border-radius: 0.8rem;
+  background: var(--warning-surface);
+  color: var(--warning-foreground);
+  padding: 1rem;
+  margin-top: 1rem;
+}
+.power-explanation {
+  margin: 1.5rem 0;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+.power-explanation summary {
+  cursor: pointer;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.power-compact {
+  margin: 0 0 2rem;
+}
+.power-compact .power-heading h2 {
+  margin: 0;
+}
+@media (max-width: 600px) {
+  .power-center button {
+    white-space: normal;
+    height: auto;
+    min-height: 2.25rem;
+  }
+}

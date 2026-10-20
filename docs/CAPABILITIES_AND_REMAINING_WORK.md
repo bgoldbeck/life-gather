@@ -8,7 +8,8 @@ scores. Historical documents sometimes say later features are missing; the lates
 release ledger and feature documents take precedence.
 
 Subsequent source updates: v0.56.0 adds broader documents and migration 0025;
-v0.57.0 adds dockable/resizable navigation without another migration. The
+v0.57.0 adds dockable/resizable navigation; v0.58.0 adds Power Center local
+readiness and observed health without another migration. The
 baseline above identifies the original audit, with delivered changes noted below.
 
 ## Available workflows
@@ -50,7 +51,7 @@ Review current source, dependencies and acceptance criteria before each incremen
 
 | Area | Remaining scope | What is already delivered |
 | --- | --- | --- |
-| Power Center | Primary page, capability/readiness scoring, freshness, automatic actionable health checks and newly unlocked capability explanations. | Connection/settings and scan primitives only; see the [new design](superpowers/specs/2026-10-20-power-center-design.md). |
+| Power Center | Live remote/provider-model probing and richer connection diagnostics require later scope. | v0.58.0 adds the primary page, versioned readiness, observed health/freshness, automatic local checks and connection changes; see [Power Center](POWER_CENTER.md). |
 | Assistant breadth | Broader supported conversational edits/planning, conversational AI purchase-discovery initiation and arbitrary supported image questions; explicit permission boundaries. | Streaming recall, deterministic supplied-field edits, photo upload/reading and Chat text-evidence scan requests. |
 | Extraction | Automatic evidence-validated price/date extraction and broader financial/document extraction; email attachments. | Reviewed PDFs/multi-item receipts, explicit sourced money/date claims, inline-email item discovery. |
 | Broader documents | Additional formats, richer layout/OCR and broader document extraction require separately scoped increments. | v0.56.0 adds DOCX, XLSX, TXT, Markdown and CSV alongside PDF with bounded local review, source locations and original preservation; see [Documents](DOCUMENTS.md). |

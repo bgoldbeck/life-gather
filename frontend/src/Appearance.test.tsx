@@ -1,4 +1,4 @@
-import { render, screen, waitFor, act } from '@testing-library/react'
+import { render, screen, waitFor, act, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import App from './App'
@@ -59,9 +59,11 @@ it('keeps the saved theme when a save fails', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
   await userEvent.selectOptions(screen.getByLabelText('Color theme'), 'dark')
   await userEvent.click(screen.getByRole('button', { name: 'Save appearance' }))
-  expect(await screen.findByRole('alert')).toHaveTextContent(
-    'Unable to save appearance',
-  )
+  expect(
+    await within(screen.getByRole('region', { name: 'Appearance' })).findByRole(
+      'alert',
+    ),
+  ).toHaveTextContent('Unable to save appearance')
   expect(document.documentElement).not.toHaveClass('dark')
 })
 

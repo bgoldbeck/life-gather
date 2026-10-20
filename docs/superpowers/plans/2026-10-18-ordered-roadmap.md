@@ -1,5 +1,10 @@
 # Ordered roadmap implementation plan
 
+v0.58.0 delivers [Power Center](../../POWER_CENTER.md): private capability catalog 1,
+observed health/freshness, local checks, recovery links and connection changes.
+No migration/dependency; no external probes or ingestion from health checks.
+Live model/grant health without processing evidence remains unverified.
+
 > Execute sequentially in the main/root chat using the planning and inline-execution
 > skills. No agents. The user authorized continuous implementation, routine design
 > decisions, and a separate commit/push/PR/merge/branch cleanup after every feature.

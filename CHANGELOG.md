@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.58.0 — Power Center capability readiness and observed health
+
+- Add a primary Power Center with source/category filters, real seven-day scan
+  activity, freshness, local refresh and actionable scan/setup links. Distinguish
+  missing permission, AI limits, expired scan leases, failed runs, overdue dispatch
+  and intentionally paused schedules.
+- Scoring catalog 1 counts eight weighted outcomes once across redundant sources.
+  Unknown/stale dependencies leave the total incomplete with confirmed/possible
+  bounds. Saved credentials never establish model health; earlier-grant scans
+  cannot establish a reconnected mailbox's health.
+- Settings explains newly requestable, already available and still-blocked
+  capabilities using per-account tab capability IDs only. Availability does not
+  mean completed discoveries. Preserve assistant drafts and navigation docking.
+- Authenticated HTTP/MCP share one read-only service. Automatic local checks never
+  decrypt credentials, contact providers, incur charges or start ingestion.
+  Live model availability and remote revocation before a failed run remain unknown.
+  No migration or dependency; schema head remains 0025.
+
 ## 0.57.0 — Dockable, resizable primary navigation
 
 - The navigation sidebar defaults left and can dock at any of the four edges.

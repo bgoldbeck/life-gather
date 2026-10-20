@@ -72,6 +72,7 @@ from lifegather.photos.service import (
     PhotoRead,
     PhotoService,
 )
+from lifegather.power.service import PowerCenter, PowerRead
 from lifegather.profiles.service import ProfileRead, ProfileService
 from lifegather.purchases.schemas import (
     EvidenceHistory,
@@ -186,7 +187,7 @@ def read(
         raise ToolError("Memory service unavailable") from None
 
 
-def build_server() -> MCPServer:
+def build_server(power_factory: Callable[[], PowerCenter] | None = None) -> MCPServer:
     server = MCPServer(
         "LifeGather private recall",
         version="0.1.0",
@@ -206,6 +207,16 @@ def build_server() -> MCPServer:
         idempotent_hint=True,
         open_world_hint=False,
     )
+
+    @server.tool(annotations=annotation)
+    def power_center_get(data: PowerRead, ctx: ToolContext) -> dict[str, Any]:
+        """Read private local health without provider probes or ingestion."""
+        if power_factory is None:
+            raise ToolError("Power Center unavailable")
+        return read(
+            ctx,
+            lambda actor, memory, _: power_factory().read(actor),
+        )
 
     @server.tool(annotations=annotation)
     def workspace_context_get(data: ContextRead, ctx: ToolContext) -> dict[str, Any]:

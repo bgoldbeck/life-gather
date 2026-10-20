@@ -41,6 +41,8 @@ from lifegather.memory.origins import change_origin
 from lifegather.memory.routes import graph_router, library_router
 from lifegather.memory.service import MemoryError
 from lifegather.photos.routes import photo_router
+from lifegather.power.routes import power_router
+from lifegather.power.service import PowerCenter
 from lifegather.profiles.routes import profile_router
 from lifegather.purchases.routes import purchase_router
 from lifegather.reconciliation.queue_routes import review_router
@@ -56,7 +58,14 @@ from lifegather.version import __version__, build_info
 
 def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     settings = Settings()
-    mcp_server = build_server()
+    mcp_server = build_server(
+        lambda: PowerCenter(
+            app.state.auth_store.engine,
+            vault_enabled=app.state.private_settings.enabled,
+            gmail_enabled=settings.google_enabled,
+            handlers=set(app.state.scan_service.registry.handlers),
+        )
+    )
     mcp_app = mcp_server.streamable_http_app(
         json_response=True,
         stateless_http=True,
@@ -158,6 +167,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(scan_router())
     app.include_router(schedule_router())
     app.include_router(purchase_router())
+    app.include_router(power_router())
     app.add_middleware(CredentialBodyLimit)
 
     @app.exception_handler(MemoryError)

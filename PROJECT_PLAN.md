@@ -6,8 +6,9 @@
 Current capability inventory and consolidated outstanding scope:
 [what LifeGather can do and what remains](docs/CAPABILITIES_AND_REMAINING_WORK.md).
 User design additions, 2026-10-20: [Power Center and dockable navigation](docs/superpowers/specs/2026-10-20-power-center-design.md).
-Power Center remains planned; [navigation docking](docs/NAVIGATION.md) is delivered
-in v0.57.0, independently of the existing right-default contextual assistant.
+[Power Center](docs/POWER_CENTER.md) local readiness/observed health is delivered
+in v0.58.0; [navigation docking](docs/NAVIGATION.md) is delivered in v0.57.0,
+independently of the existing right-default contextual assistant.
 
 User addition, 2026-10-20: [broader document support](docs/superpowers/specs/2026-10-20-broader-document-support-design.md)
 targets Word (`.docx`), Excel (`.xlsx`), plain text, Markdown and CSV alongside PDF,
@@ -15,7 +16,12 @@ with private originals, bounded local extraction, reviewed searchable text and
 source locations. Implemented in v0.56.0 with selectable previews, review/search,
 format-aware originals and archive/recovery coverage. See [Documents](docs/DOCUMENTS.md).
 
-Current increment: v0.57.0 adds four-edge dockable/resizable primary navigation,
+Current increment: v0.58.0 adds private Power Center readiness, source filters,
+observed health/freshness, recovery links and connection capability explanations.
+Local checks never probe providers or start ingestion; live model/grant health
+without processing evidence remains unknown. No migration or dependency.
+
+v0.57.0 adds four-edge dockable/resizable primary navigation,
 left default, per-account browser preferences, pointer/keyboard controls, reset
 and compact fallback while retaining page/chat drafts. No migration or new dependency.
 
@@ -274,7 +280,8 @@ must measure useful readiness rather than count connected services. Make the
 primary navigation panel dockable left/right/top/bottom and resizable, defaulting
 left, with per-account remembered layout and accessible controls. This is separate
 from the implemented right-default resizable assistant. Navigation docking is
-implemented in v0.57.0; Power Center remains planned. See the linked design;
+implemented in v0.57.0; Power Center local readiness/health is delivered in v0.58.0.
+Remote probing and richer live-model diagnostics remain future scope. See the linked design;
 keep all existing destinations and private configuration workflows accessible.
 
 **MVP views:**
