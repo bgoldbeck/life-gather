@@ -4,7 +4,9 @@ WORKDIR /frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./
-RUN npm run build
+COPY backend/src/lifegather/version.py /backend/src/lifegather/version.py
+ARG APP_REVISION=""
+RUN LIFEGATHER_BUILD_REVISION=$APP_REVISION npm run build
 
 FROM python:3.13-slim-bookworm AS backend-build
 COPY --from=ghcr.io/astral-sh/uv:0.13.0 /uv /uvx /bin/

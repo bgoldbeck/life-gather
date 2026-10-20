@@ -1,0 +1,16 @@
+.client-update-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--warning-border);
+  background: var(--warning-surface);
+  color: var(--warning-foreground);
+}
+.client-update-notice p {
+  margin: 0;
+  flex: 1 1 16rem;
+}

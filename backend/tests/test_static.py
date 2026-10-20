@@ -50,3 +50,45 @@ def test_creates_private_data_directory_outside_web_root(
         assert client.get("/data/private.txt").status_code == 404
 
     assert (data_dir / "private.txt").read_text(encoding="utf-8") == "private fixture"
+
+
+def test_static_cache_policy_revalidates_html_and_only_pins_hashed_assets(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    static_dir = tmp_path / "static"
+    (static_dir / "assets").mkdir(parents=True)
+    for filename in (
+        "index.html",
+        "app.js",
+        "assets/index-AbC123xy.js",
+        "assets/page-AbC123xy.html",
+    ):
+        (static_dir / filename).write_text("synthetic static content", encoding="utf-8")
+    monkeypatch.setenv("LIFEGATHER_STATIC_DIR", str(static_dir))
+    with TestClient(create_app()) as client:
+        for path in (
+            "/",
+            "/index.html",
+            "/app.js",
+            "/missing.js",
+            "/assets/missing-AbC123xy.js",
+            "/assets/page-AbC123xy.html",
+        ):
+            assert (
+                client.get(path).headers["cache-control"] == "no-cache, must-revalidate"
+            )
+        html = client.get("/")
+        unchanged = client.get("/", headers={"If-None-Match": html.headers["etag"]})
+        assert unchanged.status_code == 304
+        assert unchanged.headers["cache-control"] == "no-cache, must-revalidate"
+        asset = client.get("/assets/index-AbC123xy.js")
+        assert asset.headers["cache-control"] == "public, max-age=31536000, immutable"
+        html_asset = client.get("/assets/page-AbC123xy.html")
+        assert (
+            client.get(
+                "/assets/page-AbC123xy.html",
+                headers={"If-None-Match": html_asset.headers["etag"]},
+            ).headers["cache-control"]
+            == "no-cache, must-revalidate"
+        )
+        assert client.get("/api/version").headers["cache-control"] == "no-store"

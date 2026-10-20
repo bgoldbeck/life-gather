@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.58.1 — Detect stale browser UI after deployment
+
+- Revalidate startup HTML and other non-hashed static files on ordinary reload;
+  only successful content-hashed Vite assets receive immutable caching. Preserve
+  API no-store and private static/data isolation, including conditional responses.
+- Embed frontend version from the single backend version source and the Docker
+  revision argument. Keep the displayed version tied to the executing UI bundle;
+  focus/minute session checks detect a changed server build and offer Reload.
+  Explain unsaved draft loss; never reload automatically or erase drafts on checks.
+- No schema, dependency, permissions or ingestion change. Existing tabs running
+  pre-fix code need one reload to acquire this behavior. No running-app redeployment.
+
 ## 0.58.0 — Power Center capability readiness and observed health
 
 - Add a primary Power Center with source/category filters, real seven-day scan
