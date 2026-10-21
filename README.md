@@ -70,6 +70,12 @@ To build and publish when your connection is free, use the [local release script
 
 Install Docker Engine with the Compose plugin on Linux, or Docker Desktop with the Linux engine on Windows/macOS. No host Python or Node.js installation is needed for this path.
 
+The standalone test-preview launcher names containers `lifegather-preview-v<version>`
+using the downloaded image's OCI version label and starts that exact inspected
+image ID. Docker's Name column therefore identifies the running version. Existing
+containers keep their actual version until deliberately recreated; source updates
+and image publication do not redeploy them. Compose project/volume names stay stable.
+
 From the repository root:
 
 ```powershell

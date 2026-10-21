@@ -14,3 +14,6 @@ Docker's container Name column. Keep the same v0.59.0 release deliberately bundl
   failed downloads. Compose project/volume names stay stable.
 - Commit the tested launcher separately, then include it in the authorized source
   PR and local image publication; no additional automatic deployment is implied.
+
+Offline verification passed all eight launcher cases and the three existing release
+script suites. The actual renamed preview remained healthy on its original image.

@@ -17,11 +17,11 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
 if ((Invoke-Docker @('info', '--format', '{{.OSType}}')) -ne 'linux') {
     throw 'Start Docker Desktop with the Linux engine.'
 }
-$containerName = 'lifegather-preview'
 $image = 'ghcr.io/bgoldbeck/life-gather:latest'
-$existing = Invoke-Docker @('container', 'ls', '--all', '--quiet', '--filter', 'name=^/lifegather-preview$')
-if ($existing) {
-    $details = @(Invoke-Docker @('inspect', $containerName) | ConvertFrom-Json)[0]
+$existing = @(Invoke-Docker @('container', 'ls', '--all', '--quiet', '--filter', 'name=^/lifegather-preview(-v[0-9]+\.[0-9]+\.[0-9]+)?$'))
+if ($existing.Count -gt 1) { throw 'Multiple preview containers found. Stopped rather than choose one or change storage.' }
+if ($existing.Count -eq 1) {
+    $details = @(Invoke-Docker @('inspect', $existing[0]) | ConvertFrom-Json)[0]
     $mounts = @($details.Mounts)
     if ($mounts.Count -ne 1 -or $mounts[0].Destination -ne '/data' -or
         $mounts[0].Type -ne 'volume' -or $mounts[0].Name -ne 'lifegather-preview-data') {
@@ -39,16 +39,23 @@ if ($existing) {
 
 Write-Host 'Downloading the latest image first. This can use internet bandwidth.'
 Invoke-Docker @('pull', $image) | Out-Host
-if ($existing) {
-    Invoke-Docker @('stop', $containerName) | Out-Host
-    Invoke-Docker @('rm', $containerName) | Out-Host
+$imageDetails = @(Invoke-Docker @('image', 'inspect', $image) | ConvertFrom-Json)[0]
+$imageVersion = $imageDetails.Config.Labels.'org.opencontainers.image.version'
+$imageId = $imageDetails.Id
+if ($imageVersion -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$' -or $imageId -notmatch '^sha256:[a-f0-9]{64}$') {
+    throw 'The downloaded image has no valid application version/immutable ID. Existing containers were not changed.'
+}
+$containerName = 'lifegather-preview-v' + $imageVersion
+if ($existing.Count -eq 1) {
+    Invoke-Docker @('stop', $existing[0]) | Out-Host
+    Invoke-Docker @('rm', $existing[0]) | Out-Host
 }
 Invoke-Docker @(
     'run', '-d', '--name', $containerName, '--pull', 'never',
     '-p', '127.0.0.1:8787:8787', '-v', 'lifegather-preview-data:/data',
-    '-e', 'LIFEGATHER_TEST_LOGIN_ENABLED=true', '--restart', 'unless-stopped', $image
+    '-e', 'LIFEGATHER_TEST_LOGIN_ENABLED=true', '--restart', 'unless-stopped', $imageId
 ) | Out-Host
 Write-Host ''
-Write-Host 'Started. Open http://127.0.0.1:8787/ after the app becomes healthy.'
+Write-Host "Started $containerName from image $imageId. Open http://127.0.0.1:8787/ after the app becomes healthy."
 Write-Host 'Sign out if needed, then click Continue as test user.'
 Write-Host 'Your lifegather-preview-data volume was preserved. Use test data only.'

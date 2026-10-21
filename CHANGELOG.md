@@ -18,6 +18,10 @@
   and preserves them. Unused default definitions are virtual until edited/used.
 - Text fields are descriptive; no new accounting semantics, automatic compatibility,
   inferred values, required-field migration, ingestion or live redeployment.
+- The preview launcher names new containers `lifegather-preview-v<actual-version>`
+  from the downloaded image's OCI label and starts its inspected immutable ID.
+  Recognize legacy/versioned names, refuse multiple previews or invalid metadata,
+  and retain storage/settings protections and pull-before-stop ordering.
 
 ## 0.58.1 — Detect stale browser UI after deployment
 
