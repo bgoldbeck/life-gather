@@ -94,6 +94,8 @@ class EntityView(BaseModel):
 
 
 class FactView(BaseModel):
+    label: str | None = None
+    display_value: str | None = None
     id: str
     subject_id: str
     predicate: str

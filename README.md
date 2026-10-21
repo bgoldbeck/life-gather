@@ -1,6 +1,6 @@
 # LifeGather
 
-[![Source version](https://img.shields.io/badge/source_version-v0.58.1-426B46)](CHANGELOG.md)
+[![Source version](https://img.shields.io/badge/source_version-v0.59.0-426B46)](CHANGELOG.md)
 
 This badge identifies the source release. Check the login screen or app header for your running container’s version.
 
@@ -69,6 +69,12 @@ For TrueNAS or an installation without a local source build, use the published i
 To build and publish when your connection is free, use the [local release script and instructions](docs/LOCAL_RELEASE.md). It asks separately before building and uploading, reports local image sizes, and never pushes or merges source code.
 
 Install Docker Engine with the Compose plugin on Linux, or Docker Desktop with the Linux engine on Windows/macOS. No host Python or Node.js installation is needed for this path.
+
+The standalone test-preview launcher names containers `lifegather-preview-v<version>`
+using the downloaded image's OCI version label and starts that exact inspected
+image ID. Docker's Name column therefore identifies the running version. Existing
+containers keep their actual version until deliberately recreated; source updates
+and image publication do not redeploy them. Compose project/volume names stay stable.
 
 From the repository root:
 

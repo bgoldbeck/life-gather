@@ -1,6 +1,7 @@
 from alembic import context
 
 from lifegather.assets import models as asset_models  # noqa: F401
+from lifegather.assets import type_models  # noqa: F401
 from lifegather.auth import email_models  # noqa: F401
 from lifegather.auth.models import Base
 from lifegather.chat import models as chat_models  # noqa: F401

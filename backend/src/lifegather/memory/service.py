@@ -361,7 +361,31 @@ class MemoryService:
         if known_at is not None:
             query = query.where(Evidence.recorded_at <= known_at)
         evidence = list(db.scalars(query.order_by(Evidence.id).limit(100)))
+        label = None
+        display_value = None
+        if row.predicate.startswith("profile_template_") and known_at is None:
+            from lifegather.assets.type_models import AssetTypeField
+
+            label = db.scalar(
+                select(AssetTypeField.name).where(
+                    AssetTypeField.user_id == actor.id,
+                    AssetTypeField.id
+                    == row.predicate.removeprefix("profile_template_"),
+                )
+            )
+        if row.predicate == "profile_asset_type" and known_at is None:
+            from lifegather.assets.type_models import AssetType
+
+            label = "Asset type"
+            display_value = db.scalar(
+                select(AssetType.name).where(
+                    AssetType.user_id == actor.id,
+                    AssetType.id == json.loads(row.value_json or "null"),
+                )
+            )
         return FactView(
+            label=label,
+            display_value=display_value,
             id=row.id,
             subject_id=row.subject_id,
             predicate=row.predicate,

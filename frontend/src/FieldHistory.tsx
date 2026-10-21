@@ -11,6 +11,7 @@ type Origin = {
   model: string | null
 }
 type Version = {
+  display_value?: string | null
   id: string
   value: unknown
   object_id: string | null
@@ -56,6 +57,7 @@ function valueText(value: unknown, object: string | null) {
 }
 
 type Props = {
+  label?: string
   entityId: string
   field: string
   onOpenSource: (id: string) => void
@@ -65,7 +67,7 @@ export function FieldHistory(props: Props) {
     <FieldHistoryPage key={`${props.entityId}:${props.field}`} {...props} />
   )
 }
-function FieldHistoryPage({ entityId, field, onOpenSource }: Props) {
+function FieldHistoryPage({ entityId, field, label, onOpenSource }: Props) {
   const [page, setPage] = useState<Page | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -131,7 +133,7 @@ function FieldHistoryPage({ entityId, field, onOpenSource }: Props) {
   return (
     <section
       className="field-history"
-      aria-label={`${factLabel(field)} change history`}
+      aria-label={`${label ?? factLabel(field)} change history`}
     >
       {(!page || page.next_cursor) && (
         <Button variant="outline" disabled={busy} onClick={() => void load()}>
@@ -139,7 +141,7 @@ function FieldHistoryPage({ entityId, field, onOpenSource }: Props) {
             ? 'Loading field history…'
             : page
               ? 'More field changes'
-              : `View ${factLabel(field)} history`}
+              : `View ${label ?? factLabel(field)} history`}
         </Button>
       )}
       {error && <p role="alert">{error}</p>}
@@ -157,7 +159,7 @@ function FieldHistoryPage({ entityId, field, onOpenSource }: Props) {
                     →{' '}
                   </>
                 )}
-                {valueText(item.value, item.object_id)}
+                {valueText(item.display_value ?? item.value, item.object_id)}
               </p>
               <p>{attribution(item.origin)}</p>
               {item.proposal_origin && (

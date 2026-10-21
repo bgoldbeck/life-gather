@@ -13,7 +13,8 @@ independently of the existing right-default contextual assistant.
 Planned user addition, 2026-10-20: [editable asset types](docs/superpowers/specs/2026-10-20-custom-asset-types-design.md)
 provides Vehicle, Appliance, Electronics, Furniture and Tools & Equipment as editable
 defaults, private custom types selectable during manual entry, and safe later field
-additions preserving existing evidence/history. This is design scope, not delivered functionality.
+additions preserving existing evidence/history. Delivered in v0.59.0 with migration
+0026, records format 4 and authenticated MCP view/add/edit. See [Asset types](docs/ASSET_TYPES.md).
 
 User addition, 2026-10-20: [broader document support](docs/superpowers/specs/2026-10-20-broader-document-support-design.md)
 targets Word (`.docx`), Excel (`.xlsx`), plain text, Markdown and CSV alongside PDF,

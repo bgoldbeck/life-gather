@@ -272,10 +272,10 @@ export function GraphPanel({
             {graph.facts.map((row) => (
               <li key={row.id}>
                 <Button variant="outline" onClick={() => setFact(row)}>
-                  {factLabel(row.predicate)}:{' '}
+                  {row.label ?? factLabel(row.predicate)}:{' '}
                   {row.object_id
                     ? name(row.object_id)
-                    : String(row.value ?? 'Unknown')}{' '}
+                    : String(row.display_value ?? row.value ?? 'Unknown')}{' '}
                   ({row.status})
                 </Button>
               </li>
@@ -292,12 +292,12 @@ export function GraphPanel({
                 field={fact.predicate}
                 onOpenSource={openSource}
               />
-              <h3>{factLabel(fact.predicate)}</h3>
+              <h3>{fact.label ?? factLabel(fact.predicate)}</h3>
               <p>
                 {name(fact.subject_id)} →{' '}
                 {fact.object_id
                   ? name(fact.object_id)
-                  : String(fact.value ?? 'Unknown')}
+                  : String(fact.display_value ?? fact.value ?? 'Unknown')}
               </p>
               <p>
                 Status: <strong>{fact.status}</strong>

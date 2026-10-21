@@ -5,6 +5,8 @@ export type GraphEntity = {
   source_id: string
 }
 export type GraphFact = {
+  label?: string | null
+  display_value?: string | null
   id: string
   subject_id: string
   object_id: string | null

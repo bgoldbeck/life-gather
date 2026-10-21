@@ -196,8 +196,9 @@ function ProfileEditor({
       <ul className="profile-facts">
         {page?.facts.map((fact) => (
           <li key={fact.id}>
-            <strong>{profileLabel(fact.predicate)}</strong>:{' '}
-            {String(fact.value ?? 'Unknown')} ({fact.status}){' '}
+            <strong>{fact.label ?? profileLabel(fact.predicate)}</strong>:{' '}
+            {String(fact.display_value ?? fact.value ?? 'Unknown')} (
+            {fact.status}){' '}
             {fact.superseded_at !== null && <span>— superseded</span>}
             <p>
               Valid: {fact.valid_from ?? 'Unknown'} to{' '}

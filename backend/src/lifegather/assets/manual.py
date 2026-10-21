@@ -1,18 +1,21 @@
 """Explicit manual inventory declarations using shared physical identity rules."""
 
+import json
 from typing import Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session
 
+from lifegather.assets.type_schemas import FieldValue, TypeAssign, TypeFieldSave
+from lifegather.assets.types import AssetTypes
 from lifegather.auth.store import Account
 from lifegather.memory.history import event_origin
-from lifegather.memory.models import Entity
+from lifegather.memory.models import Assertion, Entity
 from lifegather.memory.notes import NoteConflict
 from lifegather.memory.origins import change_origin
 from lifegather.memory.schemas import FactInput, SourceInput
-from lifegather.memory.service import MemoryService
+from lifegather.memory.service import MemoryError, MemoryService, fingerprint
 from lifegather.reconciliation.inventory import current_ownership
 from lifegather.reconciliation.proposals import ProposalService
 from lifegather.reconciliation.schemas import DiscoveryInput
@@ -29,9 +32,25 @@ class ManualAssetFields(BaseModel):
     serial: str | None = Field(default=None, min_length=1, max_length=100)
     notes: str = Field(default="", max_length=2000)
     ownership_confirmed: StrictBool
+    type_id: str | None = Field(default=None, min_length=1, max_length=36)
+    type_revision: str | None = Field(default=None, min_length=1, max_length=100)
+    type_values: list[FieldValue] = Field(default_factory=list, max_length=32)
 
     @model_validator(mode="after")
     def declaration(self) -> Self:
+        if (
+            sum(len(value.text) + len(value.value or "") for value in self.type_values)
+            > 12000
+        ):
+            raise ValueError("Template values and evidence exceed the entry limit")
+        if bool(self.type_id) != bool(self.type_revision) or (
+            self.type_values and not self.type_id
+        ):
+            raise ValueError(
+                "Typed entry requires a selected type and current revision"
+            )
+        if len({value.field_id for value in self.type_values}) != len(self.type_values):
+            raise ValueError("Supply each template field only once")
         if not self.ownership_confirmed:
             raise ValueError("Confirm current ownership to add inventory")
         if any(
@@ -85,6 +104,20 @@ class ManualAssets:
         self.memory = MemoryService(engine)
         self.reconcile = ReconciliationService(engine)
         self.proposals = ProposalService(engine)
+        self.types = AssetTypes(engine)
+
+    def check_type(self, db: Session, actor: Account, data: ManualAssetFields) -> None:
+        if data.type_id:
+            template = self.types._get(db, actor, data.type_id)
+            if template["retired"] or template["revision"] != data.type_revision:
+                raise NoteConflict(
+                    "Asset type changed or retired. Reload the type before saving."
+                )
+            active = {
+                field["id"] for field in template["fields"] if not field["retired"]
+            }
+            if any(value.field_id not in active for value in data.type_values):
+                raise MemoryError("Choose active fields from the selected private type")
 
     def matches(
         self, db: Session, actor: Account, fields: ManualAssetFields
@@ -117,6 +150,7 @@ class ManualAssets:
         data = ManualAssetFields.model_validate(value)
         with Session(self.engine) as db:
             db.connection().exec_driver_sql("BEGIN")
+            self.check_type(db, actor, data)
             candidates, reliable = self.matches(db, actor, data)
             return {
                 "candidates": [
@@ -151,6 +185,23 @@ class ManualAssets:
                         f"{data.quote()}\nNotes:\n{data.notes}\n"
                         f"Identity choice: {data.action}\n"
                         f"Target: {data.asset_id or 'new item'}"
+                        + (
+                            "\nAsset type input:\n"
+                            + json.dumps(
+                                {
+                                    "type_id": data.type_id,
+                                    "type_revision": data.type_revision,
+                                    "type_values": [
+                                        item.model_dump(mode="json")
+                                        for item in data.type_values
+                                    ],
+                                },
+                                sort_keys=True,
+                                ensure_ascii=False,
+                            )
+                            if data.type_id
+                            else ""
+                        )
                     ),
                     namespace="manual-assets",
                     external_id=data.request_id,
@@ -162,6 +213,7 @@ class ManualAssets:
                     db, actor, source.id, saved["related_id"], data.action == "new"
                 )
             candidates, reliable = self.matches(db, actor, data)
+            self.check_type(db, actor, data)
             if sorted(data.candidate_ids) != candidates:
                 raise NoteConflict(
                     "Possible matches changed. Check duplicates again before saving."
@@ -199,6 +251,49 @@ class ManualAssets:
                     ownership_status="stated",
                 )
             asset_id = discovery.asset_ids[0]
+            if data.type_id:
+                from lifegather.assets.identity import member_ids
+
+                assignments = list(
+                    db.scalars(
+                        select(Assertion)
+                        .where(
+                            Assertion.user_id == actor.id,
+                            Assertion.subject_id.in_(member_ids(db, actor, asset_id)),
+                            Assertion.predicate == "profile_asset_type",
+                            Assertion.superseded_at.is_(None),
+                        )
+                        .limit(3)
+                    )
+                )
+                if not assignments:
+                    self.types._assign_in(
+                        db,
+                        actor,
+                        TypeAssign(
+                            entity_id=asset_id,
+                            type_id=data.type_id,
+                            request_id="manual:" + fingerprint(data.request_id),
+                        ),
+                    )
+                elif any(
+                    row.value_json != json.dumps(data.type_id) for row in assignments
+                ):
+                    raise NoteConflict(
+                        "Different type. Change it explicitly in asset details first."
+                    )
+                for field_value in data.type_values:
+                    self.types._field_in(
+                        db,
+                        actor,
+                        TypeFieldSave(
+                            entity_id=asset_id,
+                            type_id=data.type_id,
+                            request_id="manual:"
+                            + fingerprint([data.request_id, field_value.field_id]),
+                            **field_value.model_dump(),
+                        ),
+                    )
             for field in ("manufacturer", "model", "serial"):
                 if entry := getattr(data, field):
                     self.memory._put_fact_in(

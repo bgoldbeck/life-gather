@@ -35,6 +35,15 @@ from lifegather.assets.replacements import (
     ReplacementWithdraw,
 )
 from lifegather.assets.service import AssetList, AssetRead, AssetService
+from lifegather.assets.type_schemas import (
+    TypeAssign,
+    TypedAssetRead,
+    TypeFieldSave,
+    TypeList,
+    TypeRead,
+    TypeSave,
+)
+from lifegather.assets.types import AssetTypes
 from lifegather.auth.store import Account, AuthStore
 from lifegather.chat.context import ContextRead, WorkspaceContexts
 from lifegather.chat.organizer import OrganizationAction, WorkspaceOrganizer
@@ -207,6 +216,79 @@ def build_server(power_factory: Callable[[], PowerCenter] | None = None) -> MCPS
         idempotent_hint=True,
         open_world_hint=False,
     )
+    type_write = ToolAnnotations(
+        read_only_hint=False,
+        destructive_hint=False,
+        idempotent_hint=True,
+        open_world_hint=False,
+    )
+
+    @server.tool(annotations=annotation)
+    def asset_types_list(data: TypeList, ctx: ToolContext) -> dict[str, Any]:
+        """List private editable defaults and custom types; creates no assets."""
+        return read(
+            ctx,
+            lambda actor, memory, _: AssetTypes(memory.engine).list(
+                actor, data.include_retired, data.cursor
+            ),
+        )
+
+    @server.tool(annotations=annotation)
+    def asset_type_get(data: TypeRead, ctx: ToolContext) -> dict[str, Any]:
+        """Read the current private type definition and stable field IDs."""
+        return read(
+            ctx,
+            lambda actor, memory, _: AssetTypes(memory.engine).get(actor, data.type_id),
+        )
+
+    @server.tool(annotations=annotation)
+    def asset_type_history(data: TypeRead, ctx: ToolContext) -> dict[str, Any]:
+        """Page immutable private definition revisions, including retired fields."""
+        return read(
+            ctx,
+            lambda actor, memory, _: AssetTypes(memory.engine).history(
+                actor, data.type_id, data.cursor
+            ),
+        )
+
+    @server.tool(annotations=type_write)
+    def asset_type_save(data: TypeSave, ctx: ToolContext) -> dict[str, Any]:
+        """Create/edit an explicitly requested type. Keep existing field IDs;
+        retire rather than delete; supply expected_revision for edits.
+        Copy by omitting type ID and field IDs. Does not create possessions.
+        """
+        return read(
+            ctx, lambda actor, memory, _: AssetTypes(memory.engine).save(actor, data)
+        )
+
+    @server.tool(annotations=annotation)
+    def asset_typed_get(data: TypedAssetRead, ctx: ToolContext) -> dict[str, Any]:
+        """Read current assignments and page sourced typed asset values/history."""
+        return read(
+            ctx,
+            lambda actor, memory, _: AssetTypes(memory.engine).record(
+                actor, data.entity_id, data.history, data.cursor
+            ),
+        )
+
+    @server.tool(annotations=type_write)
+    def asset_type_assign(data: TypeAssign, ctx: ToolContext) -> dict[str, Any]:
+        """Explicitly assign/change an asset type, preserving facts/relationships.
+        Existing assignments require replaces_id; conflicts are never merged.
+        """
+        return read(
+            ctx, lambda actor, memory, _: AssetTypes(memory.engine).assign(actor, data)
+        )
+
+    @server.tool(annotations=type_write)
+    def asset_type_field_save(data: TypeFieldSave, ctx: ToolContext) -> dict[str, Any]:
+        """Save supplied value/evidence or correct replaces_id. Null means unknown.
+        Never infer compatibility, ownership or financial amounts.
+        """
+        return read(
+            ctx,
+            lambda actor, memory, _: AssetTypes(memory.engine).save_field(actor, data),
+        )
 
     @server.tool(annotations=annotation)
     def power_center_get(data: PowerRead, ctx: ToolContext) -> dict[str, Any]:
