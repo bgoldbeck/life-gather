@@ -94,7 +94,7 @@ def test_owned_archive_preserves_originals_history_money_units_and_customs(
     raw = PersonalArchive(case.store.engine).download(case.alice)
     manifest, records, content = unpack(raw)
     assert manifest["format"] == "lifegather-personal-archive/1"
-    assert records["format"] == "lifegather-records/3"
+    assert records["format"] == "lifegather-records/4"
     assert manifest["snapshot_at"] == records["snapshot_at"]
     assert (
         manifest["records"]["sha256"]

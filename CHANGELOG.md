@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.59.0 — Editable private asset types and typed manual entry
+
+- Provide Vehicle, Appliance, Electronics, Furniture and Tools & Equipment defaults,
+  plus private custom/copyable types. Rename, arrange, add and retire optional text
+  fields with stable IDs, immutable definition revisions and stale-edit protection.
+- Select a type in manual entry; save supplied values atomically with the existing
+  duplicate/identity choice and stated ownership. Inspect, explicitly reassign and
+  correct sourced fields on existing assets without erasing original facts/history.
+  Consolidation preserves member type conflicts and original correction subjects.
+- Authenticated HTTP and MCP share validation and owner isolation. MCP can list,
+  inspect, create/edit types, add typed assets and inspect/edit sourced asset fields.
+  Stable requests permit safe retries; no AI provider is needed or contacted.
+- Migration `0026_asset_types` adds three owner-scoped definition/field/revision
+  tables; existing custom predicates and physical records are unchanged. Personal
+  records format 4 adds these definitions to JSON/ZIP; operator recovery validates
+  and preserves them. Unused default definitions are virtual until edited/used.
+- Text fields are descriptive; no new accounting semantics, automatic compatibility,
+  inferred values, required-field migration, ingestion or live redeployment.
+
 ## 0.58.1 — Detect stale browser UI after deployment
 
 - Revalidate startup HTML and other non-hashed static files on ordinary reload;

@@ -23,8 +23,9 @@ User decisions, 2026-10-20: provide editable Vehicle, Appliance, Electronics,
 Furniture and Tools & Equipment defaults, plus private user-created types selectable
 when manually adding assets. Users can add fields later without losing existing
 values, sources or history. See [editable asset types](2026-10-20-custom-asset-types-design.md)
-for isolation, stable identifiers and acceptance criteria. Reusable types remain
-planned; existing named per-record profile details do not implement a template registry.
+for isolation, stable identifiers and acceptance criteria. v0.59.0 delivers reusable
+optional-text-field types and MCP view/add/edit; existing named per-record profile
+details remain supported without renaming their stored predicates.
 
 ## Power Center and navigation additions
 

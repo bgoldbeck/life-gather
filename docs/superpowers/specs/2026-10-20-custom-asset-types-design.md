@@ -1,6 +1,7 @@
 # Editable asset types and manual entry
 
-User decisions: 2026-10-20. Status: planned requirements, not implemented behavior.
+User decisions: 2026-10-20. Implemented as the optional-text-field slice in v0.59.0;
+see [Asset types](../../ASSET_TYPES.md) for delivered controls, APIs and limits.
 This extends the personal-discovery design and manual inventory workflow.
 
 ## Purpose
@@ -89,4 +90,6 @@ thin HTTP/MCP adapters and keep manual creation/correction usable without AI.
    compatibility before implementation; existing name-derived custom predicates
    must not be wholesale renamed or silently discarded.
 
-No application code, version bump, migration or deployment accompanies this design.
+The original design-only commit changed no application behavior. The implementation
+release uses migration 0026 and records format 4; richer typed widgets and required
+field migrations remain separately scoped. No running-app deployment is implied.

@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { CandidateComparison } from './CandidateComparison'
+import { AssetTypePicker } from './AssetTypePicker'
+import type { AssetType, TypeValue } from './assetTypes'
+import './asset-types.css'
 
 type Fields = {
+  type_id?: string
+  type_revision?: string
+  type_values?: TypeValue[]
   name: string
   manufacturer: string | null
   model: string | null
@@ -47,6 +53,8 @@ export function ManualAssetForm({
     notes: '',
   })
   const [owned, setOwned] = useState(false)
+  const [assetType, setAssetType] = useState<AssetType | null>(null)
+  const [typeValues, setTypeValues] = useState<TypeValue[]>([])
   const [preview, setPreview] = useState<Preview | null>(null)
   const [busy, setBusy] = useState(false)
   const [retry, setRetry] = useState(false)
@@ -76,6 +84,13 @@ export function ManualAssetForm({
       model: fields.model.trim() || null,
       serial: fields.serial.trim() || null,
       ownership_confirmed: owned,
+      ...(assetType
+        ? {
+            type_id: assetType.id,
+            type_revision: assetType.revision,
+            type_values: typeValues,
+          }
+        : {}),
     }
   }
   async function post(path: string, body: object, signal?: AbortSignal) {
@@ -184,6 +199,16 @@ export function ManualAssetForm({
       </p>
       <form onSubmit={(event) => void submit(event)}>
         <fieldset disabled={frozen} className="manual-asset-fields">
+          <AssetTypePicker
+            disabled={frozen}
+            refreshSession={refreshSession}
+            onChange={(type, values) => {
+              setAssetType(type)
+              setTypeValues(values)
+              setPreview(null)
+              setError('')
+            }}
+          />
           <label>
             Asset name
             <input

@@ -34,10 +34,10 @@ def test_empty_export_has_explicit_scope_and_no_account_identity(
     auth, actor, _, _, _ = setup(tmp_path)
     raw = RecordExport(auth.engine).download(actor)
     data = json.loads(raw)
-    assert data["format"] == "lifegather-records/3"
+    assert data["format"] == "lifegather-records/4"
     assert datetime.fromisoformat(data["snapshot_at"]).tzinfo is not None
     assert data["total_records"] == 0
-    assert len(data["collections"]) == 26
+    assert len(data["collections"]) == 29
     assert all(not rows for rows in data["collections"].values())
     assert data["counts"] == {name: 0 for name in data["collections"]}
     assert "not a restorable backup" in data["purpose"]

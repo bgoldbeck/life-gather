@@ -46,12 +46,13 @@ not guess who made an old change or relabel its confidence.
 
 ## File format
 
-The envelope identifies `format: "lifegather-records/3"`, `application_version`,
+The envelope identifies `format: "lifegather-records/4"`, `application_version`,
 UTC `snapshot_at`, purpose, exclusions, per-collection `counts` and `total_records`.
 `collections` contains arrays with these stable names:
 
 | Collections | Meaning |
 | --- | --- |
+| `asset_types`, `asset_type_fields`, `asset_type_revisions` | Saved private templates, stable field IDs and immutable definition snapshots (format 4) |
 | `memory_sources`, `memory_entities`, `memory_aliases` | Original episodes and named records |
 | `memory_facts`, `memory_evidence`, `memory_audit`, `memory_note_revisions` | Statements, provenance and preserved history |
 | `reconciliation_purchases`, `reconciliation_lines`, `reconciliation_observations` | Purchase identity, quantities and source observations |

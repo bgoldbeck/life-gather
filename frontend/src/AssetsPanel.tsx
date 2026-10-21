@@ -12,6 +12,8 @@ import { AssetPurchases } from './AssetPurchases'
 import { FieldHistory } from './FieldHistory'
 import { factLabel } from './profileFields'
 import { ManualAssetForm, type ManualAssetResult } from './ManualAssetForm'
+import { AssetTypeManager } from './AssetTypeManager'
+import { TypedAssetDetails } from './TypedAssetDetails'
 import { AssetConsolidation, type Consolidation } from './AssetConsolidation'
 import {
   ConsolidationHistory,
@@ -41,6 +43,8 @@ type Decision = {
   superseded_at: number | null
 }
 type Fact = {
+  label?: string | null
+  display_value?: string | null
   id: string
   predicate: string
   value: unknown
@@ -114,6 +118,7 @@ export function AssetsPanel({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [adding, setAdding] = useState(false)
+  const [managingTypes, setManagingTypes] = useState(false)
   const [notice, setNotice] = useState('')
   const generation = useRef(0)
   const selectedAsset = useRef('')
@@ -362,6 +367,19 @@ export function AssetsPanel({
       >
         Add asset
       </Button>
+      <Button
+        variant="outline"
+        disabled={adding}
+        onClick={() => setManagingTypes((value) => !value)}
+      >
+        {managingTypes ? 'Close asset type manager' : 'Manage asset types'}
+      </Button>
+      {managingTypes && (
+        <AssetTypeManager
+          csrfToken={csrfToken}
+          refreshSession={refreshSession}
+        />
+      )}
       {adding && (
         <ManualAssetForm
           csrfToken={csrfToken}
@@ -451,6 +469,14 @@ export function AssetsPanel({
       {detail && (
         <section className="asset-detail" aria-label="Asset details">
           <h2 ref={detailHeading}>{detail.asset.name}</h2>
+          <TypedAssetDetails
+            key={detail.asset.id}
+            assetId={detail.asset.id}
+            csrfToken={csrfToken}
+            refreshSession={refreshSession}
+            onEvidence={evidence}
+            onChanged={() => open(detail.asset.id)}
+          />
           {Boolean(detail.identity_history?.length) && (
             <ConsolidationHistory
               key={`identity:${detail.asset.id}:${detail.identity_history?.[0]?.id}:${detail.identity_history?.[0]?.superseded_at}`}
@@ -702,13 +728,14 @@ export function AssetsPanel({
               <FieldHistory
                 entityId={detail.asset.id}
                 field={fact.predicate}
+                label={fact.label ?? undefined}
                 onOpenSource={evidence}
               />
               <p>
-                {factLabel(fact.predicate)}:{' '}
+                {fact.label ?? factLabel(fact.predicate)}:{' '}
                 {fact.object_id
                   ? (fact.object_name ?? 'Linked item')
-                  : JSON.stringify(fact.value)}{' '}
+                  : JSON.stringify(fact.display_value ?? fact.value)}{' '}
                 · {fact.status} ·{' '}
                 {fact.superseded_at === null
                   ? 'latest version of this statement'

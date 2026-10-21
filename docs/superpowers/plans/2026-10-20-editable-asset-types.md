@@ -25,23 +25,28 @@ Defaults are deterministic per owner and never create possessions or facts.
 
 ## Tasks and acceptance
 
-1. [ ] Write service tests for defaults, custom definitions, revisions, retries,
+1. [x] Write service tests for defaults, custom definitions, revisions, retries,
    stale heads, reserved labels, owner isolation and retirement. Observe failure.
    Implement assets/type_models.py, type_schemas.py, types.py and migration 0026.
-2. [ ] Extend manual.py transactionally with selected type/revision and supplied
+2. [x] Extend manual.py transactionally with selected type/revision and supplied
    fields; preserve identity preview/link/retry guards. Add explicit existing-asset
    assignment and sourced value correction operations. Test atomic rollback,
    same-model units, later optional fields and conflicting consolidation members.
-3. [ ] Add HTTP and authenticated MCP tools using the same services; test CSRF,
+3. [x] Add HTTP and authenticated MCP tools using the same services; test CSRF,
    authority, bounded results, complete read/create/edit journeys and denied IDs.
-4. [ ] Build a small accessible type manager and typed asset detail editor; integrate
+4. [x] Build a small accessible type manager and typed asset detail editor; integrate
    manual selector/dynamic fields. Test interactions, loading/errors and retries.
-5. [ ] Export definitions/revisions in records format 4; test private JSON/ZIP,
+5. [x] Export definitions/revisions in records format 4; test private JSON/ZIP,
    migration and operator snapshot/recovery. Document limits and bump to 0.59.0.
-6. [ ] Run backend suites/Ruff/strict mypy/build, frontend tests/lint/types/build,
+6. [x] Run backend suites/Ruff/strict mypy/build, frontend tests/lint/types/build,
    browser QA and final review. Refresh source graph/HTML once verification passes.
 7. [ ] Fetch/reconcile current main, commit/push tested feature, PR/merge/cleanup;
    build isolated Linux amd64 image, smoke, publish SHA/latest and verify digest.
 
 Commit this plan and push early for feature visibility before implementation.
 Do not redeploy running instances or enable GitHub Actions.
+
+Verification before feature commit: 653 backend tests; 311 frontend tests; Ruff,
+strict mypy, frontend lint/types/format/build, wheel/sdist and browser QA passed.
+Graph/HTML refreshed: 3744 nodes, 15469 edges. Graphify partially extracts
+AssetsPanel.tsx (parser limitation; TypeScript passes), and two files have no symbols.

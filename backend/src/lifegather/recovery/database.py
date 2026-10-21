@@ -14,7 +14,12 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from lifegather.recovery.envelope import CHUNK_BYTES, RecoveryError
 
 SUPPORTED_MIGRATIONS = frozenset(
-    {"0023_asset_consolidation", "0024_maintenance", "0025_document_formats"}
+    {
+        "0023_asset_consolidation",
+        "0024_maintenance",
+        "0025_document_formats",
+        "0026_asset_types",
+    }
 )
 
 
@@ -74,7 +79,11 @@ def validate_database(
                 raise RecoveryError(
                     "Snapshot migration is not supported by this release"
                 )
-            if revisions[0][0] in ("0024_maintenance", "0025_document_formats"):
+            if revisions[0][0] in (
+                "0024_maintenance",
+                "0025_document_formats",
+                "0026_asset_types",
+            ):
                 # A current schema marker must include complete typed task storage.
                 # Older accepted snapshots deliberately need no maintenance tables.
                 db.execute(
@@ -92,13 +101,33 @@ def validate_database(
                     "AND r.task_id=t.id AND r.superseded_at IS NULL) LIMIT 1"
                 ).fetchone():
                     raise RecoveryError("Snapshot maintenance history is incomplete")
-            if revisions[0][0] == "0025_document_formats":
+            if revisions[0][0] in ("0025_document_formats", "0026_asset_types"):
                 if db.execute(
                     "SELECT 1 FROM documents WHERE format NOT IN "
                     "('pdf','docx','xlsx','txt','md','csv') "
                     "OR NOT json_valid(extraction_metadata) LIMIT 1"
                 ).fetchone():
                     raise RecoveryError("Snapshot document metadata is invalid")
+            if revisions[0][0] == "0026_asset_types":
+                db.execute(
+                    "SELECT id,type_id,name,system_field,retired,position "
+                    "FROM asset_type_fields LIMIT 0"
+                )
+                db.execute(
+                    "SELECT id,type_id,previous_id,request_id,fingerprint,"
+                    "definition_json,recorded_at FROM asset_type_revisions LIMIT 0"
+                )
+                if db.execute(
+                    "SELECT 1 FROM asset_types t WHERE NOT EXISTS "
+                    "(SELECT 1 FROM asset_type_revisions r WHERE r.user_id=t.user_id "
+                    "AND r.type_id=t.id AND r.id=t.revision) LIMIT 1"
+                ).fetchone():
+                    raise RecoveryError("Snapshot asset type history is incomplete")
+                if db.execute(
+                    "SELECT 1 FROM asset_type_revisions "
+                    "WHERE NOT json_valid(definition_json) LIMIT 1"
+                ).fetchone():
+                    raise RecoveryError("Snapshot asset type definition is invalid")
             fingerprints = db.execute(
                 "SELECT id,fingerprint FROM vault_key LIMIT 2"
             ).fetchall()

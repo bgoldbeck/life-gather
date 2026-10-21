@@ -105,7 +105,8 @@ export function RecordExportPanel({
             'format' in file &&
             (file.format === 'lifegather-records/1' ||
               file.format === 'lifegather-records/2' ||
-              file.format === 'lifegather-records/3')
+              file.format === 'lifegather-records/3' ||
+              file.format === 'lifegather-records/4')
         }
       } catch {
         // A successful HTTP response must still contain the expected file format.

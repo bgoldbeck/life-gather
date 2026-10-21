@@ -12,6 +12,14 @@ from lifegather.assets.manual import ManualAssetCreate, ManualAssetFields
 from lifegather.assets.purchases import AssetPurchasesRead
 from lifegather.assets.replacements import ReplacementRecord, ReplacementWithdraw
 from lifegather.assets.service import AssetList, AssetRead
+from lifegather.assets.type_schemas import (
+    TypeAssign,
+    TypedAssetRead,
+    TypeFieldSave,
+    TypeList,
+    TypeRead,
+    TypeSave,
+)
 from lifegather.chat.context import ContextRead
 from lifegather.chat.organizer import OrganizationAction
 from lifegather.chat.service import SaveText
@@ -103,6 +111,13 @@ class DiscoveryHistory(Page):
 
 
 INPUTS: dict[str, type[BaseModel]] = {
+    "asset_types_list": TypeList,
+    "asset_type_get": TypeRead,
+    "asset_type_history": TypeRead,
+    "asset_type_save": TypeSave,
+    "asset_typed_get": TypedAssetRead,
+    "asset_type_assign": TypeAssign,
+    "asset_type_field_save": TypeFieldSave,
     "power_center_get": PowerRead,
     "maintenance_list": MaintenancePage,
     "maintenance_get": MaintenanceRead,

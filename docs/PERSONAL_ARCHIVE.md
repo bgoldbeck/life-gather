@@ -12,9 +12,10 @@ backup, including all users and installation secrets.
 
 ## Contents
 
-- `records.json`: the `lifegather-records/3` copy of your source text,
+- `records.json`: the `lifegather-records/4` copy of your source text,
   entities, original/corrected facts, history, distinct purchased units, exact
-  monetary claims, maintenance tasks/revisions, conversations and file metadata/text. Its own exclusions still
+  monetary claims, maintenance tasks/revisions, saved asset types/fields/revisions,
+  conversations and file metadata/text. Its own exclusions still
   describe this JSON file; original bytes live in the separate archive members.
 - `originals/photos/…` and `originals/documents/…`: your active saved photo and document
   originals, byte for byte. Names use safe UUID identifiers and conservative file
