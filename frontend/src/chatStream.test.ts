@@ -40,3 +40,43 @@ it('rejects a draft-only disconnected stream', async () => {
     'interrupted',
   )
 })
+
+it('passes host statuses separately and rejects malformed ones', async () => {
+  const turn = { id: 'turn', state: 'complete', result: { text: 'Done' } }
+  const wire = (...events: unknown[]) =>
+    new Response(
+      events.map((e) => 'data: ' + JSON.stringify(e) + '\n\n').join(''),
+      { headers: { 'content-type': 'text/event-stream' } },
+    )
+  const statuses: string[] = []
+  const drafts: string[] = []
+  expect(
+    await readChatStream(
+      wire(
+        { type: 'status', text: 'Checking your request…' },
+        { type: 'status', text: 'Searching your assets…' },
+        { type: 'complete', turn },
+      ),
+      (text) => drafts.push(text),
+      (text) => statuses.push(text),
+    ),
+  ).toEqual(turn)
+  expect(statuses).toEqual(['Checking your request…', 'Searching your assets…'])
+  expect(drafts).toEqual([])
+  await expect(
+    readChatStream(
+      wire(
+        { type: 'status', text: 'x'.repeat(201) },
+        { type: 'complete', turn },
+      ),
+      () => {},
+      () => {},
+    ),
+  ).rejects.toThrow('Invalid status event')
+  await expect(
+    readChatStream(
+      wire({ type: 'status', text: 7 }, { type: 'complete', turn }),
+      () => {},
+    ),
+  ).rejects.toThrow('Invalid status event')
+})

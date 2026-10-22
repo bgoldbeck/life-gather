@@ -2,6 +2,7 @@
 export async function readChatStream<T>(
   response: Response,
   onDraft: (text: string) => void,
+  onStatus?: (text: string) => void,
 ): Promise<T> {
   if (
     !response.body ||
@@ -40,7 +41,12 @@ export async function readChatStream<T>(
       )
         throw new Error('Invalid completed turn')
       final = event.turn as T
-    } else if (event.type !== 'status') throw new Error('Invalid chat event')
+    } else if (event.type === 'status') {
+      // Host-written progress only; it never reports a saved outcome.
+      if (typeof event.text !== 'string' || event.text.length > 200)
+        throw new Error('Invalid status event')
+      onStatus?.(event.text)
+    } else throw new Error('Invalid chat event')
   }
   try {
     while (true) {

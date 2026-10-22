@@ -129,6 +129,7 @@ export function ChatPanel({
   const [usage, setUsage] = useState(0)
   const [busy, setBusy] = useState(false)
   const [draft, setDraft] = useState('')
+  const [progress, setProgress] = useState('')
   useEffect(() => {
     if (messages.current)
       messages.current.scrollTop = messages.current.scrollHeight
@@ -459,6 +460,7 @@ export function ChatPanel({
     setBusy(true)
     cancelContextReads()
     setDraft('')
+    setProgress('')
     setError('')
     setNotice('')
     const controller = new AbortController()
@@ -506,7 +508,7 @@ export function ChatPanel({
       pending.current = { conversation: id, body }
       setRetryNeeded(true)
       let turn: Turn
-      if (body.mode === 'ask') {
+      if (body.mode === 'ask' || body.mode === 'assistant') {
         const response = await fetch(`/api/chat/conversations/${id}/stream`, {
           method: 'POST',
           credentials: 'same-origin',
@@ -524,7 +526,11 @@ export function ChatPanel({
             'Unable to start this reply. Please try again.',
             response.status,
           )
-        turn = await readChatStream<Turn>(response, setDraft)
+        turn = await readChatStream<Turn>(
+          response,
+          setDraft,
+          body.mode === 'assistant' ? setProgress : undefined,
+        )
       } else {
         turn = await request(`/conversations/${id}/turns`, {
           method: 'POST',
@@ -588,6 +594,7 @@ export function ChatPanel({
       setBusy(false)
       abort.current = null
       setDraft('')
+      setProgress('')
     }
   }
 
@@ -956,7 +963,7 @@ export function ChatPanel({
                     : mode === 'ask'
                       ? 'Searching your evidence and preparing an answer…'
                       : mode === 'assistant'
-                        ? 'Checking your records…'
+                        ? progress || 'Checking your records…'
                         : 'Saving your request…'}
                 </p>
               )}

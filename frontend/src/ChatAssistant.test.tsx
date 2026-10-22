@@ -5,7 +5,39 @@ import { ChatPanel } from './ChatPanel'
 
 afterEach(() => vi.unstubAllGlobals())
 
-function mockServer(turn: unknown) {
+function sse(...events: unknown[]) {
+  return events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join('')
+}
+
+/** A stream that sends host statuses, then the turn once `finish` is called. */
+function statusStream(turn: unknown) {
+  let finish = () => {}
+  const encoder = new TextEncoder()
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(
+        encoder.encode(
+          sse(
+            { type: 'status', text: 'Checking your request…' },
+            { type: 'status', text: 'Searching your assets…' },
+          ),
+        ),
+      )
+      finish = () => {
+        controller.enqueue(encoder.encode(sse({ type: 'complete', turn })))
+        controller.close()
+      }
+    },
+  })
+  return {
+    response: new Response(body, {
+      headers: { 'content-type': 'text/event-stream' },
+    }),
+    finish: () => finish(),
+  }
+}
+
+function mockServer(turn: unknown, stream?: () => Response) {
   const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
     if (url === '/api/chat/preferences')
       return new Response(
@@ -36,6 +68,12 @@ function mockServer(turn: unknown) {
       return new Response(JSON.stringify({ items: [], next_cursor: null }))
     if (url === '/api/chat/conversations/chat-1/turns')
       return new Response(JSON.stringify(turn))
+    if (url === '/api/chat/conversations/chat-1/stream')
+      return stream
+        ? stream()
+        : new Response(sse({ type: 'complete', turn }), {
+            headers: { 'content-type': 'text/event-stream' },
+          })
     throw new Error('Unexpected request: ' + url)
   })
   vi.stubGlobal('fetch', fetcher)
@@ -93,7 +131,7 @@ it('sends AI assistant requests with the chosen model and shows the saved receip
   expect(changed).toHaveBeenCalledWith('asset-1')
   const [, init] = fetcher.mock.calls.find(
     ([url, options]) =>
-      url === '/api/chat/conversations/chat-1/turns' &&
+      url === '/api/chat/conversations/chat-1/stream' &&
       options?.method === 'POST',
   )!
   expect(JSON.parse(String(init?.body))).toMatchObject({
@@ -113,4 +151,36 @@ it('keeps the local assistant clearly labeled as working without AI', async () =
   expect(
     screen.getByRole('option', { name: 'AI assistant' }),
   ).toBeInTheDocument()
+})
+
+it('shows host progress while the assistant works and the result only from the saved turn', async () => {
+  const saved = {
+    id: 'turn-2',
+    request_id: 'r2',
+    mode: 'assistant',
+    text: 'What color is my bicycle?',
+    state: 'complete',
+    result: {
+      text: "Your bicycle's paint is recorded as green. No changes were saved.",
+      provider: 'openai',
+      model: 'synthetic-model',
+      sources: [],
+    },
+  }
+  const stream = statusStream(saved)
+  mockServer(saved, () => stream.response)
+  render(<ChatPanel csrfToken="csrf" />)
+  await screen.findByText('A place for the details')
+  await userEvent.selectOptions(screen.getByLabelText('Action'), 'assistant')
+  await userEvent.type(
+    screen.getByLabelText('Message your assistant'),
+    'What color is my bicycle?',
+  )
+  await userEvent.click(screen.getByRole('button', { name: 'Send' }))
+  expect(await screen.findByText('Searching your assets…')).toBeVisible()
+  expect(screen.queryByText(/recorded as green/)).not.toBeInTheDocument()
+  expect(screen.queryByLabelText('Reply draft')).not.toBeInTheDocument()
+  stream.finish()
+  expect(await screen.findByText(/recorded as green/)).toBeVisible()
+  expect(screen.queryByText('Searching your assets…')).not.toBeInTheDocument()
 })

@@ -29,7 +29,7 @@ Current behavior:
 - `chat/runner.py` uses configured OpenAI, Claude and Gemini adapters for bounded
   structured responses, extraction and read-only sourced answers.
 - `chat/routes.py` sends `organize` to the deterministic organizer separately from
-  provider execution. Streaming currently supports only `ask`.
+  provider execution. Streaming supports `ask` drafts and, since v0.61.0, host-written `assistant` progress status.
 - Manual asset entry, custom asset types, profile corrections, identity review,
   account isolation and evidence/history services already exist. Their authority
   and validation remain in the application.
