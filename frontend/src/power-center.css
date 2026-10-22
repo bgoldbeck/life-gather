@@ -155,3 +155,195 @@
     min-height: 2.25rem;
   }
 }
+
+/* Hero: forest scene behind the heading, with the growth power bar below. */
+.power-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  align-items: flex-start;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  background:
+    radial-gradient(
+      circle at 12% 0%,
+      color-mix(in oklab, var(--tone-power) 12%, transparent),
+      transparent 45%
+    ),
+    var(--card);
+}
+.power-hero > div:not(.power-growth) {
+  max-width: 34rem;
+}
+.power-hero .power-eyebrow {
+  color: var(--tone-power);
+  font-weight: 600;
+}
+.power-hero .power-eyebrow svg {
+  filter: drop-shadow(0 0 0.35rem var(--tone-power));
+}
+.forest-scene {
+  position: absolute;
+  inset: 0 0 auto auto;
+  width: min(55%, 30rem);
+  height: 10.5rem;
+  z-index: -1;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 40%);
+  mask-image: linear-gradient(to right, transparent, #000 40%);
+  pointer-events: none;
+}
+.forest-fireflies circle {
+  animation: firefly 3.2s ease-in-out infinite alternate;
+}
+.forest-fireflies circle:nth-child(2n) {
+  animation-delay: -1.4s;
+}
+.forest-fireflies circle:nth-child(3n) {
+  animation-delay: -2.3s;
+}
+@keyframes firefly {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.power-growth {
+  flex: 1 1 100%;
+  display: grid;
+  gap: 0.6rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid color-mix(in oklab, var(--tone-assets) 30%, var(--border));
+  border-radius: 0.8rem;
+  background: color-mix(in oklab, var(--card) 82%, transparent);
+  backdrop-filter: blur(6px);
+}
+.power-growth-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.power-growth-heading > div {
+  display: grid;
+  flex: 1;
+}
+.power-growth-heading span {
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+}
+.power-growth-heading strong {
+  font-size: 1.25rem;
+  color: var(--tone-assets);
+}
+.power-center .power-growth-points {
+  color: var(--foreground);
+  font-size: 1.1rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.power-bar {
+  position: relative;
+  height: 0.8rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--muted) 85%, var(--border));
+  overflow: hidden;
+}
+.power-bar > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  transition: width 500ms ease;
+}
+.power-bar-possible {
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in oklab, var(--tone-power) 35%, transparent) 0 6px,
+    transparent 6px 11px
+  );
+}
+.power-bar-fill {
+  background: linear-gradient(
+    90deg,
+    var(--tone-graph),
+    var(--tone-assets) 55%,
+    var(--tone-power)
+  );
+  box-shadow: 0 0 0.9rem
+    color-mix(in oklab, var(--tone-assets) 60%, transparent);
+}
+.power-stages {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.25rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+.power-stages li {
+  display: grid;
+  border-top: 2px solid var(--border);
+  padding-top: 0.3rem;
+}
+.power-stages li[data-reached] {
+  border-color: color-mix(in oklab, var(--tone-assets) 60%, transparent);
+}
+.power-stages li[data-current] {
+  color: var(--tone-assets);
+  font-weight: 650;
+  border-color: var(--tone-assets);
+}
+.power-stages small {
+  font-size: 0.7rem;
+  opacity: 0.75;
+}
+.power-growth-stale {
+  filter: grayscale(0.85);
+}
+
+/* Colored stat tiles, source cards and capability rows. */
+.power-summary [data-slot='card-content'] {
+  display: grid;
+  gap: 0.25rem;
+}
+.power-summary .tone-tile {
+  margin-bottom: 0.4rem;
+}
+.power-source {
+  border-top: 3px solid var(--tone);
+}
+.power-source-heading {
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+}
+.power-source-heading h3 {
+  flex: 1;
+  min-width: 0;
+}
+.power-capability {
+  border-left: 3px solid var(--tone);
+  background: color-mix(in oklab, var(--tone) 5%, transparent);
+}
+.power-capability .tone-tile {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+@media (max-width: 600px) {
+  .power-hero {
+    padding: 1rem;
+  }
+  .forest-scene {
+    width: 100%;
+    opacity: 0.5;
+  }
+  .power-stages small {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .forest-fireflies circle {
+    animation: none;
+  }
+}

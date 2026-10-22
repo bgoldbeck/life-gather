@@ -4,15 +4,23 @@ import {
   ArrowUpRight,
   BookOpen,
   Boxes,
+  Camera,
   CircleCheck,
-  GitFork,
+  ClipboardCheck,
+  FileText,
+  House,
   LayoutDashboard,
   Leaf,
   LockKeyhole,
+  MailSearch,
   MessageCircle,
+  Network,
+  Receipt,
   Settings,
   ShieldCheck,
   Sparkles,
+  Wrench,
+  Zap,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -38,68 +46,81 @@ import { ScansPanel } from './ScansPanel'
 import { PurchasesPanel } from './PurchasesPanel'
 import { PowerCenter } from './PowerCenter'
 import type { Theme } from './appearance'
+import { ToneIcon } from './tones'
 
 const navigation = [
   {
     name: 'Power Center',
-    icon: Sparkles,
+    icon: Zap,
+    tone: 'power',
     description: 'Capabilities, health and useful next actions.',
   },
   {
     name: 'Photos',
-    icon: BookOpen,
+    icon: Camera,
+    tone: 'photos',
     description: 'Private receipt and nameplate photos.',
   },
   {
     name: 'Documents',
-    icon: BookOpen,
+    icon: FileText,
+    tone: 'documents',
     description: 'Private PDF evidence and reviewed text.',
   },
   {
     name: 'Review',
-    icon: CircleCheck,
+    icon: ClipboardCheck,
+    tone: 'power',
     description: 'Review pending item details and uncertain identity matches.',
   },
   {
     name: 'Scans',
-    icon: BookOpen,
+    icon: MailSearch,
+    tone: 'email',
     description: 'Private requested and scheduled imports.',
   },
   {
     name: 'Purchases',
-    icon: BookOpen,
+    icon: Receipt,
+    tone: 'finance',
     description: 'Reconcile order, receipt, shipment and payment evidence.',
   },
   {
     name: 'Profiles',
-    icon: Boxes,
+    icon: House,
+    tone: 'graph',
     description: 'Sourced home and vehicle details.',
   },
   {
     name: 'Maintenance',
-    icon: CircleCheck,
+    icon: Wrench,
+    tone: 'maintenance',
     description: 'Your stated tasks, due dates and completion history.',
   },
-  { name: 'Overview', icon: LayoutDashboard, description: '' },
+  { name: 'Overview', icon: LayoutDashboard, tone: 'assets', description: '' },
   {
     name: 'Assets',
     icon: Boxes,
+    tone: 'assets',
     description:
       'A home for the things you own, their history, and their documents.',
   },
   {
     name: 'Memories',
     icon: BookOpen,
+    tone: 'ai',
     description: 'Explore your original sources and the memories they support.',
   },
   {
     name: 'Graph',
-    icon: GitFork,
+    icon: Network,
+    tone: 'graph',
     description: 'Explore the connections between people, places, and things.',
   },
   {
     name: 'Settings',
     icon: Settings,
+    tone: 'settings',
     description: 'Manage privacy, authentication, and model connections.',
   },
 ] as const
@@ -198,18 +219,19 @@ export function Workspace({
           </div>
           <p className="sidebar-caption">A little more connected.</p>
           <nav aria-label="Main navigation">
-            {navigation.map(({ name, icon: Icon }) => (
+            {navigation.map(({ name, icon, tone }) => (
               <Button
                 key={name}
                 variant="ghost"
                 className="nav-button"
+                data-tone={tone}
                 aria-current={view === name ? 'page' : undefined}
                 onClick={() => {
                   if (name === 'Scans') setScanRunId('')
                   setView(name)
                 }}
               >
-                <Icon aria-hidden="true" size={18} />
+                <ToneIcon icon={icon} tone={tone} size={15} />
                 <span>{name}</span>
               </Button>
             ))}
@@ -417,13 +439,16 @@ export function Workspace({
                       <div className="graph-center">
                         <Leaf size={47} strokeWidth={1.4} />
                       </div>
-                      <span className="graph-node node-one">
+                      <span
+                        className="graph-node node-one"
+                        data-tone="documents"
+                      >
                         <BookOpen size={22} />
                       </span>
-                      <span className="graph-node node-two">
+                      <span className="graph-node node-two" data-tone="assets">
                         <Boxes size={22} />
                       </span>
-                      <span className="graph-node node-three">
+                      <span className="graph-node node-three" data-tone="ai">
                         <MessageCircle size={22} />
                       </span>
                       <span className="little-node little-one" />
@@ -448,6 +473,7 @@ export function Workspace({
                       {[
                         {
                           icon: MessageCircle,
+                          tone: 'ai',
                           title: 'Start with a conversation',
                           text: 'A natural way to capture a detail or find something you remember.',
                           target: 'Assistant' as const,
@@ -455,45 +481,49 @@ export function Workspace({
                         },
                         {
                           icon: Boxes,
+                          tone: 'assets',
                           title: 'Keep the whole story',
                           text: 'Connect your belongings to their receipts, repairs, and history.',
                           target: 'Assets' as View,
                           label: 'Explore Assets',
                         },
                         {
-                          icon: GitFork,
+                          icon: Network,
+                          tone: 'graph',
                           title: 'See how it connects',
                           text: 'Follow the relationships between your memories, people, and places.',
                           target: 'Graph' as View,
                           label: 'Explore Graph',
                         },
-                      ].map(({ icon: Icon, title, text, target, label }) => (
-                        <Card key={title} className="feature-card">
-                          <CardContent>
-                            <span className="feature-icon">
-                              <Icon
-                                aria-hidden="true"
-                                size={22}
-                                strokeWidth={1.5}
-                              />
-                            </span>
-                            <h3>{title}</h3>
-                            <p>{text}</p>
-                            <Button
-                              variant="link"
-                              className="feature-link"
-                              onClick={() =>
-                                target === 'Assistant'
-                                  ? openAssistant()
-                                  : setView(target)
-                              }
-                            >
-                              {label}
-                              <ArrowUpRight aria-hidden="true" size={15} />
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      ))}
+                      ].map(
+                        ({ icon: Icon, tone, title, text, target, label }) => (
+                          <Card key={title} className="feature-card">
+                            <CardContent>
+                              <span className="feature-icon" data-tone={tone}>
+                                <Icon
+                                  aria-hidden="true"
+                                  size={22}
+                                  strokeWidth={1.5}
+                                />
+                              </span>
+                              <h3>{title}</h3>
+                              <p>{text}</p>
+                              <Button
+                                variant="link"
+                                className="feature-link"
+                                onClick={() =>
+                                  target === 'Assistant'
+                                    ? openAssistant()
+                                    : setView(target)
+                                }
+                              >
+                                {label}
+                                <ArrowUpRight aria-hidden="true" size={15} />
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ),
+                      )}
                     </div>
                   </section>
                   <div className="principles">
@@ -523,6 +553,7 @@ export function Workspace({
                   <current.icon
                     aria-hidden="true"
                     className="placeholder-icon"
+                    data-tone={current.tone}
                     size={40}
                     strokeWidth={1.3}
                   />

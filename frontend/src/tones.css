@@ -1,0 +1,167 @@
+/* Category accents. Surfaces stay on the active theme; tones only tint icons,
+   tiles, pills and the power bar so color stays meaningful, not chaotic. */
+:root {
+  --tone-power: #b7791f;
+  --tone-email: #d4473a;
+  --tone-finance: #2563eb;
+  --tone-documents: #0284c7;
+  --tone-photos: #db2777;
+  --tone-assets: #059669;
+  --tone-maintenance: #ea580c;
+  --tone-ai: #7c3aed;
+  --tone-graph: #0d9488;
+  --tone-settings: #64748b;
+  --tone-tint: 13%;
+  --scene-sky: #e7eedf;
+  --scene-glow: #f6d892;
+  --scene-far: #c8d8c0;
+  --scene-near: #9fb99c;
+  --scene-trees: #5f7f62;
+}
+
+:root.dark {
+  --tone-power: #f5b83d;
+  --tone-email: #f87171;
+  --tone-finance: #60a5fa;
+  --tone-documents: #38bdf8;
+  --tone-photos: #f472b6;
+  --tone-assets: #34d399;
+  --tone-maintenance: #fb923c;
+  --tone-ai: #a78bfa;
+  --tone-graph: #2dd4bf;
+  --tone-settings: #94a3b8;
+  --tone-tint: 16%;
+  --scene-sky: color-mix(in oklab, var(--background) 82%, #3d6b8f);
+  --scene-glow: #f3d38a;
+  --scene-far: color-mix(in oklab, var(--card) 70%, var(--primary));
+  --scene-near: color-mix(in oklab, var(--background) 72%, var(--primary));
+  --scene-trees: color-mix(in oklab, var(--background) 88%, #000);
+}
+
+/* Forest dark: the same hues, softened and warmed toward the earthy palette. */
+:root.dark.forest {
+  --tone-power: #e3b456;
+  --tone-email: #ec8b7b;
+  --tone-finance: #86b3e3;
+  --tone-documents: #7fc6d6;
+  --tone-photos: #e49bbb;
+  --tone-assets: #92d39f;
+  --tone-maintenance: #e8a265;
+  --tone-ai: #bba6e2;
+  --tone-graph: #79c9b2;
+  --tone-settings: #a8b5a6;
+  --scene-sky: color-mix(in oklab, var(--background) 84%, #6b5a2e);
+}
+
+[data-tone='power'] {
+  --tone: var(--tone-power);
+}
+[data-tone='email'] {
+  --tone: var(--tone-email);
+}
+[data-tone='finance'] {
+  --tone: var(--tone-finance);
+}
+[data-tone='documents'] {
+  --tone: var(--tone-documents);
+}
+[data-tone='photos'] {
+  --tone: var(--tone-photos);
+}
+[data-tone='assets'] {
+  --tone: var(--tone-assets);
+}
+[data-tone='maintenance'] {
+  --tone: var(--tone-maintenance);
+}
+[data-tone='ai'] {
+  --tone: var(--tone-ai);
+}
+[data-tone='graph'] {
+  --tone: var(--tone-graph);
+}
+[data-tone='settings'] {
+  --tone: var(--tone-settings);
+}
+
+.tone-tile {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.6rem;
+  color: var(--tone);
+  background: color-mix(in oklab, var(--tone) var(--tone-tint), transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--tone) 26%, transparent);
+}
+
+/* Navigation: each destination keeps its own tone; the current page glows. */
+.nav-button .tone-tile {
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 0.45rem;
+  transition:
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+.sidebar .nav-button[aria-current='page'] {
+  background: color-mix(in oklab, var(--tone) 12%, var(--card));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--tone) 34%, transparent);
+}
+.sidebar .nav-button[aria-current='page'] .tone-tile {
+  color: var(--card);
+  background: var(--tone);
+  box-shadow: 0 0 0.75rem color-mix(in oklab, var(--tone) 55%, transparent);
+}
+.nav-button:hover:not([aria-current='page']) .tone-tile {
+  background: color-mix(in oklab, var(--tone) 24%, transparent);
+}
+
+/* Status pills share one meaning everywhere: green ready, amber setup or stale,
+   red attention, blue unverified, slate disabled, violet planned. */
+.state-pill {
+  gap: 0.35rem;
+  border: 1px solid color-mix(in oklab, var(--tone) 35%, transparent);
+  background: color-mix(in oklab, var(--tone) 14%, transparent);
+  color: color-mix(in oklab, var(--tone) 78%, var(--foreground));
+}
+.state-pill::before {
+  content: '';
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--tone);
+  box-shadow: 0 0 0.4rem var(--tone);
+}
+.state-pill[data-state='ready'] {
+  --tone: var(--tone-assets);
+}
+.state-pill[data-state='unknown'] {
+  --tone: var(--tone-documents);
+}
+.state-pill[data-state='stale'],
+.state-pill[data-state='blocked'] {
+  --tone: var(--tone-power);
+}
+.state-pill[data-state='failed'] {
+  --tone: var(--tone-email);
+}
+.state-pill[data-state='disabled'] {
+  --tone: var(--tone-settings);
+}
+.state-pill[data-state='planned'] {
+  --tone: var(--tone-ai);
+}
+
+/* Overview: feature cards, illustration nodes and placeholders take their tone. */
+.feature-icon[data-tone],
+.graph-node[data-tone] {
+  color: var(--tone);
+  background: color-mix(in oklab, var(--tone) var(--tone-tint), var(--card));
+  border-color: color-mix(in oklab, var(--tone) 30%, var(--border));
+  box-shadow: 0 0 1.25rem color-mix(in oklab, var(--tone) 18%, transparent);
+}
+.placeholder-icon[data-tone] {
+  color: var(--tone);
+}

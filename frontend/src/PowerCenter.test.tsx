@@ -265,3 +265,21 @@ it('automatic checks remain local and refresh on configuration changes', async (
     ),
   ).toBeVisible()
 })
+
+it('shows the growth power bar from reported points only', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => Response.json(snapshot())),
+  )
+  render(<PowerCenter userId="alice" onNavigate={vi.fn()} />)
+  const meter = await screen.findByRole('meter', { name: 'Power level' })
+  expect(meter).toHaveAttribute('aria-valuenow', '55')
+  expect(meter).toHaveAttribute(
+    'aria-valuetext',
+    '55 confirmed points, up to 65 if unverified dependencies work; stage Growing',
+  )
+  expect(screen.getByText('55–65 pts')).toBeVisible()
+  expect(
+    screen.getByRole('heading', { name: 'Synthetic mailbox' }).parentElement,
+  ).toHaveTextContent('Unverified')
+})

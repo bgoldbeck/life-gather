@@ -2,13 +2,29 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Activity,
   ArrowUpRight,
+  Archive,
+  Camera,
   CircleHelp,
+  Cloud,
+  FileText,
+  HardDrive,
+  Landmark,
+  Mail,
+  MessageCircle,
+  Package,
+  Plug,
   RefreshCw,
+  ScanSearch,
+  Sparkles,
+  Wrench,
   Zap,
+  type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { ForestScene, PowerGrowth } from './PowerGrowth'
+import { ToneIcon, type Tone } from './tones'
 import './power-center.css'
 
 type Destination =
@@ -73,6 +89,39 @@ const labels: Record<State, string> = {
   disabled: 'Disabled',
   failed: 'Needs attention',
   planned: 'Planned',
+}
+// Icons and tones for known sources and capabilities; anything new falls back to power.
+const sourceLooks: Record<string, [LucideIcon, Tone]> = {
+  local: [HardDrive, 'assets'],
+  banking: [Landmark, 'finance'],
+  other_sources: [Cloud, 'documents'],
+}
+const categoryLooks: Record<Source['category'], [LucideIcon, Tone]> = {
+  local: [HardDrive, 'assets'],
+  ai: [Sparkles, 'ai'],
+  email: [Mail, 'email'],
+  planned: [Cloud, 'settings'],
+}
+const capabilityLooks: Record<string, [LucideIcon, Tone]> = {
+  evidence: [FileText, 'documents'],
+  inventory: [Package, 'assets'],
+  maintenance: [Wrench, 'maintenance'],
+  archive: [Archive, 'documents'],
+  ai_recall: [MessageCircle, 'ai'],
+  photo_reading: [Camera, 'photos'],
+}
+function capabilityLook(id: string): [LucideIcon, Tone] {
+  return (
+    capabilityLooks[id] ??
+    (id.startsWith('gmail') ? [Mail, 'email'] : [Zap, 'power'])
+  )
+}
+function StatePill({ state, label }: { state: State; label: string }) {
+  return (
+    <Badge variant="secondary" className="state-pill" data-state={state}>
+      {label}
+    </Badge>
+  )
 }
 function when(timestamp: number) {
   return new Date(timestamp * 1000).toLocaleString()
@@ -213,7 +262,8 @@ export function PowerCenter({
       className={`power-center ${compact ? 'power-compact' : ''}`}
       aria-label={compact ? 'Connection capabilities' : 'Power Center'}
     >
-      <div className="power-heading">
+      <div className="power-heading power-hero">
+        {!compact && <ForestScene />}
         <div>
           <p className="power-eyebrow">
             <Zap size={16} aria-hidden="true" /> YOUR WORKSPACE, EXPLAINED
@@ -236,6 +286,14 @@ export function PowerCenter({
           <RefreshCw size={16} aria-hidden="true" />
           {busy ? 'Checking locally…' : 'Check all locally'}
         </Button>
+        {!compact && snapshot && (
+          <PowerGrowth
+            score={snapshot.score}
+            minimum={snapshot.minimum_score}
+            maximum={snapshot.maximum_score}
+            stale={!!stale}
+          />
+        )}
       </div>
       {error && (
         <div role="alert">
@@ -292,6 +350,7 @@ export function PowerCenter({
               <div className="power-summary">
                 <Card>
                   <CardContent>
+                    <ToneIcon icon={Zap} tone="power" />
                     <span>
                       Power Level · catalog {snapshot.scoring_version}
                     </span>
@@ -311,6 +370,7 @@ export function PowerCenter({
                 </Card>
                 <Card>
                   <CardContent>
+                    <ToneIcon icon={Plug} tone="graph" />
                     <span>Configured source providers / mailboxes</span>
                     <strong>{snapshot.connected_sources}</strong>
                     <p>Configuration is separate from verified health.</p>
@@ -318,6 +378,7 @@ export function PowerCenter({
                 </Card>
                 <Card>
                   <CardContent>
+                    <ToneIcon icon={ScanSearch} tone="email" />
                     <span>Completed scans · last 7 days</span>
                     <strong>{snapshot.completed_scans_7d}</strong>
                     <p>
@@ -366,9 +427,10 @@ export function PowerCenter({
                         <li key={issue.id}>
                           <div>
                             <strong>{issue.title}</strong>
-                            <Badge variant="secondary">
-                              {labels[issue.state]}
-                            </Badge>
+                            <StatePill
+                              state={issue.state}
+                              label={labels[issue.state]}
+                            />
                             <p>{issue.reason}</p>
                           </div>
                           <Button
@@ -425,67 +487,82 @@ export function PowerCenter({
                         (connectionFilter === 'all' ||
                           s.configured === (connectionFilter === 'connected')),
                     )
-                    .map((source) => (
-                      <Card key={source.id}>
-                        <CardContent>
-                          <div className="power-source-heading">
-                            <h3>{source.title}</h3>
-                            <Badge variant="secondary">
-                              {stale && source.state !== 'planned'
-                                ? 'Stale snapshot'
-                                : labels[source.state]}
-                            </Badge>
-                          </div>
-                          <p>{source.reason}</p>
-                          <p className="power-meta">{source.scope}</p>
-                          {source.category === 'email' && (
-                            <p>
-                              Data freshness: {source.freshness}. Last
-                              successful scan:{' '}
-                              {source.last_success
-                                ? when(source.last_success)
-                                : 'Never observed'}
-                              .
-                            </p>
-                          )}
-                          {source.capabilities.length > 0 && (
-                            <p>
-                              <strong>Supports:</strong>{' '}
-                              {source.capabilities.map(title).join(', ')}.
-                              Dependencies below determine availability.
-                            </p>
-                          )}
-                          {source.state !== 'planned' && (
-                            <div className="power-actions">
-                              {source.last_run_id && onOpenScan && (
+                    .map((source) => {
+                      const [icon, tone] =
+                        sourceLooks[source.id] ?? categoryLooks[source.category]
+                      return (
+                        <Card
+                          key={source.id}
+                          className="power-source"
+                          data-tone={tone}
+                        >
+                          <CardContent>
+                            <div className="power-source-heading">
+                              <ToneIcon icon={icon} tone={tone} size={20} />
+                              <h3>{source.title}</h3>
+                              {stale && source.state !== 'planned' ? (
+                                <StatePill
+                                  state="stale"
+                                  label="Stale snapshot"
+                                />
+                              ) : (
+                                <StatePill
+                                  state={source.state}
+                                  label={labels[source.state]}
+                                />
+                              )}
+                            </div>
+                            <p>{source.reason}</p>
+                            <p className="power-meta">{source.scope}</p>
+                            {source.category === 'email' && (
+                              <p>
+                                Data freshness: {source.freshness}. Last
+                                successful scan:{' '}
+                                {source.last_success
+                                  ? when(source.last_success)
+                                  : 'Never observed'}
+                                .
+                              </p>
+                            )}
+                            {source.capabilities.length > 0 && (
+                              <p>
+                                <strong>Supports:</strong>{' '}
+                                {source.capabilities.map(title).join(', ')}.
+                                Dependencies below determine availability.
+                              </p>
+                            )}
+                            {source.state !== 'planned' && (
+                              <div className="power-actions">
+                                {source.last_run_id && onOpenScan && (
+                                  <Button
+                                    variant="outline"
+                                    onClick={() =>
+                                      onOpenScan(source.last_run_id!)
+                                    }
+                                  >
+                                    Inspect last successful scan
+                                  </Button>
+                                )}
                                 <Button
                                   variant="outline"
-                                  onClick={() =>
-                                    onOpenScan(source.last_run_id!)
-                                  }
+                                  onClick={() => action(source.action)}
                                 >
-                                  Inspect last successful scan
+                                  Open {source.action}
                                 </Button>
-                              )}
-                              <Button
-                                variant="outline"
-                                onClick={() => action(source.action)}
-                              >
-                                Open {source.action}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                disabled={busy}
-                                onClick={() => void load(source.title)}
-                                aria-label={`Check ${source.title} locally`}
-                              >
-                                Check locally
-                              </Button>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
+                                <Button
+                                  variant="ghost"
+                                  disabled={busy}
+                                  onClick={() => void load(source.title)}
+                                  aria-label={`Check ${source.title} locally`}
+                                >
+                                  Check locally
+                                </Button>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
                 </div>
                 {snapshot.sources.filter(
                   (s) =>
@@ -539,22 +616,31 @@ export function PowerCenter({
                   : 'Readiness details'}
               </summary>
               <div className="power-capabilities">
-                {snapshot.capabilities.map((c) => (
-                  <div className="power-capability" key={c.id}>
-                    <div>
-                      <h3>{c.title}</h3>
-                      <Badge variant="secondary">
-                        {stale ? 'Stale snapshot' : labels[c.state]}
-                      </Badge>
-                      {!compact && <span>{c.weight} points</span>}
+                {snapshot.capabilities.map((c) => {
+                  const [icon, tone] = capabilityLook(c.id)
+                  return (
+                    <div
+                      className="power-capability"
+                      key={c.id}
+                      data-tone={tone}
+                    >
+                      <div>
+                        <ToneIcon icon={icon} tone={tone} size={16} />
+                        <h3>{c.title}</h3>
+                        <StatePill
+                          state={stale ? 'stale' : c.state}
+                          label={stale ? 'Stale snapshot' : labels[c.state]}
+                        />
+                        {!compact && <span>{c.weight} points</span>}
+                      </div>
+                      <p>{c.reason}</p>
+                      <Button variant="link" onClick={() => action(c.action)}>
+                        Open {c.action}
+                        <ArrowUpRight aria-hidden="true" size={15} />
+                      </Button>
                     </div>
-                    <p>{c.reason}</p>
-                    <Button variant="link" onClick={() => action(c.action)}>
-                      Open {c.action}
-                      <ArrowUpRight aria-hidden="true" size={15} />
-                    </Button>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </details>
             {onOpenAssistant && (
