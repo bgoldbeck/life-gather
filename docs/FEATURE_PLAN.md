@@ -5,6 +5,8 @@ the future-feature ordering in PROJECT_PLAN.md and the 2026-10-18 ordered roadma
 those documents retain architectural constraints and historical delivery evidence.
 The user wants reliable tracking before proactive automation, with a dedicated UI
 beautification phase. This plan changes priorities, not implemented capabilities.
+User decision 2026-10-22: add a hosted multi-tenant option on Cloudflare as Phase 5
+while keeping self-hosted Docker on any Linux server first-class.
 
 ## Product goal
 
@@ -146,6 +148,53 @@ width in Light and Dark, test keyboard interaction and legibility, and rerun
 affected UI checks. The core add -> inspect -> correct -> recall journey must be
 easy to follow and visually consistent. Fix blocking usability problems earlier;
 this phase is not permission to leave inaccessible or broken UI in prior releases.
+
+## Phase 5: hosted option on Cloudflare, self-hosting kept first-class
+
+User decision: 2026-10-22. Design and research: [hosted SaaS report](HOSTED_SAAS_CLOUDFLARE.md).
+One codebase and one image serve both deployments. Hosted runs the image as a
+Cloudflare Container behind a thin Worker with managed PostgreSQL and R2;
+self-hosted keeps Docker Compose with a Postgres sidecar and local files. Hosted
+behaviour is chosen only by settings; Cloudflare-specific code stays in
+`deploy/cloudflare/`. Increments 5.1–5.3 also improve self-hosting and may start
+once the PostgreSQL migration merges. Public launch (5.4 onward going live) waits
+for the Phase 3 acceptance gate.
+
+- **5.1 Portable container.** Image includes the `s3` extra and Postgres driver;
+  vault key and settings accepted from environment variables with key IDs for
+  rotation; migrations and startup file moves run as a lock-guarded one-shot job;
+  separate liveness/readiness checks; trusted-proxy handling for scheme and
+  client IP.
+- **5.2 External background mode.** Optional setting that disables the
+  in-process scan loop and exposes an authenticated, time-bounded job tick so a
+  scheduler (Cloudflare Cron Trigger or system cron) runs due schedules and jobs.
+- **5.3 Isolation hardening.** PostgreSQL row-level security as a second lock on
+  owned tables, a cross-account test suite over every HTTP route and MCP tool, and
+  per-user file-size and storage quotas.
+- **5.4 Cloudflare deployment package.** Worker, wrangler config, container pool
+  routing with streamed chat, Cron tick, Secrets Store, private R2 bucket,
+  Cloudflare Access on operator routes, and a setup runbook. Staging only until
+  the launch gate passes.
+- **5.5 Hosted account lifecycle.** Turnstile bot checks on sign-up/password
+  forms, terms and privacy acceptance, and verified account deletion across
+  database rows, stored files and backup expiry; personal archive remains export.
+- **5.6 Backups and recovery for many users.** Managed Postgres point-in-time
+  recovery, protected R2 copies, a timed restore drill with written RPO/RTO, and
+  per-user restore from the personal archive.
+- **5.7 Google verification.** Production OAuth branding, privacy policy and the
+  restricted-scope review plus yearly CASA assessment for `gmail.readonly`.
+  Until approved, hosted Gmail scanning is limited to allowlisted test users.
+- **5.8 Operations.** Structured logs without private content, error alerts, an
+  Access-protected operator view of job backlog, failures and storage use.
+- **5.9 Plans and billing (conditional).** Only if the hosted service charges;
+  includes any platform-paid AI usage, which is otherwise not offered.
+
+Acceptance: the same image passes smoke tests self-hosted (Compose, Postgres
+sidecar, local files) and hosted (staging Cloudflare, managed Postgres, R2). Two
+synthetic accounts cannot read or change each other's data with service filters
+or RLS alone; schedules run with containers asleep; deletion leaves no rows or
+objects; a restore drill succeeds. `AGENTS.md`'s "public SaaS infrastructure"
+anti-goal is updated to reference this phase when 5.4 starts.
 
 ## Conditional and deferred backlog
 
