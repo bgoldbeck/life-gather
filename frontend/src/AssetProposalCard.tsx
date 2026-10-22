@@ -305,31 +305,33 @@ export function AssetProposalCard({
                     does not prove current ownership. This first slice handles
                     one physical item per note.
                   </p>
-                  <Button
-                    variant="outline"
-                    disabled={
-                      busy ||
-                      retry ||
-                      !fields.name.trim() ||
-                      !fields.quote.trim()
-                    }
-                    onClick={() => void inspect()}
-                  >
-                    Check details and possible duplicates
-                  </Button>
-                  <Button
-                    variant="outline"
-                    disabled={
-                      busy ||
-                      retry ||
-                      fields.kind === 'mention' ||
-                      !fields.name.trim() ||
-                      !fields.quote.trim()
-                    }
-                    onClick={() => void decide(false, true)}
-                  >
-                    Record if identity is clear
-                  </Button>
+                  <div className="action-row">
+                    <Button
+                      variant="outline"
+                      disabled={
+                        busy ||
+                        retry ||
+                        !fields.name.trim() ||
+                        !fields.quote.trim()
+                      }
+                      onClick={() => void inspect()}
+                    >
+                      Check details and possible duplicates
+                    </Button>
+                    <Button
+                      variant="outline"
+                      disabled={
+                        busy ||
+                        retry ||
+                        fields.kind === 'mention' ||
+                        !fields.name.trim() ||
+                        !fields.quote.trim()
+                      }
+                      onClick={() => void decide(false, true)}
+                    >
+                      Record if identity is clear
+                    </Button>
+                  </div>
                   <p>
                     This uses your reviewed fields and purchase/possession
                     statement. Clear new items are recorded; reliable active

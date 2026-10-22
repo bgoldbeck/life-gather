@@ -119,6 +119,9 @@ Treat this as a release gate as well as continuing work during Phases 1 and 2.
 
 - Exercise the full create -> evidence -> recall -> correction -> restart ->
   export/recovery loop with representative synthetic possessions and two accounts.
+  v0.80.0 adds [browser end-to-end checks](END_TO_END_CHECKS.md): sign in, add an
+  asset, attach a receipt photo and document, search, back up and restore into a
+  second installation, on PostgreSQL.
 - Retain direct correction, safe existing duplicate resolution, history and
   inspectable unknowns. Broaden undo only for operations that support safe reversal.
   v0.73.0 adds [undo](UNDO.md) for review-queue decisions (including dismissals),
@@ -161,8 +164,9 @@ approved palette references, accessibility and independently dockable panels.
 - Progress: v0.72.0 delivers the first [consistency pass](UI_CONSISTENCY.md):
   shared form controls, keyboard focus ring, alert/status messages, stated /
   inferred / unknown badges, page cards for Scans and Purchases and a roomier phone
-  top bar. Remaining: older internal forms (asset detail, chat proposal cards)
-  and graph controls. Docking moved to drag-to-dock in v0.71.0.
+  top bar. v0.79.0 finishes the second pass: asset details, the assistant's
+  proposal and evidence cards, graph controls and the Assets search row use the
+  same shared styles. Docking moved to drag-to-dock in v0.71.0.
 
 Acceptance: review representative populated and empty screens on desktop and 390px
 width in Light and Dark, test keyboard interaction and legibility, and rerun
@@ -192,7 +196,7 @@ for the Phase 3 acceptance gate.
 - **5.3 Isolation hardening.** PostgreSQL row-level security as a second lock on
   owned tables, a cross-account test suite over every HTTP route and MCP tool, and
   per-user file-size and storage quotas. Row-level security, account-scoped files
-  and jobs, and the cross-account suite are done in 0.79.0 (see
+  and jobs, and the cross-account suite are done in 0.81.0 (see
   [account isolation](ACCOUNT_ISOLATION.md)); quotas remain.
 - **5.4 Cloudflare deployment package.** Worker, wrangler config, container pool
   routing with streamed chat, Cron tick, Secrets Store, private R2 bucket,

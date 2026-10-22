@@ -2,7 +2,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath, URL } from 'node:url'
 import { readFileSync } from 'node:fs'
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 // https://vite.dev/config/
 const sourceVersion = readFileSync(
@@ -30,5 +30,10 @@ export default defineConfig(({ mode }) => ({
       '/api': 'http://127.0.0.1:8787',
     },
   },
-  test: { environment: 'jsdom', setupFiles: ['./src/test/setup.ts'] },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    // Browser end-to-end checks run with Playwright: npm run test:e2e.
+    exclude: [...configDefaults.exclude, 'e2e/**'],
+  },
 }))

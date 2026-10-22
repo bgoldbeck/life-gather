@@ -160,6 +160,10 @@ def _collections(records: Any) -> dict[str, list[dict[str, Any]]]:
         for row in rows:
             if not isinstance(row, dict) or set(row) != set(fields):
                 raise RestoreError("Archive record fields do not match the format")
+            if name == "documents" and row["pages"] is None and row["format"] != "pdf":
+                # The export omits the legacy page column for non-PDF formats;
+                # uploads store 1 there and it is never displayed.
+                row = row | {"pages": 1}
             value = {field: _value(table, field, row[field]) for field in fields}
             if not isinstance(value["id"], str) or not value["id"]:
                 raise RestoreError("Archive record has an invalid identifier")
@@ -444,10 +448,6 @@ class PersonalRestore:
                         if active
                         else None,
                     }
-                    # The export omits the legacy page column for non-PDF formats;
-                    # uploads store 1 there and it is never displayed.
-                    if value["pages"] is None and value["format"] != "pdf":
-                        value["pages"] = 1
                 prepared.append(value)
             result[name] = prepared
         return result

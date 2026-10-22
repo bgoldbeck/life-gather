@@ -3,30 +3,11 @@
   gap: 1rem;
   max-width: 75rem;
 }
-.graph-panel h1 {
-  font-size: 2rem;
+.graph-toolbar.action-row {
+  margin-block: 0;
 }
-.graph-panel h2 {
-  font-size: 1.5rem;
-}
-.graph-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: 1rem;
-}
-.graph-toolbar label {
-  display: grid;
-  gap: 0.4rem;
-  min-width: 12rem;
-}
-.graph-toolbar select {
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--foreground);
-  padding: 0.65rem;
-  border-radius: 0.5rem;
-  max-width: 100%;
+.graph-toolbar > label {
+  min-width: min(12rem, 100%);
 }
 .graph-canvas {
   background: var(--card);
@@ -42,6 +23,7 @@
 }
 .graph-tools {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 .graph-edge {

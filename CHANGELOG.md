@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.79.0 — Account isolation hardening
+## 0.81.0 — Account isolation hardening
 
 A second, database-enforced lock between accounts. See
 [docs/ACCOUNT_ISOLATION.md](docs/ACCOUNT_ISOLATION.md).
@@ -23,6 +23,36 @@ A second, database-enforced lock between accounts. See
   records and none of its rows may change. Guard tests fail when a new owned
   table lacks a policy or a new identifier is not covered.
 - Per-user file-size and storage quotas are not part of this release.
+## 0.80.0 — End-to-end reliability checks
+
+- New browser checks (Playwright, Chromium) walk through sign-in, adding an
+  asset with the duplicate prompt, attaching a receipt photo, uploading and
+  reviewing a receipt document, search everything, backing up a personal archive
+  and restoring it into a second installation, and sign-out. They run against
+  the real backend on throwaway PostgreSQL databases with synthetic data:
+  `npm run test:e2e` from `frontend/`. See
+  [docs/END_TO_END_CHECKS.md](docs/END_TO_END_CHECKS.md).
+- Fix: restoring a personal archive that contains a text, Markdown, CSV, Word or
+  Excel document no longer fails with "Archive record is missing a required
+  value". Archives downloaded earlier restore correctly with this release.
+- No migration.
+
+## 0.79.0 — Consistent asset details, assistant cards and graph controls
+
+- The assistant panel now uses the same text boxes, menus, checkboxes and error
+  callouts as the pages, so asset proposal, receipt review and note correction
+  cards match the rest of the app in Light, Dark and Forest dark.
+- Buttons in assistant cards and evidence views keep an even gap instead of
+  touching or stacking edge to edge.
+- Asset details are evenly spaced; **View original evidence** and **View in graph**
+  sit together on one row, and section headings follow the shared size scale.
+- The Assets search row lines up: the search box, button and "Include historical
+  records" checkbox share one height.
+- Graph focus controls line up with their menus, and the zoom buttons are square.
+- Panel stylesheets no longer carry their own input borders, padding or focus
+  rings. See [docs/UI_CONSISTENCY.md](docs/UI_CONSISTENCY.md). No migration, API
+  or dependency change. Docking is unchanged.
+
 ## 0.78.0 — Portable container
 
 Self-hosted Docker Compose keeps working unchanged; every new option is off or

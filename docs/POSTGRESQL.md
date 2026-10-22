@@ -37,7 +37,7 @@ Create a dedicated database with byte-order collation and allow the extension:
 
 ```sql
 CREATE ROLE lifegather LOGIN PASSWORD 'letters-and-digits';
--- Row-level security role used while acting for one account (0.79.0+).
+-- Row-level security role used while acting for one account (0.81.0+).
 CREATE ROLE lifegather_account NOLOGIN NOINHERIT;
 GRANT lifegather_account TO lifegather;
 CREATE DATABASE lifegather OWNER lifegather TEMPLATE template0

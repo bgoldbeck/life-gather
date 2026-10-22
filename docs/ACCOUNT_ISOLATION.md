@@ -1,6 +1,6 @@
 # Account isolation (Phase 5.3)
 
-Status: delivered in 0.79.0, except per-user quotas. Every service already filtered
+Status: delivered in 0.81.0, except per-user quotas. Every service already filtered
 by the signed-in account; this adds a second, database-enforced lock so one missed
 filter cannot read or change another account's data.
 

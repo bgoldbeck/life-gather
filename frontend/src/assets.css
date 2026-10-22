@@ -18,12 +18,7 @@
   display: grid;
   gap: 0.35rem;
 }
-.manual-asset-fields input:not([type='checkbox']),
-.manual-asset-fields textarea {
-  border: 1px solid var(--border);
-  border-radius: 0.4rem;
-  padding: 0.5rem;
-  background: var(--background);
+.manual-asset-fields :is(input:not([type='checkbox']), textarea) {
   width: 100%;
 }
 .manual-asset-notes {
@@ -32,38 +27,8 @@
 .manual-asset button {
   margin: 0.35rem 0.5rem 0.35rem 0;
 }
-.assets-panel h1 {
-  font-size: 2rem;
-  font-weight: 600;
-}
-.assets-panel h2 {
-  font-size: 1.4rem;
-  font-weight: 600;
-}
-.assets-panel h3 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-top: 1.2rem;
-}
 .assets-panel p {
   margin: 0.7rem 0;
-}
-.asset-search {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  align-items: end;
-  margin: 1.3rem 0;
-}
-.asset-search label {
-  display: grid;
-  gap: 0.3rem;
-}
-.asset-search input:not([type='checkbox']) {
-  border: 1px solid var(--border);
-  border-radius: 0.4rem;
-  padding: 0.5rem;
-  background: var(--card);
 }
 .asset-list {
   display: grid;
@@ -79,13 +44,35 @@
   color: var(--muted-foreground);
   font-size: 0.85rem;
 }
+.asset-search input:not([type='checkbox']) {
+  width: min(22rem, 100%);
+}
 .asset-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
   margin-top: 1.3rem;
   padding: 1.2rem;
   border: 1px solid var(--border);
   border-radius: 0.8rem;
   background: var(--card);
   overflow-wrap: anywhere;
+}
+.asset-detail > :is(p, h2, h3, .action-row) {
+  margin: 0;
+}
+.asset-detail > h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.asset-detail section h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.asset-detail h3 {
+  margin-top: 0.75rem;
 }
 .asset-detail article {
   padding: 0.8rem 0;
@@ -110,10 +97,6 @@
   height: auto;
   min-height: 2.2rem;
 }
-.assets-panel :focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 3px;
-}
 .asset-correction {
   display: grid;
   gap: 0.65rem;
@@ -126,15 +109,9 @@
   display: grid;
   gap: 0.3rem;
 }
-.asset-correction input,
-.asset-correction select,
-.asset-correction textarea {
+.asset-correction :is(input, select, textarea) {
   min-width: 0;
   width: 100%;
-  padding: 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: 0.4rem;
-  background: var(--card);
 }
 
 .asset-purchases {
