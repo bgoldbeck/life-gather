@@ -1,0 +1,14 @@
+/* A reversible change's confirmation sits beside its Undo button. */
+.undo-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+}
+.undo-notice > p {
+  margin: 0;
+}
+.undo-notice > [role='alert'] {
+  flex-basis: 100%;
+}

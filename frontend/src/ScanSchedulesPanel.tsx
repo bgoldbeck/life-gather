@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScanAIOptions } from './ScanAIOptions'
+import { UndoNotice, type UndoAction } from './UndoNotice'
 
 type Schedule = {
   id: string
@@ -78,6 +79,7 @@ export function ScanSchedulesPanel({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [undo, setUndo] = useState<UndoAction | null>(null)
   const [retry, setRetry] = useState(false)
   const [reload, setReload] = useState(0)
   const pending = useRef<{ path: string; body: unknown } | null>(null)
@@ -198,21 +200,37 @@ export function ScanSchedulesPanel({
     setError('')
     setNotice('')
     try {
-      await request(`/${item.id}/toggle`, {
+      const changed = (await request(`/${item.id}/toggle`, {
         method: 'POST',
         body: JSON.stringify({
           expected_revision: item.revision,
           enabled: !item.enabled,
         }),
         signal: controller.signal,
-      })
+      })) as Schedule
       if (!controller.signal.aborted) {
         setReload((value) => value + 1)
-        setNotice(
-          item.enabled
-            ? 'Schedule paused. Existing runs can be canceled in scan history.'
-            : 'Schedule resumed with the current connection; next run is in the future.',
-        )
+        const message = item.enabled
+          ? 'Schedule paused. Existing runs can be canceled in scan history.'
+          : 'Schedule resumed with the current connection; next run is in the future.'
+        setNotice(message)
+        setUndo({
+          message,
+          label: item.enabled ? 'Undo pause' : 'Undo resume',
+          run: async () => {
+            await request(`/${changed.id}/toggle`, {
+              method: 'POST',
+              body: JSON.stringify({
+                expected_revision: changed.revision,
+                enabled: !changed.enabled,
+              }),
+            })
+            setReload((value) => value + 1)
+            return changed.enabled
+              ? 'Resume undone. The schedule is paused again.'
+              : 'Pause undone. The schedule runs again with the current connection; next run is in the future.'
+          },
+        })
       }
     } catch {
       if (!controller.signal.aborted) {
@@ -260,7 +278,19 @@ export function ScanSchedulesPanel({
         scan limits apply.
       </p>
       {error && <p role="alert">{error}</p>}
-      {notice && <p role="status">{notice}</p>}
+      {undo && undo.message === notice ? (
+        <UndoNotice
+          action={undo}
+          disabled={busy || retry}
+          onBusy={setBusy}
+          onDone={(message) => {
+            setUndo(null)
+            setNotice(message)
+          }}
+        />
+      ) : (
+        notice && <p role="status">{notice}</p>
+      )}
       <form onSubmit={(event) => void save(event)} className="space-y-3">
         <fieldset
           disabled={busy || retry}

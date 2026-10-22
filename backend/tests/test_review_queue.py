@@ -3,6 +3,8 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 from test_asset_proposals import fields, review
 from test_asset_proposals import setup as proposal_setup
 from test_mcp_http import rpc, signed_headers
@@ -12,9 +14,15 @@ from lifegather.auth.store import AuthStore
 from lifegather.chat.service import SaveText, save_text
 from lifegather.main import create_app
 from lifegather.memory.backup import operator_snapshot
+from lifegather.memory.models import Audit
 from lifegather.memory.service import MemoryError, MemoryService
 from lifegather.reconciliation.proposals import AssetExtraction, ProposalService
-from lifegather.reconciliation.queue import IdentityReview, ReviewPage, ReviewService
+from lifegather.reconciliation.queue import (
+    IdentityReview,
+    IdentityUndo,
+    ReviewPage,
+    ReviewService,
+)
 from lifegather.reconciliation.service import ReconciliationService
 
 
@@ -244,3 +252,129 @@ def test_mention_cannot_be_resolved_into_owned_inventory(tmp_path: Path) -> None
         )
     assert reconcile.inventory(actor) == []
     auth.engine.dispose()
+
+
+def test_undo_queue_decisions_including_dismissal(tmp_path: Path) -> None:
+    auth, actor, bob, memory, reconcile = setup(tmp_path)
+    existing = reconcile.discover(actor, discovery(memory, actor))
+    pending = reconcile.discover(
+        actor, discovery(memory, actor, key="uncertain", order=None)
+    )
+    queue = ReviewService(auth.engine)
+    dismissed = queue.review(
+        actor,
+        IdentityReview(
+            observation_id=pending.id,
+            expected_decision_id=pending.decision_id,
+            action="dismiss",
+        ),
+    )
+    assert queue.list(actor, ReviewPage())["items"] == []
+    body = IdentityUndo(observation_id=pending.id, decision_id=dismissed["decision_id"])
+    with pytest.raises(MemoryError):
+        queue.undo(bob, body)
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        outcomes = list(pool.map(lambda _: queue.undo(actor, body), range(3)))
+    assert outcomes[0] == outcomes[1] == outcomes[2]
+    restored = outcomes[0]
+    assert restored["outcome"] == "review"
+    assert restored["candidate_ids"] == pending.candidate_ids
+    assert queue.list(actor, ReviewPage())["items"][0]["id"] == pending.id
+    # The undone decision stays in history; one audit records the undo.
+    history = reconcile.history(actor, pending.id)
+    assert [item.outcome for item in history] == ["review", "dismissed", "review"]
+    with Session(auth.engine) as db:
+        audits = db.scalars(
+            select(Audit).where(Audit.operation == "identity_review_undone")
+        ).all()
+    assert [row.target_id for row in audits] == [dismissed["decision_id"]]
+    # A link chosen in the queue undoes too, releasing its ownership fact.
+    detail = queue.detail(actor, pending.id)
+    linked = queue.review(
+        actor,
+        IdentityReview(
+            observation_id=pending.id,
+            expected_decision_id=restored["decision_id"],
+            action="link",
+            asset_ids=existing.asset_ids,
+            candidate_ids=[c["id"] for c in detail["candidates"]],
+        ),
+    )
+    back = queue.undo(
+        actor,
+        IdentityUndo(observation_id=pending.id, decision_id=linked["decision_id"]),
+    )
+    assert back["outcome"] == "review" and back["asset_ids"] == []
+    # Repeating the undo replays it; pending and automatic decisions refuse.
+    assert (
+        queue.undo(
+            actor,
+            IdentityUndo(observation_id=pending.id, decision_id=linked["decision_id"]),
+        )
+        == back
+    )
+    with pytest.raises(MemoryError, match="review queue"):
+        queue.undo(
+            actor,
+            IdentityUndo(observation_id=pending.id, decision_id=back["decision_id"]),
+        )
+    with pytest.raises(MemoryError, match="review queue"):
+        queue.undo(
+            actor,
+            IdentityUndo(observation_id=existing.id, decision_id=existing.decision_id),
+        )
+    with pytest.raises(MemoryError, match="review queue"):
+        queue.undo(
+            actor,
+            IdentityUndo(observation_id=existing.id, decision_id=back["decision_id"]),
+        )
+    auth.engine.dispose()
+
+
+def test_queue_undo_http_and_mcp() -> None:
+    app = create_app()
+    with TestClient(app) as client:
+        alice, actor = signed_headers(app, "alice")
+        bob, _ = signed_headers(app, "bob")
+        memory = MemoryService(app.state.auth_store.engine)
+        reconcile = ReconciliationService(memory.engine)
+        reconcile.discover(actor, discovery(memory, actor))
+        pending = reconcile.discover(
+            actor, discovery(memory, actor, key="uncertain", order=None)
+        )
+        dismissed = client.post(
+            "/api/reviews/identities/review",
+            headers=alice,
+            json={
+                "observation_id": pending.id,
+                "expected_decision_id": pending.decision_id,
+                "action": "dismiss",
+            },
+        ).json()
+        body = {"observation_id": pending.id, "decision_id": dismissed["decision_id"]}
+        path = "/api/reviews/identities/undo"
+        assert (
+            client.post(path, headers={"Cookie": alice["Cookie"]}, json=body)
+        ).status_code == 403
+        assert client.post(path, headers=bob, json=body).status_code == 400
+        undone = client.post(path, headers=alice, json=body)
+        assert undone.status_code == 200 and undone.json()["outcome"] == "review"
+        assert client.post(path, headers=alice, json=body).json() == undone.json()
+        assert client.get("/api/reviews", headers=alice).json()["items"]
+        again = client.post(
+            "/api/reviews/identities/review",
+            headers=alice,
+            json={
+                "observation_id": pending.id,
+                "expected_decision_id": undone.json()["decision_id"],
+                "action": "dismiss",
+            },
+        ).json()
+        result = rpc(
+            client,
+            alice,
+            "identity_review_undo",
+            {"observation_id": pending.id, "decision_id": again["decision_id"]},
+        ).json()["result"]
+        assert not result.get("isError"), result
+        assert result["structuredContent"]["outcome"] == "review"

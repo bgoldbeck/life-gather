@@ -140,6 +140,10 @@ it('removes only a gallery link and keeps the original photo private', async () 
         detached = true
         return new Response(JSON.stringify({ ...photo, updated_at: 6 }))
       }
+      if (url === '/api/photos/attach') {
+        detached = false
+        return new Response(JSON.stringify({ ...photo, updated_at: 7 }))
+      }
       if (url === '/api/settings')
         return new Response(JSON.stringify({ allow_external_ai: false }))
       return new Response(
@@ -163,6 +167,21 @@ it('removes only a gallery link and keeps the original photo private', async () 
   expect(calls.some((c) => c.url.includes('/delete'))).toBe(false)
   expect(
     screen.queryByRole('button', { name: /plate.jpg/ }),
+  ).not.toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Undo photo removal' }))
+  await screen.findByText('Photo attached to this item again.')
+  const attach = calls.find((c) => c.url === '/api/photos/attach')!
+  expect(JSON.parse(String(attach.init?.body))).toEqual({
+    photo_id: 'photo',
+    asset_id: 'asset',
+    expected_updated_at: 6,
+  })
+  expect(attach.init?.headers).toMatchObject({ 'X-CSRF-Token': 'csrf' })
+  expect(
+    await screen.findByRole('button', { name: /plate.jpg/ }),
+  ).toBeInTheDocument()
+  expect(
+    screen.queryByRole('button', { name: 'Undo photo removal' }),
   ).not.toBeInTheDocument()
 })
 

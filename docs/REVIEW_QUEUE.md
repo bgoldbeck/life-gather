@@ -19,10 +19,12 @@ unchanged candidate set. Current note/photo validation blocks obsolete evidence.
 Exact repeated decisions return the same successor; conflicting stale choices
 fail with a reload message. The original source, observations and decision/fact
 history remain available, including after undo or exclusion. Existing asset
-correction tools can undo an accepted association. Pending stale proposals remain
+correction tools can undo an accepted association. Since v0.73.0 the queue
+offers **Undo** right after a decision, including a dismissal, returning it to
+the queue (see [UNDO.md](UNDO.md)). Pending stale proposals remain
 visible so they can be rejected and replaced from their current source.
 
 Authenticated typed MCP operations: review_queue, review_identity,
-review_identity_resolve. App model providers have no write tools. Queue review
+review_identity_resolve, identity_review_undo. App model providers have no write tools. Queue review
 requires no AI permission, model key, paid call or background automation. No new
 schema migration. Graphify was unavailable on the verification host.

@@ -52,6 +52,10 @@ class IdentityReview(IdentityRead):
         return self
 
 
+class IdentityUndo(IdentityRead):
+    decision_id: str = Field(min_length=1, max_length=36)
+
+
 class ReviewService:
     def __init__(self, engine: Engine) -> None:
         self.engine = engine
@@ -218,3 +222,37 @@ class ReviewService:
             return self.reconcile._change_in(
                 db, actor, observation.id, old.id, action, targets
             ).model_dump(mode="json")
+
+    def undo(self, actor: Account, value: IdentityUndo) -> dict[str, Any]:
+        """Return a queue decision to review; the undone decision stays in history."""
+        data = IdentityUndo.model_validate(value)
+        with self.memory._write() as db:
+            observation = self.reconcile._observation(db, actor, data.observation_id)
+            decision = self.reconcile._decision(db, actor, data.decision_id)
+            previous = (
+                self.reconcile._decision(db, actor, decision.previous_id)
+                if decision.previous_id
+                else None
+            )
+            if (
+                decision.observation_id != observation.id
+                or decision.outcome == "review"
+                or previous is None
+                or previous.outcome != "review"
+            ):
+                raise NoteConflict(
+                    "Only a decision made in the review queue can be undone"
+                )
+            replayed = db.scalar(
+                select(Decision.id).where(
+                    Decision.user_id == actor.id, Decision.previous_id == decision.id
+                )
+            )
+            view = self.reconcile._change_in(
+                db, actor, observation.id, decision.id, "undo", None
+            )
+            if replayed is None:
+                self.memory._audit(
+                    db, actor, "identity_review_undone", decision.id, view.recorded_at
+                )
+            return view.model_dump(mode="json")

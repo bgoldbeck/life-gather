@@ -1,14 +1,14 @@
 # Undo
 
-Phase 3 broadens undo only for operations that can be reversed without losing
-evidence or history. An undo is itself a new recorded change: the original
+Available in v0.73.0. Phase 3 broadens undo only for operations that can be
+reversed without losing evidence or history. An undo is itself a new recorded change: the original
 decision, link or schedule state stays in history and audit, nothing is erased.
 
 ## Undo added in this increment
 
-- **Review queue identity decisions.** After you choose *Create new item*,
-  *Link to existing item* or *Dismiss* on an identity match, an **Undo** button
-  appears. Undo records a new decision that returns the observation to the review
+- **Review queue identity decisions.** After you confirm *Different items*,
+  *Same items* or *Exclude this discovery* on an identity match, an **Undo**
+  button appears. Undo records a new decision that returns the observation to the review
   queue, so you can decide again. Before this, a dismissed match could not be
   brought back at all. Undo is refused if anything changed the decision since
   (a later correction, reassociation or another undo); reload and use the item's

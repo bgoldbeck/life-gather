@@ -50,7 +50,12 @@ from lifegather.reconciliation.proposals import (
     ProposalReview,
 )
 from lifegather.reconciliation.purchase_details import DetailRead, DetailSave
-from lifegather.reconciliation.queue import IdentityRead, IdentityReview, ReviewPage
+from lifegather.reconciliation.queue import (
+    IdentityRead,
+    IdentityReview,
+    IdentityUndo,
+    ReviewPage,
+)
 from lifegather.reconciliation.receipts import (
     ReceiptPreview,
     ReceiptRead,
@@ -153,6 +158,7 @@ INPUTS: dict[str, type[BaseModel]] = {
     "review_queue": ReviewPage,
     "review_identity": IdentityRead,
     "review_identity_resolve": IdentityReview,
+    "identity_review_undo": IdentityUndo,
     "asset_evidence_preview": EvidenceMovePreview,
     "asset_evidence_move": EvidenceMove,
     "asset_evidence_restore": EvidenceRestore,
