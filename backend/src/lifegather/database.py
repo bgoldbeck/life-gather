@@ -1,5 +1,8 @@
 """PostgreSQL engine, transaction modes and column types kept from SQLite."""
 
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -10,6 +13,7 @@ from sqlalchemy import (
     Integer,
     String,
     create_engine,
+    event,
     text,
 )
 from sqlalchemy.engine import make_url
@@ -22,8 +26,51 @@ WRITER_LOCK = 0x4C47_5752  # "LGWR"
 DETERMINISTIC_COLLATIONS = frozenset({"C", "C.UTF-8", "C.utf8", "POSIX", "ucs_basic"})
 
 
+# Row-level security (migration 0033) shows this role only the rows whose owner
+# matches `lifegather.account_id`. The connecting user stays unrestricted.
+ACCOUNT_ROLE = "lifegather_account"
+# The account a request or job acts for; None is the trusted system context
+# (startup, migrations, schedulers, sweeps and operator recovery).
+ACTING_ACCOUNT: ContextVar[str | None] = ContextVar("acting_account", default=None)
+
+
 class DatabaseConfigurationError(ValueError):
     pass
+
+
+def bind_account(user_id: str) -> None:
+    """Bind the rest of this request's context to one account."""
+    ACTING_ACCOUNT.set(user_id)
+
+
+@contextmanager
+def account_scope(user_id: str | None) -> Iterator[None]:
+    """Act for one account (or the system for None) until the block ends."""
+    token = ACTING_ACCOUNT.set(user_id)
+    try:
+        yield
+    finally:
+        ACTING_ACCOUNT.reset(token)
+
+
+_UNBOUND = object()
+
+
+def _scope_connection(dbapi_connection: Any, record: Any, proxy: Any) -> None:
+    """Switch each checked-out connection to the acting account, or back."""
+    account = ACTING_ACCOUNT.get()
+    if record.info.get("account", _UNBOUND) == account:
+        return
+    with dbapi_connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT set_config('role', %s, false), "
+            "set_config('lifegather.account_id', %s, false)",
+            (ACCOUNT_ROLE if account is not None else "none", account or ""),
+        )
+    # Session-level settings survive the commit; later transactions can still
+    # choose their isolation level first.
+    dbapi_connection.commit()
+    record.info["account"] = account
 
 
 # Integers previously stored in SQLite were 64-bit and text was unbounded. Keep
@@ -59,13 +106,15 @@ def database_url(value: str) -> str:
 
 
 def create_database_engine(url: str) -> Engine:
-    return create_engine(
+    engine = create_engine(
         database_url(url),
         pool_pre_ping=True,
         pool_size=5,
         max_overflow=10,
         connect_args={"connect_timeout": 15, "application_name": "lifegather"},
     )
+    event.listen(engine, "checkout", _scope_connection)
+    return engine
 
 
 def check_collation(connection: Connection) -> None:

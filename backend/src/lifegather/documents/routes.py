@@ -14,7 +14,11 @@ from fastapi import (
 )
 from starlette.concurrency import run_in_threadpool
 
-from lifegather.auth.routes import require_session, require_write_session
+from lifegather.auth.routes import (
+    require_session,
+    require_write_session,
+    session_for,
+)
 from lifegather.auth.store import CurrentSession
 from lifegather.documents.extractor import MAX_BYTES
 from lifegather.documents.formats import MIMES, PreviewOptions
@@ -75,7 +79,7 @@ def document_router() -> APIRouter:
                 raise HTTPException(408, "Upload timed out") from None
 
             def active() -> None:
-                require_write_session(request, require_session(request))
+                require_write_session(request, session_for(request))
 
             active()
             return await run_in_threadpool(
@@ -98,7 +102,7 @@ def document_router() -> APIRouter:
             result = await run_in_threadpool(
                 service(request).preview, current.user, body
             )
-            require_write_session(request, require_session(request))
+            require_write_session(request, session_for(request))
             return result
 
     @router.post("/text")

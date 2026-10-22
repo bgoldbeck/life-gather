@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict
 from starlette.concurrency import run_in_threadpool
 
-from lifegather.auth.routes import require_session, require_write_session
+from lifegather.auth.routes import require_write_session, session_for
 from lifegather.auth.store import CurrentSession
 from lifegather.memory.archive import MAX_ARCHIVE_BYTES, ArchiveError, PersonalArchive
 from lifegather.memory.export import ExportLimitError, RecordExport
@@ -110,7 +110,7 @@ def restore_router() -> APIRouter:
             except TimeoutError:
                 raise HTTPException(408, "Upload timed out") from None
             # Check again after receiving bytes, before saving anything.
-            require_write_session(request, require_session(request))
+            require_write_session(request, session_for(request))
             service = PersonalRestore(
                 request.app.state.auth_store.engine,
                 request.app.state.object_storage,

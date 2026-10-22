@@ -195,7 +195,9 @@ for the Phase 3 acceptance gate.
   scheduler (Cloudflare Cron Trigger or system cron) runs due schedules and jobs.
 - **5.3 Isolation hardening.** PostgreSQL row-level security as a second lock on
   owned tables, a cross-account test suite over every HTTP route and MCP tool, and
-  per-user file-size and storage quotas.
+  per-user file-size and storage quotas. Row-level security, account-scoped files
+  and jobs, and the cross-account suite are done in 0.81.0 (see
+  [account isolation](ACCOUNT_ISOLATION.md)); quotas remain.
 - **5.4 Cloudflare deployment package.** Worker, wrangler config, container pool
   routing with streamed chat, Cron tick, Secrets Store, private R2 bucket,
   Cloudflare Access on operator routes, and a setup runbook. Staging only until
