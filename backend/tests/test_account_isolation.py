@@ -28,6 +28,7 @@ from lifegather.auth.store import Account, AuthStore
 from lifegather.chat.service import ChatService, TurnInput
 from lifegather.database import ACCOUNT_ROLE, ACTING_ACCOUNT, account_scope
 from lifegather.documents.service import DocumentService
+from lifegather.findings.service import FindingSave, FindingService
 from lifegather.main import create_app
 from lifegather.maintenance.service import MaintenanceService
 from lifegather.mcp_api.schemas import INPUTS
@@ -83,6 +84,8 @@ ID_TABLES: dict[str, tuple[str, ...]] = {
     "request_id": ("<request ids>",),
     "source_id": ("memory_sources",),
     "task_id": ("maintenance_tasks",),
+    "turn_id": ("chat_turns",),
+    "finding_id": ("research_findings",),
     "type_id": ("asset_types",),
 }
 # `identifier` path parameters, by route prefix.
@@ -193,6 +196,17 @@ def rich_alice(tmp_path: Path) -> Installation:
         TurnInput(request_id="alice-chat", mode="search", text="Where is my mower?"),
     )
     chat.finish(alice, row["id"], {"text": "The mower is in the shed", "sources": []})
+    from test_research_findings import research_turn
+
+    FindingService(MemoryService(engine)).save(
+        alice,
+        FindingSave(
+            request_id="alice-finding",
+            turn_id=research_turn(engine, alice, "alice-research"),
+            url="https://manufacturer.example/mower-manual",
+            asset_id=case.primary,
+        ),
+    )
     scans = ScanService(engine, registry())
     run = scans.enqueue(alice, "synthetic", {"count": 1}, "alice-scan")
     # Canceled, so the app's own worker leaves it alone during the test.

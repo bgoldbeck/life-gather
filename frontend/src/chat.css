@@ -402,3 +402,10 @@
   align-items: flex-start;
   gap: 0.5rem;
 }
+.chat-research-save {
+  margin-top: 0.25rem;
+}
+.chat-research-hint {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}

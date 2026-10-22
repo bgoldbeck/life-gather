@@ -907,7 +907,19 @@ export function ChatPanel({
                       <p role="status">Request failed</p>
                     )}
                     {turn.result.research && (
-                      <ResearchResult research={turn.result.research} />
+                      <ResearchResult
+                        research={turn.result.research}
+                        turnId={turn.state === 'complete' ? turn.id : undefined}
+                        target={
+                          context?.page === 'Assets' && context.entity_id
+                            ? {
+                                id: context.entity_id,
+                                name: context.name || 'this asset',
+                              }
+                            : null
+                        }
+                        csrfToken={csrfToken}
+                      />
                     )}
                     {!!turn.result.records?.length && (
                       <div className="chat-records">

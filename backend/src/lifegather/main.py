@@ -32,6 +32,7 @@ from lifegather.credentials.middleware import CredentialBodyLimit
 from lifegather.credentials.routes import private_router
 from lifegather.credentials.service import PrivateSettings, VaultError, read_keyring
 from lifegather.documents.routes import document_router
+from lifegather.findings.routes import finding_router
 from lifegather.jobs import scan_service, scan_worker
 from lifegather.mailboxes.provider import GmailProvider
 from lifegather.mailboxes.routes import mailbox_router
@@ -161,6 +162,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(asset_router())
     app.include_router(asset_type_router())
     app.include_router(photo_router())
+    app.include_router(finding_router())
     app.include_router(review_router())
     app.include_router(receipt_router())
     app.include_router(graph_router())
