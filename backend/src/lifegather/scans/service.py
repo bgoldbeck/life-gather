@@ -449,7 +449,7 @@ class ScanService:
             row.lease_token = None
             row.lease_until = None
 
-    def release(self, claim: ScanClaim) -> None:
+    def release(self, claim: ScanClaim, *, orderly: bool = False) -> None:
         with self.memory._write() as db:
             row = db.get(ScanRun, claim.id)
             if row and row.state == "running" and row.lease_token == claim.token:
@@ -457,3 +457,11 @@ class ScanService:
                 row.completed_at = self.clock() if row.cancel_requested else None
                 row.lease_token = None
                 row.lease_until = None
+                if orderly:
+                    # A planned hand-back is not a crash; keep the recovery budget.
+                    row.attempts = max(row.attempts - 1, 0)
+                    row.updated_at = self.clock()
+
+    def pause(self, claim: ScanClaim) -> None:
+        """Queue a checkpointed run again at a tick's time limit."""
+        self.release(claim, orderly=True)

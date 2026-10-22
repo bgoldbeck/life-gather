@@ -190,7 +190,7 @@ for the Phase 3 acceptance gate.
   rotation; migrations and startup file moves run as a lock-guarded one-shot job;
   separate liveness/readiness checks; trusted-proxy handling for scheme and
   client IP.
-- **5.2 External background mode.** Optional setting that disables the
+- **5.2 External background mode** (done in 0.81.0, see [outside scheduler](EXTERNAL_BACKGROUND.md)). Optional setting that disables the
   in-process scan loop and exposes an authenticated, time-bounded job tick so a
   scheduler (Cloudflare Cron Trigger or system cron) runs due schedules and jobs.
 - **5.3 Isolation hardening.** PostgreSQL row-level security as a second lock on

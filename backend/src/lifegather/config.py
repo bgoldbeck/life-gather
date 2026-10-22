@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     # Comma-separated IP addresses or CIDR networks allowed to set X-Forwarded-*.
     trusted_proxies: str = ""
     migrate_on_start: bool = True
+    # "external" runs scheduled scans only from POST /internal/jobs/tick or
+    # python -m lifegather.jobs; "inprocess" keeps the built-in loop.
+    background_mode: Literal["inprocess", "external"] = "inprocess"
+    job_tick_token: SecretStr = SecretStr("")
     configuration_file: Path | None = None
     smtp_host: str = ""
     smtp_port: int = Field(default=587, ge=1, le=65535)
@@ -70,6 +74,20 @@ class Settings(BaseSettings):
                         "Trusted proxies must be IP addresses or CIDR networks"
                     ) from None
         return value
+
+    @field_validator("job_tick_token")
+    @classmethod
+    def strong_tick_token(cls, value: SecretStr) -> SecretStr:
+        raw = value.get_secret_value()
+        if raw and (len(raw) < 32 or not all("!" <= c <= "~" for c in raw)):
+            raise ValueError("The job tick token must be 32+ visible ASCII characters")
+        return value
+
+    @property
+    def tick_endpoint_enabled(self) -> bool:
+        return self.background_mode == "external" and bool(
+            self.job_tick_token.get_secret_value()
+        )
 
     @property
     def files_dir(self) -> Path:

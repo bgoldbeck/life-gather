@@ -37,6 +37,9 @@ LOCAL_FIELDS = {
     "vault_keys",
     "trusted_proxies",
     "migrate_on_start",
+    # How background scans are driven, and the tick token, belong to the host.
+    "background_mode",
+    "job_tick_token",
     # Where original files live is deployment-local, like data_dir: bundles carry
     # the originals themselves and a restore uses its own storage settings.
     *STORAGE_DEFAULTS,

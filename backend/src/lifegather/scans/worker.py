@@ -1,13 +1,28 @@
 """One bounded async runner; handlers never control job ownership or recurrence."""
 
 import asyncio
+import time
 from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Literal
 
 from sqlalchemy.exc import OperationalError
 
-from lifegather.memory.origins import change_origin
+from lifegather.memory.origins import ChangeOrigin, change_origin
 from lifegather.scans.registry import ScanContext
 from lifegather.scans.service import LeaseLost, ScanCanceled, ScanService
+
+Outcome = Literal["idle", "ran", "paused"]
+
+
+@dataclass(frozen=True)
+class TickReport:
+    """Content-free counts from one externally scheduled tick."""
+
+    dispatched: int
+    ran: int
+    paused: int
+    stopped: Literal["idle", "time_limit"]
 
 
 class ScanWorker:
@@ -20,9 +35,12 @@ class ScanWorker:
     async def run_once(self) -> bool:
         if self.dispatch:
             self.dispatch()
+        return await self._run_next(None) != "idle"
+
+    async def _run_next(self, deadline: float | None) -> Outcome:
         claim = self.scans.claim()
         if claim is None:
-            return False
+            return "idle"
         context = ScanContext(
             claim.actor,
             claim.id,
@@ -40,6 +58,10 @@ class ScanWorker:
                         if batch.next_cursor is None:
                             break
                         cursor = batch.next_cursor
+                        if deadline is not None and time.monotonic() >= deadline:
+                            # The checkpoint is saved; the next tick resumes it.
+                            self.scans.pause(claim)
+                            return "paused"
         except ScanCanceled:
             self.scans.finish(claim, "canceled")
         except LeaseLost:
@@ -55,7 +77,32 @@ class ScanWorker:
                 "Scan stopped. Check the connection and requested scope, then retry. "
                 "Completed evidence is retained.",
             )
-        return True
+        return "ran"
+
+    async def tick(self, seconds: float) -> TickReport:
+        """Dispatch due schedules, then run queued scans until the time limit.
+
+        A scan still running at the limit stops after its current step and waits
+        in the queue for the next tick, so a tick overruns by at most one step.
+        """
+        deadline = time.monotonic() + seconds
+        # Start from the neutral origin, as the in-process loop does, so an HTTP
+        # tick is never attributed to a web account request.
+        with change_origin(**ChangeOrigin().model_dump()):
+            return await self._tick(deadline)
+
+    async def _tick(self, deadline: float) -> TickReport:
+        dispatched = self.dispatch() if self.dispatch else 0
+        ran = paused = 0
+        while time.monotonic() < deadline:
+            outcome = await self._run_next(deadline)
+            if outcome == "idle":
+                return TickReport(dispatched, ran, paused, "idle")
+            if outcome == "paused":
+                paused += 1
+            else:
+                ran += 1
+        return TickReport(dispatched, ran, paused, "time_limit")
 
     async def serve(self) -> None:
         while True:
