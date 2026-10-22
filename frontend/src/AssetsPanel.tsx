@@ -416,7 +416,7 @@ export function AssetsPanel({
         Find your items and follow their original evidence. Inventory and
         ownership may be inferred.
       </p>
-      <form className="asset-search" onSubmit={submit}>
+      <form className="asset-search action-row" onSubmit={submit}>
         <label>
           Search item names
           <input
@@ -499,7 +499,7 @@ export function AssetsPanel({
             />
           )}
           {detail.consolidation && (
-            <div aria-label="Preserved original records">
+            <div className="action-row" aria-label="Preserved original records">
               {detail.original_records?.map((record) => (
                 <Button
                   key={record.id}
@@ -512,14 +512,6 @@ export function AssetsPanel({
               ))}
             </div>
           )}
-          {onOpenGraph && (
-            <Button
-              variant="outline"
-              onClick={() => onOpenGraph(detail.asset.id)}
-            >
-              View in graph
-            </Button>
-          )}
           <p>
             {detail.in_inventory
               ? 'In inventory. This does not independently verify current ownership.'
@@ -529,13 +521,23 @@ export function AssetsPanel({
             Recorded {recorded(detail.asset.recorded_at)}. Prices and world
             dates are unknown unless separately supported.
           </p>
-          <Button
-            variant="outline"
-            disabled={busy}
-            onClick={() => void evidence(detail.asset.source_id)}
-          >
-            View original evidence
-          </Button>
+          <div className="action-row">
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => void evidence(detail.asset.source_id)}
+            >
+              View original evidence
+            </Button>
+            {onOpenGraph && (
+              <Button
+                variant="outline"
+                onClick={() => onOpenGraph(detail.asset.id)}
+              >
+                View in graph
+              </Button>
+            )}
+          </div>
           <PhotosPanel
             key={detail.asset.id}
             assetId={detail.asset.id}

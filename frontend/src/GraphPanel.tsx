@@ -176,7 +176,7 @@ export function GraphPanel({
         </p>
       )}
       {page && page.items.length > 0 && (
-        <div className="graph-toolbar">
+        <div className="graph-toolbar action-row">
           <label>
             Focus record
             <select
@@ -220,7 +220,7 @@ export function GraphPanel({
       {graph && (
         <>
           <h2>{graph.entity.name}</h2>
-          <div className="graph-toolbar">
+          <div className="graph-toolbar action-row">
             <Button
               variant="outline"
               onClick={() => void openSource(graph.entity.source_id)}

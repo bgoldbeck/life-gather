@@ -229,20 +229,9 @@
   display: grid;
   gap: 0.3rem;
 }
-.asset-proposal input,
-.asset-proposal select,
-.asset-proposal textarea {
+.asset-proposal :is(input:not([type='checkbox']), select, textarea) {
   width: 100%;
   min-width: 0;
-  padding: 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: 0.4rem;
-  background: var(--card);
-  color: var(--foreground);
-}
-.asset-proposal :is(input, select, textarea):focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 3px;
 }
 .asset-proposal button {
   white-space: normal;
@@ -260,15 +249,6 @@
 }
 .note-correction textarea {
   width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  padding: 0.7rem;
-  background: var(--card);
-  color: var(--foreground);
-}
-.note-correction textarea:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 3px;
 }
 .note-correction p,
 .note-history p {
@@ -290,10 +270,6 @@
   overflow-wrap: anywhere;
   margin-top: 0.4rem;
 }
-.chat-error {
-  color: var(--destructive);
-  margin: 1rem 0;
-}
 .chat-composer {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -309,15 +285,8 @@
   font-size: 0.9rem;
   font-weight: 500;
 }
-.chat-composer input,
-.chat-composer select,
-.chat-composer textarea {
-  border: 1px solid var(--border);
-  background: var(--card);
-  padding: 0.6rem;
-  border-radius: 0.5rem;
+.chat-composer :is(input:not([type='checkbox']), select, textarea) {
   width: 100%;
-  color: var(--foreground);
 }
 .chat-composer p {
   font-size: 0.85rem;
@@ -330,10 +299,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.7rem;
-}
-.chat-composer :focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 3px;
 }
 @media (max-width: 760px) {
   .chat-layout {
@@ -379,16 +344,6 @@
   font-weight: 600;
   overflow-wrap: anywhere;
 }
-.receipt-proposal input,
-.receipt-proposal textarea,
-.receipt-proposal select {
-  max-width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.5rem;
-  color: var(--foreground);
-  background: var(--background);
-}
 
 .receipt-purchase-details {
   border-top: 1px solid var(--border);
@@ -407,15 +362,9 @@
   display: grid;
   gap: 0.3rem;
 }
-.receipt-purchase-details input,
-.receipt-purchase-details textarea {
+.receipt-purchase-details :is(input:not([type='checkbox']), textarea) {
   width: 100%;
   min-width: 0;
-  padding: 0.55rem;
-  border: 1px solid var(--border);
-  border-radius: 0.4rem;
-  background: var(--background);
-  color: var(--foreground);
 }
 .receipt-purchase-details blockquote {
   white-space: pre-wrap;

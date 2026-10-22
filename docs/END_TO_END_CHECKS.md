@@ -61,7 +61,7 @@ screenshots go to `frontend/test-results/` (ignored by Git); open a trace with
 
 ## Findings
 
-- 0.79.0: the first run found that restoring a personal archive failed with
+- 0.80.0: the first run found that restoring a personal archive failed with
   "Archive record is missing a required value" whenever it contained a non-PDF
   document (text, Markdown, CSV, Word or Excel). The export leaves the unused
   page count empty for those formats and restore rejected the empty value before

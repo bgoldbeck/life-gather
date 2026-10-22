@@ -15,13 +15,9 @@
   gap: 0.4rem;
   margin-block: 0.8rem;
 }
-.photos-panel input,
-.photos-panel select {
+.photos-panel :is(input, select) {
   min-width: 0;
   max-width: 100%;
-  padding: 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
 }
 .photo-grid {
   display: grid;
