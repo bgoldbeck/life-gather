@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.78.0 — Portable container
+
+Self-hosted Docker Compose keeps working unchanged; every new option is off or
+keeps today's behaviour by default. See [docs/PORTABLE_CONTAINER.md](docs/PORTABLE_CONTAINER.md).
+
+- The image now includes the `s3` extra (boto3), so S3/R2 file storage works from
+  the published image.
+- Vault keys can come from `LIFEGATHER_VAULT_KEYS` (`id:base64key`, comma
+  separated, first is active). Listing a new key before the old one re-encrypts
+  every stored credential under the new key at the next start, in one
+  transaction; an instance still holding the old key then refuses credential
+  writes (503). `LIFEGATHER_VAULT_KEY_FILE` still works, and beside env keys it is
+  previous key `file`. Recovery bundles carry the active key.
+- Startup tasks (one-time SQLite import, schema upgrade, inline-file moves, vault
+  rotation) hold a PostgreSQL advisory lock, so instances starting together take
+  turns. `python -m lifegather.migrate` runs them once and exits;
+  `LIFEGATHER_MIGRATE_ON_START=false` leaves them to that job, and the app then
+  refuses to start on an outdated schema.
+- New readiness check `GET /health/ready`: 200 once started with the database at
+  this release's schema, otherwise 503. `/health` stays the liveness check.
+- `LIFEGATHER_TRUSTED_PROXIES` (IP addresses or CIDR networks, empty by default)
+  trusts `X-Forwarded-For`/`X-Forwarded-Proto` from those peers only, so login
+  rate limits see the real client behind a reverse proxy.
+- No migration. New settings are deployment-local and not stored in recovery
+  bundles.
 ## 0.77.0 — Gmail attachment intake
 
 - New scan source **Import Gmail attachments** (`gmail_attachments`), from Scans

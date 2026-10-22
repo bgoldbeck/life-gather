@@ -32,6 +32,11 @@ LOCAL_FIELDS = {
     "static_dir",
     "configuration_file",
     "build_revision",
+    # Deployment-local: a bundle carries the active key as vault.key, and proxy and
+    # startup behaviour belong to the host that runs the restored installation.
+    "vault_keys",
+    "trusted_proxies",
+    "migrate_on_start",
     # Where original files live is deployment-local, like data_dir: bundles carry
     # the originals themselves and a restore uses its own storage settings.
     *STORAGE_DEFAULTS,
@@ -81,6 +86,9 @@ def validate_configuration(path: Path, root: Path, has_key: bool) -> dict[str, A
             "vault_key_file": root / "secrets" / "vault.key" if has_key else None,
             "static_dir": None,
             "build_revision": "",
+            "vault_keys": "",
+            "trusted_proxies": "",
+            "migrate_on_start": True,
             **STORAGE_DEFAULTS,
         }
         # Every model field is supplied, so the operator's ambient settings cannot

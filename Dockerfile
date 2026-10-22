@@ -14,7 +14,7 @@ ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 WORKDIR /app/backend
 COPY backend/pyproject.toml backend/uv.lock ./
 COPY backend/src/ ./src/
-RUN uv sync --locked --no-dev --no-editable
+RUN uv sync --locked --no-dev --no-editable --extra s3
 
 FROM python:3.13-slim-bookworm AS runtime
 ARG APP_REVISION=""

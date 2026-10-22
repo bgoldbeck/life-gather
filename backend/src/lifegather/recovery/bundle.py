@@ -16,7 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.exc import SQLAlchemyError
 
 from lifegather.config import Settings
-from lifegather.credentials.service import read_key
+from lifegather.credentials.service import read_keyring
 from lifegather.database import create_database_engine
 from lifegather.installation_config import MAX_CONFIGURATION_BYTES, unique_object
 from lifegather.legacy_import import LegacyImportError, check_legacy, import_legacy
@@ -181,7 +181,9 @@ class RecoveryService:
     def create(self, destination: Path, password: bytes) -> BundleInfo:
         target = self._destination(destination)
         try:
-            key = read_key(self.settings.vault_key_file)
+            # The active key; a pending rotation fails the bundle's key check.
+            keyring = read_keyring(self.settings)
+            key = keyring.active if keyring is not None else None
             engine = create_database_engine(self.settings.database())
             with self._staging() as staging:
                 database = staging / "database.jsonl"

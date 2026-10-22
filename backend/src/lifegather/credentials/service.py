@@ -1,11 +1,14 @@
+import base64
+import binascii
 import hashlib
 import json
 import os
+import re
 import secrets
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Literal, TypedDict
+from typing import TYPE_CHECKING, Literal, TypedDict
 from uuid import uuid4
 
 from cryptography.exceptions import InvalidTag
@@ -18,6 +21,11 @@ from sqlalchemy.orm import Session
 from lifegather.auth.store import Account
 from lifegather.credentials.models import Credential, UserSettings, VaultKey
 from lifegather.database import begin_serialized
+
+if TYPE_CHECKING:
+    from lifegather.config import Settings
+
+KEY_ID = re.compile(r"^[A-Za-z0-9._-]{1,32}$")
 
 
 class VaultError(ValueError):
@@ -61,21 +69,129 @@ def read_key(path: Path | None) -> bytes | None:
         raise ValueError("Vault key must be a readable 32-byte key file") from error
 
 
+def fingerprint(key: bytes) -> str:
+    return hashlib.sha256(key).hexdigest()
+
+
+@dataclass(frozen=True)
+class VaultKeyring:
+    """Named vault keys; the first is active, the rest are previous keys."""
+
+    keys: tuple[tuple[str, bytes], ...]
+
+    @property
+    def active(self) -> bytes:
+        return self.keys[0][1]
+
+    @property
+    def active_id(self) -> str:
+        return self.keys[0][0]
+
+    def find(self, saved: str) -> tuple[str, bytes] | None:
+        for key_id, key in self.keys:
+            if secrets.compare_digest(fingerprint(key), saved):
+                return key_id, key
+        return None
+
+
+def parse_keys(value: str) -> list[tuple[str, bytes]]:
+    keys: list[tuple[str, bytes]] = []
+    for entry in value.split(","):
+        if not entry.strip():
+            continue
+        key_id, separator, encoded = entry.strip().partition(":")
+        try:
+            if not separator or not KEY_ID.fullmatch(key_id):
+                raise ValueError
+            key = base64.b64decode(encoded.strip(), validate=True)
+        except (ValueError, binascii.Error):
+            # Never echo the entry: it holds key material.
+            raise ValueError(
+                "LIFEGATHER_VAULT_KEYS entries must be id:base64 32-byte keys"
+            ) from None
+        if len(key) != 32:
+            raise ValueError("LIFEGATHER_VAULT_KEYS keys must be 32 bytes")
+        keys.append((key_id, key))
+    return keys
+
+
+def read_keyring(settings: "Settings") -> VaultKeyring | None:
+    keys = parse_keys(settings.vault_keys.get_secret_value())
+    file_key = read_key(settings.vault_key_file)
+    if file_key is not None:
+        # Alone, the file is the active key; beside env keys it is a previous one.
+        keys.append(("file", file_key))
+    if not keys:
+        return None
+    if len({key_id for key_id, _ in keys}) != len(keys) or len(
+        {key for _, key in keys}
+    ) != len(keys):
+        raise ValueError("Vault key IDs and keys must be unique")
+    return VaultKeyring(tuple(keys))
+
+
+def credential_context(
+    user_id: str, credential_id: str, kind: str, provider: str
+) -> bytes:
+    return json.dumps(
+        ["lifegather-vault-v1", user_id, credential_id, kind, provider],
+        separators=(",", ":"),
+    ).encode()
+
+
+def rotate_vault_key(engine: Engine, keyring: VaultKeyring) -> bool:
+    """Re-encrypt every credential under the active key; True when rotated.
+
+    Runs as a serialized writer, so credential saves and replacements wait for it;
+    the fingerprint changes in the same transaction as the credential rewrite.
+    """
+    active = fingerprint(keyring.active)
+    with Session(engine) as db, db.begin():
+        begin_serialized(db)
+        saved = db.scalar(select(VaultKey.fingerprint).where(VaultKey.id == 1))
+        if saved is None or secrets.compare_digest(saved, active):
+            return False
+        previous = keyring.find(saved)
+        if previous is None:
+            raise VaultError("No configured vault key matches this database", 503)
+        old, new = AESGCM(previous[1]), AESGCM(keyring.active)
+        for row in db.scalars(select(Credential).order_by(Credential.id)):
+            context = credential_context(row.user_id, row.id, row.kind, row.provider)
+            try:
+                secret = old.decrypt(row.nonce, row.ciphertext, context)
+            except InvalidTag as error:
+                raise VaultError("Credential cannot be decrypted", 503) from error
+            row.nonce = os.urandom(12)
+            row.ciphertext = new.encrypt(row.nonce, secret, context)
+        db.execute(update(VaultKey).where(VaultKey.id == 1).values(fingerprint=active))
+        return True
+
+
 class PrivateSettings:
     def __init__(self, engine: Engine, key: bytes | None) -> None:
         self.engine = engine
         self.cipher = AESGCM(key) if key is not None else None
-        if key is not None:
-            fingerprint = hashlib.sha256(key).hexdigest()
+        self.fingerprint = fingerprint(key) if key is not None else None
+        if self.fingerprint is not None:
             with Session(engine) as db, db.begin():
                 db.execute(
                     insert(VaultKey)
-                    .values(id=1, fingerprint=fingerprint)
+                    .values(id=1, fingerprint=self.fingerprint)
                     .on_conflict_do_nothing(index_elements=["id"])
                 )
-                saved = db.scalar(select(VaultKey.fingerprint).where(VaultKey.id == 1))
-                if saved is None or not secrets.compare_digest(saved, fingerprint):
-                    raise VaultError("Vault key does not match this database", 503)
+                self._check_key(db)
+
+    def _check_key(self, db: Session) -> None:
+        # A rotation by another instance makes this instance's key stale; refuse
+        # to write credentials that the database's current key could not read.
+        # Without a recorded key nothing was encrypted yet (a configured key is
+        # recorded at construction), so there is nothing a write could orphan.
+        saved = db.scalar(select(VaultKey.fingerprint).where(VaultKey.id == 1))
+        if saved is not None and (
+            self.fingerprint is None
+            or not secrets.compare_digest(saved, self.fingerprint)
+        ):
+            raise VaultError("Vault key does not match this database", 503)
 
     @property
     def enabled(self) -> bool:
@@ -130,10 +246,7 @@ class PrivateSettings:
 
     @staticmethod
     def _context(actor: Account, row: Credential) -> bytes:
-        return json.dumps(
-            ["lifegather-vault-v1", actor.id, row.id, row.kind, row.provider],
-            separators=(",", ":"),
-        ).encode()
+        return credential_context(actor.id, row.id, row.kind, row.provider)
 
     def _encrypt(self, actor: Account, row: Credential, secret: str) -> None:
         if self.cipher is None:
@@ -209,6 +322,7 @@ class PrivateSettings:
             )
             if count is not None and count >= 100:
                 raise VaultError("Credential limit reached", 409)
+            self._check_key(db)
             db.add(row)
             db.flush()
             metadata = self._metadata(row)
@@ -219,7 +333,10 @@ class PrivateSettings:
         self, actor: Account, credential_id: str, secret: str
     ) -> CredentialMetadata:
         with Session(self.engine) as db, db.begin():
+            # Serialized with vault rotation so neither overwrites the other.
+            begin_serialized(db)
             row = self._owned(db, actor, credential_id)
+            self._check_key(db)
             self._encrypt(actor, row, secret)
             row.updated_at = int(time.time())
             return self._metadata(row)
