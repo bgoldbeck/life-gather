@@ -1,3 +1,4 @@
+import os
 import stat
 from pathlib import Path
 from typing import Any
@@ -97,8 +98,9 @@ def test_local_files_are_private_and_s3_keys_use_the_prefix(tmp_path: Path) -> N
     local.save(b"synthetic", "users/u/photos/p/original")
     path = tmp_path / "files" / "users" / "u" / "photos" / "p" / "original"
     assert path.read_bytes() == b"synthetic"
-    assert stat.S_IMODE(path.stat().st_mode) == 0o600
-    assert stat.S_IMODE(path.parent.stat().st_mode) == 0o700
+    if os.name != "nt":  # Windows ignores POSIX permission bits
+        assert stat.S_IMODE(path.stat().st_mode) == 0o600
+        assert stat.S_IMODE(path.parent.stat().st_mode) == 0o700
     assert [p.name for p in path.parent.iterdir()] == ["original"]
     client = FakeS3()
     S3Storage(client, "bucket", "tenant").save(b"x", "a/b")
