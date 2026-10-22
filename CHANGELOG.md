@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.74.0 — Restore your records
+
+- New **Settings → Restore your records**: bring a personal archive ZIP
+  (`lifegather-personal-archive/1`) back into an account with no saved records,
+  for example after moving to a new installation. See
+  [docs/PERSONAL_ARCHIVE.md](docs/PERSONAL_ARCHIVE.md#restoring-an-archive).
+- Every member, hash, field and type is checked first; the restore is all or
+  nothing. Records keep their original IDs, sources, history, corrections, exact
+  money and dates. Originals go to file storage (local or S3), photo previews are
+  regenerated and search is rebuilt.
+- Refused when the account already has records or the records already exist in
+  the installation; IDs are never rewritten. Settings, credentials and schedules
+  are not in archives.
+- New endpoint `POST /api/import/archive` (authenticated, CSRF-protected, 64 MiB).
+  No MCP tool, migration or new dependency.
+- Starter asset types saved in a restored archive are no longer listed twice.
+
 ## 0.73.0 — Broader undo
 
 - The review queue shows **Undo** right after an identity decision. Undo returns

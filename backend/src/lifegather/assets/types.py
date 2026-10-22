@@ -192,7 +192,15 @@ class AssetTypes:
             )
             if len(rows) > 50:
                 raise MemoryError("Asset type limit exceeded")
-            defaults = [starter(actor, *item) for item in STARTERS]
+            # A restored archive keeps the starter rows saved under its original
+            # account's IDs; list those instead of a second unsaved starter.
+            saved = {row.seed_key for row in rows if row.seed_key}
+            defaults = [
+                value
+                for value in (starter(actor, *item) for item in STARTERS)
+                if value["seed_key"] not in saved
+                or any(row.id == value["id"] for row in rows)
+            ]
             identifiers = [value["id"] for value in defaults]
             identifiers.extend(row.id for row in rows if row.id not in identifiers)
             items = [self._get(db, actor, identifier) for identifier in identifiers]

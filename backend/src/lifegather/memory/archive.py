@@ -56,16 +56,19 @@ class _Original:
 
     @property
     def path(self) -> str:
-        extension = {
-            "image/jpeg": "jpg",
-            "image/png": "png",
-            "image/webp": "webp",
-            "application/pdf": "pdf",
-        }.get(self.mime, "bin")
-        extension = next(
-            (key for key, mime in MIMES.items() if mime == self.mime), extension
-        )
-        return f"originals/{self.category}/{UUID(self.identifier).hex}.{extension}"
+        return original_path(self.category, self.identifier, self.mime)
+
+
+def original_path(category: str, identifier: str, mime: str) -> str:
+    """The archive member name for one original; restore checks it the same way."""
+    extension = {
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+        "application/pdf": "pdf",
+    }.get(mime, "bin")
+    extension = next((key for key, value in MIMES.items() if value == mime), extension)
+    return f"originals/{category}/{UUID(identifier).hex}.{extension}"
 
 
 def _info(path: str, stamp: datetime) -> ZipInfo:
