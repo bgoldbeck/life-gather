@@ -31,8 +31,8 @@ from lifegather.credentials.routes import private_router
 from lifegather.credentials.service import PrivateSettings, VaultError, read_key
 from lifegather.documents.routes import document_router
 from lifegather.documents.service import DocumentService
-from lifegather.mailboxes.attachments import GmailAttachmentHandler
 from lifegather.legacy_import import import_on_start
+from lifegather.mailboxes.attachments import GmailAttachmentHandler
 from lifegather.mailboxes.discovery import GmailDiscoveryHandler
 from lifegather.mailboxes.provider import GmailProvider
 from lifegather.mailboxes.routes import mailbox_router
