@@ -1,5 +1,16 @@
 # What LifeGather can do and what remains
 
+**Active priorities, 2026-10-21:** [tracking-first feature plan](FEATURE_PLAN.md).
+The user chose reliable AI-assisted tracking before proactive automation, plus a
+dedicated UI beautification phase. The remaining-scope table is a capability-gap
+inventory, not a mandatory implementation queue. The active plan classifies every
+area as core, conditional or deferred; no implemented feature is removed.
+
+Current source baseline for this priority revision: v0.59.0, migration 0026,
+fetched main `41cd377631a9996b1cda901a98d61071c7d06628`. The older audit below
+records historical verification; no application test suite was rerun for this
+documentation-only change.
+
 Reviewed 2026-10-20 against fetched `origin/main` at
 `2b46d3939dcd26e5a609d2a8c04000247811b108`, application **0.55.1**, migration **0024**.
 This is a source-capability inventory, not a check of an installed server, live
@@ -49,7 +60,7 @@ This consolidates documented unfinished scope; it is not authorization to implem
 all items together or a promise that each expansion is required for a useful release.
 Review current source, dependencies and acceptance criteria before each increment.
 
-| Area | Remaining scope | What is already delivered |
+| Area (priority is defined in the active feature plan) | Remaining scope | What is already delivered |
 | --- | --- | --- |
 | Power Center | Live remote/provider-model probing and richer connection diagnostics require later scope. | v0.58.0 adds the primary page, versioned readiness, observed health/freshness, automatic local checks and connection changes; see [Power Center](POWER_CENTER.md). |
 | Assistant breadth | Broader supported conversational edits/planning, conversational AI purchase-discovery initiation and arbitrary supported image questions; explicit permission boundaries. | Streaming recall, deterministic supplied-field edits, photo upload/reading and Chat text-evidence scan requests. |
@@ -70,6 +81,7 @@ Review current source, dependencies and acceptance criteria before each incremen
 | More sources | Outlook/iCloud, calendar/contacts/photos, cloud files, watched local folders/document scanners, retailer exports and home devices; investment/vehicle/insurance services require separate scoping. | Gmail plus manual local uploads and three AI provider adapters. Screenshot logos do not mean support. |
 | Additional AI runtimes | Revisit managed Antigravity only if its official contract can meet bounded output/usage needs; evaluate other providers/local extraction separately. | OpenAI, Claude, Gemini; Antigravity is deferred for documented API limitations. |
 | Asset customization | Richer typed widgets, required-field migrations and broader correction/undo where supported safely. | v0.59.0 adds [editable starter/custom types](ASSET_TYPES.md), selection in manual entry, safe later field additions, definition history and authenticated MCP view/add/edit; existing named sourced details remain supported. |
+| UI beautification | Dedicated visual/usability refinement after the tracking reliability gate: typography, spacing, consistent states, responsive/docked layouts, accessibility and Light/Dark screens. | Existing theme choices, semantic components and dockable panels provide the foundation; this phase is planned, not delivered. |
 
 ## Operational verification and deferred decisions
 

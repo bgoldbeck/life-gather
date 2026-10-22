@@ -2,6 +2,12 @@
 
 Status: design baseline; implemented source milestones and remaining work are tracked in `PROJECT_PLAN.md`.
 
+User decision, 2026-10-21: [tracking-first feature plan](../../FEATURE_PLAN.md)
+supersedes the future-feature ordering in this design. Prioritize AI-driven
+tracking, evidence/recall and reliability, then a UI beautification phase, before
+new proactive automation. Existing requested/scheduled scans remain supported.
+Banking and additional life-management domains are conditional expansions.
+
 ## Purpose and first useful release
 
 LifeGather is a self-hosted personal AI assistant that maintains a private, evidence-backed model of a user's life. Chat is the primary operator interface. Graphs, lists, timelines, and dashboards support exploration and review. Direct correction, export, and recovery remain usable without an AI provider.
@@ -95,6 +101,10 @@ Extraction of untrusted email, web, or document content runs without write tools
 Provide simple home and vehicle records early: model/serial, filter dimensions, maintenance, room paint information, and other supported specifications. Users can provide label photos, manuals, and corrections. Unknown values stay unknown. VIN decoding is identification, not proof of parts fitment; compatibility answers need appropriate manufacturer/parts evidence. Responsive capture and quick fact views matter for use in a store. Offline/PWA behavior is future work, not an initial guarantee.
 
 ## Delivery order and gates
+
+This is the original stage sequence. Use the active feature plan linked above
+for future priorities and current acceptance gates; preserve the invariants and
+historical acceptance scenarios below.
 
 1. Google registration, sessions, ownership enforcement, credential foundation, and mocked two-user isolation tests.
 2. Deterministic graph/evidence services, source idempotency, temporal corrections, export, and backup/restore tests.

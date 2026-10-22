@@ -3,6 +3,11 @@
 Date: 2026-10-21. Status: proposed design for user review; application implementation
 has not started. This is an architectural extension of the existing chat runtime.
 
+Priority alignment, 2026-10-21: [tracking-first feature plan](../../FEATURE_PLAN.md)
+places this slice first, before new proactive automation, with later reliability
+and UI beautification gates. The user approved that product direction and asked
+to commit the revised roadmap; this draft is not a claim of implemented behavior.
+
 ## Intent and baseline
 
 The user clarified that LifeGather should be mostly AI powered: natural language
@@ -64,11 +69,14 @@ operation tied to the active user request. Evidence validation, account checks,
 identity rules and current-version checks remain server enforced. Semantic intent
 classification remains fallible and must not be described as guaranteed.
 
-R3. The slice supports one physical asset creation OR one supplied descriptive
-field addition/correction per turn. Read operations and clarification may precede
-it. No model-generated batches. Multi-field requests ask which change to make
-first, rather than silently partially executing. No operation after a committed
-write can initiate another write in the same turn.
+R3. The slice supports one coherent operation on one physical asset per turn:
+create it with its supplied details, or add/correct multiple supplied descriptive
+fields together. Do not require a separate turn per field. Read operations and
+clarification may precede the change. Validate every included field and commit
+the complete operation atomically; an invalid or ambiguous field must not leave
+a silently partial update. Keep existing bounded field/value limits. Multiple
+physical assets require a separately scoped batch workflow. No operation after
+a committed asset action can initiate another asset action in the same turn.
 
 R4. Asset creation requires explicitly stated current ownership, a supplied name,
 and the existing manufacturer context for model/serial. It may select a current
@@ -104,13 +112,15 @@ failure after a committed write must still show the committed receipt.
 ## Execution, privacy and data integrity
 
 - Initial tool allowlist: bounded asset search, asset/type/current-field inspection,
-  asset-creation preview, create asset, and save one sourced descriptive field.
+  asset-creation preview, create asset with supplied details, and save a bounded
+  collection of sourced descriptive fields atomically on one asset.
   A clarification/final-answer decision is part of the response schema.
 - Account, request IDs, allowed source IDs, version tokens and permissions are
   host-owned. The model cannot choose an account, arbitrary database query, URL,
   credential, executable code or unrestricted MCP tool name.
-- Use at most six model completions, eight read-tool calls and one write per user
-  turn, within the existing request deadline. Bound provider context to 24 KiB
+- Use at most six model completions, eight read-tool calls and one atomic asset
+  action per user turn, within the existing request deadline. One action may
+  include multiple transaction-scoped field writes. Bound provider context to 24 KiB
   and return explicit limit/truncation states. No silent retries or open loops.
 - Preserve existing provider selection, external-data consent, semaphore, daily
   turn budget and usage totals; account for every actual completion. Recheck
@@ -151,15 +161,17 @@ controls, narrow layouts and Light/Dark themes.
 ## Acceptance and verification
 
 A1. Scripted provider fixtures for all three adapters demonstrate different
-natural phrasings selecting real tools, creating an explicitly owned asset and
-updating a supported field with exact original user evidence and history.
+natural phrasings selecting real tools, creating an explicitly owned asset with
+supplied details and updating several supported fields in one request with exact
+original user evidence and history. A single invalid field rolls back the entire
+operation; valid fields do not silently commit on their own.
 
 A2. Fixtures demonstrate missing ownership/manufacturer/value, two same-name
 physical assets, current-field conflict, stale type/record, consolidated-member
 correction and a generic follow-up resolved only to the intended pending request.
 
 A3. Unknown tools/IDs, cross-owner access, embedded document instructions, invented
-values, question-only writes, excess calls, unsupported multi-write plans and
+values, question-only writes, excess calls, unsupported multi-asset plans and
 truncated context do not produce unauthorized or partially applied changes.
 
 A4. Integration tests cover duplicate preview through write, atomic rollback,
