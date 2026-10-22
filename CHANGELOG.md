@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.60.0 — AI asset assistant
+
+- Add an **AI assistant** Chat action that uses the configured OpenAI, Claude or
+  Gemini connection to search and read your assets, add one owned asset with its
+  supplied identifiers and details, or save several details on one asset in a
+  single request. It asks when ownership, identity or a value is unclear.
+- The host validates every write: values must appear in your words, ownership needs
+  your own statement, duplicates need your answer, and all fields commit together
+  with the completed turn or not at all. Stale records, conflicting current
+  statements, unknown or foreign IDs and extra actions are refused.
+- Replies after writes are server-generated receipts with Open/source links.
+  Replays never call the model again; stopping before commit prevents the write.
+  Pending questions live in the turn result and expire after the next message.
+- The existing offline commands remain as **Local assistant (no AI)**. Change
+  history records the new `ai_assistant` method with provider/model.
+- No migration or dependency change. Synthetic provider tests only; live model
+  quality is unverified. See [AI assistant](docs/AI_ASSISTANT.md).
+
 ## 0.59.0 — Editable private asset types and typed manual entry
 
 - Provide Vehicle, Appliance, Electronics, Furniture and Tools & Equipment defaults,

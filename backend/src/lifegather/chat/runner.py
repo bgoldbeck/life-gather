@@ -3,6 +3,8 @@ from collections.abc import Callable
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from lifegather.auth.store import Account
 from lifegather.chat.context import WorkspaceContexts
@@ -196,6 +198,32 @@ async def answer(
         chat.record_usage(actor, day, result.input_tokens, result.output_tokens)
         active()
         return result.value
+
+    if body.mode == "assistant":
+        from lifegather.chat.assistant import AssistantRunner
+        from lifegather.chat.models import Turn
+
+        with Session(chat.engine) as db:
+            turn_id = db.scalar(
+                select(Turn.id).where(
+                    Turn.user_id == actor.id, Turn.request_id == body.request_id
+                )
+            )
+        if turn_id is None:
+            raise MemoryError("Message not found")
+        return await AssistantRunner(
+            chat.engine,
+            actor,
+            conversation_id,
+            turn_id,
+            body.request_id,
+            body.text,
+            selected_provider,
+            body.model,
+            selected_context,
+            body.context.version if body.context else "",
+            active,
+        ).run(completion)
 
     def save_extraction(operation: Callable[[], dict[str, Any]]) -> dict[str, Any]:
         with change_origin(
