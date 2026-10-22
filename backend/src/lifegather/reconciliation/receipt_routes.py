@@ -4,6 +4,10 @@ from fastapi import APIRouter, Depends, Path, Request
 
 from lifegather.auth.routes import require_session, require_write_session
 from lifegather.auth.store import CurrentSession
+from lifegather.reconciliation.detail_suggestions import (
+    DetailSuggest,
+    DetailSuggester,
+)
 from lifegather.reconciliation.purchase_details import (
     DetailRead,
     DetailSave,
@@ -65,5 +69,23 @@ def receipt_router() -> APIRouter:
         return PurchaseDetails(request.app.state.auth_store.engine).save(
             current.user, body
         )
+
+    @router.post("/details/suggest")
+    async def details_suggest(
+        request: Request,
+        body: DetailSuggest,
+        current: Annotated[CurrentSession, Depends(require_write_session)],
+    ) -> dict[str, Any]:
+        state = request.app.state
+        # Sends this receipt's saved text to the selected provider; read-only.
+        return await DetailSuggester(
+            state.auth_store.engine,
+            state.private_settings,
+            {
+                "openai": state.chat_provider,
+                "anthropic": state.claude_provider,
+                "google": state.google_provider,
+            },
+        ).suggest(current.user, body)
 
     return router

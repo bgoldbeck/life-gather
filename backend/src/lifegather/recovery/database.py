@@ -23,6 +23,7 @@ SUPPORTED_MIGRATIONS = frozenset(
         "0026_asset_types",
         "0027_forest_dark_theme",
         "0028_object_storage",
+        "0029_receipt_detail_basis",
     }
 )
 
@@ -124,6 +125,7 @@ def validate_database(
                 "0026_asset_types",
                 "0027_forest_dark_theme",
                 "0028_object_storage",
+                "0029_receipt_detail_basis",
             ):
                 # A current schema marker must include complete typed task storage.
                 # Older accepted snapshots deliberately need no maintenance tables.
@@ -147,6 +149,7 @@ def validate_database(
                 "0026_asset_types",
                 "0027_forest_dark_theme",
                 "0028_object_storage",
+                "0029_receipt_detail_basis",
             ):
                 if db.execute(
                     "SELECT 1 FROM documents WHERE format NOT IN "
@@ -158,6 +161,7 @@ def validate_database(
                 "0026_asset_types",
                 "0027_forest_dark_theme",
                 "0028_object_storage",
+                "0029_receipt_detail_basis",
             ):
                 db.execute(
                     "SELECT id,type_id,name,system_field,retired,position "
@@ -179,7 +183,7 @@ def validate_database(
                 ).fetchone():
                     raise RecoveryError("Snapshot asset type definition is invalid")
             if (
-                revisions[0][0] == "0028_object_storage"
+                revisions[0][0] in ("0028_object_storage", "0029_receipt_detail_basis")
                 and db.execute(
                     "SELECT 1 FROM documents WHERE original_key IS NOT NULL UNION ALL "
                     "SELECT 1 FROM photos WHERE original_key IS NOT NULL "
@@ -188,6 +192,14 @@ def validate_database(
             ):
                 # Snapshots must carry every original themselves.
                 raise RecoveryError("Snapshot refers to files outside the bundle")
+            if (
+                revisions[0][0] == "0029_receipt_detail_basis"
+                and db.execute(
+                    "SELECT 1 FROM receipt_details "
+                    "WHERE basis NOT IN ('labeled','reviewed') LIMIT 1"
+                ).fetchone()
+            ):
+                raise RecoveryError("Snapshot receipt detail basis is invalid")
             fingerprints = db.execute(
                 "SELECT id,fingerprint FROM vault_key LIMIT 2"
             ).fetchall()

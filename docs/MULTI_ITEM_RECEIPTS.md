@@ -102,6 +102,40 @@ restore. No new dependency, live ingestion, provider call or installation restar
 
 The purchase-detail reader offers exact USD line totals from the reviewed item’s own printed line and a uniquely labeled YYYY-MM-DD purchase date. Use source suggestions copies these into an editable draft; review and save explicitly. Ambiguous/multiple dates, invalid dates, other currencies, multiline item quotes and non-labeled prices remain unknown. No AI call, financial arithmetic or automatic write occurs. Current-source and original-file availability checks still apply.
 
+## AI purchase-detail suggestions (v0.70.0)
+
+Under a purchased line's purchase details, choose **Suggest with AI…**, pick an
+owned AI connection and model (your chat choice is preselected) and press
+**Get AI suggestions**. Only this receipt's current saved text, the reviewed item
+quote and its quantity are sent, with external-AI permission and the shared
+daily limit. The model has no tools and the answer is never saved by itself.
+
+`DetailSuggester` grounds the answer deterministically (`printed_values.py`):
+
+- The money passage must occur exactly in the receipt and contain the reviewed
+  item quote, so a subtotal or another line's price is refused. The total must be
+  printed in that passage: `349.00`, `$1,299.00` and `1.299,00 €` read exactly;
+  whole numbers count only beside a currency marker, so quantities, model numbers
+  and date parts never become prices. Nothing is calculated or converted.
+- A printed ISO code or unambiguous symbol (`€`, `£`, `US$`, `C$`, `A$`, `円`)
+  fixes the currency and overrides a contradicting model guess. A bare `$` or `¥`,
+  or no printed currency, is listed as a doubt; an unconfirmed currency stays
+  blank in the draft until you choose one.
+- The date passage must occur exactly and print the date (`2026-10-11`,
+  `10/11/2026`, `Oct 11, 2026`, `11 October 2026`). Numeric dates readable as
+  month/day or day/month are flagged with both readings; several dates on the
+  receipt and delivery/shipping/return/due wording are flagged too.
+
+**Copy AI suggestion into draft** fills the editor and ticks *I checked the
+currency and date reading of the printed values*. Saving with that option
+(`basis: "reviewed"`) re-runs the same printed-value checks inside the save
+transaction and refuses a currency that contradicts the passage. Without it the
+original labeled rules below apply unchanged, and their request fingerprints are
+preserved. History marks reviewed revisions as *reviewed reading*.
+
+Migration `0029_receipt_detail_basis` adds the `basis` column (`labeled` for every
+existing revision). Downgrade refuses while reviewed revisions exist.
+
 ## Explicit currencies (v0.22.0)
 
 Purchase-detail review and suggestions now support USD, EUR, GBP, CAD, AUD and JPY
