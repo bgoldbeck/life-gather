@@ -13,6 +13,8 @@ from lifegather.assets.manual import (
     ManualAssetFields,
     ManualAssets,
 )
+from lifegather.assets.service import AssetList, AssetService
+from lifegather.assets.types import STARTERS, AssetTypes, starter
 from lifegather.auth.store import Account
 from lifegather.chat.assistant import AssistantStep
 from lifegather.chat.provider import Completion
@@ -31,6 +33,7 @@ def step(action: str, **values: Any) -> dict[str, Any]:
         "query": None,
         "asset_id": None,
         "new_asset": None,
+        "asset_type_id": None,
         "fields": [],
         "email_scan": None,
         "message": None,
@@ -53,7 +56,12 @@ def new_asset(name: str, quote: str, **values: Any) -> dict[str, Any]:
 
 
 def field(name: str, value: str, custom: str | None = None) -> dict[str, Any]:
-    return {"field": name, "custom_name": custom, "value": value}
+    return {
+        "field": name,
+        "custom_name": custom,
+        "type_field_id": None,
+        "value": value,
+    }
 
 
 class ScriptedProvider:
@@ -592,3 +600,285 @@ def test_step_schema_is_strict_for_all_provider_adapters() -> None:
         assert node["additionalProperties"] is False
         assert sorted(node["required"]) == sorted(node["properties"])
     assert wire_schema(schema)["properties"]["action"]
+
+
+# Asset types and typed template fields ------------------------------------
+
+
+def type_field(field_id: str, value: str) -> dict[str, Any]:
+    return {**field("type_field", value), "type_field_id": field_id}
+
+
+def listed(payload: dict[str, Any], name: str) -> dict[str, Any]:
+    """A type from this request's list_asset_types result, by name."""
+    for entry in payload["steps"]:
+        for item in entry.get("result", {}).get("asset_types", []):
+            if item["name"] == name:
+                return dict(item)
+    raise AssertionError(name)
+
+
+def field_id(item: dict[str, Any], name: str) -> str:
+    return str(next(f["type_field_id"] for f in item["fields"] if f["name"] == name))
+
+
+def typed(case: Case, asset_id: str) -> tuple[list[Any], dict[str, Any]]:
+    record = AssetTypes(case.engine).record(case.actor, asset_id)
+    return (
+        [row["value"] for row in record["assignments"]],
+        {row["predicate"]: row["value"] for row in record["facts"]},
+    )
+
+
+def test_creates_typed_asset_and_recalls_fields_by_name(case: Case) -> None:
+    conversation = case.conversation()
+    request = (
+        "I own a Honda Civic. It's a vehicle; tire size 205/55R16, year 2019, "
+        "paint Sonic Gray."
+    )
+
+    def create(payload: dict[str, Any]) -> dict[str, Any]:
+        vehicle = listed(payload, "Vehicle")
+        return step(
+            "create_asset",
+            new_asset=new_asset("Honda Civic", "I own"),
+            asset_type_id=vehicle["id"],
+            fields=[
+                type_field(field_id(vehicle, "Tire size"), "205/55R16"),
+                type_field(field_id(vehicle, "Year"), "2019"),
+                field("paint", "Sonic Gray"),
+            ],
+        )
+
+    created = case.send(
+        conversation, "civic", request, step("list_asset_types"), create
+    )
+    result = created["result"]
+    assert "asset type (Vehicle)" in result["text"]
+    assert "Tire size (205/55R16)" in result["text"]
+    asset_id = result["assistant"]["asset_id"]
+    assignments, facts = typed(case, asset_id)
+    vehicle_id = starter(case.actor, *STARTERS[0])["id"]
+    assert assignments == [vehicle_id]
+    assert sorted(facts.values()) == ["2019", "205/55R16"]
+    assert case.current(asset_id)["profile_paint"] == "Sonic Gray"
+    assert len(result["sources"]) == 5
+    texts = [source["text"] for source in result["sources"]]
+    assert sum(request in text for text in texts) == 4  # entry, 2 type fields, paint
+    assert any("to asset type " + vehicle_id in text for text in texts)
+
+    def answer(payload: dict[str, Any]) -> dict[str, Any]:
+        summary = payload["steps"][-1]["result"]["asset_type"]
+        sizes = next(f for f in summary["fields"] if f["name"] == "Tire size")
+        assert summary["name"] == "Vehicle"
+        assert sizes["values"] == ["205/55R16"]
+        details = payload["steps"][-1]["result"]["details"]
+        assert not any(name.startswith("template_") for name in details)
+        return step("answer", message="Its tire size is 205/55R16.")
+
+    recalled = case.send(
+        case.conversation(),
+        "recall",
+        "What tire size does my Civic take?",
+        step("search_assets", query="Civic"),
+        lambda payload: step(
+            "read_asset", asset_id=payload["steps"][-1]["result"]["assets"][0]["id"]
+        ),
+        answer,
+    )
+    assert "205/55R16" in recalled["result"]["text"]
+
+
+def test_updates_type_and_several_type_fields_then_changes_type(case: Case) -> None:
+    fridge = case.asset("Garage fridge", "fridge")
+    conversation = case.conversation()
+    request = (
+        "My garage fridge is an appliance. Its filter specification is EDR1RXD1 "
+        "and power requirements are 115V."
+    )
+
+    def update(payload: dict[str, Any]) -> dict[str, Any]:
+        appliance = listed(payload, "Appliance")
+        return step(
+            "update_asset",
+            asset_id=fridge,
+            asset_type_id=appliance["id"],
+            fields=[
+                type_field(field_id(appliance, "Filter specification"), "EDR1RXD1"),
+                type_field(field_id(appliance, "Power requirements"), "115V"),
+            ],
+        )
+
+    case.send(
+        conversation,
+        "fridge-type",
+        request,
+        step("search_assets", query="fridge"),
+        step("read_asset", asset_id=fridge),
+        step("list_asset_types"),
+        update,
+    )
+    appliance_id = starter(case.actor, *STARTERS[1])["id"]
+    assignments, facts = typed(case, fridge)
+    assert assignments == [appliance_id]
+    assert sorted(facts.values()) == ["115V", "EDR1RXD1"]
+
+    # Repeating the same type is unchanged; another named type replaces it.
+    changed = case.send(
+        conversation,
+        "fridge-retype",
+        "Actually file my garage fridge under electronics.",
+        step("search_assets", query="fridge"),
+        step("read_asset", asset_id=fridge),
+        lambda payload: step(
+            "update_asset",
+            asset_id=fridge,
+            asset_type_id=payload["steps"][-1]["result"]["asset_type"]["id"],
+        ),
+        step("list_asset_types"),
+        lambda payload: step(
+            "update_asset",
+            asset_id=fridge,
+            asset_type_id=listed(payload, "Electronics")["id"],
+        ),
+    )
+    first_error = case.provider.calls[-1]["steps"][-2]["error"]
+    assert "did not name the Appliance type" in first_error
+    assert "asset type (Electronics)" in changed["result"]["text"]
+    assert typed(case, fridge)[0] == [starter(case.actor, *STARTERS[2])["id"]]
+    assignments_over_time = [
+        str(fact.value)
+        for fact in case.facts(fridge, history=True)
+        if fact.predicate == "profile_asset_type"
+    ]
+    assert sorted(assignments_over_time) == sorted(
+        [appliance_id, starter(case.actor, *STARTERS[2])["id"]]
+    )
+
+
+def test_invalid_type_requests_save_nothing(case: Case) -> None:
+    other_vehicle = starter(case.other_actor, *STARTERS[0])["id"]
+    conversation = case.conversation()
+
+    def not_named(payload: dict[str, Any]) -> dict[str, Any]:
+        return step(
+            "create_asset",
+            new_asset=new_asset("Honda Civic", "I own"),
+            asset_type_id=listed(payload, "Vehicle")["id"],
+        )
+
+    def invented_value(payload: dict[str, Any]) -> dict[str, Any]:
+        assert "did not name the Vehicle type" in payload["steps"][-1]["error"]
+        return step(
+            "create_asset",
+            new_asset=new_asset("Honda Civic", "I own"),
+            fields=[type_field("a" * 32, "225/45R17")],
+        )
+
+    def foreign_type(payload: dict[str, Any]) -> dict[str, Any]:
+        assert "does not appear exactly" in payload["steps"][-1]["error"]
+        return step(
+            "create_asset",
+            new_asset=new_asset("Honda Civic", "I own"),
+            asset_type_id=other_vehicle,
+        )
+
+    def give_up(payload: dict[str, Any]) -> dict[str, Any]:
+        assert "Unknown asset type ID" in payload["steps"][-1]["error"]
+        return step("answer", message="Which type should I use?")
+
+    reply = case.send(
+        conversation,
+        "bad-types",
+        "I own a Honda Civic with tire size 205/55R16.",
+        step("list_asset_types"),
+        not_named,
+        invented_value,
+        foreign_type,
+        give_up,
+    )
+    assert "No changes were saved" in reply["result"]["text"]
+    assets = AssetService(case.engine).list(case.actor, AssetList(limit=8))
+    assert assets["items"] == []
+
+
+def test_wrong_type_field_rolls_back_assignment_and_new_asset(case: Case) -> None:
+    def create(payload: dict[str, Any]) -> dict[str, Any]:
+        furniture = listed(payload, "Furniture")
+        vehicle = listed(payload, "Vehicle")
+        return step(
+            "create_asset",
+            new_asset=new_asset("Oak desk", "I own"),
+            asset_type_id=furniture["id"],
+            fields=[
+                type_field(field_id(furniture, "Material"), "oak"),
+                type_field(field_id(vehicle, "Year"), "2019"),
+            ],
+        )
+
+    def recover(payload: dict[str, Any]) -> dict[str, Any]:
+        assert "not part of the Furniture type" in payload["steps"][-1]["error"]
+        return step("answer", message="Year isn't a furniture detail.")
+
+    case.send(
+        case.conversation(),
+        "desk",
+        "I own an oak desk, furniture, material oak, bought 2019.",
+        step("list_asset_types"),
+        create,
+        recover,
+    )
+    assets = AssetService(case.engine).list(case.actor, AssetList(limit=8))
+    assert assets["items"] == []
+
+
+def test_type_fields_need_an_assigned_type_and_vin_uses_standard_field(
+    case: Case,
+) -> None:
+    truck = case.asset("Work truck", "truck")
+
+    def without_type(payload: dict[str, Any]) -> dict[str, Any]:
+        vehicle = listed(payload, "Vehicle")
+        return step(
+            "update_asset",
+            asset_id=truck,
+            fields=[type_field(field_id(vehicle, "Year"), "2015")],
+        )
+
+    def vin_field(payload: dict[str, Any]) -> dict[str, Any]:
+        assert "Assign an asset type" in payload["steps"][-1]["error"]
+        vehicle = listed(payload, "Vehicle")
+        return step(
+            "update_asset",
+            asset_id=truck,
+            asset_type_id=vehicle["id"],
+            fields=[type_field(field_id(vehicle, "VIN"), "1FTFW1E50FFA00001")],
+        )
+
+    def standard(payload: dict[str, Any]) -> dict[str, Any]:
+        assert "standard vin detail" in payload["steps"][-1]["error"]
+        vehicle = listed(payload, "Vehicle")
+        return step(
+            "update_asset",
+            asset_id=truck,
+            asset_type_id=vehicle["id"],
+            fields=[
+                field("vin", "1FTFW1E50FFA00001"),
+                type_field(field_id(vehicle, "Year"), "2015"),
+            ],
+        )
+
+    saved = case.send(
+        case.conversation(),
+        "truck",
+        "My work truck is a vehicle from 2015, VIN 1FTFW1E50FFA00001.",
+        step("search_assets", query="truck"),
+        step("list_asset_types"),
+        without_type,
+        vin_field,
+        standard,
+    )
+    assert saved["result"]["assistant"]["operation"] == "update"
+    assert case.current(truck)["profile_vin"] == "1FTFW1E50FFA00001"
+    _, facts = typed(case, truck)
+    assert "2015" in facts.values()

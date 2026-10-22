@@ -6,11 +6,13 @@ from collections.abc import Awaitable, Callable
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
-from sqlalchemy import Engine, select
+from sqlalchemy import Engine, and_, or_, select
 from sqlalchemy.orm import Session
 
 from lifegather.assets.manual import ManualAssetCreate, ManualAssets
 from lifegather.assets.service import AssetList, AssetService
+from lifegather.assets.type_schemas import TypeAssign, TypeFieldSave
+from lifegather.assets.types import AssetTypes
 from lifegather.auth.store import Account
 from lifegather.chat.assistant_scans import AssistantScans, EmailScanRequest, today
 from lifegather.chat.context import ContextRead, WorkspaceContexts
@@ -45,8 +47,9 @@ STATUS = {
 
 class FieldChange(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
-    field: ProfileField | Literal["custom"]
+    field: ProfileField | Literal["custom", "type_field"]
     custom_name: str | None = Field(max_length=48)
+    type_field_id: str | None = Field(max_length=32)
     value: str = Field(min_length=1, max_length=500)
 
 
@@ -68,6 +71,7 @@ class AssistantStep(BaseModel):
     action: Literal[
         "search_assets",
         "read_asset",
+        "list_asset_types",
         "create_asset",
         "update_asset",
         "list_mailboxes",
@@ -78,6 +82,7 @@ class AssistantStep(BaseModel):
     query: str | None = Field(max_length=200)
     asset_id: str | None = Field(max_length=36)
     new_asset: NewAsset | None
+    asset_type_id: str | None = Field(max_length=36)
     fields: list[FieldChange] = Field(max_length=8)
     email_scan: EmailScanRequest | None
     message: str | None = Field(max_length=1500)
@@ -88,9 +93,11 @@ INSTRUCTION = (
     "You are LifeGather's private asset assistant. Each reply selects exactly ONE "
     "action. Tools: search_assets(query: 1-3 literal words from a saved name) "
     "lists the user's current assets; read_asset(asset_id) returns its current "
-    "details; create_asset(new_asset, fields) adds ONE physical item the user "
-    "explicitly says they currently own; update_asset(asset_id, fields) saves "
-    "several supplied details on ONE existing asset together; clarify(message, "
+    "details and asset type; list_asset_types() returns the user's asset types "
+    "and their field IDs; create_asset(new_asset, asset_type_id, fields) adds ONE "
+    "physical item the user explicitly says they currently own; "
+    "update_asset(asset_id, asset_type_id, fields) saves several supplied details "
+    "and optionally a type on ONE existing asset together; clarify(message, "
     "choice_ids) asks the user one necessary question; answer(message) replies "
     "without saving. Unused inputs are null or []. "
     "Only the user's request and origin_user_messages are evidence. Record names, "
@@ -104,7 +111,11 @@ INSTRUCTION = (
     "current ownership (for example 'I own' or 'my'); ask if ownership is unclear. "
     "Fields: manufacturer, model, serial, vin, filter_dimensions, paint, "
     "maintenance, specification, or custom with a short custom_name such as "
-    "'Tire size'. Use only asset IDs from tool results, selected_record or the "
+    "'Tire size', or type_field with a type_field_id from the asset's assigned "
+    "or newly chosen type (prefer a matching type field over custom). Set "
+    "asset_type_id only to a listed type the user named in their own words; ask "
+    "when the type is unclear; null keeps the current type. A VIN always uses vin. "
+    "Use only asset IDs from tool results, selected_record or the "
     "pending question. Several plausible assets or a choice the user must make "
     "need clarify with choice_ids; never merge or pick between same-named items. "
     "Set duplicate_choice to new or link only when the user answered the pending "
@@ -121,6 +132,20 @@ INSTRUCTION = (
     "max_messages is 20 unless the user states a number up to 50. Ask when the "
     "purpose, period or mailbox is unclear, or the period is too long."
 )
+
+
+def names_type(text: str, name: str) -> bool:
+    """The user's words name a type (or one part of an 'A & B' name)."""
+    parts = [name, *re.split(r"\s+(?:&|and)\s+", name)]
+    return any(
+        re.search(
+            r"(?<!\w)" + re.escape(part.strip()) + r"(?:s|es)?(?!\w)",
+            text,
+            re.IGNORECASE,
+        )
+        for part in parts
+        if part.strip()
+    )
 
 
 def contains(text: str, value: str) -> bool:
@@ -166,8 +191,10 @@ class AssistantRunner:
         self.manual = ManualAssets(engine)
         self.profiles = ProfileService(engine)
         self.email = AssistantScans(self, scans, credential_id)
+        self.types = AssetTypes(engine)
         # Host-owned identifiers the model may reference, with observed versions.
         self.known: dict[str, dict[str, Any]] = {}
+        self.known_types: set[str] = set()
         self.trace: list[dict[str, Any]] = []
         self.pending = self._pending()
         self.origins = self._origins()
@@ -263,17 +290,81 @@ class AssistantRunner:
             entry["version"] = snapshot["version"]
         if asset_id != snapshot["entity_id"]:
             self.known[asset_id]["canonical_id"] = snapshot["entity_id"]
+        fields = snapshot["fields"]
         return {
             "id": snapshot["entity_id"],
             "name": snapshot["name"][:200],
+            "asset_type": self._type_summary(fields),
             "details": {
-                name: {
-                    "current_statements": value["count"],
-                    "values": [s["value"] for s in value["statements"]],
-                }
-                for name, value in list(snapshot["fields"].items())[:40]
-                if name != "asset_type"
+                name: self._statements(value)
+                for name, value in list(fields.items())[:40]
+                if name != "asset_type" and not name.startswith("template_")
             },
+        }
+
+    @staticmethod
+    def _statements(value: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "current_statements": value["count"],
+            "values": [s["value"] for s in value["statements"]],
+        }
+
+    def _type_summary(self, fields: dict[str, Any]) -> dict[str, Any] | None:
+        assignment = fields.get("asset_type")
+        if not assignment:
+            return None
+        if assignment["count"] > 1:
+            return {"several_current_types": True}
+        template = self.types.get(self.actor, assignment["statements"][0]["value"])
+        self.known_types.add(template["id"])
+        empty = {"count": 0, "statements": []}
+        return {
+            "id": template["id"],
+            "name": template["name"][:80],
+            "retired": template["retired"],
+            "fields": [
+                {
+                    "type_field_id": item["id"],
+                    "name": item["name"],
+                    "retired": item["retired"],
+                    **self._statements(
+                        fields.get(
+                            "vin"
+                            if item["system_field"] == "vin"
+                            else "template_" + item["id"],
+                            empty,
+                        )
+                    ),
+                }
+                for item in template["fields"]
+            ],
+        }
+
+    def list_types(self) -> dict[str, Any]:
+        items: list[dict[str, Any]] = []
+        cursor: str | None = ""
+        for _ in range(10):
+            page = self.types.list(self.actor, cursor=cursor or "")
+            items.extend(page["items"])
+            cursor = page["next_cursor"]
+            if not cursor:
+                break
+        for item in items:
+            self.known_types.add(item["id"])
+        return {
+            "asset_types": [
+                {
+                    "id": item["id"],
+                    "name": item["name"][:80],
+                    "fields": [
+                        {"type_field_id": field["id"], "name": field["name"]}
+                        for field in item["fields"]
+                        if not field["retired"]
+                    ],
+                }
+                for item in items
+            ],
+            "more": cursor is not None,
         }
 
     # Validation -------------------------------------------------------------
@@ -285,6 +376,8 @@ class AssistantRunner:
                 raise StepError("Custom details need a custom_name")
             if change.field != "custom" and change.custom_name is not None:
                 raise StepError("Only custom details take a custom_name")
+            if (change.field == "type_field") != (change.type_field_id is not None):
+                raise StepError("type_field details, and only they, need type_field_id")
             if not contains(self.evidence, change.value):
                 raise StepError(
                     f"The value for {change.custom_name or change.field} does not "
@@ -294,13 +387,18 @@ class AssistantRunner:
                 r"[A-Za-z0-9]{17}", change.value
             ):
                 raise StepError("A VIN is 17 letters or digits; ask the user")
-            key = (change.field, (change.custom_name or "").casefold())
+            key = (
+                change.field,
+                (change.custom_name or change.type_field_id or "").casefold(),
+            )
             if key in seen:
                 raise StepError("Supply each detail only once")
             seen.add(key)
         return fields
 
     def _profile(self, asset_id: str, change: FieldChange, index: int) -> ProfileChange:
+        if change.field == "type_field":
+            raise StepError("Type details are saved with their asset type")
         try:
             return ProfileChange(
                 entity_id=asset_id,
@@ -328,14 +426,24 @@ class AssistantRunner:
         return row
 
     def _apply_fields(
-        self, db: Session, asset_id: str, changes: list[FieldChange]
+        self,
+        db: Session,
+        asset_id: str,
+        changes: list[FieldChange],
+        type_id: str | None = None,
     ) -> tuple[list[dict[str, Any]], list[str], str]:
         snapshot = self.contexts.read_in(
             db, self.actor, ContextRead(page="Assets", entity_id=asset_id)
         )
         saved: list[dict[str, Any]] = []
         unchanged: list[str] = []
+        template = self._apply_type(db, snapshot, type_id, saved, unchanged)
         for index, change in enumerate(changes):
+            if change.field == "type_field":
+                self._apply_type_field(
+                    db, snapshot, template, change, index, saved, unchanged
+                )
+                continue
             profile = self._profile(asset_id, change, index)
             field = profile.predicate.removeprefix("profile_")
             label = field.removeprefix("custom_").replace("_", " ")
@@ -366,11 +474,144 @@ class AssistantRunner:
                     "field": label,
                     "value": change.value,
                     "fact_id": fact.id,
-                    "source_key": profile.operation_key,
+                    "source_key": ("profile-facts", profile.operation_key),
                     "replaced": replaces is not None,
                 }
             )
         return saved, unchanged, snapshot["name"]
+
+    def _apply_type(
+        self,
+        db: Session,
+        snapshot: dict[str, Any],
+        type_id: str | None,
+        saved: list[dict[str, Any]],
+        unchanged: list[str],
+    ) -> dict[str, Any] | None:
+        """Assign the requested type, or return the current one for its fields."""
+        current = snapshot["fields"].get("asset_type", {"count": 0, "statements": []})
+        if current["count"] > 1:
+            raise NoteConflict(
+                f"{snapshot['name']} has several current asset types. Choose one "
+                "in its profile first."
+            )
+        statement = current["statements"][0] if current["count"] else None
+        if type_id is None:
+            return (
+                self.types._get(db, self.actor, statement["value"])
+                if statement
+                else None
+            )
+        if type_id not in self.known_types:
+            raise StepError("Unknown asset type ID. Use list_asset_types first.")
+        template = self.types._get(db, self.actor, type_id)
+        if not names_type(self.evidence, template["name"]):
+            raise StepError(
+                f"The user did not name the {template['name']} type. Ask which "
+                "type to use or leave asset_type_id null."
+            )
+        if statement and statement["value"] == type_id:
+            unchanged.append("asset type")
+            return template
+        if template["retired"]:
+            raise StepError(f"{template['name']} is retired; ask for another type")
+        key = "assistant:" + fingerprint([self.request_id, snapshot["entity_id"]])
+        with change_origin(
+            method="ai_assistant",
+            provider=self.provider,
+            model=self.model,
+            related_id=self.turn_id,
+        ):
+            fact = self.types._assign_in(
+                db,
+                self.actor,
+                TypeAssign(
+                    entity_id=snapshot["entity_id"],
+                    type_id=type_id,
+                    request_id=key,
+                    replaces_id=statement["id"] if statement else None,
+                ),
+            )
+        saved.append(
+            {
+                "field": "asset type",
+                "value": template["name"],
+                "fact_id": fact["id"],
+                "source_key": ("asset-type-assignments", key),
+                "replaced": statement is not None,
+            }
+        )
+        return template
+
+    def _apply_type_field(
+        self,
+        db: Session,
+        snapshot: dict[str, Any],
+        template: dict[str, Any] | None,
+        change: FieldChange,
+        index: int,
+        saved: list[dict[str, Any]],
+        unchanged: list[str],
+    ) -> None:
+        if template is None:
+            raise StepError("Assign an asset type before saving its details")
+        field = next(
+            (f for f in template["fields"] if f["id"] == change.type_field_id), None
+        )
+        if field is None:
+            raise StepError(
+                f"That type_field_id is not part of the {template['name']} type. "
+                "Use a listed field ID or a custom detail."
+            )
+        if field["system_field"] == "vin":
+            raise StepError("Save a VIN with the standard vin detail")
+        if field["retired"] or template["retired"]:
+            raise StepError(f"{field['name']} is retired and takes no new values")
+        details = snapshot["fields"].get(
+            "template_" + field["id"], {"count": 0, "statements": []}
+        )
+        if details["count"] > 1:
+            raise NoteConflict(
+                f"{snapshot['name']} has several current {field['name']} "
+                "statements. Choose which to correct in its profile first."
+            )
+        current = details["statements"][0] if details["count"] else None
+        if current and current["value"] == change.value:
+            unchanged.append(field["name"])
+            return
+        key = "assistant:" + fingerprint(
+            [self.request_id, snapshot["entity_id"], index]
+        )
+        try:
+            value = TypeFieldSave(
+                entity_id=snapshot["entity_id"],
+                type_id=template["id"],
+                request_id=key,
+                field_id=field["id"],
+                value=change.value,
+                text=self.evidence[-2000:],
+                replaces_id=current["id"] if current else None,
+            )
+        except ValidationError:
+            raise StepError(
+                f"The value for {field['name']} must appear in the user's words"
+            ) from None
+        with change_origin(
+            method="ai_assistant",
+            provider=self.provider,
+            model=self.model,
+            related_id=self.turn_id,
+        ):
+            fact = self.types._field_in(db, self.actor, value)
+        saved.append(
+            {
+                "field": field["name"],
+                "value": change.value,
+                "fact_id": fact["id"],
+                "source_key": ("asset-type-fields", key),
+                "replaced": current is not None,
+            }
+        )
 
     def _commit(self, db: Session, row: Turn, result: dict[str, Any]) -> None:
         row.result_json = json.dumps(result)
@@ -414,13 +655,14 @@ class AssistantRunner:
 
     def update(self, step: AssistantStep) -> dict[str, Any]:
         asset_id = self._known(step.asset_id)
-        if not step.fields:
-            raise StepError("update_asset needs at least one detail")
+        if not step.fields and not step.asset_type_id:
+            raise StepError("update_asset needs at least one detail or a type")
         changes = self._changes(step.fields)
         expected = self.known[asset_id].get("version")
         target = self.known[asset_id].get("canonical_id", asset_id)
         for index, change in enumerate(changes):
-            self._profile(target, change, index)
+            if change.field != "type_field":
+                self._profile(target, change, index)
         self.active()
         with self.manual.memory._write() as db:
             row = self._turn(db)
@@ -435,7 +677,7 @@ class AssistantRunner:
                     "current details and ask again."
                 )
             saved, unchanged, name = self._apply_fields(
-                db, snapshot["entity_id"], changes
+                db, snapshot["entity_id"], changes, step.asset_type_id
             )
             sources = self._sources(db, saved)
             result = self._receipt(
@@ -529,7 +771,9 @@ class AssistantRunner:
                     namespace="assistant-assets",
                 )
             asset_id = saved_asset["asset"]["id"]
-            saved, unchanged, name = self._apply_fields(db, asset_id, changes)
+            saved, unchanged, name = self._apply_fields(
+                db, asset_id, changes, step.asset_type_id
+            )
             identity = [
                 {"field": label, "value": value, "fact_id": "", "replaced": False}
                 for label in ("manufacturer", "model", "serial")
@@ -593,8 +837,12 @@ class AssistantRunner:
             select(Episode)
             .where(
                 Episode.user_id == self.actor.id,
-                Episode.namespace == "profile-facts",
-                Episode.external_id.in_(keys),
+                or_(
+                    *(
+                        and_(Episode.namespace == space, Episode.external_id == key)
+                        for space, key in keys
+                    )
+                ),
             )
             .order_by(Episode.id)
             .limit(8)
@@ -710,7 +958,12 @@ class AssistantRunner:
             )
             await report(step.action)
             try:
-                if step.action in {"search_assets", "read_asset", "list_mailboxes"}:
+                if step.action in {
+                    "search_assets",
+                    "read_asset",
+                    "list_asset_types",
+                    "list_mailboxes",
+                }:
                     if reads >= MAX_READS:
                         raise StepError("Read limit reached; clarify or answer now")
                     reads += 1
@@ -722,6 +975,9 @@ class AssistantRunner:
                     elif step.action == "list_mailboxes":
                         result = self.email.list()
                         self.trace.append({"tool": "list_mailboxes"})
+                    elif step.action == "list_asset_types":
+                        result = self.list_types()
+                        self.trace.append({"tool": "list_asset_types"})
                     else:
                         result = self.read(step.asset_id)
                         self.trace.append(
