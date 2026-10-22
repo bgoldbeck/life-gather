@@ -105,6 +105,7 @@ from lifegather.reconciliation.purchase_details import (
 from lifegather.reconciliation.queue import (
     IdentityRead,
     IdentityReview,
+    IdentityUndo,
     ReviewPage,
     ReviewService,
 )
@@ -593,6 +594,21 @@ def build_server(power_factory: Callable[[], PowerCenter] | None = None) -> MCPS
         return read(
             ctx,
             lambda actor, memory, _: ReviewService(memory.engine).review(actor, data),
+        )
+
+    @server.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        )
+    )
+    def identity_review_undo(data: IdentityUndo, ctx: ToolContext) -> dict[str, Any]:
+        """Return an explicit review-queue identity decision to the queue."""
+        return read(
+            ctx,
+            lambda actor, memory, _: ReviewService(memory.engine).undo(actor, data),
         )
 
     @server.tool(annotations=annotation)

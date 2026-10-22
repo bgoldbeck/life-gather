@@ -4,7 +4,12 @@ from fastapi import APIRouter, Depends, Path, Query, Request
 
 from lifegather.auth.routes import require_session, require_write_session
 from lifegather.auth.store import CurrentSession
-from lifegather.reconciliation.queue import IdentityReview, ReviewPage, ReviewService
+from lifegather.reconciliation.queue import (
+    IdentityReview,
+    IdentityUndo,
+    ReviewPage,
+    ReviewService,
+)
 
 
 def review_router() -> APIRouter:
@@ -40,5 +45,13 @@ def review_router() -> APIRouter:
         current: Annotated[CurrentSession, Depends(require_write_session)],
     ) -> dict[str, Any]:
         return service(request).review(current.user, body)
+
+    @router.post("/identities/undo")
+    def undo(
+        request: Request,
+        body: IdentityUndo,
+        current: Annotated[CurrentSession, Depends(require_write_session)],
+    ) -> dict[str, Any]:
+        return service(request).undo(current.user, body)
 
     return router

@@ -118,6 +118,8 @@ Treat this as a release gate as well as continuing work during Phases 1 and 2.
   export/recovery loop with representative synthetic possessions and two accounts.
 - Retain direct correction, safe existing duplicate resolution, history and
   inspectable unknowns. Broaden undo only for operations that support safe reversal.
+  v0.73.0 adds [undo](UNDO.md) for review-queue decisions (including dismissals),
+  removing a photo from an item and pausing/resuming a scan schedule.
 - Keep existing record/original exports and encrypted operator recovery verified.
   Add personal import/restore and selective deletion/retention in separately scoped
   increments where the user workflow needs them; broader privacy controls remain

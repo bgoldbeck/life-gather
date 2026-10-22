@@ -7,6 +7,7 @@ import { ReceiptProposalCard } from './ReceiptProposalCard'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import { ChatRequestError } from './chatRequest'
 import { ExistingPhotoLink } from './ExistingPhotoLink'
+import { UndoNotice, type UndoAction } from './UndoNotice'
 import './photos.css'
 
 type Photo = {
@@ -43,6 +44,7 @@ export function PhotosPanel({
   const [linking, setLinking] = useState(false)
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
+  const [undo, setUndo] = useState<UndoAction | null>(null)
   const [credentials, setCredentials] = useState<Credential[]>([])
   const [credential, setCredential] = useState('')
   const [model, setModel] = useState('')
@@ -266,7 +268,7 @@ export function PhotosPanel({
     setError('')
     setStatus('')
     try {
-      await request('photos/detach', {
+      const detached: Photo = await request('photos/detach', {
         method: 'POST',
         body: JSON.stringify({
           photo_id: selected.id,
@@ -279,9 +281,31 @@ export function PhotosPanel({
       setProposal('')
       setReceipt('')
       await load()
-      setStatus(
-        'Photo removed from this item. The original, other galleries and source evidence remain available.',
-      )
+      const message =
+        'Photo removed from this item. The original, other galleries and source evidence remain available.'
+      setStatus(message)
+      setUndo({
+        message,
+        label: 'Undo photo removal',
+        run: async () => {
+          try {
+            await request('photos/attach', {
+              method: 'POST',
+              body: JSON.stringify({
+                photo_id: detached.id,
+                asset_id: assetId,
+                expected_updated_at: detached.updated_at,
+              }),
+            })
+          } catch {
+            throw new Error(
+              'Unable to attach the photo again. It may have changed or been deleted; use a photo already saved instead.',
+            )
+          }
+          await load()
+          return 'Photo attached to this item again.'
+        },
+      })
     } catch {
       setError(
         'Unable to remove the link. Retry, or reopen this gallery if the photo changed.',
@@ -375,7 +399,19 @@ export function PhotosPanel({
         </details>
       )}
       {error && <p role="alert">{error}</p>}
-      {status && <p role="status">{status}</p>}
+      {undo && undo.message === status ? (
+        <UndoNotice
+          action={undo}
+          disabled={busy || retry || linking}
+          onBusy={setBusy}
+          onDone={(message) => {
+            setUndo(null)
+            setStatus(message)
+          }}
+        />
+      ) : (
+        status && <p role="status">{status}</p>
+      )}
       {!items.length && (
         <p className="empty-state">No photos saved here yet.</p>
       )}

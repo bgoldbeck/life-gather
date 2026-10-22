@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.73.0 — Broader undo
+
+- The review queue shows **Undo** right after an identity decision. Undo returns
+  the match to the queue as a new recorded decision; the undone decision and its
+  audit stay in history. Dismissed matches can now be brought back, which was not
+  possible before. Undo is refused once the decision has changed since, and an
+  exact retry returns the same result.
+- Removing a photo from an item offers **Undo**, which attaches the same photo
+  again. Pausing or resuming a scan schedule offers **Undo** to switch it back.
+- New private endpoint `POST /api/reviews/identities/undo` and MCP tool
+  `identity_review_undo` share owner, session and CSRF checks. A new
+  `identity_review_undone` audit event records each undo.
+- Deleting photos, documents or conversations, disconnecting mailboxes and
+  removing AI connections stay permanent. See [docs/UNDO.md](docs/UNDO.md). No
+  migration or dependency change; queries are portable to PostgreSQL.
 ## 0.72.0 — Consistent controls, focus and statuses
 
 - Text boxes, menus, note fields and file pickers look the same on every page:

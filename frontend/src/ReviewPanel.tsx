@@ -5,6 +5,7 @@ import { AssetProposalCard } from './AssetProposalCard'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import { ChatRequestError } from './chatRequest'
 import { CandidateComparison } from './CandidateComparison'
+import { UndoNotice, type UndoAction } from './UndoNotice'
 
 type Item = {
   key: string
@@ -46,6 +47,7 @@ export function ReviewPanel({ csrfToken }: { csrfToken: string }) {
   const [targets, setTargets] = useState<string[]>([])
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
+  const [undo, setUndo] = useState<UndoAction | null>(null)
   const pending = useRef<Record<string, unknown> | null>(null)
   const request = useCallback(
     async (path: string, init?: RequestInit) => {
@@ -103,6 +105,7 @@ export function ReviewPanel({ csrfToken }: { csrfToken: string }) {
     setBusy(true)
     setError('')
     setStatus('')
+    setUndo(null)
     setSource(null)
     setIdentity(null)
     setSelected(null)
@@ -125,14 +128,16 @@ export function ReviewPanel({ csrfToken }: { csrfToken: string }) {
       setError((caught as Error).message)
     }
   }
+  const saved = 'Review saved. The queue now reflects the current records.'
   async function reviewed() {
     await load()
-    setStatus('Review saved. The queue now reflects the current records.')
+    setStatus(saved)
   }
   async function decide() {
     if (!identity || busy || (!choice && !pending.current)) return
     setBusy(true)
     setError('')
+    setUndo(null)
     const body = pending.current ?? {
       observation_id: identity.observation_id,
       expected_decision_id: identity.decision_id,
@@ -142,16 +147,31 @@ export function ReviewPanel({ csrfToken }: { csrfToken: string }) {
     }
     pending.current = body
     try {
-      await request('reviews/identities/review', {
-        method: 'POST',
-        body: JSON.stringify(body),
-      })
+      const decided: { id: string; decision_id: string } = await request(
+        'reviews/identities/review',
+        { method: 'POST', body: JSON.stringify(body) },
+      )
       pending.current = null
       setRetry(false)
       setIdentity(null)
       setSelected(null)
       setSource(null)
       await reviewed()
+      setUndo({
+        message: saved,
+        label: 'Undo identity review',
+        run: async () => {
+          await request('reviews/identities/undo', {
+            method: 'POST',
+            body: JSON.stringify({
+              observation_id: decided.id,
+              decision_id: decided.decision_id,
+            }),
+          })
+          await load()
+          return 'Review undone. The match is back in the queue; its earlier decision stays in history.'
+        },
+      })
     } catch (caught) {
       if (caught instanceof ChatRequestError && caught.status < 500) {
         pending.current = null
@@ -196,6 +216,7 @@ export function ReviewPanel({ csrfToken }: { csrfToken: string }) {
               setKind(e.target.value)
               setBusy(true)
               setError('')
+              setUndo(null)
               setSelected(null)
               setIdentity(null)
               setSource(null)
@@ -217,7 +238,19 @@ export function ReviewPanel({ csrfToken }: { csrfToken: string }) {
       </div>
       {busy && <p role="status">Loading review…</p>}
       {error && <p role="alert">{error}</p>}
-      {status && <p role="status">{status}</p>}
+      {undo && undo.message === status ? (
+        <UndoNotice
+          action={undo}
+          disabled={busy || retry}
+          onBusy={setBusy}
+          onDone={(message) => {
+            setUndo(null)
+            setStatus(message)
+          }}
+        />
+      ) : (
+        status && <p role="status">{status}</p>
+      )}
       {!busy && !items.length && !error && (
         <p className="empty-state">No pending reviews in this view.</p>
       )}

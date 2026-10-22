@@ -90,6 +90,55 @@ it('leaves uncertain work pending and resolves an explicit same-item choice with
   expect(calls.some((c) => c.url.includes('/turns'))).toBe(false)
 })
 
+it('undoes a dismissal so the match returns to the queue', async () => {
+  const user = userEvent.setup()
+  const calls: { url: string; init?: RequestInit }[] = []
+  let dismissed = false
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url, init })
+      let result: unknown = {
+        items: dismissed ? [] : [item],
+        next_cursor: null,
+      }
+      if (url === '/api/reviews/identities/obs') result = detail
+      if (url === '/api/reviews/identities/review') {
+        dismissed = true
+        result = { id: 'obs', decision_id: 'dismissed', outcome: 'dismissed' }
+      }
+      if (url === '/api/reviews/identities/undo') {
+        dismissed = false
+        result = { id: 'obs', decision_id: 'restored', outcome: 'review' }
+      }
+      return new Response(JSON.stringify(result))
+    }),
+  )
+  render(<ReviewPanel csrfToken="csrf" />)
+  await user.click(
+    await screen.findByRole('button', { name: 'Synthetic drill' }),
+  )
+  await user.click(screen.getByLabelText(/Exclude this discovery/))
+  await user.click(
+    screen.getByRole('button', { name: 'Confirm identity review' }),
+  )
+  await screen.findByText('No pending reviews in this view.')
+  await user.click(screen.getByRole('button', { name: 'Undo identity review' }))
+  await screen.findByText(/Review undone. The match is back in the queue/)
+  const undo = calls.find((c) => c.url === '/api/reviews/identities/undo')!
+  expect(undo.init?.headers).toMatchObject({ 'X-CSRF-Token': 'csrf' })
+  expect(JSON.parse(String(undo.init?.body))).toEqual({
+    observation_id: 'obs',
+    decision_id: 'dismissed',
+  })
+  expect(
+    await screen.findByRole('button', { name: 'Synthetic drill' }),
+  ).toBeVisible()
+  expect(
+    screen.queryByRole('button', { name: 'Undo identity review' }),
+  ).not.toBeInTheDocument()
+})
+
 it('requires distinct choices for multiple units and retries the same decision after lost response', async () => {
   const user = userEvent.setup()
   const bodies: string[] = []

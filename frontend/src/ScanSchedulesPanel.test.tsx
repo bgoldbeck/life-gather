@@ -123,6 +123,62 @@ it('creates only after explicit submission and supports a private pause action',
   expect(create.init?.headers).toMatchObject({ 'X-CSRF-Token': 'csrf' })
 })
 
+it('undoes a pause with the revision the pause returned', async () => {
+  const user = userEvent.setup()
+  const toggles: unknown[] = []
+  let current = {
+    id: 'schedule',
+    label: 'Daily receipts',
+    handler_key: 'gmail_import',
+    cadence: 'daily',
+    timezone: 'UTC',
+    local_time: '09:00',
+    weekday: 0,
+    lookback_days: 7,
+    enabled: true,
+    revision: 3,
+    next_run: 1770000000,
+    last_status: 'scheduled',
+    scope: { mailbox_id: 'mailbox', query: '', max_messages: 20 },
+  }
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/toggle')) {
+        const body = JSON.parse(String(init?.body))
+        toggles.push(body)
+        current = {
+          ...current,
+          enabled: body.enabled,
+          revision: current.revision + 1,
+          last_status: body.enabled ? 'scheduled' : 'paused',
+        }
+        return new Response(JSON.stringify(current))
+      }
+      return new Response(JSON.stringify({ items: [current] }))
+    }),
+  )
+  render(
+    <ScanSchedulesPanel
+      csrfToken="csrf"
+      mailboxes={[{ id: 'mailbox', address: 'synthetic@example.test' }]}
+      onRun={() => undefined}
+    />,
+  )
+  await user.click(
+    await screen.findByRole('button', { name: /^Pause Daily receipts$/ }),
+  )
+  await user.click(await screen.findByRole('button', { name: 'Undo pause' }))
+  await screen.findByText(/Pause undone/)
+  expect(toggles).toEqual([
+    { expected_revision: 3, enabled: false },
+    { expected_revision: 4, enabled: true },
+  ])
+  expect(
+    await screen.findByRole('button', { name: /^Pause Daily receipts$/ }),
+  ).toBeVisible()
+})
+
 it('edits a paused schedule using its revision and opens the saved run', async () => {
   const user = userEvent.setup()
   const onRun = vi.fn()
