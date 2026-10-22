@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from database_support import restore_copy
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -123,9 +124,9 @@ def test_batch_history_never_precedes_its_decisions(
     assert restored_at > moved_at
     assert not memory.facts(actor, target.id, known_at=restored_at)
     assert memory.facts(actor, target.id, known_at=moved_at)
-    snapshot = tmp_path / "chronology.sqlite3"
+    snapshot = tmp_path / "chronology.jsonl"
     operator_snapshot(auth.engine, snapshot)
-    recovered = AuthStore(snapshot)
+    recovered = AuthStore(restore_copy(snapshot))
     recovered.migrate()
     replay = EvidenceBatchService(recovered.engine)
     assert replay.move(actor, move) == moved
@@ -182,9 +183,9 @@ def test_atomic_multi_source_move_reverse_replay_and_backup(tmp_path: Path) -> N
     )
     assert target_detail["actions"][0]["result"]["association_count"] == 2
     assert "entries" not in target_detail["actions"][0]["result"]
-    snapshot = tmp_path / "batch.sqlite3"
+    snapshot = tmp_path / "batch.jsonl"
     operator_snapshot(auth.engine, snapshot)
-    restored = AuthStore(snapshot)
+    restored = AuthStore(restore_copy(snapshot))
     restored.migrate()
     service = EvidenceBatchService(restored.engine)
     assert service.move(actor, move) == result

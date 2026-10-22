@@ -2,19 +2,24 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import Event
-from typing import BinaryIO
+from typing import Any, BinaryIO
 
 import pytest
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from database_support import database
+from pydantic import SecretStr
+from sqlalchemy import inspect
 
 from lifegather.auth.store import AuthStore
 from lifegather.config import Settings
 from lifegather.credentials.service import PrivateSettings
+from lifegather.database import create_database_engine
+from lifegather.memory import backup
 from lifegather.memory.schemas import SourceInput
 from lifegather.memory.service import MemoryService
 from lifegather.recovery import bundle as bundles
-from lifegather.recovery.bundle import FileRecord, RecoveryService
-from lifegather.recovery.database import finalize_snapshot
+from lifegather.recovery.bundle import RecoveryService
+from lifegather.recovery.database import DatabaseSummary, validate_snapshot
 from lifegather.recovery.envelope import RecoveryError, decrypt_file, encrypt_file
 
 PASSWORD = b"synthetic boundary passphrase"
@@ -22,11 +27,13 @@ PASSWORD = b"synthetic boundary passphrase"
 
 def minimal(tmp_path: Path) -> tuple[AuthStore, RecoveryService, Path]:
     directory = tmp_path / "source"
-    store = AuthStore(directory / "auth.sqlite3")
+    store = AuthStore(database(directory))
     store.migrate()
     return (
         store,
-        RecoveryService(Settings(data_dir=directory)),
+        RecoveryService(
+            Settings(data_dir=directory, database_url=SecretStr(database(directory)))
+        ),
         tmp_path / "copy.lgbackup",
     )
 
@@ -56,17 +63,17 @@ def test_malformed_authenticated_payloads_never_publish_or_escape(
     length = int.from_bytes(payload[:4], "big")
     manifest = json.loads(payload[4 : 4 + length])
     if change == "format":
-        manifest["format"] = "lifegather-recovery/2"
+        manifest["format"] = "lifegather-recovery/3"
     elif change == "migration":
         manifest["migration"] = "future_schema"
     elif change == "traversal":
-        manifest["files"]["../escaped"] = manifest["files"].pop("database.sqlite3")
+        manifest["files"]["../escaped"] = manifest["files"].pop("database.jsonl")
     elif change == "length":
-        manifest["files"]["database.sqlite3"]["size"] += 1
+        manifest["files"]["database.jsonl"]["size"] += 1
     elif change == "hash":
-        manifest["files"]["database.sqlite3"]["sha256"] = "0" * 64
+        manifest["files"]["database.jsonl"]["sha256"] = "0" * 64
     elif change == "link":
-        manifest["files"]["database.sqlite3"]["link"] = "../escaped"
+        manifest["files"]["database.jsonl"]["link"] = "../escaped"
     raw = json.dumps(manifest, separators=(",", ":")).encode()
     if change == "duplicate":
         raw = b'{"format":"lifegather-recovery/1",' + raw[1:]
@@ -79,7 +86,9 @@ def test_malformed_authenticated_payloads_never_publish_or_escape(
         encrypt_file(plain, output, PASSWORD)
     destination = tmp_path / "restored"
     with pytest.raises(RecoveryError):
-        service.restore(forged, destination, PASSWORD)
+        service.restore(
+            forged, destination, PASSWORD, database(destination, empty=True)
+        )
     assert not destination.exists() and not (tmp_path / "escaped").exists()
 
 
@@ -99,35 +108,37 @@ def test_encryption_and_restore_io_failures_remove_only_owned_partial_files(
     assert "SYNTHETIC_SECRET" not in str(error.value) and not bundle.exists()
     monkeypatch.setattr(bundles, "encrypt_file", original_encrypt)
     service.create(bundle, PASSWORD)
-    original_copy = bundles._copy_part
+    original_load = backup.load_tables
 
-    def fail_publishing(
-        source: BinaryIO, output: BinaryIO, expected: FileRecord
-    ) -> None:
-        if Path(str(source.name)).name == "database.sqlite3":
-            output.write(b"partial")
-            raise OSError("SYNTHETIC_SECRET")
-        original_copy(source, output, expected)
+    def fail_loading(*args: Any) -> dict[str, int]:
+        original_load(*args)
+        raise OSError("SYNTHETIC_SECRET")
 
-    monkeypatch.setattr(bundles, "_copy_part", fail_publishing)
+    monkeypatch.setattr(backup, "load_tables", fail_loading)
     destination = tmp_path / "restored"
+    target = database(destination, empty=True)
     with pytest.raises(RecoveryError) as error:
-        service.restore(bundle, destination, PASSWORD)
+        service.restore(bundle, destination, PASSWORD, target)
     assert "SYNTHETIC_SECRET" not in str(error.value)
     assert not destination.exists() and bundle.is_file()
+    engine = create_database_engine(target)
+    with engine.connect() as connection:
+        assert inspect(connection).get_table_names() == []
+    engine.dispose()
 
 
 def test_concurrent_destination_creation_is_never_overwritten(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _, service, bundle = minimal(tmp_path)
-    original = finalize_snapshot
+    original = validate_snapshot
 
-    def concurrent_output(path: Path) -> None:
-        original(path)
+    def concurrent_output(path: Path, key: bytes | None) -> DatabaseSummary:
+        summary = original(path, key)
         bundle.write_bytes(b"Existing concurrent data")
+        return summary
 
-    monkeypatch.setattr(bundles, "finalize_snapshot", concurrent_output)
+    monkeypatch.setattr(bundles, "validate_snapshot", concurrent_output)
     with pytest.raises(RecoveryError):
         service.create(bundle, PASSWORD)
     assert bundle.read_bytes() == b"Existing concurrent data"
@@ -184,6 +195,6 @@ def test_online_backup_is_consistent_during_an_uncommitted_source_transaction(
         future.result(timeout=10)
     assert len(memory.search(actor, "atomic")) == 2
     destination = tmp_path / "restored"
-    service.restore(bundle, destination, PASSWORD)
-    recovered = AuthStore(destination / "data" / "auth.sqlite3")
+    service.restore(bundle, destination, PASSWORD, database(destination, empty=True))
+    recovered = AuthStore(database(destination, empty=True))
     assert MemoryService(recovered.engine).search(actor, "atomic") == []

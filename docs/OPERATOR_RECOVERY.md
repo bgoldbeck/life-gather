@@ -7,6 +7,13 @@ installation settings and configured vault key. Personal JSON downloads remain
 separate and cannot be restored with this command. There is no HTTP/MCP/AI tool
 for installation recovery.
 
+From the PostgreSQL release, bundles use format 2: the database part is a
+portable logical snapshot (`database.jsonl`) of every table, taken in one
+consistent PostgreSQL read. Restores load it into a new, empty PostgreSQL
+database. Format 1 bundles made by SQLite releases (0.64 to 0.74, schemas
+`0027_forest_dark_theme` through `0029_receipt_detail_basis`) still verify and
+restore: the restore imports their SQLite database into PostgreSQL. See [PostgreSQL](POSTGRESQL.md).
+
 From v0.50.1, verification and restoration ignore old Google/SMTP/public-URL and
 other operational settings, including a missing JSON configuration file. They
 retain environment/dotenv data and static paths for staging and privacy checks.
@@ -36,12 +43,15 @@ Backup also accepts explicit `--data-dir` and `--configuration-file` overrides.
 It captures the effective known application settings, including Google/SMTP
 secrets, without copying arbitrary environment variables or unrelated files.
 Missing/mismatched vault keys cause refusal even when an initialized vault is empty.
-The running app can continue writing: SQLite's online backup supplies a consistent
-database snapshot, including FTS. Keep external configuration and key files stable
-while capturing the bundle; they are not part of SQLite's transaction. From
-v0.66.0 originals in [file storage](FILE_STORAGE.md) are copied into the snapshot
-and hash-checked, so bundles stay self-contained; storage settings are not captured
-and a restored app moves the bytes into its own storage on first start.
+The running app can continue writing: the snapshot is one `REPEATABLE READ`
+PostgreSQL transaction, so every table, including the search index, describes the
+same moment. Keep external configuration and key files stable while capturing the
+bundle; they are not part of the database transaction. The backup reads the
+database from `LIFEGATHER_DATABASE_URL`, which is not stored in the bundle.
+Originals kept in [file storage](FILE_STORAGE.md) are copied into the snapshot
+and hash-checked as it is written, so bundles stay self-contained; storage
+settings are not captured and a restored app moves the bytes into its own storage
+on first start.
 
 Commands print bounded JSON summaries (version/revision, migration, timestamp,
 database bytes and counts), never original content or secret values. Success exits
@@ -49,21 +59,27 @@ database bytes and counts), never original content or secret values. Success exi
 
 ## Restore separately, then review activation
 
-Use a compatible v0.50.0 installation with the same migration support and enough
-private storage. Restore creates the **destination itself**, so it must not exist:
+Use a compatible installation with the same migration support and enough
+private storage. Restore creates the **destination directory itself**, so it must
+not exist, and loads the database named by `LIFEGATHER_DATABASE_URL`, which must
+be a new, empty PostgreSQL database with C collation (see
+[PostgreSQL](POSTGRESQL.md)):
 
 ```sh
 python -m lifegather.recovery verify /backups/installation.lgbackup --staging-dir /private-staging
-python -m lifegather.recovery restore /backups/installation.lgbackup /private/recovered --staging-dir /private-staging
+LIFEGATHER_DATABASE_URL=postgresql://lifegather:PASSWORD@db:5432/lifegather_restored \
+  python -m lifegather.recovery restore /backups/installation.lgbackup /private/recovered --staging-dir /private-staging
 ```
 
-The result is `recovered/data/auth.sqlite3`, optional
-`recovered/secrets/vault.key`, and `recovered/installation.json`. Files are created
+The result is the loaded database, an empty `recovered/data` directory, optional
+`recovered/secrets/vault.key`, and `recovered/installation.json`, which names the
+restored database URL. Files are created
 with Unix mode 0600, directories 0700. On Windows, use a parent directory with
 appropriate private ACLs; Unix mode arguments do not establish Windows ACLs.
 Existing directories, files and final symlinks are refused. Authentication,
-manifest/hash, database, original-byte and credential checks all finish before the
-destination is created. Handled write failures remove files created by that
+manifest/hash, snapshot, original-byte and credential checks all finish before the
+destination is created; the database load is one transaction and is validated
+again after loading. Handled write failures remove files created by that
 attempt. Forced termination/power loss may leave a private incomplete directory;
 inspect and preserve it before retrying at another new destination.
 
@@ -118,29 +134,40 @@ Larger payloads are refused. Processing streams in 1 MiB chunks and requires dis
 space proportional to the installation rather than whole-database RAM. KDF memory
 is additional. Plaintext is parsed only after successful GCM authentication.
 
-This release supports migration `0023_asset_consolidation` only; future schema
-versions require an explicitly compatible recovery implementation. Original BLOBs
-are checked against stored lengths/hashes and every saved credential is decrypted
-with its owner-bound authenticated context. SQLite integrity and foreign keys are
-checked on a standalone snapshot without application extensions or provider calls.
+Format 2 bundles support migration `0030_pgvector`;
+future schema versions require an explicitly compatible recovery implementation.
+Original bytes are checked against stored lengths/hashes and every saved
+credential is decrypted with its owner-bound authenticated context, without a
+database server or provider calls. Foreign keys are enforced by PostgreSQL when
+the snapshot loads. Format 1 verification checks SQLite integrity, foreign keys
+and schema version; the full checks run when it is restored.
 Encryption does not establish who created a bundle: accept bundles from your own
 trusted backup process. Verification does not repair corrupt source data.
 
 ## Isolated release check
 
 `scripts/Verify-Recovery.py` creates only synthetic data in a new temporary
-directory under `/data`. Against a freshly built image, run it with no network,
+directory under `/data` and two new databases on the PostgreSQL server named by
+`LIFEGATHER_TEST_DATABASE_URL`. Against a freshly built image, run it on an
+internal network that reaches only a throwaway PostgreSQL container, with a
 read-only root, no capabilities, `/tmp` limited to 64 MiB and `/data` at least
 512 MiB. For example, on a POSIX host from this repository, set `IMAGE` to the
 verified immutable image tag, then:
 
 ```sh
-docker run --rm --network none --read-only --cap-drop ALL \
+docker network create --internal lifegather-verify
+docker run -d --name lifegather-verify-db --network lifegather-verify \
+  -e POSTGRES_PASSWORD=verify -e POSTGRES_INITDB_ARGS="--encoding=UTF8 --locale=C" \
+  pgvector/pgvector:pg17
+until docker exec lifegather-verify-db pg_isready -U postgres; do sleep 1; done
+docker run --rm --network lifegather-verify --read-only --cap-drop ALL \
   --security-opt no-new-privileges:true \
   --tmpfs /tmp:size=64m,mode=1777 \
   --tmpfs /data:size=512m,uid=10001,gid=10001,mode=0700 \
+  -e LIFEGATHER_TEST_DATABASE_URL=postgresql://postgres:verify@lifegather-verify-db:5432/postgres \
   --mount "type=bind,source=$(pwd)/scripts/Verify-Recovery.py,target=/verify.py,readonly" \
   --entrypoint python "$IMAGE" /verify.py
+docker rm -f lifegather-verify-db && docker network rm lifegather-verify
 ```
 
 This exercises the actual CLI with a database larger than 40 MiB, JSON facts,

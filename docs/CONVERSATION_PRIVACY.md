@@ -30,7 +30,7 @@ Stopping pending chat requests is separate from canceling already-created scan
 jobs; use **Scans** for those. A provider request already transmitted cannot be
 recalled. Existing exports, backups, provider-side history and other saved copies
 remain unchanged. This control removes live transcript rows and makes no promise
-of forensic erasure from SQLite storage, old backup media or another service.
+of forensic erasure from database storage, old backup media or another service.
 
 The app retains a minimal owner-scoped deletion receipt in its existing audit log:
 conversation identifier, deletion time and server-owned workflow attribution.
@@ -48,7 +48,7 @@ are rejected. No model or general MCP deletion tool is added.
 - `POST /api/chat/conversations/{id}/deletion-preview` with `{}` returns
   `lifegather-conversation-deletion/1`, authoritative title, exact request/state
   counts, pending count and a version token. It reads aggregate metadata in one
-  real SQLite snapshot, without loading full prompts or replies.
+  real PostgreSQL snapshot, without loading full prompts or replies.
 - `POST /api/chat/conversations/{id}/stop-pending` accepts `preview_token`, checks
   it under the serialized writer guard and marks pending requests canceled. It
   returns an updated preview; it does not delete the conversation.

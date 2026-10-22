@@ -16,7 +16,7 @@ class Photo(Base):
             "user_id",
             "content_hash",
             unique=True,
-            sqlite_where=text("deleted_at IS NULL"),
+            postgresql_where=text("deleted_at IS NULL"),
         ),
     )
     id: Mapped[str] = mapped_column(primary_key=True)

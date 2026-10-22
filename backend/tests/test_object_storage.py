@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from database_support import database
 from fastapi.testclient import TestClient
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
@@ -126,7 +127,7 @@ def test_storage_settings_choose_the_backend(tmp_path: Path) -> None:
 
 
 def accounts(tmp_path: Path) -> tuple[AuthStore, Account]:
-    store = AuthStore(tmp_path / "data" / "auth.sqlite3")
+    store = AuthStore(database(tmp_path / "data"))
     store.migrate()
     return store, store.login("alice", "a@example.test", "Alice", now=1).user
 
@@ -283,7 +284,7 @@ def test_legacy_move_refuses_corrupt_inline_bytes(tmp_path: Path) -> None:
     DocumentService(store.engine, storage).upload(alice, synthetic_pdf(), "s.pdf")
     make_legacy(store, storage)
     with store.engine.begin() as db:
-        db.execute(text("UPDATE documents SET original = X'00'"))
+        db.execute(text("UPDATE documents SET original = '\\x00'::bytea"))
     assert move_inline_originals(store.engine, storage) == 0
     with Session(store.engine) as db:
         row = db.scalar(select(Document))

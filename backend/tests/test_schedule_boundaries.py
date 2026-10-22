@@ -5,6 +5,7 @@ from typing import Any
 
 import httpx2
 import pytest
+from database_support import restore_copy
 from pydantic import SecretStr, ValidationError
 from test_mailboxes import provider
 from test_reconciliation import setup
@@ -81,14 +82,14 @@ def test_dispatch_concurrency_snapshot_and_edit_revision(tmp_path: Path) -> None
         schedules.edit(actor, saved["id"], 1, data)
     with pytest.raises(MemoryError):
         schedules.edit(bob, saved["id"], 2, data)
-    snapshot = tmp_path / "schedule-snapshot.sqlite3"
+    snapshot = tmp_path / "schedule-snapshot.jsonl"
     operator_snapshot(auth.engine, snapshot)
     now[0] = instant("2025-01-01T11:00:00")
     with ThreadPoolExecutor(max_workers=2) as pool:
         dispatched = list(pool.map(lambda _: schedules.dispatch(), range(2)))
     assert sum(dispatched) == 1
     assert len(scans.list(actor)["items"]) == 1
-    restored = AuthStore(snapshot)
+    restored = AuthStore(restore_copy(snapshot))
     restored.migrate()
     copied_scans = ScanService(restored.engine, registry(), clock=lambda: now[0])
     copied = ScheduleService(copied_scans)

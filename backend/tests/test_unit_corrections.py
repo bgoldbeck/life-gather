@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from database_support import restore_copy
 from fastapi.testclient import TestClient
 from test_asset_actions import change
 from test_mcp_http import rpc, signed_headers
@@ -156,9 +157,9 @@ def test_unit_transaction_failure_and_snapshot_recovery(
     assert memory.export_page(actor, "sources") == sources
     monkeypatch.setattr(actions.memory, "_audit", audit)
     result = actions.apply(actor, request)
-    snapshot = tmp_path / "unit-snapshot.sqlite3"
+    snapshot = tmp_path / "unit-snapshot.jsonl"
     operator_snapshot(auth.engine, snapshot)
-    restored = AuthStore(snapshot)
+    restored = AuthStore(restore_copy(snapshot))
     restored.migrate()
     assert ActionService(restored.engine).apply(actor, request) == result
     assert (

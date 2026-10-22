@@ -7,6 +7,7 @@ from typing import Any
 
 import httpx2
 import pytest
+from database_support import database, restore_copy
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -369,7 +370,7 @@ def test_cancel_stops_inflight_provider_without_another_call(
 
 
 def test_concurrent_request_ids_pagination_and_snapshot_restore(tmp_path: Path) -> None:
-    auth = AuthStore(tmp_path / "chat.sqlite3")
+    auth = AuthStore(database(tmp_path / "chat"))
     auth.migrate()
     actor = auth.login("alice", "a@example.test", "Alice", now=1).user
     chat = ChatService(auth.engine)
@@ -395,9 +396,9 @@ def test_concurrent_request_ids_pagination_and_snapshot_restore(tmp_path: Path) 
     assert chat.recent(actor, conversation)[-1]["text"] == "note 26"
     with Session(auth.engine) as db:
         assert len(list(db.scalars(select(Turn)))) == 28
-    backup = tmp_path / "restored.sqlite3"
+    backup = tmp_path / "restored.jsonl"
     operator_snapshot(auth.engine, backup)
-    restored = AuthStore(backup)
+    restored = AuthStore(restore_copy(backup))
     restored.migrate()
     assert ChatService(restored.engine).turns(actor, conversation) == first
     with pytest.raises(MemoryError):

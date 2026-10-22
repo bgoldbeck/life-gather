@@ -12,6 +12,7 @@ dependencies = [
     "httpx2>=2.13.1",
     "mcp>=2,<3",
     "pillow==13.0.0",
+    "psycopg[binary]>=3.2",
     "pydantic-settings>=2.16.0",
     "pypdf==6.21.1",
     "sqlalchemy>=2.1.5",

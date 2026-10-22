@@ -5,6 +5,7 @@ from pathlib import Path
 from zipfile import ZipFile
 
 import pytest
+from database_support import database
 from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -136,8 +137,9 @@ def test_type_definitions_json_zip_and_encrypted_operator_recovery(
     bundle, restored = tmp_path / "types.lgbackup", tmp_path / "restored-types"
     recovery = RecoveryService(case.settings)
     recovery.create(bundle, PASSWORD)
-    recovery.restore(bundle, restored, PASSWORD)
-    recovered = AuthStore(restored / "data" / "auth.sqlite3")
+    url = database(restored / "data", empty=True)
+    recovery.restore(bundle, restored, PASSWORD, url)
+    recovered = AuthStore(url)
     assert AssetTypes(recovered.engine).get(case.alice, template["id"]) == template
     assert (
         len(AssetTypes(recovered.engine).history(case.alice, template["id"])["items"])

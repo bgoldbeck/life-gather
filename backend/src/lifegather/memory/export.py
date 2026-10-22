@@ -12,6 +12,7 @@ from lifegather.assets.type_models import AssetType, AssetTypeField, AssetTypeRe
 from lifegather.auth.models import Base
 from lifegather.auth.store import Account
 from lifegather.chat.models import Conversation, Turn
+from lifegather.database import begin_snapshot
 from lifegather.documents.models import Document
 from lifegather.maintenance.models import MaintenanceRevision, MaintenanceTask
 from lifegather.memory.models import (
@@ -194,9 +195,8 @@ class RecordExport:
 
     def download(self, actor: Account) -> bytes:
         """Build one complete owner-only snapshot in memory, or return no file."""
-        # SQLite legacy mode needs a real BEGIN, not just SQLAlchemy autobegin.
         with self.engine.connect() as connection:
-            connection.exec_driver_sql("BEGIN")
+            begin_snapshot(connection)
             return self.render_in(connection, actor)
 
     def render_in(

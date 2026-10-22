@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from database_support import database
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from test_reconciliation import setup
@@ -96,7 +97,7 @@ def test_migration_preserves_existing_canonical_purchase(tmp_path: Path) -> None
     from lifegather.memory.service import MemoryService
     from lifegather.reconciliation.service import ReconciliationService
 
-    store = AuthStore(tmp_path / "legacy.sqlite3")
+    store = AuthStore(database(tmp_path / "legacy", empty=True))
     config = Config()
     config.set_main_option(
         "script_location", str(Path(lifegather.__file__).parent / "migrations")

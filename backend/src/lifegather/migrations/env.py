@@ -1,5 +1,6 @@
 from alembic import context
 
+import lifegather.database  # noqa: F401  (PostgreSQL column type contract)
 from lifegather.assets import models as asset_models  # noqa: F401
 from lifegather.assets import type_models  # noqa: F401
 from lifegather.auth import email_models  # noqa: F401

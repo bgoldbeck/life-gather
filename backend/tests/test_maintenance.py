@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from database_support import database
 from pydantic import ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -23,7 +24,7 @@ from lifegather.profiles.service import ProfileCreate, ProfileService
 
 
 def prepared(tmp_path: Path) -> tuple[AuthStore, Account, Account, str]:
-    store = AuthStore(tmp_path / "auth.sqlite3")
+    store = AuthStore(database(tmp_path))
     store.migrate()
     alice = store.login("alice", "alice@example.test", "Alice", now=1).user
     bob = store.login("bob", "bob@example.test", "Bob", now=1).user

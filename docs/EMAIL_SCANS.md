@@ -45,7 +45,7 @@ time advances to the first valid local minute; a repeated autumn time runs once
 at its first occurrence. Pause prevents new dispatch and retains history; cancel
 an already queued/running job separately. Editing or resuming resets the next run
 to a future occurrence, with optimistic revisions to protect concurrent edits.
-Restore the database/vault as usual; schedules and jobs are durable SQLite data.
+Restore the database/vault as usual; schedules and jobs are durable database data.
 
 Source handlers materialize date windows through a typed contract. Recurrence,
 dispatch, leases, cancellation and checkpoints remain independent of Gmail. Only

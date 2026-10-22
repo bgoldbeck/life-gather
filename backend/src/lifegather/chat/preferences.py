@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import Engine, select
-from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from lifegather.auth.store import Account

@@ -29,6 +29,7 @@ from lifegather.credentials.middleware import CredentialBodyLimit
 from lifegather.credentials.routes import private_router
 from lifegather.credentials.service import PrivateSettings, VaultError, read_key
 from lifegather.documents.routes import document_router
+from lifegather.legacy_import import import_on_start
 from lifegather.mailboxes.discovery import GmailDiscoveryHandler
 from lifegather.mailboxes.provider import GmailProvider
 from lifegather.mailboxes.routes import mailbox_router
@@ -85,9 +86,9 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings.data_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
         store = AuthStore(
-            settings.data_dir / "auth.sqlite3",
-            test_login_enabled=settings.test_login_enabled,
+            settings.database(), test_login_enabled=settings.test_login_enabled
         )
+        import_on_start(settings.data_dir, store.engine)
         store.migrate()
         app.state.auth_store = store
         app.state.object_storage = storage_from_settings(settings)

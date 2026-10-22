@@ -11,6 +11,7 @@ from lifegather.assets.identity import canonical_id, member_ids
 from lifegather.assets.type_models import AssetType, AssetTypeField, AssetTypeRevision
 from lifegather.assets.type_schemas import TypeAssign, TypeFieldSave, TypeSave
 from lifegather.auth.store import Account
+from lifegather.database import begin_snapshot
 from lifegather.memory.models import Assertion
 from lifegather.memory.notes import NoteConflict
 from lifegather.memory.schemas import FactInput, FactView, SourceInput
@@ -181,7 +182,7 @@ class AssetTypes:
         self, actor: Account, include_retired: bool = False, cursor: str = ""
     ) -> dict[str, Any]:
         with Session(self.memory.engine) as db:
-            db.connection().exec_driver_sql("BEGIN")
+            begin_snapshot(db)
             rows = list(
                 db.scalars(
                     select(AssetType)
@@ -224,7 +225,7 @@ class AssetTypes:
 
     def get(self, actor: Account, identifier: str) -> dict[str, Any]:
         with Session(self.memory.engine) as db:
-            db.connection().exec_driver_sql("BEGIN")
+            begin_snapshot(db)
             return self._get(db, actor, identifier)
 
     def save(self, actor: Account, value: TypeSave) -> dict[str, Any]:
@@ -332,7 +333,7 @@ class AssetTypes:
         self, actor: Account, identifier: str, cursor: str = ""
     ) -> dict[str, Any]:
         with Session(self.memory.engine) as db:
-            db.connection().exec_driver_sql("BEGIN")
+            begin_snapshot(db)
             current = self._get(db, actor, identifier)
             query = select(AssetTypeRevision).where(
                 AssetTypeRevision.user_id == actor.id,
@@ -548,7 +549,7 @@ class AssetTypes:
         self, actor: Account, identifier: str, history: bool = False, cursor: str = ""
     ) -> dict[str, Any]:
         with Session(self.memory.engine) as db:
-            db.connection().exec_driver_sql("BEGIN")
+            begin_snapshot(db)
             subject = self._asset(db, actor, identifier)
             query = select(Assertion).where(
                 Assertion.user_id == actor.id,

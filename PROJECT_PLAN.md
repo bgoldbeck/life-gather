@@ -71,7 +71,7 @@ consolidated-member correction retries preserve original subjects. No migration,
 dependency, AI tool or provider request.
 
 v0.52.0 adds a [personal records and originals ZIP](docs/PERSONAL_ARCHIVE.md)
-from one owner-scoped SQLite snapshot, with exact original bytes and a hash
+from one owner-scoped PostgreSQL snapshot, with exact original bytes and a hash
 manifest. Existing JSON downloads remain available. No schema, dependency or
 automatic import/restore; all-user encrypted operator recovery remains separate.
 
@@ -193,10 +193,10 @@ The original trimmer lifecycle remains a regression scenario: record ownership, 
 | Charts/data tables | Recharts; TanStack Table and Query | Add as view complexity grows |
 | Backend | Python + FastAPI + Pydantic | Hosting, auth, chat, uploads, static assets |
 | MCP | Official `mcp` Python SDK v2, `MCPServer` | Streamable HTTP; mount in ASGI app; configure host lifespan |
-| Database | SQLite, WAL mode, foreign keys | Local bind-mounted persistent volume; single primary writer |
-| ORM/migrations | SQLAlchemy + Alembic | Versioned schema; integration tests on actual SQLite |
-| Text retrieval | SQLite FTS5 | Exact, ranked text search and filtering |
-| Semantic search | Optional sqlite-vec later | Embeddings not necessary for initial vertical slice |
+| Database | PostgreSQL (C collation), psycopg 3 | Compose `db` service with a persistent volume; serialized writers via an advisory lock (replaced SQLite on 2026-10-22, see `docs/POSTGRESQL.md`) |
+| ORM/migrations | SQLAlchemy + Alembic | Versioned schema; integration tests on actual PostgreSQL |
+| Text retrieval | Owner-scoped word index (text array + GIN) | Exact all-words search and filtering |
+| Semantic search | pgvector extension (enabled, unused) | Embeddings not necessary for initial vertical slice |
 | Documents | Local filesystem + DB metadata | Hash content; restrict type and size; no executable uploads |
 | Model integration | Provider adapter | Configurable cloud or local models; structured extraction |
 | Jobs | In-process bounded job runner initially | Durable queue only when actually needed |
@@ -227,7 +227,7 @@ FastAPI application
      ├── Approval and audit trail
      └── Document services
                     |
-       SQLite DB + document directory
+  PostgreSQL (pgvector) + private file storage
 ```
 
 **Boundary rules:**
@@ -238,7 +238,7 @@ FastAPI application
 - An MCP server does not automatically observe conversations in ChatGPT/Claude. Information is persisted only when a connected client invokes ingestion, or an explicit import/integration feeds episodes into the system.
 - Every write is authenticated, validated, authorized, and auditable. Destructive or ambiguous changes require confirmation.
 
-## 5. SQLite model: evidence-backed temporal graph
+## 5. Database model: evidence-backed temporal graph
 
 Use string UUID/ULID identifiers; database foreign keys and indexes. Every private record and cross-record relationship must enforce authenticated owner scope, including derived indexes and jobs. The following is a conceptual model, not migration-ready DDL; add users, sessions, encrypted credentials, purchase/product/unit mappings, and reconciliation decisions as specified in the design. Suggested graph tables:
 
@@ -361,7 +361,7 @@ Each stage needs a bounded implementation plan, relevant tests, migrations where
 - Configure whether document content may be sent to external model providers. Disclose and allow private/local extraction paths later.
 - Escape/validate untrusted extracted text; disregard embedded instructions in receipts, documents, or source episodes.
 - Provide export, selective deletion and erasure of derived content/indexes/backups subject to stated retention policy.
-- Use SQLite online backup/VACUUM INTO, coordinate file snapshot of documents; encrypt stored and off-site backups where possible.
+- Use consistent PostgreSQL snapshots (the encrypted operator bundle inlines stored files); encrypt stored and off-site backups where possible.
 - Do not silently create financial transactions or alter verified records based solely on a model's guess.
 
 ## 12. AI coding workflow: Claude Code / Codex
@@ -390,7 +390,7 @@ older milestone exclusions are historical context, not current missing scope.
 - MCP security specification: https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization
 - Vite guide: https://vite.dev/guide/
 - shadcn/ui Vite setup: https://ui.shadcn.com/docs/installation/vite
-- SQLite backup: https://www.sqlite.org/backup.html
+- PostgreSQL backup: https://www.postgresql.org/docs/current/backup.html
 - Codex repository instructions: https://developers.openai.com/codex/guides/agents-md
 - Claude Code `CLAUDE.md`: https://support.claude.com/en/articles/14553240-give-claude-context-claude-md-and-better-prompts
 

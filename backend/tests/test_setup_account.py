@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
+from database_support import database
 from fastapi.testclient import TestClient
 
 from lifegather import setup_account
@@ -29,7 +30,7 @@ def test_command_creates_account_in_configured_data_directory(
 ) -> None:
     terminal(monkeypatch, [PASSWORD, PASSWORD])
     assert setup_account.main([]) == 0
-    store = AuthStore(tmp_path / "data" / "auth.sqlite3")
+    store = AuthStore(database(tmp_path / "data"))
     assert EmailAuth(store, None, "http://127.0.0.1:8787").login(
         "test@example.test", PASSWORD, client="test", now=2000000000
     )

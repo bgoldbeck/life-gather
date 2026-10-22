@@ -65,7 +65,7 @@ def upgrade() -> None:
         "scan_runs",
         ["user_id", "resource_key"],
         unique=True,
-        sqlite_where=sa.text("state IN ('queued','running')"),
+        postgresql_where=sa.text("state IN ('queued','running')"),
     )
     op.create_table(
         "scan_run_items",

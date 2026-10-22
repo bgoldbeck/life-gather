@@ -1,27 +1,26 @@
-"""Encrypted operator bundles; restore only into an exclusive fresh directory."""
+"""Encrypted operator bundles; restore only into a fresh directory and database."""
 
 import hashlib
 import json
 import os
 import secrets
-import sqlite3
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, BinaryIO, Literal
+from typing import Any, BinaryIO, Final, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.pool import NullPool
 
 from lifegather.config import Settings
 from lifegather.credentials.service import read_key
+from lifegather.database import create_database_engine
 from lifegather.installation_config import MAX_CONFIGURATION_BYTES, unique_object
-from lifegather.memory.backup import operator_snapshot
+from lifegather.legacy_import import LegacyImportError, check_legacy, import_legacy
+from lifegather.memory.backup import SnapshotError, operator_snapshot, restore_snapshot
 from lifegather.recovery.configuration import (
     capture_configuration,
     encode_configuration,
@@ -30,10 +29,9 @@ from lifegather.recovery.configuration import (
 )
 from lifegather.recovery.database import (
     DatabaseSummary,
-    connect_readonly,
-    finalize_snapshot,
     inline_stored_objects,
     validate_database,
+    validate_snapshot,
 )
 from lifegather.recovery.envelope import (
     CHUNK_BYTES,
@@ -47,8 +45,11 @@ from lifegather.storage.settings import storage_from_settings
 from lifegather.version import __version__
 
 MAX_MANIFEST_BYTES = 65536
-PARTS = ("database.sqlite3", "configuration.json", "vault.key")
-REQUIRED_PARTS = frozenset(PARTS[:2])
+FORMAT: Final = "lifegather-recovery/2"
+# Format 1 bundles carry a SQLite database from releases before PostgreSQL.
+LEGACY_FORMAT: Final = "lifegather-recovery/1"
+DATABASE_PARTS = {FORMAT: "database.jsonl", LEGACY_FORMAT: "database.sqlite3"}
+PARTS = ("database.jsonl", "database.sqlite3", "configuration.json", "vault.key")
 
 
 class FileRecord(BaseModel):
@@ -59,12 +60,20 @@ class FileRecord(BaseModel):
 
 class Manifest(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, hide_input_in_errors=True)
-    format: Literal["lifegather-recovery/1"] = "lifegather-recovery/1"
+    format: Literal["lifegather-recovery/1", "lifegather-recovery/2"] = FORMAT
     application_version: str = Field(pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$")
     revision: str | None = Field(default=None, pattern=r"^[a-f0-9]{40}$")
     created_at: int = Field(ge=0)
     migration: str = Field(min_length=1, max_length=100)
     files: dict[str, FileRecord] = Field(min_length=2, max_length=3)
+
+    @property
+    def database_part(self) -> str:
+        return DATABASE_PARTS[self.format]
+
+    @property
+    def parts(self) -> frozenset[str]:
+        return frozenset({self.database_part, "configuration.json", "vault.key"})
 
 
 @dataclass(frozen=True)
@@ -89,7 +98,7 @@ class _Verified:
             self.manifest.application_version,
             self.manifest.revision,
             self.manifest.created_at,
-            self.manifest.files["database.sqlite3"].size,
+            self.manifest.files[self.manifest.database_part].size,
             self.database,
         )
 
@@ -171,25 +180,24 @@ class RecoveryService:
 
     def create(self, destination: Path, password: bytes) -> BundleInfo:
         target = self._destination(destination)
-        source = self.settings.data_dir / "auth.sqlite3"
-        if not source.is_file():
-            raise RecoveryError("The configured installation database is missing")
         try:
             key = read_key(self.settings.vault_key_file)
+            engine = create_database_engine(self.settings.database())
             with self._staging() as staging:
-                database = staging / "database.sqlite3"
-                engine = create_engine(
-                    "sqlite://",
-                    creator=lambda: connect_readonly(source),
-                    poolclass=NullPool,
-                )
+                database = staging / "database.jsonl"
                 try:
-                    operator_snapshot(engine, database)
+                    operator_snapshot(
+                        engine,
+                        database,
+                        inline_stored_objects(storage_from_settings(self.settings)),
+                    )
+                except StorageError:
+                    raise RecoveryError(
+                        "A stored original is missing or does not match"
+                    ) from None
                 finally:
                     engine.dispose()
-                finalize_snapshot(database)
-                inline_stored_objects(database, storage_from_settings(self.settings))
-                summary = validate_database(database, key, standalone=True)
+                summary = validate_snapshot(database, key)
                 config_path = staging / "configuration.json"
                 _write_bytes(
                     config_path,
@@ -206,6 +214,7 @@ class RecoveryService:
                     if (staging / name).is_file()
                 }
                 manifest = Manifest(
+                    format=FORMAT,
                     application_version=__version__,
                     revision=self.settings.build_revision or None,
                     created_at=time.time_ns() // 1000,
@@ -240,7 +249,7 @@ class RecoveryService:
                 return _Verified(manifest, summary, database, configuration, key).info()
         except RecoveryError:
             raise
-        except (OSError, ValueError, sqlite3.Error, SQLAlchemyError, StorageError):
+        except (OSError, ValueError, SQLAlchemyError, StorageError):
             raise RecoveryError(
                 "Unable to create the encrypted recovery bundle"
             ) from None
@@ -262,7 +271,8 @@ class RecoveryService:
                     json.loads(raw, object_pairs_hook=unique_object)
                 )
                 names = set(manifest.files)
-                if not REQUIRED_PARTS <= names or not names <= set(PARTS):
+                required = {manifest.database_part, "configuration.json"}
+                if not required <= names or not names <= manifest.parts:
                     raise RecoveryError("Unexpected recovery payload members")
                 if "vault.key" in names and manifest.files["vault.key"].size != 32:
                     raise RecoveryError("Invalid recovery vault key")
@@ -285,8 +295,11 @@ class RecoveryService:
             configuration = validate_configuration(
                 staging / "configuration.json", staging, key is not None
             )
-            database = staging / "database.sqlite3"
-            summary = validate_database(database, key, standalone=True)
+            database = staging / manifest.database_part
+            if manifest.format == LEGACY_FORMAT:
+                summary = _legacy_summary(database)
+            else:
+                summary = validate_snapshot(database, key)
             if summary.migration != manifest.migration:
                 raise RecoveryError("Recovery migration does not match its manifest")
             return _Verified(manifest, summary, database, configuration, key)
@@ -304,54 +317,79 @@ class RecoveryService:
         except (OSError, ValueError):
             raise RecoveryError("Unable to verify the recovery bundle") from None
 
-    def restore(self, bundle: Path, destination: Path, password: bytes) -> BundleInfo:
+    def restore(
+        self, bundle: Path, destination: Path, password: bytes, database_url: str
+    ) -> BundleInfo:
         try:
-            return self._restore(bundle, destination, password)
+            return self._restore(bundle, destination, password, database_url)
         except RecoveryError:
             raise
-        except (OSError, ValueError):
+        except (OSError, ValueError, SnapshotError, SQLAlchemyError):
             raise RecoveryError("Unable to restore the installation") from None
 
-    def _restore(self, bundle: Path, destination: Path, password: bytes) -> BundleInfo:
+    def _restore(
+        self, bundle: Path, destination: Path, password: bytes, database_url: str
+    ) -> BundleInfo:
         target = self._destination(destination)
-        with self._staging() as staging:
-            verified = self._open(bundle, password, staging)
-            configuration = restored_configuration(
-                verified.configuration, target, verified.key is not None
-            )
-            target.mkdir(mode=0o700)
-            created_files: list[Path] = []
-            created_directories = [target]
-            try:
-                data = target / "data"
-                data.mkdir(mode=0o700)
-                created_directories.append(data)
-                database = data / "auth.sqlite3"
-                with (
-                    verified.database_path.open("rb") as source,
-                    _exclusive_file(database) as output,
-                ):
-                    _copy_part(
-                        source, output, verified.manifest.files["database.sqlite3"]
-                    )
-                created_files.append(database)
-                validate_database(database, verified.key, standalone=True)
-                if verified.key is not None:
-                    secret_directory = target / "secrets"
-                    secret_directory.mkdir(mode=0o700)
-                    created_directories.append(secret_directory)
-                    key_path = secret_directory / "vault.key"
-                    _write_bytes(key_path, verified.key)
-                    created_files.append(key_path)
-                config_path = target / "installation.json"
-                _write_bytes(config_path, configuration)
-                created_files.append(config_path)
-                return verified.info()
-            except BaseException:
-                for path in reversed(created_files):
-                    with suppress(OSError):
-                        path.unlink()
-                for path in reversed(created_directories):
-                    with suppress(OSError):
-                        path.rmdir()
-                raise
+        engine = create_database_engine(database_url)
+        try:
+            with self._staging() as staging:
+                verified = self._open(bundle, password, staging)
+                configuration = restored_configuration(
+                    verified.configuration,
+                    target,
+                    verified.key is not None,
+                    engine.url.render_as_string(hide_password=False),
+                )
+                target.mkdir(mode=0o700)
+                created_files: list[Path] = []
+                created_directories = [target]
+                try:
+                    data = target / "data"
+                    data.mkdir(mode=0o700)
+                    created_directories.append(data)
+                    if verified.manifest.format == LEGACY_FORMAT:
+                        try:
+                            if import_legacy(verified.database_path, engine) is None:
+                                raise RecoveryError(
+                                    "Restore requires an empty PostgreSQL database"
+                                )
+                        except LegacyImportError as error:
+                            raise RecoveryError(str(error)) from None
+                    else:
+                        with verified.database_path.open("rb") as source:
+                            try:
+                                restore_snapshot(source, engine)
+                            except SnapshotError as error:
+                                raise RecoveryError(str(error)) from None
+                    validate_database(engine, verified.key)
+                    if verified.key is not None:
+                        secret_directory = target / "secrets"
+                        secret_directory.mkdir(mode=0o700)
+                        created_directories.append(secret_directory)
+                        key_path = secret_directory / "vault.key"
+                        _write_bytes(key_path, verified.key)
+                        created_files.append(key_path)
+                    config_path = target / "installation.json"
+                    _write_bytes(config_path, configuration)
+                    created_files.append(config_path)
+                    return verified.info()
+                except BaseException:
+                    for path in reversed(created_files):
+                        with suppress(OSError):
+                            path.unlink()
+                    for path in reversed(created_directories):
+                        with suppress(OSError):
+                            path.rmdir()
+                    raise
+        finally:
+            engine.dispose()
+
+
+def _legacy_summary(path: Path) -> DatabaseSummary:
+    """Format 1 bundles are checked for integrity; restore validates fully."""
+    try:
+        migration, counts = check_legacy(path)
+    except LegacyImportError as error:
+        raise RecoveryError(str(error)) from None
+    return DatabaseSummary(migration=migration, **counts)

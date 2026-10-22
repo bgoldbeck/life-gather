@@ -3,8 +3,9 @@ from datetime import date
 from pathlib import Path
 
 import pytest
+from database_support import database
 from fastapi.testclient import TestClient
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 
 from lifegather.assets.consolidation import Consolidate, ConsolidationService
 from lifegather.auth.store import AuthStore
@@ -61,7 +62,7 @@ def test_custom_names_refuse_invalid_and_reserved_identity_fields(
 def test_custom_detail_preserves_sources_unknowns_history_and_private_replay(
     tmp_path: Path,
 ) -> None:
-    store = AuthStore(tmp_path / "auth.sqlite3")
+    store = AuthStore(database(tmp_path))
     store.migrate()
     alice = store.login("a", "a@example.test", "Synthetic A", now=1).user
     bob = store.login("b", "b@example.test", "Synthetic B", now=1).user
@@ -148,7 +149,7 @@ def test_custom_details_follow_consolidated_history_export_and_recovery(
     tmp_path: Path,
 ) -> None:
     directory = tmp_path / "source"
-    store = AuthStore(directory / "auth.sqlite3")
+    store = AuthStore(database(directory))
     store.migrate()
     actor = store.login("owner", "owner@example.test", "Synthetic", now=1).user
     profiles = ProfileService(store.engine)
@@ -203,12 +204,15 @@ def test_custom_details_follow_consolidated_history_export_and_recovery(
     ]
     assert len(exported) == 1 and exported[0]["predicate"] == first.predicate
     bundle = tmp_path / "copy.lgbackup"
-    recovery = RecoveryService(Settings(data_dir=directory))
+    recovery = RecoveryService(
+        Settings(data_dir=directory, database_url=SecretStr(database(directory)))
+    )
     password = b"synthetic recovery phrase"
     recovery.create(bundle, password)
     target = tmp_path / "restored"
-    recovery.restore(bundle, target, password)
-    restored = AuthStore(target / "data" / "auth.sqlite3")
+    url = database(target / "data", empty=True)
+    recovery.restore(bundle, target, password, url)
+    restored = AuthStore(url)
     assert any(
         fact.model_dump() == corrected.model_dump()
         for fact in ProfileService(restored.engine).get(actor, pair[0].id)["facts"]

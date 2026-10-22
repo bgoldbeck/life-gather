@@ -9,6 +9,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from lifegather.config import Settings
@@ -28,6 +29,8 @@ class _RecoveryStorage(BaseSettings):
     )
     data_dir: Path = Path("data")
     static_dir: Path | None = None
+    # Restore target: an empty PostgreSQL database, never a command argument.
+    database_url: SecretStr = SecretStr("")
 
 
 def _verification_settings() -> Settings:
@@ -38,7 +41,8 @@ def _verification_settings() -> Settings:
         name: field.get_default(call_default_factory=True)
         for name, field in Settings.model_fields.items()
     }
-    arguments.update(_RecoveryStorage().model_dump())
+    storage = _RecoveryStorage()
+    arguments.update(data_dir=storage.data_dir, static_dir=storage.static_dir)
     arguments["_env_file"] = None
     return Settings(**arguments)
 
@@ -80,7 +84,8 @@ def parser() -> argparse.ArgumentParser:
         description=(
             "Operator-only encrypted installation recovery. Includes every user's "
             "records, original files, authentication state and private credentials. "
-            "Restore creates a new directory and never starts the app."
+            "Restore creates a new directory, loads an empty PostgreSQL database "
+            "named by LIFEGATHER_DATABASE_URL, and never starts the app."
         ),
         allow_abbrev=False,
     )
@@ -137,7 +142,12 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "verify":
             info = service.verify(args.bundle, password)
         else:
-            info = service.restore(args.bundle, args.destination, password)
+            target = _RecoveryStorage().database_url.get_secret_value()
+            if not target:
+                raise RecoveryError(
+                    "Set LIFEGATHER_DATABASE_URL to the new, empty PostgreSQL database"
+                )
+            info = service.restore(args.bundle, args.destination, password, target)
         summary = {"operation": args.command, **asdict(info)}
         if args.command == "restore":
             summary["configuration_file"] = str(

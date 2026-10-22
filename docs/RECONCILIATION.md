@@ -40,9 +40,9 @@ List limits are 1–100 (default 25), with at most 20 units per decision. Pass t
 
 ## Transactions, migration and recovery
 
-A serialized SQLite transaction covers the decision, purchase/unit metadata, memory entities/facts/evidence, FTS updates, and audit records. Repeated or concurrent imports cannot double-create an observed unit. Exceptions roll back all derived writes. Migration 0004 extends the previous schema without rewriting existing accounts, sessions or memories. An already running/published container does not acquire these changes until a separately approved rebuild.
+A serialized PostgreSQL transaction covers the decision, purchase/unit metadata, memory entities/facts/evidence, search index updates, and audit records. Repeated or concurrent imports cannot double-create an observed unit. Exceptions roll back all derived writes. Migration 0004 extends the previous schema without rewriting existing accounts, sessions or memories. An already running/published container does not acquire these changes until a separately approved rebuild.
 
-The existing operator-only SQLite snapshot includes this ledger. Restore tests verify decisions and inventory survive reopening the snapshot. Keep the vault key separate as described in [private settings](PRIVATE_SETTINGS.md). No restore, build, image upload, or provider operation runs automatically.
+The existing operator-only database snapshot includes this ledger. Restore tests verify decisions and inventory survive reopening the snapshot. Keep the vault key separate as described in [private settings](PRIVATE_SETTINGS.md). No restore, build, image upload, or provider operation runs automatically.
 
 The [implementation plan](superpowers/plans/2026-10-17-reconciliation.md) records this slice. Tests use synthetic sources and cover source order, quantities, duplicate/concurrent ingestion, correction/undo, excluded identities, ownership conflicts, direct database owner constraints, private export, migration preservation, rollback, clock reversal, and snapshot restore.
 

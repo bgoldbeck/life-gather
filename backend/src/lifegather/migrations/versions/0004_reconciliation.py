@@ -95,7 +95,7 @@ def upgrade() -> None:
         "reconciliation_decisions",
         ["user_id", "observation_id"],
         unique=True,
-        sqlite_where=sa.text("superseded_at IS NULL"),
+        postgresql_where=sa.text("superseded_at IS NULL"),
     )
     create(
         "reconciliation_bindings",

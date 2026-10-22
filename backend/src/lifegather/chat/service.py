@@ -17,6 +17,7 @@ from lifegather.chat.models import Conversation, Turn, Usage
 from lifegather.chat.provider_names import SUPPORTED_PROVIDERS
 from lifegather.chat.research import ResearchScope
 from lifegather.credentials.service import PrivateSettings
+from lifegather.database import begin_serialized
 from lifegather.mailboxes.scan import GmailScanConfig
 from lifegather.memory.notes import NoteService
 from lifegather.memory.origins import change_origin
@@ -218,7 +219,7 @@ class ChatService:
     ) -> tuple[dict[str, Any], bool]:
         data = TurnInput.model_validate(data)
         with Session(self.engine) as db:
-            db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+            begin_serialized(db)
             conversation = self.owned(db, actor, conversation_id)
             if data.context:
                 WorkspaceContexts(self.engine).read_in(db, actor, data.context)
@@ -420,7 +421,7 @@ class ChatService:
         secret = vault.read_secret(actor, credential_id)
         day = datetime.now(UTC).date().isoformat()
         with Session(self.engine) as db:
-            db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+            begin_serialized(db)
             usage = db.get(Usage, (actor.id, day))
             if usage is None:
                 usage = Usage(
@@ -441,7 +442,7 @@ class ChatService:
         self, actor: Account, day: str, input_tokens: int, output_tokens: int
     ) -> None:
         with Session(self.engine) as db:
-            db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+            begin_serialized(db)
             usage = db.get(Usage, (actor.id, day))
             if usage is None:
                 raise MemoryError("Usage reservation not found")

@@ -7,6 +7,8 @@ from typing import Literal, cast
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Engine, func, select
+from sqlalchemy import cast as sql_cast
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Session
 
 from lifegather.auth.store import Account
@@ -14,6 +16,7 @@ from lifegather.chat.models import ChatPreference, Usage
 from lifegather.chat.provider_names import SUPPORTED_PROVIDERS
 from lifegather.chat.service import DAILY_REQUESTS
 from lifegather.credentials.models import Credential, UserSettings
+from lifegather.database import begin_snapshot
 from lifegather.mailboxes.models import Mailbox
 from lifegather.scans.models import ScanRun, ScanSchedule
 
@@ -109,7 +112,7 @@ class PowerCenter:
     def read(self, actor: Account) -> PowerSnapshot:
         now = self.clock()
         with Session(self.engine) as db:
-            db.connection().exec_driver_sql("BEGIN")
+            begin_snapshot(db)
             return self._read(db, actor, now)
 
     def _read(self, db: Session, actor: Account, now: int) -> PowerSnapshot:
@@ -279,8 +282,10 @@ class PowerCenter:
             scope = (
                 ScanRun.user_id == actor.id,
                 ScanRun.resource_key == "gmail:" + mailbox.id,
-                func.json_extract(ScanRun.config_json, "$.mailbox_revision")
-                == mailbox.revision,
+                func.jsonb_extract_path_text(
+                    sql_cast(ScanRun.config_json, JSONB), "mailbox_revision"
+                )
+                == str(mailbox.revision),
             )
             success = db.scalar(
                 select(ScanRun)

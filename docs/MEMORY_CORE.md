@@ -1,6 +1,6 @@
 # Evidence-backed memory core (feature #3)
 
-This is a framework-independent, owner-scoped service layer with SQLite migration `0003_memory_core`. It stores source text, entities/aliases, literal facts and entity relationships, evidence links, temporal corrections, audit history, and FTS5 search. It does not yet add a working chat, graph UI, photo upload, model extraction, automatic reconciliation, or HTTP/MCP memory adapter. Existing UI placeholders remain appropriate.
+This is a framework-independent, owner-scoped service layer with migration `0003_memory_core`. It stores source text, entities/aliases, literal facts and entity relationships, evidence links, temporal corrections, audit history, and FTS5 search. It does not yet add a working chat, graph UI, photo upload, model extraction, automatic reconciliation, or HTTP/MCP memory adapter. Existing UI placeholders remain appropriate.
 
 ## Service contract
 
@@ -48,16 +48,16 @@ All reads/writes filter by owner, and composite foreign keys enforce matching ow
 
 ## Snapshot and restore
 
-`operator_snapshot(engine, destination)` in `lifegather.memory.backup` uses SQLite's online backup API and integrity checking to create a new file with restrictive permissions. It refuses existing destinations and removes a partially created backup on failure. Choose a private destination outside served/static directories. Never expose this operator-only helper as a user/AI tool: it includes the entire database for all users, including session and encrypted-vault data.
+`operator_snapshot(engine, destination)` in `lifegather.memory.backup` writes a portable JSON-lines snapshot of every table from one read-only `REPEATABLE READ` PostgreSQL transaction to a new file with restrictive permissions; `restore_snapshot` loads it into an empty database. It refuses existing destinations and removes a partially created backup on failure. Choose a private destination outside served/static directories. Never expose this operator-only helper as a user/AI tool: it includes the entire database for all users, including session and encrypted-vault data.
 
 For a coordinated installation backup, use [encrypted operator recovery](OPERATOR_RECOVERY.md).
 It includes the snapshot, configuration and separate vault key, validates the
 complete bundle, and restores into a new directory without starting the app.
-Photo/PDF originals currently live inside SQLite and are included. The lower-level
+Photo/PDF originals currently live inside the database and are included. The lower-level
 snapshot helper alone does not include external configuration or the vault key.
 
 ## Verification
 
 Synthetic fixtures cover ownership/maintenance/sale, historical and unknown dates, source/fact replays, concurrent source ingestion, duplicate-looking distinct objects, aliases, relationship cycles/bounds, invalid quotes and corrections, direct database owner constraints, cross-user service access/export/search, pagination, and snapshot restore. Existing login/settings tests run against the new migration head. No personal records or network model calls are needed.
 
-References: [SQLite FTS5](https://www.sqlite.org/fts5.html), [Python SQLite backup API](https://docs.python.org/3.13/library/sqlite3.html#sqlite3.Connection.backup).
+References: [PostgreSQL GIN indexes](https://www.postgresql.org/docs/current/gin.html), [transaction isolation](https://www.postgresql.org/docs/current/transaction-iso.html).

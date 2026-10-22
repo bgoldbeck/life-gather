@@ -10,6 +10,7 @@ from zipfile import ZipFile
 import pytest
 from alembic import command
 from alembic.config import Config
+from database_support import restore_copy
 from pydantic import ValidationError
 from sqlalchemy import insert, select, text
 from sqlalchemy.exc import IntegrityError
@@ -28,7 +29,6 @@ from lifegather.memory.backup import operator_snapshot
 from lifegather.memory.export import RecordExport
 from lifegather.memory.models import Episode
 from lifegather.profiles.service import ProfileCreate, ProfileService
-from lifegather.recovery.database import validate_database
 
 
 def test_personal_json_zip_and_snapshot_keep_only_own_exact_task_history(
@@ -115,9 +115,9 @@ def test_personal_json_zip_and_snapshot_keep_only_own_exact_task_history(
         assert manifest["records_format"] == "lifegather-records/4"
         assert manifest["records"]["sha256"] == hashlib.sha256(records).hexdigest()
         assert json.loads(records)["collections"] == collections
-    copied = tmp_path / "copied.sqlite3"
+    copied = tmp_path / "copied.jsonl"
     operator_snapshot(store.engine, copied)
-    recovered = AuthStore(copied)
+    recovered = AuthStore(restore_copy(copied))
     recovered_service = MaintenanceService(recovered.engine)
     assert (
         recovered_service.get(alice, created["id"])["revision"] == current["revision"]
@@ -150,7 +150,11 @@ def test_migration_upgrade_and_downgrade_leave_existing_sources_and_identity_int
             command.downgrade(config, "0023_asset_consolidation")
 
     downgrade()
-    assert validate_database(store.path, None).migration == "0023_asset_consolidation"
+    with store.engine.connect() as connection:
+        assert (
+            connection.scalar(text("SELECT version_num FROM alembic_version"))
+            == "0023_asset_consolidation"
+        )
     store.migrate()
     service = MaintenanceService(store.engine)
     created = service.create(alice, plan(vehicle))
@@ -179,8 +183,8 @@ def test_migration_upgrade_and_downgrade_leave_existing_sources_and_identity_int
         assert (
             connection.scalar(
                 text(
-                    "SELECT count(*) FROM sqlite_master WHERE type='table' "
-                    "AND name='maintenance_tasks'"
+                    "SELECT count(*) FROM information_schema.tables "
+                    "WHERE table_name='maintenance_tasks'"
                 )
             )
             == 0
@@ -234,23 +238,23 @@ def test_database_constraints_enforce_owners_task_chain_and_one_current_head(
                 "source_id": source_id,
                 "superseded_at": fields["recorded_at"] + 1,
             },
-            "FOREIGN KEY",
+            "foreign key",
         ),
         (
             {
                 "previous_id": second["revision_id"],
                 "superseded_at": fields["recorded_at"] + 1,
             },
-            "FOREIGN KEY",
+            "foreign key",
         ),
-        ({}, "UNIQUE"),
+        ({}, "unique"),
         (
             {
                 "state": "open",
                 "completed_on": date(2026, 10, 19),
                 "superseded_at": fields["recorded_at"] + 1,
             },
-            "CHECK",
+            "check",
         ),
     ]
     for changes, expected in cases:
@@ -269,7 +273,7 @@ def test_database_constraints_enforce_owners_task_chain_and_one_current_head(
                 )
             )
     with (
-        pytest.raises(IntegrityError, match="FOREIGN KEY"),
+        pytest.raises(IntegrityError, match="foreign key"),
         store.engine.begin() as connection,
     ):
         connection.execute(

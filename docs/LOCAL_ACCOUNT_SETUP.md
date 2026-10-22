@@ -31,6 +31,6 @@ The server owner explicitly accepts the supplied email instead of proving mailbo
 
 The command refuses an email already used by a local or Google account, even with different capitalization. It cannot link accounts, reset passwords, or replace existing credentials. Existing accounts continue to use their normal sign-in or recovery flow. Public signup, password linking and recovery still require their existing email verification. Without SMTP, forgotten-password recovery by email is unavailable; retain this password in a password manager.
 
-The command uses the running container's `LIFEGATHER_DATA_DIR` and the same `/data` volume as the app. It applies packaged migrations and writes the account and salted Argon2id password hash atomically to `auth.sqlite3`. It creates no browser session and changes no existing private records. Preserve the data volume; don't add `--volumes` when shutting down Compose.
+The command uses the running container's `LIFEGATHER_DATABASE_URL`, the same PostgreSQL database as the app. It applies packaged migrations and writes the account and salted Argon2id password hash atomically. It creates no browser session and changes no existing private records. Preserve the data and database volumes; don't add `--volumes` when shutting down Compose.
 
-For source development, run `uv run --locked python -m lifegather.setup_account` from `backend/`, using the same configuration and data directory as the development server.
+For source development, run `uv run --locked python -m lifegather.setup_account` from `backend/`, using the same configuration and database as the development server.

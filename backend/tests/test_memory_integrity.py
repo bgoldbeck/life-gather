@@ -5,6 +5,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
+from database_support import database, restore_copy
 from pydantic import ValidationError
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
@@ -18,7 +19,7 @@ from lifegather.memory.service import MemoryError, MemoryService
 
 
 def setup(tmp_path: Path) -> tuple[AuthStore, MemoryService, Account, Account]:
-    auth = AuthStore(tmp_path / "memory.sqlite3")
+    auth = AuthStore(database(tmp_path / "memory"))
     auth.migrate()
     alice = auth.login("alice", "a@example.test", "A", now=1).user
     bob = auth.login("bob", "b@example.test", "B", now=1).user
@@ -252,19 +253,17 @@ def test_concurrent_replay_and_snapshot_restore(tmp_path: Path) -> None:
             operation_key="owned",
         ),
     )
-    path = tmp_path / "snapshot.sqlite3"
+    path = tmp_path / "snapshot.jsonl"
     operator_snapshot(auth.engine, path)
     with pytest.raises(FileExistsError):
         operator_snapshot(auth.engine, path)
-    restored = AuthStore(path)
+    restored = AuthStore(restore_copy(path))
     restored.migrate()
     recovered = MemoryService(restored.engine)
     assert recovered.get_entity(alice, entity.id).name == "Trimmer"
     assert recovered.facts(alice, entity.id)[0].value is True
     assert recovered.search(alice, "receipt")
     assert recovered.list_entities(bob)["items"] == []
-    with restored.engine.connect() as connection:
-        assert not connection.execute(text("PRAGMA foreign_key_check")).fetchall()
 
 
 def test_fact_pagination_cycles_and_invalid_world_dates(tmp_path: Path) -> None:

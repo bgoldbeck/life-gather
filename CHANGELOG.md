@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.75.0 — PostgreSQL storage
+
+- **Storage moved from SQLite to PostgreSQL.** `LIFEGATHER_DATABASE_URL` is now
+  required. The Compose files add a `db` service (`pgvector/pgvector:pg17`) with
+  its own `lifegather-db` volume; set `LIFEGATHER_DB_PASSWORD` before starting.
+  See `docs/POSTGRESQL.md` and the TrueNAS upgrade steps.
+- **One-time import.** The first start against an empty database copies an
+  existing `/data/auth.sqlite3` (schemas `0027_forest_dark_theme` through
+  `0029_receipt_detail_basis`, releases 0.64–0.74)
+  in one transaction, checks SQLite integrity and every table's row count, and
+  rebuilds search. The SQLite file is never changed; failures keep nothing.
+  `python -m lifegather.legacy_import` runs the same import by hand.
+- **pgvector.** Migration `0030_pgvector` enables the `vector` extension for
+  future embeddings; nothing uses it yet.
+- Encrypted recovery bundles are now format 2 with a portable logical database
+  snapshot, and restores load a new, empty PostgreSQL database named by
+  `LIFEGATHER_DATABASE_URL`. Format 1 (SQLite) bundles still verify and restore.
+- Behavior is unchanged: integers stay 64-bit and text unbounded, snapshot reads
+  use `REPEATABLE READ`, serialized writers take an advisory lock in place of
+  SQLite's write lock, search matches whole words ignoring case and accents, and
+  the database must use the `C` collation so ordering and paging stay identical.
+- Backend tests run against PostgreSQL (`LIFEGATHER_TEST_DATABASE_URL`, or an
+  automatic temporary cluster). The release script starts throwaway PostgreSQL
+  containers for the tests and container smoke; the test-login preview gains a
+  `lifegather-preview-db` sidecar.
+
 ## 0.74.0 — Restore your records
 
 - New **Settings → Restore your records**: bring a personal archive ZIP

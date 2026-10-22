@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from database_support import restore_copy
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -122,9 +123,9 @@ def test_receipt_review_quantity_atomic_replay_and_restore(
         } == {source.id}
     with pytest.raises(MemoryError):
         service.review(actor, body.model_copy(update={"request_id": "different"}))
-    snapshot = tmp_path / "receipt-snapshot.sqlite3"
+    snapshot = tmp_path / "receipt-snapshot.jsonl"
     operator_snapshot(auth.engine, snapshot)
-    restored = AuthStore(snapshot)
+    restored = AuthStore(restore_copy(snapshot))
     restored.migrate()
     assert ReceiptService(restored.engine).get(actor, receipt["id"]) == reviewed[0]
     restored.engine.dispose()

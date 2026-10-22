@@ -1,12 +1,13 @@
 from pathlib import Path
 
 import pytest
+from database_support import database
 
 from lifegather.auth.store import AuthStore, InvalidFlow
 
 
 def test_flow_is_browser_bound_expiring_and_single_use(tmp_path: Path) -> None:
-    store = AuthStore(tmp_path / "auth.sqlite3")
+    store = AuthStore(database(tmp_path))
     store.migrate()
     store.begin_flow("browser", "state", "nonce", "verifier", now=100)
     with pytest.raises(InvalidFlow):
@@ -21,7 +22,7 @@ def test_flow_is_browser_bound_expiring_and_single_use(tmp_path: Path) -> None:
 
 
 def test_identity_session_persistence_and_revocation(tmp_path: Path) -> None:
-    path = tmp_path / "auth.sqlite3"
+    path = database(tmp_path)
     store = AuthStore(path)
     store.migrate()
     first = store.login("one", "same@example.test", "First", now=100)

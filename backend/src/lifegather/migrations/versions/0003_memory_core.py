@@ -2,6 +2,7 @@
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects.postgresql import ARRAY
 
 revision = "0003_memory_core"
 down_revision = "0002_private_settings"
@@ -128,13 +129,24 @@ def upgrade() -> None:
         )
     for column in ("subject_id", "object_id"):
         op.create_index("ix_memory_facts_" + column, "memory_facts", [column])
-    op.execute(
-        "CREATE VIRTUAL TABLE memory_fts USING fts5(record_id UNINDEXED, "
-        "user_id UNINDEXED, kind UNINDEXED, body, tokenize='unicode61')"
+    # Owner-scoped word index: folded Unicode words in a GIN-indexed text array.
+    op.create_table(
+        "memory_fts",
+        sa.Column("record_id", sa.String(), nullable=False),
+        sa.Column("user_id", sa.String(), nullable=False),
+        sa.Column("kind", sa.String(), nullable=False),
+        sa.Column("body", sa.String(), nullable=False),
+        sa.Column("terms", ARRAY(sa.String()), nullable=False),
+    )
+    op.create_index(
+        "ix_memory_fts_record", "memory_fts", ["user_id", "record_id", "kind"]
+    )
+    op.create_index(
+        "ix_memory_fts_terms", "memory_fts", ["terms"], postgresql_using="gin"
     )
 
 
 def downgrade() -> None:
-    op.execute("DROP TABLE memory_fts")
+    op.drop_table("memory_fts")
     for table in ("audit", "evidence", "facts", "aliases", "entities", "sources"):
         op.drop_table("memory_" + table)

@@ -41,14 +41,14 @@ With credentials absent, the login page reports that setup is needed, and login 
 
 ## Sessions and migration
 
-- Startup upgrades the private `/data/auth.sqlite3` (or local data directory) through packaged Alembic revision `0001_accounts`. Run one application worker for this slice; do not race migrations from independent instances.
+- Startup upgrades the PostgreSQL database named by `LIFEGATHER_DATABASE_URL` through the packaged Alembic revisions, holding a database lock so concurrent starts cannot race migrations.
 - Accounts use Google's normalized issuer plus stable subject. Email/display name can change and are not unique identity keys. No shared workspace or invitation/allowlist logic is introduced.
 - Session cookies contain 256-bit random opaque secrets; only SHA-256 hashes are stored. Cookies are host-only, HttpOnly, SameSite=Lax, and Secure on HTTPS. Plain HTTP cookie mode is limited to explicitly configured loopback development.
 - Sessions have an absolute seven-day expiry, persist across restarts, and are revoked server-side by logout. Successful new login rotates the browser's existing session. Other devices retain their own sessions until logout/expiry; global session-management UI is not yet implemented.
 - Login state is browser-bound, expires after ten minutes, and is atomically single-use. State/browser secrets are hashed in storage; nonce and PKCE verifier are short-lived server-only flow data. Google tokens are verified then discarded, not saved to the browser or database.
 - Logout is POST-only and requires matching configured Origin and a session-bound CSRF token. Session/account responses are not cached. Protected `/api/me` derives identity from the session, ignoring client-supplied account IDs.
 - Ten login starts per minute per actual connection IP, with at most 1,024 tracked IPs, limits basic single-process abuse. Proxy-wide and distributed abuse control is future deployment work; no forwarded headers are trusted. At most 100 expired rows per table are cleaned per new flow/login; expiry is enforced even before cleanup.
-- Database file permissions are restricted on supported systems. SQLite contains personal account details and sessions; protect its parent volume and backups. For an auth-database backup, stop the app and copy the complete private data directory, including any SQLite journal files, then restore only while stopped. General application backup/export UX remains later work.
+- The database contains personal account details and sessions; keep the PostgreSQL service private (the Compose files publish no database port) and protect its volume and backups. Use [encrypted operator recovery](OPERATOR_RECOVERY.md) for backups.
 
 The image disables Uvicorn access logs to avoid logging OAuth callback query strings. Local source commands above do the same. Reverse proxies must also redact callback query strings; never enable verbose HTTP/token logs with real credentials.
 

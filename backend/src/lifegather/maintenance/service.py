@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from lifegather.assets.identity import canonical_id, identity_group, member_ids
 from lifegather.auth.store import Account
+from lifegather.database import begin_snapshot
 from lifegather.maintenance.models import MaintenanceRevision, MaintenanceTask
 from lifegather.maintenance.schemas import (
     CalendarDate,
@@ -51,7 +52,7 @@ class MaintenanceService:
         caller-supplied source namespace or text cannot impersonate a task.
         """
         with Session(self.engine) as db:
-            db.connection().exec_driver_sql("BEGIN")
+            begin_snapshot(db)
             matches = list(
                 db.scalars(
                     select(MaintenanceRevision)
@@ -341,7 +342,7 @@ class MaintenanceService:
 
     def get(self, actor: Account, identifier: str) -> dict[str, Any]:
         with Session(self.engine) as db:
-            db.connection().exec_driver_sql("BEGIN")
+            begin_snapshot(db)
             task = self._task(db, actor, identifier)
             return self._view(
                 db, actor, task, self._head(db, actor, task), self.memory.clock()
@@ -350,7 +351,7 @@ class MaintenanceService:
     def list(self, actor: Account, value: MaintenancePage) -> dict[str, Any]:
         data = MaintenancePage.model_validate(value)
         with Session(self.engine) as db:
-            db.connection().exec_driver_sql("BEGIN")
+            begin_snapshot(db)
             identifiers = None
             if data.entity_id:
                 self._target(db, actor, data.entity_id)
@@ -448,7 +449,7 @@ class MaintenanceService:
     def history(self, actor: Account, value: MaintenanceHistory) -> dict[str, Any]:
         data = MaintenanceHistory.model_validate(value)
         with Session(self.engine) as db:
-            db.connection().exec_driver_sql("BEGIN")
+            begin_snapshot(db)
             self._task(db, actor, data.task_id)
             query = select(MaintenanceRevision).where(
                 MaintenanceRevision.user_id == actor.id,

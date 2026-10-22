@@ -1,15 +1,15 @@
 """Private, paginated source browsing, independent of chats and AI providers."""
 
-import re
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import Engine, and_, func, or_, select, text
+from sqlalchemy import Engine, and_, func, or_, select
 from sqlalchemy.orm import Session, aliased
 
 from lifegather.auth.store import Account
 from lifegather.memory.models import Episode, NoteRevision
 from lifegather.memory.notes import NoteService
+from lifegather.memory.search_index import matches_words, query_words, search_index
 from lifegather.memory.service import MemoryError, MemoryService
 
 
@@ -71,16 +71,16 @@ class MemoryLibrary:
         if not data.include_history:
             statement = statement.where(current)
         if data.query.strip():
-            words = re.findall(r"[^\W_]+", data.query, re.UNICODE)
+            words = query_words(data.query)
             if not words or len(words) > 12:
                 raise MemoryError("Search requires 1 to 12 words")
-            match = " AND ".join('"' + word + '"' for word in words)
             statement = statement.where(
-                text(
-                    "memory_sources.id IN (SELECT record_id FROM memory_fts "
-                    "WHERE memory_fts MATCH :library_query AND user_id=:library_owner "
-                    "AND kind='source')"
-                ).bindparams(library_query=match, library_owner=actor.id)
+                Episode.id.in_(
+                    select(search_index.c.record_id).where(
+                        matches_words(actor.id, words),
+                        search_index.c.kind == "source",
+                    )
+                )
             )
         with Session(self.engine) as db:
             if data.cursor:

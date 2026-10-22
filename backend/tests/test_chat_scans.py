@@ -5,6 +5,7 @@ from typing import Any
 
 import httpx2
 import pytest
+from database_support import restore_copy
 from fastapi.testclient import TestClient
 from pydantic import SecretStr, ValidationError
 from test_mailboxes import provider
@@ -198,9 +199,9 @@ def test_chat_scan_atomically_saves_job_result_replay_and_snapshot(
     assert memory.export_page(actor, "sources")["items"] == []
     assert memory.export_page(actor, "entities")["items"] == []
     assert chat.usage(actor)["requests"] == 0
-    snapshot = tmp_path / "restore.sqlite3"
+    snapshot = tmp_path / "restore.jsonl"
     operator_snapshot(auth.engine, snapshot)
-    restored = AuthStore(snapshot)
+    restored = AuthStore(restore_copy(snapshot))
     restored.migrate()
     again, fresh = ChatService(restored.engine).begin(actor, conversation, data)
     assert not fresh and again == result

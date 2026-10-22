@@ -7,6 +7,7 @@ from typing import Any
 
 import httpx2
 import pytest
+from database_support import restore_copy
 from fastapi.testclient import TestClient
 from PIL import Image
 from pydantic import BaseModel
@@ -97,9 +98,9 @@ def test_upload_dedup_attachment_isolation_delete_and_restore(tmp_path: Path) ->
     for filename in ("../x.jpg", "x\\y.jpg", "x\x00.jpg", "x" * 201):
         with pytest.raises(MemoryError):
             photos.upload(alice, raw, filename)
-    backup = tmp_path / "snapshot.sqlite3"
+    backup = tmp_path / "snapshot.jsonl"
     operator_snapshot(auth.engine, backup)
-    restored = AuthStore(backup)
+    restored = AuthStore(restore_copy(backup))
     restored.migrate()
     assert (
         PhotoService(restored.engine, files(restored.engine)).binary(

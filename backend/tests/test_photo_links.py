@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from database_support import restore_copy
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -65,9 +66,9 @@ def test_existing_photo_link_preserves_bytes_evidence_units_and_safe_replay(
             )
             == 2
         )
-    snapshot = tmp_path / "linked.sqlite3"
+    snapshot = tmp_path / "linked.jsonl"
     operator_snapshot(auth.engine, snapshot)
-    restored = AuthStore(snapshot)
+    restored = AuthStore(restore_copy(snapshot))
     restored.migrate()
     assert (
         PhotoService(restored.engine, files(restored.engine)).link(actor, request)

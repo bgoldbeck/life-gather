@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from database_support import database, restore_copy
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -48,7 +49,7 @@ def fields(**changes: Any) -> AssetFields:
 
 
 def setup(tmp_path: Path) -> tuple[Any, ...]:
-    auth = AuthStore(tmp_path / "proposals.sqlite3")
+    auth = AuthStore(database(tmp_path))
     auth.migrate()
     alice = auth.login("alice", "alice@example.test", "Alice", now=1).user
     bob = auth.login("bob", "bob@example.test", "Bob", now=1).user
@@ -110,9 +111,9 @@ def test_proposal_does_not_write_inventory_and_confirm_is_atomic_idempotent(
         service.review(bob, data)
     with pytest.raises(NoteConflict):
         service.review(alice, review(proposal["id"], "other"))
-    backup = tmp_path / "restored.sqlite3"
+    backup = tmp_path / "restored.jsonl"
     operator_snapshot(auth.engine, backup)
-    restored = AuthStore(backup)
+    restored = AuthStore(restore_copy(backup))
     restored.migrate()
     assert ProposalService(restored.engine).get(alice, proposal["id"]) == accepted[0]
     assert ReconciliationService(restored.engine).inventory(alice) == [asset_id]
@@ -577,7 +578,7 @@ def test_upgrade_foreign_keys_and_export_paging(tmp_path: Path) -> None:
 
     import lifegather
 
-    auth = AuthStore(tmp_path / "legacy.sqlite3")
+    auth = AuthStore(database(tmp_path / "legacy", empty=True))
     config = Config()
     config.set_main_option(
         "script_location", str(Path(lifegather.__file__).parent / "migrations")

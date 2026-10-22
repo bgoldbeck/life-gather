@@ -36,7 +36,7 @@ def upgrade() -> None:
         "documents",
         ["user_id", "content_hash"],
         unique=True,
-        sqlite_where=sa.text("deleted_at IS NULL"),
+        postgresql_where=sa.text("deleted_at IS NULL"),
     )
 
 

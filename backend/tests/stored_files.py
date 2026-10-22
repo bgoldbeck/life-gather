@@ -1,14 +1,13 @@
 """Test helper: the app's default local file storage beside a test database."""
 
-from pathlib import Path
-
+from database_support import paths
 from sqlalchemy import Engine
 
 from lifegather.storage import LocalStorage
 
 
 def files(engine: Engine) -> LocalStorage:
-    # Matches the default `<data_dir>/files` next to `<data_dir>/auth.sqlite3`.
+    # Matches the default `<data_dir>/files` for the test path behind the database.
     database = engine.url.database
     assert database
-    return LocalStorage(Path(database).parent / "files")
+    return LocalStorage(paths[database] / "files")

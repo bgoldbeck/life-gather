@@ -114,6 +114,14 @@ function global:docker {
             if ($global:LifeGatherReleaseTest.BuildFailure) { $global:LASTEXITCODE = 1 }
         }
         'run' {
+            if ($arguments[-1] -eq 'pgvector/pgvector:pg17') {
+                if ($arguments -notcontains 'POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=C') {
+                    throw 'Test databases must use byte-order collation'
+                }
+                $global:LifeGatherReleaseTest.Databases++
+                return 'fixture-database'
+            }
+            if ($arguments -notcontains '--network') { throw 'Smoke container must use the private database network' }
             if (-not $global:LifeGatherReleaseTest.ImageLoaded) {
                 $global:LASTEXITCODE = 125
                 return
@@ -122,14 +130,17 @@ function global:docker {
         }
         'inspect' { 'healthy' }
         'exec' {
+            if ($arguments -contains 'pg_isready') { return }
             $script = $input -join "`n"
-            if ($script -notmatch '8787' -or $script -notmatch 'auth.sqlite3') { throw 'Smoke checks missing' }
+            if ($script -notmatch '8787' -or $script -notmatch 'alembic_version') { throw 'Smoke checks missing' }
             if ($script -notmatch "'email_password_enabled': False" -or
                 $script -notmatch "'email_delivery_enabled': False") {
                 throw 'Smoke checks must verify unconfigured email authentication'
             }
         }
         'rm' { }
+        'port' { '127.0.0.1:55432' }
+        'network' { }
         'context' {
             if ($arguments -contains '--format') {
                 throw 'Use JSON context inspection to avoid Windows quote stripping'
@@ -173,7 +184,7 @@ function Test-Release {
         Head = ('a' * 40); Branch = $Branch; Relation = $Relation; FetchFailure = $FetchFailure
         Fetches = 0; Updates = 0; MoveAgain = $MoveAgain; NoAuth = $NoAuth; AuthRepairs = 0
         AuthRepairFailure = $AuthRepairFailure; DirtyAfterFetch = $DirtyAfterFetch
-        ContainerBuilder = $ContainerBuilder; ImageLoaded = $false
+        ContainerBuilder = $ContainerBuilder; ImageLoaded = $false; Databases = 0
     }
     $failed = $false
     $captured = New-Object System.Text.StringBuilder
@@ -190,6 +201,9 @@ function Test-Release {
         throw "FAIL: $Name (failure=$failed builds=$($global:LifeGatherReleaseTest.Builds) pushes=$($global:LifeGatherReleaseTest.Pushes))"
     }
     if ($output -match 'synthetic-token') { throw 'Registry token leaked in logs' }
+    if (-not $ExpectFailure -and $global:LifeGatherReleaseTest.Databases -ne (1 + $ExpectedBuilds)) {
+        throw "FAIL: $Name must test against temporary PostgreSQL databases"
+    }
     if ($global:LifeGatherReleaseTest.Updates -ne $ExpectedUpdates -or
         $global:LifeGatherReleaseTest.AuthRepairs -ne $ExpectedAuthRepairs) {
         throw "FAIL: $Name unexpected source update or authentication repair"

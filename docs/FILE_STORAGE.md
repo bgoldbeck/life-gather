@@ -46,7 +46,7 @@ columns. Rows that still hold bytes in the database keep working. On startup the
 app copies each one to storage, reads it back and checks its hash, and only then
 clears the database copy, one row per commit. An interrupted or failed move is
 retried on the next start and the database copy keeps being served meanwhile.
-The database file does not shrink until SQLite is vacuumed.
+PostgreSQL reclaims the cleared space through its routine autovacuum.
 
 Deleting a document or photo removes its stored files after the deletion commits.
 If storage is unreachable at that moment the key is kept and the next startup

@@ -19,7 +19,7 @@ amounts describe whole lines and purchase amounts remain separate source claims;
 the comparison does not sum, allocate or divide them. A shared purchase evidence
 association appears once in the related-purchase section.
 
-All collections come from one SQLite read snapshot, including the existing receipt
+All collections come from one PostgreSQL read snapshot, including the existing receipt
 reader. Refresh after changes. Closing/clearing, selecting another target, changing
 the search or navigating to another item prevents old responses from reappearing.
 

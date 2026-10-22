@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from database_support import database
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
@@ -11,7 +12,7 @@ from lifegather.credentials.service import PrivateSettings, VaultError
 
 
 def test_owner_scoping_ciphertext_binding_and_persistence(tmp_path: Path) -> None:
-    auth = AuthStore(tmp_path / "auth.sqlite3")
+    auth = AuthStore(database(tmp_path))
     auth.migrate()
     alice = auth.login("alice", "a@example.test", "A", now=1).user
     bob = auth.login("bob", "b@example.test", "B", now=1).user
@@ -57,7 +58,7 @@ def test_owner_scoping_ciphertext_binding_and_persistence(tmp_path: Path) -> Non
 
 
 def test_preferences_are_separate_and_missing_key_is_safe(tmp_path: Path) -> None:
-    auth = AuthStore(tmp_path / "auth.sqlite3")
+    auth = AuthStore(database(tmp_path))
     auth.migrate()
     alice = auth.login("alice", "a@example.test", "A", now=1).user
     bob = auth.login("bob", "b@example.test", "B", now=1).user
@@ -71,7 +72,7 @@ def test_preferences_are_separate_and_missing_key_is_safe(tmp_path: Path) -> Non
 
 
 def test_pagination_quota_and_removal_without_key(tmp_path: Path) -> None:
-    auth = AuthStore(tmp_path / "auth.sqlite3")
+    auth = AuthStore(database(tmp_path))
     auth.migrate()
     alice = auth.login("alice", "a@example.test", "A", now=1).user
     bob = auth.login("bob", "b@example.test", "B", now=1).user

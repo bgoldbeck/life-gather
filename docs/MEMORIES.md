@@ -12,7 +12,7 @@ filters follow each note's original root: saved text notes, photo transcriptions
 reviewed PDF text, or other evidence (including sourced profiles/asset actions).
 A current note version is not a statement of current world ownership or verification.
 
-Search uses up to 12 literal words, ANDed through the existing SQLite FTS index;
+Search uses up to 12 literal words, ANDed through the owner-scoped word index (case and accents ignored);
 there is no fuzzy/semantic inference or model call. Search of current notes does
 not match text found only in superseded originals; opt into earlier versions to
 find those. Pages contain up to 25 240-character excerpts, ordered by recorded time

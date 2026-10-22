@@ -72,7 +72,7 @@ def upgrade() -> None:
         "purchase_evidence",
         ["user_id", "root_source_id"],
         unique=True,
-        sqlite_where=sa.text("superseded_at IS NULL"),
+        postgresql_where=sa.text("superseded_at IS NULL"),
     )
     op.create_index(
         "ix_purchase_evidence_group",

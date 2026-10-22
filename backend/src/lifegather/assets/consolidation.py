@@ -15,6 +15,7 @@ from lifegather.assets.models import (
     ConsolidationMember,
 )
 from lifegather.auth.store import Account
+from lifegather.database import begin_snapshot
 from lifegather.memory.models import Assertion
 from lifegather.memory.notes import NoteConflict
 from lifegather.memory.origins import change_origin
@@ -196,7 +197,7 @@ class ConsolidationService:
 
     def preview(self, actor: Account, primary: str, secondary: str) -> dict[str, Any]:
         with Session(self.engine) as db:
-            db.connection().exec_driver_sql("BEGIN")
+            begin_snapshot(db)
             return self._preview(db, actor, primary, secondary)
 
     @staticmethod

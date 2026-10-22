@@ -14,7 +14,7 @@ from lifegather.installation_config import (
 )
 from lifegather.recovery.envelope import RecoveryError
 
-PORTABLE_FIELDS = INSTALLATION_FIELDS - {"data_dir", "vault_key_file"}
+PORTABLE_FIELDS = INSTALLATION_FIELDS - {"data_dir", "database_url", "vault_key_file"}
 STORAGE_DEFAULTS: dict[str, Any] = {
     "storage_backend": "local",
     "storage_dir": None,
@@ -27,6 +27,7 @@ STORAGE_DEFAULTS: dict[str, Any] = {
 }
 LOCAL_FIELDS = {
     "data_dir",
+    "database_url",
     "vault_key_file",
     "static_dir",
     "configuration_file",
@@ -76,6 +77,7 @@ def validate_configuration(path: Path, root: Path, has_key: bool) -> dict[str, A
             "_env_file": None,
             "configuration_file": None,
             "data_dir": root / "data",
+            "database_url": "",
             "vault_key_file": root / "secrets" / "vault.key" if has_key else None,
             "static_dir": None,
             "build_revision": "",
@@ -91,10 +93,13 @@ def validate_configuration(path: Path, root: Path, has_key: bool) -> dict[str, A
         raise RecoveryError("Unable to validate recovery configuration") from None
 
 
-def restored_configuration(values: dict[str, Any], root: Path, has_key: bool) -> bytes:
+def restored_configuration(
+    values: dict[str, Any], root: Path, has_key: bool, database_url: str
+) -> bytes:
     return encode_configuration(
         {
             **values,
+            "database_url": database_url,
             "data_dir": str((root / "data").resolve()),
             "vault_key_file": str((root / "secrets" / "vault.key").resolve())
             if has_key

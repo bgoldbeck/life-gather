@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from database_support import restore_copy
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -52,9 +53,9 @@ def test_clear_new_discovery_is_atomic_private_and_replay_safe(tmp_path: Path) -
     assert len(ReconciliationService(auth.engine).inventory(actor)) == 1
     with pytest.raises(MemoryError):
         service.review(bob, data)
-    snapshot = tmp_path / "snapshot.sqlite3"
+    snapshot = tmp_path / "snapshot.jsonl"
     operator_snapshot(auth.engine, snapshot)
-    restored = AuthStore(snapshot)
+    restored = AuthStore(restore_copy(snapshot))
     restored.migrate()
     assert ProposalService(restored.engine).get(actor, proposal["id"]) == results[0]
     restored.engine.dispose()

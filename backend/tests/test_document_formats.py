@@ -7,6 +7,7 @@ from pathlib import Path
 from zipfile import ZipFile
 
 import pytest
+from database_support import database
 from fastapi.testclient import TestClient
 from stored_files import files
 
@@ -266,8 +267,9 @@ def test_non_pdf_documents_survive_encrypted_recovery(tmp_path: Path) -> None:
     recovery = RecoveryService(case.settings)
     bundle, restored = tmp_path / "formats.lgbackup", tmp_path / "restored-formats"
     recovery.create(bundle, PASSWORD)
-    recovery.restore(bundle, restored, PASSWORD)
-    store = AuthStore(restored / "data" / "auth.sqlite3")
+    url = database(restored / "data", empty=True)
+    recovery.restore(bundle, restored, PASSWORD, url)
+    store = AuthStore(url)
     for doc, (kind, raw) in zip(documents, originals, strict=True):
         reader = DocumentService(store.engine, files(store.engine))
         assert reader.binary(case.alice, doc["id"]) == raw
@@ -314,7 +316,7 @@ def test_document_migration_preserves_existing_pdf_bytes_and_refuses_lossy_downg
 
     from lifegather.auth.store import AuthStore
 
-    store = AuthStore(tmp_path / "migration.sqlite3")
+    store = AuthStore(database(tmp_path / "migration"))
     store.migrate()
     actor = store.login("migration", "m@example.test", "M", now=1).user
     service = DocumentService(store.engine, files(store.engine))

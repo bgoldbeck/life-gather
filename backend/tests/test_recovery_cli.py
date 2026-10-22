@@ -4,6 +4,8 @@ import sys
 from pathlib import Path
 
 import pytest
+from database_support import database
+from pydantic import SecretStr
 
 from lifegather.auth.store import AuthStore
 from lifegather.config import Settings
@@ -20,13 +22,16 @@ def test_verify_and_restore_do_not_require_lost_operational_settings(
 ) -> None:
     monkeypatch.chdir(tmp_path)
     source = tmp_path / "source"
-    store = AuthStore(source / "auth.sqlite3")
+    store = AuthStore(database(source))
     store.migrate()
     bundle = tmp_path / "copy.lgbackup"
     phrase = tmp_path / "phrase"
     phrase.write_bytes(b"synthetic recovery passphrase")
-    RecoveryService(Settings(data_dir=source)).create(bundle, phrase.read_bytes())
+    RecoveryService(
+        Settings(data_dir=source, database_url=SecretStr(database(source)))
+    ).create(bundle, phrase.read_bytes())
     monkeypatch.setenv("LIFEGATHER_DATA_DIR", str(source))
+    monkeypatch.setenv("LIFEGATHER_DATABASE_URL", database(source))
     monkeypatch.setenv("LIFEGATHER_CONFIGURATION_FILE", str(tmp_path / "lost.json"))
     if configuration == "oauth-environment":
         monkeypatch.setenv("LIFEGATHER_GOOGLE_CLIENT_ID", "SYNTHETIC_ID")
@@ -41,6 +46,7 @@ def test_verify_and_restore_do_not_require_lost_operational_settings(
     flags = ["--passphrase-file", str(phrase)]
     assert main(["verify", str(bundle), *flags]) == 0
     destination = tmp_path / "restored"
+    monkeypatch.setenv("LIFEGATHER_DATABASE_URL", database(destination, empty=True))
     assert main(["restore", str(bundle), str(destination), *flags]) == 0
     assert (destination / "installation.json").is_file()
     assert not (tmp_path / "lost.json").exists()
@@ -61,12 +67,14 @@ def test_isolated_verification_keeps_dotenv_storage_and_static_guards(
 ) -> None:
     monkeypatch.chdir(tmp_path)
     source = tmp_path / "source"
-    store = AuthStore(source / "auth.sqlite3")
+    store = AuthStore(database(source))
     store.migrate()
     bundle = tmp_path / "copy.lgbackup"
     phrase = tmp_path / "phrase"
     phrase.write_bytes(b"synthetic recovery passphrase")
-    RecoveryService(Settings(data_dir=source)).create(bundle, phrase.read_bytes())
+    RecoveryService(
+        Settings(data_dir=source, database_url=SecretStr(database(source)))
+    ).create(bundle, phrase.read_bytes())
     public = tmp_path / "public"
     public.mkdir()
     monkeypatch.delenv("LIFEGATHER_DATA_DIR")
@@ -99,8 +107,9 @@ def test_cli_backup_verify_restore_and_secret_safe_failure_output(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     source = tmp_path / "source"
-    AuthStore(source / "auth.sqlite3").migrate()
+    AuthStore(database(source)).migrate()
     monkeypatch.setenv("LIFEGATHER_DATA_DIR", str(source))
+    monkeypatch.setenv("LIFEGATHER_DATABASE_URL", database(source))
     monkeypatch.setenv("LIFEGATHER_GOOGLE_CLIENT_ID", "synthetic")
     monkeypatch.setenv("LIFEGATHER_GOOGLE_CLIENT_SECRET", "SYNTHETIC_GLOBAL_SECRET")
     phrase = tmp_path / "phrase"
@@ -114,6 +123,7 @@ def test_cli_backup_verify_restore_and_secret_safe_failure_output(
     verified = capsys.readouterr()
     assert json.loads(verified.out)["database"]["users"] == 0
     destination = tmp_path / "restored"
+    monkeypatch.setenv("LIFEGATHER_DATABASE_URL", database(destination, empty=True))
     assert main(["restore", str(bundle), str(destination), *flags]) == 0
     restored = capsys.readouterr()
     assert json.loads(restored.out)["configuration_file"] == str(

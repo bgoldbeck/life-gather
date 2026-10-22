@@ -9,6 +9,7 @@ from typing import Any
 from zipfile import ZIP_STORED, ZipFile
 
 import pytest
+from database_support import database
 from fastapi.testclient import TestClient
 from sqlalchemy import Connection, event, text
 from stored_files import files as stored
@@ -39,7 +40,7 @@ class Files:
 
 
 def files(tmp_path: Path) -> Files:
-    store = AuthStore(tmp_path / "auth.sqlite3")
+    store = AuthStore(database(tmp_path))
     store.migrate()
     actor = store.login("synthetic", "synthetic@example.test", "Synthetic", now=1).user
     image, pdf = image_bytes(), synthetic_pdf()
@@ -93,8 +94,9 @@ def test_owned_archive_preserves_originals_history_money_units_and_customs(
             text("UPDATE documents SET filename=:name WHERE id=:id"),
             {"name": "../../private/escape.pdf", "id": document["id"]},
         )
-        ciphertext = db.exec_driver_sql(
-            "SELECT ciphertext FROM credentials WHERE id=?", (case.credential,)
+        ciphertext = db.execute(
+            text("SELECT ciphertext FROM credentials WHERE id=:id"),
+            {"id": case.credential},
         ).scalar_one()
     raw = PersonalArchive(case.store.engine, stored(case.store.engine)).download(
         case.alice
@@ -308,7 +310,9 @@ def test_empty_archive_is_valid_and_download_executes_only_reads(
         event.remove(case.store.engine, "before_cursor_execute", observe)
     assert manifest["originals"] == [] and records["total_records"] == 0
     assert set(content) == {"records.json", "manifest.json"}
-    assert all(statement.startswith(("BEGIN", "SELECT")) for statement in statements)
+    assert all(
+        statement.startswith(("SET TRANSACTION", "SELECT")) for statement in statements
+    )
 
 
 def test_archive_http_is_private_csrf_guarded_and_excludes_other_owners(

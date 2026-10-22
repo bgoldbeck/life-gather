@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from database_support import database, restore_copy
 from fastapi.testclient import TestClient
 from sqlalchemy import insert, select
 from sqlalchemy.exc import IntegrityError
@@ -20,7 +21,7 @@ from lifegather.memory.service import MemoryError, MemoryService
 
 
 def setup(tmp_path: Path) -> tuple[Any, ...]:
-    auth = AuthStore(tmp_path / "notes.sqlite3")
+    auth = AuthStore(database(tmp_path / "notes"))
     auth.migrate()
     alice = auth.login("alice", "alice@example.test", "Alice", now=1).user
     bob = auth.login("bob", "bob@example.test", "Bob", now=1).user
@@ -93,9 +94,9 @@ def test_many_revisions_search_paging_and_restore(tmp_path: Path) -> None:
         )
         == first_change
     )
-    backup = tmp_path / "restored.sqlite3"
+    backup = tmp_path / "restored.jsonl"
     operator_snapshot(auth.engine, backup)
-    restored = AuthStore(backup)
+    restored = AuthStore(restore_copy(backup))
     restored.migrate()
     assert NoteService(restored.engine).history(alice, source_id) == first
     assert (
@@ -157,7 +158,7 @@ def test_upgrade_preserves_notes_sessions_settings_and_chat(tmp_path: Path) -> N
     from lifegather.chat.service import TurnInput
     from lifegather.credentials.service import PrivateSettings
 
-    auth = AuthStore(tmp_path / "legacy.sqlite3")
+    auth = AuthStore(database(tmp_path / "legacy", empty=True))
     config = Config()
     config.set_main_option(
         "script_location", str(Path(lifegather.__file__).parent / "migrations")

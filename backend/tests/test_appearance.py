@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from database_support import database
 from fastapi.testclient import TestClient
 
 from lifegather.auth.store import AuthStore
@@ -14,7 +15,7 @@ def test_appearance_migration_preserves_existing_ai_consent(tmp_path: Path) -> N
 
     import lifegather
 
-    store = AuthStore(tmp_path / "legacy.sqlite3")
+    store = AuthStore(database(tmp_path / "legacy", empty=True))
     config = Config()
     config.set_main_option(
         "script_location", str(Path(lifegather.__file__).parent / "migrations")
@@ -25,7 +26,9 @@ def test_appearance_migration_preserves_existing_ai_consent(tmp_path: Path) -> N
     signed = store.login("legacy", "legacy@example.test", "Legacy", now=100)
     with store.engine.begin() as connection:
         connection.execute(
-            text("INSERT INTO user_settings(user_id,allow_external_ai) VALUES (:id,1)"),
+            text(
+                "INSERT INTO user_settings(user_id,allow_external_ai) VALUES (:id,true)"
+            ),
             {"id": signed.user.id},
         )
     store.migrate()
@@ -102,7 +105,7 @@ def test_forest_dark_migration_keeps_existing_dark_choices(tmp_path: Path) -> No
 
     import lifegather
 
-    store = AuthStore(tmp_path / "themes.sqlite3")
+    store = AuthStore(database(tmp_path / "themes", empty=True))
     config = Config()
     config.set_main_option(
         "script_location", str(Path(lifegather.__file__).parent / "migrations")
@@ -117,7 +120,7 @@ def test_forest_dark_migration_keeps_existing_dark_choices(tmp_path: Path) -> No
             connection.execute(
                 text(
                     "INSERT INTO user_settings(user_id,allow_external_ai,theme)"
-                    " VALUES (:id,0,:theme)"
+                    " VALUES (:id,false,:theme)"
                 ),
                 {"id": user.user.id, "theme": theme},
             )
