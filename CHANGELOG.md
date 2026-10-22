@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.69.0 — Ask about photos and documents
+
+- The AI assistant can read one attached saved photo or document, answer
+  questions about it and save details found in it to one asset. Details found in
+  the file cite its own source, so evidence links open the original. See
+  [docs/AI_ASSISTANT.md](docs/AI_ASSISTANT.md#photos-and-documents).
+- A photo without a saved transcription is sent to the selected provider once;
+  the transcription is saved as the photo's source and reused. Saving from a
+  photo also adds it to the asset's gallery. A document's extracted text becomes
+  its source only when a detail cites it.
+- Saved values must appear exactly in the user's words or the file text; the file
+  never establishes ownership, the asset or its type. Another account's files are
+  refused before any AI request.
+- Chat requests accept an optional `document_id` in AI assistant mode, and
+  `photo_id` is now also used there. No migration or dependency change.
+
 ## 0.68.0 — Search everything
 
 - A search box in the top bar finds assets, people/places and other records,

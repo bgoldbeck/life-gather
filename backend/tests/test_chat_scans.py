@@ -318,7 +318,14 @@ def test_existing_chat_fingerprints_do_not_gain_empty_scan_field(
             [
                 conversation,
                 data.model_dump(
-                    exclude={"source_id", "photo_id", "scan", "context", "research"}
+                    exclude={
+                        "source_id",
+                        "photo_id",
+                        "document_id",
+                        "scan",
+                        "context",
+                        "research",
+                    }
                 ),
             ]
         )

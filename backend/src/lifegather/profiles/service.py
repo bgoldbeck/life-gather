@@ -150,7 +150,15 @@ class ProfileService:
         with self.memory._write() as db:
             return self._save_in(db, actor, data)
 
-    def _save_in(self, db: Session, actor: Account, value: ProfileChange) -> FactView:
+    def _save_in(
+        self,
+        db: Session,
+        actor: Account,
+        value: ProfileChange,
+        *,
+        source_id: str | None = None,
+    ) -> FactView:
+        """Save one detail; source_id cites an existing original instead of text."""
         data = ProfileChange.model_validate(value)
         entity = self.memory._entity(db, actor, data.entity_id)
         if entity.kind not in {"asset", "place"}:
@@ -161,14 +169,18 @@ class ProfileService:
             if previous.subject_id not in member_ids(db, actor, entity.id):
                 raise MemoryError("Choose a correction from this record")
             subject_id = previous.subject_id
-        source = self.memory._ingest_in(
-            db,
-            actor,
-            SourceInput(
-                text=data.text,
-                namespace="profile-facts",
-                external_id=data.operation_key,
-            ),
+        source = (
+            self.memory._source(db, actor, source_id)
+            if source_id
+            else self.memory._ingest_in(
+                db,
+                actor,
+                SourceInput(
+                    text=data.text,
+                    namespace="profile-facts",
+                    external_id=data.operation_key,
+                ),
+            )
         )
         return self.memory._put_fact_in(
             db,

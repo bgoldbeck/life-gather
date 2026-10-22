@@ -47,6 +47,7 @@ class TurnInput(BaseModel):
     ]
     source_id: str = Field(default="", max_length=36)
     photo_id: str = Field(default="", max_length=36)
+    document_id: str = Field(default="", max_length=36)
     scan: GmailScanConfig | None = None
     context: ContextRef | None = None
     research: ResearchScope | None = None
@@ -87,6 +88,10 @@ class TurnInput(BaseModel):
             and not self.photo_id
         ):
             raise ValueError("Choose a photo first")
+        if self.document_id and self.mode != "assistant":
+            raise ValueError("Only the AI assistant reads an attached document")
+        if self.mode == "assistant" and self.photo_id and self.document_id:
+            raise ValueError("Attach one photo or one document")
         return self
 
 
@@ -95,6 +100,7 @@ def request_key(conversation_id: str, data: TurnInput) -> str:
     excluded = (
         ({"source_id"} if not data.source_id else set())
         | ({"photo_id"} if not data.photo_id else set())
+        | ({"document_id"} if not data.document_id else set())
         | ({"scan"} if data.scan is None else set())
         | ({"context"} if data.context is None else set())
         | ({"research"} if data.research is None else set())

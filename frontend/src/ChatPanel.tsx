@@ -17,6 +17,7 @@ import { ChatRequestError as RequestError } from './chatRequest'
 import { readChatStream } from './chatStream'
 import { isAIProvider, aiProviderLabel } from './aiProviders'
 import { ChatPhotoPicker, type SavedChatPhoto } from './ChatPhotoPicker'
+import { ChatAttachment, type ChatAttachmentValue } from './ChatAttachment'
 import { ChatEmailScan, type EmailScanScope } from './ChatEmailScan'
 import { ConversationDelete } from './ConversationDelete'
 import { ResearchResult, type WebResearch } from './ResearchResult'
@@ -52,6 +53,7 @@ type ChatBody = {
   credential_id: string
   model: string
   photo_id?: string
+  document_id?: string
   source_id?: string
   scan?: EmailScanScope
   context?: WorkspaceContext
@@ -142,6 +144,7 @@ export function ChatPanel({
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [photo, setPhoto] = useState<SavedChatPhoto | null>(null)
+  const [attachment, setAttachment] = useState<ChatAttachmentValue | null>(null)
   const [photoContext, setPhotoContext] = useState(0)
   const [scanScope, setScanScope] = useState<EmailScanScope | null>(null)
   const [shareRecord, setShareRecord] = useState(false)
@@ -341,6 +344,7 @@ export function ChatPanel({
     pending.current = null
     setRetryNeeded(false)
     setPhoto(null)
+    setAttachment(null)
     setPhotoContext((value) => value + 1)
     setNotice('')
     clearEvidence()
@@ -509,6 +513,11 @@ export function ChatPanel({
             }
           : {}),
         ...(usesPhoto ? { photo_id: photo!.id } : {}),
+        ...(mode === 'assistant' && attachment
+          ? attachment.kind === 'photo'
+            ? { photo_id: attachment.id }
+            : { document_id: attachment.id }
+          : {}),
         ...(mode === 'extract' || mode === 'extract_receipt'
           ? { source_id: extractSource }
           : {}),
@@ -586,7 +595,11 @@ export function ChatPanel({
       else if (body.mode === 'scan_email') {
         setScanScope(null)
         setPhotoContext((value) => value + 1)
-      } else setText('')
+      } else {
+        setText('')
+        // A pending question keeps its file on the server; nothing to resend.
+        if (body.mode === 'assistant') setAttachment(null)
+      }
       setShareRecord(false)
       void refreshUsage()
     } catch (caught) {
@@ -715,6 +728,7 @@ export function ChatPanel({
             pending.current = null
             setRetryNeeded(false)
             setPhoto(null)
+            setAttachment(null)
             setPhotoContext((value) => value + 1)
             setNotice('')
             setError('')
@@ -1083,6 +1097,15 @@ export function ChatPanel({
                   key={photoContext}
                   disabled={busy || retryNeeded || loading}
                   onChange={setScanScope}
+                />
+              )}
+              {mode === 'assistant' && (
+                <ChatAttachment
+                  key={`${selected}:${photoContext}`}
+                  csrfToken={csrfToken}
+                  selected={attachment}
+                  onSelect={setAttachment}
+                  disabled={busy || retryNeeded || loading}
                 />
               )}
               {usesPhoto && (
