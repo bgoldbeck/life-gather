@@ -5,15 +5,22 @@ import {
   type CSSProperties,
   type ReactNode,
 } from 'react'
-import { RotateCcw } from 'lucide-react'
+import { PanelLeftClose, PanelLeftOpen, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { DockDropZones, DockEdgeButtons } from './DockControls'
+import { dockEdges as edges, useDockDrag, type Edge } from './dockDrag'
 import './navigationDock.css'
 
-type Edge = 'left' | 'right' | 'top' | 'bottom'
-type Layout = { edge: Edge; width: number; height: number }
+type Layout = { edge: Edge; width: number; height: number; collapsed: boolean }
 type Props = { userId: string; navigation: ReactNode; children: ReactNode }
-const defaults: Layout = { edge: 'left', width: 216, height: 160 }
-const edges: Edge[] = ['left', 'right', 'top', 'bottom']
+const defaults: Layout = {
+  edge: 'left',
+  width: 216,
+  height: 160,
+  collapsed: false,
+}
+// Collapsed navigation keeps a thin icon rail on its edge.
+const rail = { width: 60, height: 56 }
 const minimum = { width: 200, height: 112 }
 const maximum = { width: 400, height: 320 }
 
@@ -35,6 +42,8 @@ function savedLayout(userId: string): Layout {
       edge: value.edge,
       width: dimension('width'),
       height: dimension('height'),
+      // Layouts saved before the icon rail have no collapsed flag.
+      collapsed: value.collapsed === true,
     }
   } catch {
     return defaults
@@ -64,6 +73,11 @@ function NavigationLayout({ userId, navigation, children }: Props) {
   }, [])
   const compact = viewport.width <= 800
   const edge = compact ? 'top' : layout.edge
+  const collapsed = layout.collapsed && !compact
+  const drag = useDockDrag(workspace, !compact, (next) => {
+    dragging.current = false
+    change({ ...layout, edge: next })
+  })
   const vertical = edge === 'left' || edge === 'right'
   const dimension = vertical ? 'width' : 'height'
   const max = Math.max(
@@ -99,11 +113,11 @@ function NavigationLayout({ userId, navigation, children }: Props) {
   return (
     <div
       ref={workspace}
-      className={`app-layout navigation-shell navigation-${edge} ${compact ? 'navigation-compact' : ''}`}
+      className={`app-layout navigation-shell navigation-${edge} ${compact ? 'navigation-compact' : ''} ${collapsed ? 'navigation-collapsed' : ''} ${drag.target ? 'dock-dragging' : ''}`}
       style={
         {
-          '--navigation-width': `${vertical ? size : layout.width}px`,
-          '--navigation-height': `${vertical ? layout.height : size}px`,
+          '--navigation-width': `${collapsed ? rail.width : vertical ? size : layout.width}px`,
+          '--navigation-height': `${collapsed ? rail.height : vertical ? layout.height : size}px`,
         } as CSSProperties
       }
     >
@@ -115,43 +129,80 @@ function NavigationLayout({ userId, navigation, children }: Props) {
           className="sidebar"
           id="primary-navigation-panel"
           aria-label="Workspace navigation"
+          onPointerDown={(event) => {
+            // The brand and control row act as the panel's drag header.
+            if (
+              (event.target as Element).closest('.brand, .navigation-controls')
+            )
+              drag.handleProps.onPointerDown(event)
+          }}
+          onPointerMove={drag.handleProps.onPointerMove}
+          onPointerUp={drag.handleProps.onPointerUp}
+          onPointerCancel={drag.handleProps.onPointerCancel}
         >
-          <div className="navigation-controls">
-            <label>
-              Dock
-              <select
-                aria-label="Navigation dock position"
-                value={layout.edge}
-                title="Choose a desktop edge; compact screens keep navigation above content"
-                onChange={(event) => {
+          <div
+            className="navigation-controls"
+            title={
+              compact
+                ? 'Compact screens keep navigation above content'
+                : 'Drag the header to dock navigation on another edge'
+            }
+          >
+            {!collapsed && (
+              <>
+                <DockEdgeButtons
+                  panel="navigation"
+                  value={layout.edge}
+                  onChange={(next) => {
+                    dragging.current = false
+                    change({ ...layout, edge: next })
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Reset navigation layout"
+                  title="Reset navigation to the left and default dimensions"
+                  onClick={() => {
+                    dragging.current = false
+                    change(defaults)
+                  }}
+                >
+                  <RotateCcw aria-hidden="true" size={15} />
+                </Button>
+              </>
+            )}
+            {!compact && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={
+                  collapsed ? 'Expand navigation' : 'Collapse navigation'
+                }
+                aria-expanded={!collapsed}
+                title={
+                  collapsed
+                    ? 'Show navigation labels'
+                    : 'Collapse navigation to an icon rail'
+                }
+                onClick={() => {
                   dragging.current = false
-                  change({ ...layout, edge: event.target.value as Edge })
+                  change({ ...layout, collapsed: !collapsed })
                 }}
               >
-                {edges.map((option) => (
-                  <option key={option} value={option}>
-                    {option[0].toUpperCase() + option.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Reset navigation layout"
-              title="Reset navigation to the left and default dimensions"
-              onClick={() => {
-                dragging.current = false
-                change(defaults)
-              }}
-            >
-              <RotateCcw aria-hidden="true" size={15} />
-            </Button>
+                {collapsed ? (
+                  <PanelLeftOpen aria-hidden="true" size={15} />
+                ) : (
+                  <PanelLeftClose aria-hidden="true" size={15} />
+                )}
+              </Button>
+            )}
           </div>
           {navigation}
         </aside>
-        {!compact && (
+        {!compact && !collapsed && (
           <div
             role="separator"
             tabIndex={0}
@@ -216,6 +267,7 @@ function NavigationLayout({ userId, navigation, children }: Props) {
         )}
       </div>
       {children}
+      <DockDropZones target={drag.target} panel="navigation" />
     </div>
   )
 }

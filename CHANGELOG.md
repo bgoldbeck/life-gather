@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.71.0 — Drag-to-dock panels
+
+- Navigation and the assistant now dock by dragging: grab a panel's header and
+  highlighted drop zones show the left, right, top and bottom edges; the panel
+  snaps to the zone nearest the pointer when released. Escape cancels a drag.
+- Small dock buttons in each panel header replace the old **Dock** dropdowns, so
+  docking still works by keyboard, touch and screen reader.
+- Collapsing leaves a thin rail on the panel's own edge instead of hiding it:
+  navigation keeps every destination as an icon, and the assistant keeps an
+  expand button. Previously the collapsed assistant always moved to the bottom.
+- Saved layouts keep working unchanged; navigation gains an optional collapsed
+  flag. Narrow screens keep the top navigation / bottom assistant fallback with
+  dragging off. See [docs/NAVIGATION.md](docs/NAVIGATION.md). No migration, API
+  or dependency change.
+
 ## 0.70.0 — AI price, currency and date suggestions for receipts
 
 - On a confirmed receipt's purchased line, **Purchase details → Suggest with

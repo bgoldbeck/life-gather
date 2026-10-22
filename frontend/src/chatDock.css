@@ -30,6 +30,7 @@
   flex-shrink: 0;
 }
 .workspace-body {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: grid;
@@ -76,6 +77,48 @@
   grid-template-rows: minmax(0, 1fr) auto;
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas: 'page' 'chat';
+}
+/* A collapsed assistant stays on its edge as a thin rail. */
+.workspace-body.dock-top.dock-collapsed {
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas: 'chat' 'page';
+}
+.workspace-body.dock-left.dock-collapsed,
+.workspace-body.dock-right.dock-collapsed {
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: 'chat page';
+}
+.workspace-body.dock-right.dock-collapsed {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'page chat';
+}
+.dock-left.dock-collapsed .dock-toolbar,
+.dock-right.dock-collapsed .dock-toolbar {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  height: 100%;
+  width: 44px;
+  padding: 0.6rem 0;
+  border-bottom: 0;
+}
+.dock-left.dock-collapsed .dock-toolbar strong,
+.dock-right.dock-collapsed .dock-toolbar strong {
+  margin: 0 0 auto;
+  writing-mode: vertical-rl;
+  white-space: nowrap;
+}
+.dock-left.dock-collapsed .dock-toolbar > button,
+.dock-right.dock-collapsed .dock-toolbar > button {
+  order: 3;
+}
+.dock-collapsed .dock-toolbar {
+  border-bottom: 0;
+}
+.dock-grip-icon,
+.dock-rail-icon {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
 }
 .assistant-dock {
   position: relative;
@@ -140,18 +183,18 @@
 .dock-toolbar strong {
   margin-right: auto;
 }
-.dock-toolbar label {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-.dock-toolbar select,
-.dock-toolbar button {
+.dock-toolbar > button {
+  display: grid;
+  place-items: center;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 0.4rem;
-  padding: 0.3rem 0.5rem;
+  padding: 0.3rem;
   color: var(--foreground);
+}
+.dock-toolbar > button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
 }
 .dock-content {
   flex: 1;

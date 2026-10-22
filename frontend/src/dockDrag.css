@@ -1,0 +1,102 @@
+.dock-drop-zones {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+.dock-drop-zone {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border: 1.5px dashed color-mix(in oklab, var(--primary) 28%, transparent);
+  border-radius: 0.6rem;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+.dock-drop-zone[data-active] {
+  border-style: solid;
+  border-color: var(--primary);
+  background: color-mix(in oklab, var(--primary) 16%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 10%, transparent);
+  backdrop-filter: blur(2px);
+}
+.dock-drop-zone span {
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px #0000001f;
+}
+.dock-drop-left,
+.dock-drop-right {
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: min(30%, 280px);
+}
+.dock-drop-left {
+  left: 0.5rem;
+}
+.dock-drop-right {
+  right: 0.5rem;
+}
+.dock-drop-top,
+.dock-drop-bottom {
+  left: calc(min(30%, 280px) + 1rem);
+  right: calc(min(30%, 280px) + 1rem);
+  height: min(30%, 220px);
+}
+.dock-drop-top {
+  top: 0.5rem;
+}
+.dock-drop-bottom {
+  bottom: 0.5rem;
+}
+.dock-grip {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.dock-dragging,
+.dock-dragging * {
+  cursor: grabbing !important;
+}
+.dock-edge-buttons {
+  display: inline-flex;
+  gap: 1px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  background: var(--card);
+}
+.dock-edge-buttons button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 0.3rem;
+  background: transparent;
+  color: var(--muted-foreground);
+}
+.dock-edge-buttons button:hover {
+  background: var(--accent);
+  color: var(--foreground);
+}
+.dock-edge-buttons button[aria-pressed='true'] {
+  background: color-mix(in oklab, var(--primary) 16%, transparent);
+  color: var(--foreground);
+}
+.dock-edge-buttons button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dock-drop-zone {
+    transition: none;
+  }
+}

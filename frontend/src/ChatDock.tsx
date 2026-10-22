@@ -5,11 +5,12 @@ import {
   type CSSProperties,
   type ReactNode,
 } from 'react'
+import { GripVertical, Maximize2, MessageSquare, Minimize2 } from 'lucide-react'
+import { DockDropZones, DockEdgeButtons } from './DockControls'
+import { dockEdges as edges, useDockDrag, type Edge } from './dockDrag'
 import './chatDock.css'
 
-type Edge = 'bottom' | 'top' | 'left' | 'right'
 type Layout = { edge: Edge; collapsed: boolean; width: number; height: number }
-const edges: Edge[] = ['bottom', 'top', 'left', 'right']
 const limits = { width: { min: 20, max: 75 }, height: { min: 25, max: 75 } }
 
 function savedSize(value: unknown, dimension: 'width' | 'height'): number {
@@ -70,6 +71,10 @@ export function ChatDock({
     return () => window.removeEventListener('resize', update)
   }, [])
   const edge = narrow ? 'bottom' : layout.edge
+  const drag = useDockDrag(workspace, !narrow, (next) => {
+    dragging.current = false
+    change({ ...layout, edge: next })
+  })
   const vertical = edge === 'left' || edge === 'right'
   const dimension = vertical ? 'width' : 'height'
   const { min, max } = limits[dimension]
@@ -101,7 +106,7 @@ export function ChatDock({
   return (
     <div
       ref={workspace}
-      className={`workspace-body dock-${layout.edge} ${layout.collapsed ? 'dock-collapsed' : ''}`}
+      className={`workspace-body dock-${edge} ${layout.collapsed ? 'dock-collapsed' : ''} ${drag.target ? 'dock-dragging' : ''}`}
       style={
         {
           '--dock-width': `${layout.width}%`,
@@ -175,35 +180,57 @@ export function ChatDock({
             }}
           />
         )}
-        <header className="dock-toolbar">
+        <header
+          className={`dock-toolbar ${narrow ? '' : 'dock-grip'}`}
+          title={
+            narrow
+              ? 'Narrow screens keep the assistant below the page'
+              : 'Drag the header to dock the assistant on another edge'
+          }
+          {...drag.handleProps}
+        >
+          {!narrow && (
+            <GripVertical
+              className="dock-grip-icon"
+              aria-hidden="true"
+              size={14}
+            />
+          )}
+          {layout.collapsed && (
+            <MessageSquare
+              className="dock-rail-icon"
+              aria-hidden="true"
+              size={16}
+            />
+          )}
           <strong>LifeGather assistant</strong>
-          <label>
-            Dock
-            <select
-              aria-label="Assistant dock position"
-              title="Side docks use the bottom edge on narrow screens"
+          {!layout.collapsed && (
+            <DockEdgeButtons
+              panel="assistant"
               value={layout.edge}
-              onChange={(e) =>
-                change({ ...layout, edge: e.target.value as Edge })
-              }
-            >
-              {edges.map((edge) => (
-                <option key={edge} value={edge}>
-                  {edge[0].toUpperCase() + edge.slice(1)}
-                </option>
-              ))}
-            </select>
-          </label>
+              onChange={(next) => change({ ...layout, edge: next })}
+            />
+          )}
           <button
             type="button"
+            className="dock-collapse"
             aria-label={
               layout.collapsed ? 'Expand assistant' : 'Collapse assistant'
             }
             aria-expanded={!layout.collapsed}
             aria-controls="assistant-content"
+            title={
+              layout.collapsed
+                ? 'Expand assistant'
+                : 'Collapse assistant to a rail'
+            }
             onClick={() => change({ ...layout, collapsed: !layout.collapsed })}
           >
-            {layout.collapsed ? 'Expand' : 'Collapse'}
+            {layout.collapsed ? (
+              <Maximize2 aria-hidden="true" size={14} />
+            ) : (
+              <Minimize2 aria-hidden="true" size={14} />
+            )}
           </button>
         </header>
         <div
@@ -214,6 +241,7 @@ export function ChatDock({
           {children}
         </div>
       </section>
+      <DockDropZones target={drag.target} panel="assistant" />
     </div>
   )
 }

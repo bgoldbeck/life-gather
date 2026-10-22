@@ -21,6 +21,22 @@ function Draft() {
   )
 }
 
+function dockButton(panel: string, edge: string) {
+  return screen.getByRole('button', { name: `Dock ${panel} ${edge}` })
+}
+
+function dockedEdge(panel: string) {
+  const group = screen.getByRole('group', {
+    name: `${panel[0].toUpperCase() + panel.slice(1)} dock position`,
+  })
+  return within(group)
+    .getAllByRole('button')
+    .find((button) => button.getAttribute('aria-pressed') === 'true')
+    ?.getAttribute('aria-label')
+    ?.split(' ')
+    .at(-1)
+}
+
 it('keeps the assistant and its draft through docking and collapse, with private layout preferences', async () => {
   const user = userEvent.setup()
   const { unmount } = render(
@@ -29,10 +45,7 @@ it('keeps the assistant and its draft through docking and collapse, with private
     </ChatDock>,
   )
   await user.type(screen.getByLabelText('Synthetic draft'), 'Unsaved message')
-  await user.selectOptions(
-    screen.getByLabelText('Assistant dock position'),
-    'left',
-  )
+  await user.click(dockButton('assistant', 'left'))
   await user.click(screen.getByRole('button', { name: 'Collapse assistant' }))
   expect(screen.getByLabelText('Synthetic draft')).not.toBeVisible()
   expect(
@@ -53,7 +66,7 @@ it('keeps the assistant and its draft through docking and collapse, with private
       <Draft />
     </ChatDock>,
   )
-  expect(screen.getByLabelText('Assistant dock position')).toHaveValue('right')
+  expect(dockedEdge('assistant')).toBe('right')
 })
 
 function dock() {
@@ -74,10 +87,7 @@ it('resizes by keyboard, bounds sizes and remembers separate width/height per ac
   fireEvent.keyDown(handle, { key: 'End' })
   fireEvent.keyDown(handle, { key: 'ArrowLeft' })
   expect(handle).toHaveAttribute('aria-valuenow', '75')
-  await user.selectOptions(
-    screen.getByLabelText('Assistant dock position'),
-    'top',
-  )
+  await user.click(dockButton('assistant', 'top'))
   handle = screen.getByRole('separator')
   expect(handle).toHaveAttribute('aria-orientation', 'horizontal')
   fireEvent.keyDown(handle, { key: 'ArrowDown' })
@@ -88,10 +98,7 @@ it('resizes by keyboard, bounds sizes and remembers separate width/height per ac
   view.unmount()
   const second = render(dock())
   expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '25')
-  await user.selectOptions(
-    screen.getByLabelText('Assistant dock position'),
-    'right',
-  )
+  await user.click(dockButton('assistant', 'right'))
   expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '75')
   await user.click(screen.getByRole('button', { name: 'Collapse assistant' }))
   expect(screen.queryByRole('separator')).not.toBeInTheDocument()
@@ -118,10 +125,7 @@ it.each([
     const user = userEvent.setup()
     const { container } = render(dock())
     await user.type(screen.getByLabelText('Synthetic draft'), 'Keep this')
-    await user.selectOptions(
-      screen.getByLabelText('Assistant dock position'),
-      String(edge),
-    )
+    await user.click(dockButton('assistant', String(edge)))
     vi.spyOn(
       container.firstElementChild!,
       'getBoundingClientRect',
@@ -158,14 +162,14 @@ it('preserves legacy positions and sanitizes invalid saved dimensions', () => {
     }),
   )
   render(dock())
-  expect(screen.getByLabelText('Assistant dock position')).toHaveValue('bottom')
+  expect(dockedEdge('assistant')).toBe('bottom')
   expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '50')
 })
 
 it('resizes side docks vertically when the narrow-screen fallback is active', () => {
   vi.stubGlobal('innerWidth', 600)
   render(dock())
-  expect(screen.getByLabelText('Assistant dock position')).toHaveValue('right')
+  expect(dockedEdge('assistant')).toBe('right')
   const handle = screen.getByRole('separator')
   expect(handle).toHaveAttribute('aria-orientation', 'horizontal')
   fireEvent.keyDown(handle, { key: 'ArrowUp' })
@@ -186,4 +190,53 @@ it('keeps resizing usable if browser preference storage is unavailable', () => {
   render(dock())
   fireEvent.keyDown(screen.getByRole('separator'), { key: 'ArrowLeft' })
   expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '40')
+})
+
+it('drags the assistant header to an edge and collapses to a rail on that edge', async () => {
+  vi.stubGlobal('PointerEvent', MouseEvent)
+  const user = userEvent.setup()
+  const { container } = render(dock())
+  await user.type(screen.getByLabelText('Synthetic draft'), 'Keep this')
+  vi.spyOn(
+    container.firstElementChild!,
+    'getBoundingClientRect',
+  ).mockReturnValue({
+    left: 0,
+    right: 1000,
+    top: 0,
+    bottom: 1000,
+    width: 1000,
+    height: 1000,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  })
+  const header = screen.getByText('LifeGather assistant')
+  fireEvent.pointerDown(header, { button: 0, clientX: 800, clientY: 20 })
+  fireEvent.pointerMove(header, { clientX: 40, clientY: 500 })
+  expect(container.querySelector('.dock-drop-zone[data-active]')).toHaveClass(
+    'dock-drop-left',
+  )
+  fireEvent.pointerUp(header)
+  expect(dockedEdge('assistant')).toBe('left')
+  expect(container.firstElementChild).toHaveClass('dock-left')
+  await user.click(screen.getByRole('button', { name: 'Collapse assistant' }))
+  expect(container.firstElementChild).toHaveClass('dock-left', 'dock-collapsed')
+  expect(screen.getByLabelText('Synthetic draft')).not.toBeVisible()
+  await user.click(screen.getByRole('button', { name: 'Expand assistant' }))
+  expect(screen.getByLabelText('Synthetic draft')).toHaveValue('Keep this')
+  expect(
+    JSON.parse(localStorage.getItem('lifegather-chat-dock:one')!),
+  ).toMatchObject({ edge: 'left', collapsed: false })
+})
+
+it('does not start a drag from the header on narrow screens', () => {
+  vi.stubGlobal('PointerEvent', MouseEvent)
+  vi.stubGlobal('innerWidth', 600)
+  const { container } = render(dock())
+  const header = screen.getByText('LifeGather assistant')
+  fireEvent.pointerDown(header, { button: 0, clientX: 300, clientY: 900 })
+  fireEvent.pointerMove(header, { clientX: 20, clientY: 400 })
+  expect(container.querySelector('.dock-drop-zones')).not.toBeInTheDocument()
+  expect(container.firstElementChild).toHaveClass('dock-bottom')
 })
