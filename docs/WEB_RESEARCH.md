@@ -1,36 +1,72 @@
 # Web research for manuals and specifications
 
-Phase 2 item 5 of the [feature plan](FEATURE_PLAN.md#phase-2-evidence-intake-and-useful-recall):
-on request, look up manuals, specifications and parts information on the public
-web when local evidence is not enough, with dated, cited sources.
+Version 0.67.0 delivers Phase 2 item 5 of the
+[feature plan](FEATURE_PLAN.md#phase-2-evidence-intake-and-useful-recall): on
+request, look up manuals, specifications and parts information on the public web
+when local evidence is not enough, with dated, cited sources.
 
-## Scope (smallest slice)
+## Using it
 
-- A new Chat action, **Research manuals (web)**, sends one research request to the
-  selected OpenAI or Claude connection with that provider's own web search tool
-  enabled. Google Gemini connections are refused for research for now.
-- Only the text the user typed is sent by default. The selected record's saved name
-  and details are added **only** when the user ticks *Share this record's saved
-  details* for that request. Nothing else from memory, photos, documents or email
-  is ever sent. The existing external-AI permission, credential checks, daily
-  request limit, cancellation and no-retry rules still apply.
-- The reply keeps: the date and time the research ran, the search queries the
-  provider reported, whether record details were shared, and each cited source's
-  URL, title, provider-reported page date (or "date not reported") and the cited
-  excerpt. An answer without at least one valid web citation is discarded.
-- Every reply carries a fixed identity note: web results describe a product model,
-  not the user's own item; they do not establish ownership, purchase details or
-  parts compatibility.
-- Research is read-only: it saves no facts, assets or evidence. The result is kept
-  in the conversation transcript like other chat replies (no schema change).
+In Chat choose **Research manuals on the web**, pick an OpenAI or Claude
+connection and model, and type what to look up, for example "Owner's manual and
+filter part number for Bosch SHX878WD5". While a record is open, an unticked box
+offers to share that record's saved name and details for this one request.
 
-## Acceptance checks
+## What is sent
 
-- Service tests with mock HTTP transports for Claude (`web_search_20250305`) and
-  OpenAI (`web_search`): citations, dates, queries, usage, uncited answers,
-  pause/incomplete responses, provider errors, invalid URLs and size limits.
-- Runner tests: record details are absent unless shared; sharing requires a
-  selected record; Gemini is refused before any usage is reserved; consent and
-  credential rechecks hold.
-- UI test: choosing the action shows what will be sent, the share checkbox, and the
-  rendered dated sources and identity note.
+- Always: the text you typed and today's date.
+- Only when you tick the share box: the open record's name, kind and saved
+  profile details, read the same way as the AI assistant's selected-record
+  context. The request fails if the record changed after you opened it, so the
+  details sent are the ones you saw. The box clears after every request and when
+  you open a different record.
+- Never: other memories, notes, purchases, photos, documents, email or
+  credentials.
+
+The existing rules still apply: external AI must be enabled in Settings, the
+connection is rechecked before the call, a research request counts as one of the
+20 daily AI requests, there is no automatic retry and Stop cancels it. The
+provider's web search is billed by the provider in addition to tokens.
+
+## Providers
+
+- Claude: Messages API with the server tool `web_search_20250305`, at most three
+  searches. No structured output is requested because web-search citations are
+  returned on text blocks.
+- OpenAI: Responses API with the `web_search` tool, `store: false`, at most three
+  tool calls.
+- Google Gemini: not supported yet; refused before any usage is counted.
+
+Responses are capped at 1 MiB, the read timeout is 55 seconds inside the 65-second
+turn bound, redirects and environment proxies are disabled, and any unexpected
+block type, paused or incomplete response, or invalid usage fails with a redacted
+error.
+
+## What is kept
+
+The reply is stored in the conversation like other Chat replies; no records,
+facts, assets or evidence are written and there is no schema change. It keeps:
+
+- `researched_at`: when the request started (UTC).
+- `queries`: the searches the provider reported running.
+- `shared_record`: the shared record's id and name, or null.
+- `sources`: up to ten cited pages, each with URL (http/https only), title,
+  `published` (the page date the provider reported, or null, shown as "date not
+  reported") and up to three excerpts. Claude excerpts are quoted from the page;
+  OpenAI excerpts are the part of the answer that cites the page.
+- `identity_note`: web results describe a product model, not your own item, and
+  do not establish ownership, purchase details or parts compatibility.
+
+An answer with no valid web citation is discarded and replaced with a "no cited
+web sources" message. Web pages are treated as untrusted data in the instruction.
+
+## Not included yet
+
+Gemini research, saving reviewed research findings as evidence on a record,
+fetching and reading full manuals, and research started by the AI assistant.
+
+Contracts checked 2026-10-22:
+[Claude web search tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool),
+[OpenAI web search](https://developers.openai.com/api/docs/guides/tools-web-search).
+Verification uses mock HTTP transports and synthetic providers; no live API key or
+paid search was used.

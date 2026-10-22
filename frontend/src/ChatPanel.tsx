@@ -19,6 +19,7 @@ import { isAIProvider, aiProviderLabel } from './aiProviders'
 import { ChatPhotoPicker, type SavedChatPhoto } from './ChatPhotoPicker'
 import { ChatEmailScan, type EmailScanScope } from './ChatEmailScan'
 import { ConversationDelete } from './ConversationDelete'
+import { ResearchResult, type WebResearch } from './ResearchResult'
 
 type Source = { id: string; text: string }
 type Turn = {
@@ -41,6 +42,7 @@ type Turn = {
     choices?: { id: string; name: string }[]
     context?: WorkspaceContext
     changed_entity_id?: string
+    research?: WebResearch
   }
 }
 type ChatBody = {
@@ -53,6 +55,7 @@ type ChatBody = {
   source_id?: string
   scan?: EmailScanScope
   context?: WorkspaceContext
+  research?: { share_record: boolean }
 }
 
 type Conversation = { id: string; title: string }
@@ -141,6 +144,10 @@ export function ChatPanel({
   const [photo, setPhoto] = useState<SavedChatPhoto | null>(null)
   const [photoContext, setPhotoContext] = useState(0)
   const [scanScope, setScanScope] = useState<EmailScanScope | null>(null)
+  const [shareRecord, setShareRecord] = useState(false)
+  const shareTarget = context?.entity_id ? contextKey(context) : ''
+  const [sharedFor, setSharedFor] = useState('')
+  const sharing = shareRecord && !!shareTarget && sharedFor === shareTarget
   const [source, setSource] = useState<EvidenceSource | null>(null)
   const [sourceOffset, setSourceOffset] = useState<number | null>(null)
   const [opening, setOpening] = useState(false)
@@ -162,6 +169,7 @@ export function ChatPanel({
     'extract_receipt',
     'extract_photo',
     'extract_photo_receipt',
+    'research',
   ].includes(mode)
   const usesPhoto = mode === 'extract_photo' || mode === 'extract_photo_receipt'
   const usesScan = mode === 'scan_email'
@@ -504,6 +512,7 @@ export function ChatPanel({
         ...(mode === 'extract' || mode === 'extract_receipt'
           ? { source_id: extractSource }
           : {}),
+        ...(mode === 'research' ? { research: { share_record: sharing } } : {}),
       }
       pending.current = { conversation: id, body }
       setRetryNeeded(true)
@@ -578,6 +587,7 @@ export function ChatPanel({
         setScanScope(null)
         setPhotoContext((value) => value + 1)
       } else setText('')
+      setShareRecord(false)
       void refreshUsage()
     } catch (caught) {
       if (caught instanceof RequestError) {
@@ -830,7 +840,9 @@ export function ChatPanel({
                                   ? 'Review receipt photo'
                                   : turn.mode === 'extract_photo'
                                     ? 'Read photo'
-                                    : 'Ask AI'}
+                                    : turn.mode === 'research'
+                                      ? 'Web research'
+                                      : 'Ask AI'}
                   </p>
                   <p className="chat-text">{turn.text}</p>
                   <div className="chat-response">
@@ -879,6 +891,9 @@ export function ChatPanel({
                     </p>
                     {turn.state === 'failed' && (
                       <p role="status">Request failed</p>
+                    )}
+                    {turn.result.research && (
+                      <ResearchResult research={turn.result.research} />
                     )}
                     {!!turn.result.records?.length && (
                       <div className="chat-records">
@@ -964,7 +979,9 @@ export function ChatPanel({
                       ? 'Searching your evidence and preparing an answer…'
                       : mode === 'assistant'
                         ? progress || 'Checking your records…'
-                        : 'Saving your request…'}
+                        : mode === 'research'
+                          ? 'Searching the web for cited sources…'
+                          : 'Saving your request…'}
                 </p>
               )}
             </div>
@@ -1048,6 +1065,7 @@ export function ChatPanel({
                   <option value="search">Keyword search</option>
                   <option value="scan_email">Request an email scan</option>
                   <option value="ask">Ask AI</option>
+                  <option value="research">Research manuals on the web</option>
                   <option value="extract_photo">Read a saved photo</option>
                   <option value="extract_photo_receipt">
                     Review a receipt photo
@@ -1085,7 +1103,9 @@ export function ChatPanel({
                         ? 'Your selected provider receives the selected original photo. The reading is unverified and proposes at most one item; review it before adding anything to inventory.'
                         : mode === 'extract' || mode === 'extract_receipt'
                           ? 'Your selected provider receives only the selected saved note. Nothing enters inventory until you review and confirm the proposed items.'
-                          : 'Your selected provider receives your question, up to four recent user messages, matching evidence, relevant records and requested graph connections.'}{' '}
+                          : mode === 'research'
+                            ? `Your selected provider and its web search receive only the text you type${sharing ? `, plus the saved name and details of ${context?.name || 'the selected record'}` : ''}. No other memories, photos, documents or email are sent. Web research works with OpenAI and Claude connections, uses the provider's paid web search, and saves nothing to your records.`
+                            : 'Your selected provider receives your question, up to four recent user messages, matching evidence, relevant records and requested graph connections.'}{' '}
                     {usage}/20 AI requests used today (UTC). Provider charges
                     may apply.
                   </p>
@@ -1160,6 +1180,22 @@ export function ChatPanel({
                     records.
                   </p>
                   {choiceNotice && <p role="status">{choiceNotice}</p>}
+                  {mode === 'research' && (
+                    <label className="chat-share">
+                      <input
+                        type="checkbox"
+                        checked={sharing}
+                        disabled={!shareTarget || busy || retryNeeded}
+                        onChange={(e) => {
+                          setShareRecord(e.target.checked)
+                          setSharedFor(shareTarget)
+                        }}
+                      />
+                      {shareTarget
+                        ? `Share the saved name and details of ${context?.name || 'the selected record'} for this request`
+                        : 'Open a record to optionally share its saved details'}
+                    </label>
+                  )}
                 </div>
               )}
               {!usesPhoto && !usesScan && (
@@ -1173,7 +1209,9 @@ export function ChatPanel({
                           ? 'Search keywords'
                           : mode === 'extract' || mode === 'extract_receipt'
                             ? 'Selected saved note'
-                            : 'Your question'}
+                            : mode === 'research'
+                              ? 'What to look up'
+                              : 'Your question'}
                   </label>
                   <textarea
                     id="chat-text"
@@ -1196,7 +1234,9 @@ export function ChatPanel({
                           ? 'Use 1–12 keywords. Every word must match.'
                           : mode === 'extract' || mode === 'extract_receipt'
                             ? 'Review the proposal before creating an asset. Correct the saved note first if its text is wrong.'
-                            : 'Only Save memory adds your original text to searchable memory.'}
+                            : mode === 'research'
+                              ? 'Try “Owner’s manual and filter part number for Bosch SHX878WD5”. Leave out serial numbers and personal details unless you mean to send them. Replies list dated, cited sources.'
+                              : 'Only Save memory adds your original text to searchable memory.'}
                   </p>
                 </>
               )}
@@ -1237,7 +1277,9 @@ export function ChatPanel({
                                   ? mode === 'extract_receipt'
                                     ? 'Suggest receipt items'
                                     : 'Suggest asset'
-                                  : 'Ask AI'}
+                                  : mode === 'research'
+                                    ? 'Research on the web'
+                                    : 'Ask AI'}
                 </Button>
                 {busy && (
                   <Button

@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.67.0 — Web research for manuals and specifications
+
+- New Chat action **Research manuals on the web**: on request, the selected OpenAI
+  or Claude connection uses its provider's web search to find manuals,
+  specifications and parts information. See [docs/WEB_RESEARCH.md](docs/WEB_RESEARCH.md).
+- Only the text you type is sent. The open record's saved name and details are
+  added only when you tick the share box for that request; the box clears after
+  each request and when the record changes, and a record edited after you looked
+  at it is not sent. No other memories, photos, documents or email are sent.
+- Replies keep when the research ran, the searches the provider reported, whether
+  record details were shared, and each cited source's link, title, page date (or
+  "date not reported") and excerpt. An answer without a valid web citation is
+  discarded. Every reply notes that web results describe a product model, not
+  your item, and do not establish ownership or parts compatibility.
+- Research saves nothing to your records; the reply stays in the conversation.
+  Gemini connections are refused for research before any usage is counted.
+  Provider web-search charges apply and count as one of the 20 daily AI requests.
+- No migration or data change. The Chat turn API accepts `mode: "research"` with
+  `research: {"share_record": bool}`.
+
 ## 0.66.1 — Tighter workspace gutters
 
 - Pages now fill the space between the navigation and the assistant instead of

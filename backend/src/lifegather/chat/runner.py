@@ -10,6 +10,7 @@ from lifegather.auth.store import Account
 from lifegather.chat.context import WorkspaceContexts
 from lifegather.chat.provider import Answer, Completion, Provider
 from lifegather.chat.recall import RecallPlan, RecallTools
+from lifegather.chat.research import run_research
 from lifegather.chat.service import ChatService, SaveText, TurnInput, save_text
 from lifegather.chat.streaming import AnswerPreview, DeltaSink, StatusSink
 from lifegather.credentials.service import PrivateSettings
@@ -163,6 +164,8 @@ async def answer(
         if google_provider is None:
             raise MemoryError("Google AI integration is unavailable")
         provider = google_provider
+    if body.mode == "research" and getattr(provider, "research", None) is None:
+        raise MemoryError("Web research needs an OpenAI or Claude connection")
     secret, day = chat.reserve(actor, vault, body.credential_id)
     history = chat.recent(actor, conversation_id)
     context = [{"mode": t["mode"], "text": t["text"][:1000]} for t in history[-4:]]
@@ -203,6 +206,41 @@ async def answer(
         chat.record_usage(actor, day, result.input_tokens, result.output_tokens)
         active()
         return result.value
+
+    if body.mode == "research":
+        assert body.research is not None
+        record = None
+        if body.research.share_record:
+            if (
+                selected_context is None
+                or not selected_context["entity_id"]
+                or body.context is None
+                or selected_context["version"] != body.context.version
+            ):
+                raise MemoryError("The record changed; review it before sharing")
+            record = selected_context
+
+        def recheck() -> str:
+            active()
+            if not vault.preferences(actor):
+                raise MemoryError("External AI permission was disabled")
+            if (
+                chat.provider_name(actor, vault, body.credential_id)
+                != selected_provider
+            ):
+                raise MemoryError("Selected AI connection changed")
+            return vault.read_secret(actor, body.credential_id)
+
+        researched = await run_research(
+            provider,  # type: ignore[arg-type]
+            body.model,
+            body.text,
+            record,
+            recheck,
+            lambda inputs, outputs: chat.record_usage(actor, day, inputs, outputs),
+        )
+        active()
+        return {"provider": selected_provider, "model": body.model, **researched}
 
     if body.mode == "assistant":
         from lifegather.chat.assistant import AssistantRunner
