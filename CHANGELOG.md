@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.65.0 — Colorful icons and visual flair
+
+- Every navigation page has its own icon in a colored tile (Power Center bolt,
+  Photos camera, Scans mail, Purchases receipt, Maintenance wrench and so on);
+  the current page lights up in its color.
+- One small set of category colors is shared across the app and defined for
+  Light, Dark and Forest dark, so color stays meaningful rather than chaotic:
+  amber for power and attention, red for email, blue for finance, sky for
+  documents, pink for photos, green for assets, orange for maintenance, violet
+  for AI and memories, teal for graph and profiles, slate for settings.
+- Power Center opens with a forest-scene banner and a glowing growth power bar
+  (Seedling, Sapling, Growing, Thriving, Flourishing) driven by the existing
+  capability score; an incomplete score shades its unverified range, and a stale
+  snapshot greys the bar out. Stat tiles, source cards and capability rows carry
+  category icons, and status pills are color-coded (ready, needs setup,
+  needs attention, unverified, disabled, planned).
+- Overview feature cards and illustration nodes use the same colors.
+- Presentation only: no API, data, migration or dependency change.
+
 ## 0.64.0 — Standard dark theme
 
 - Add a new standard **Dark** theme based on the user's reference: deep navy and
