@@ -36,6 +36,7 @@ STATUS = {
     "next": "Choosing the next step…",
     "search_assets": "Searching your assets…",
     "read_asset": "Reading current asset details…",
+    "list_asset_types": "Checking your asset types…",
     "create_asset": "Checking details before adding…",
     "update_asset": "Checking details before saving…",
     "list_mailboxes": "Listing your connected mailboxes…",

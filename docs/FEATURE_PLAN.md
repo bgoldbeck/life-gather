@@ -67,8 +67,9 @@ mock tests alone do not establish real model quality.
 
 The [assistant design](superpowers/specs/2026-10-21-ai-asset-assistant-design.md)
 describes this first slice. v0.60.0 delivers its first increment
-([AI assistant](AI_ASSISTANT.md)) and v0.61.0 adds streamed progress status;
-typed template fields and live-provider verification remain.
+([AI assistant](AI_ASSISTANT.md)), v0.61.0 adds streamed progress status and
+v0.63.0 adds asset type assignment with typed template fields; live-provider
+verification remains.
 
 ## Phase 2: evidence intake and useful recall
 
