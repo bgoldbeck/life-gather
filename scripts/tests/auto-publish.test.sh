@@ -87,6 +87,10 @@ check 'failed check: commit recorded' "[[ \$(cat '$LIFEGATHER_AUTOBUILD_DIR/last
 reset_calls
 bash "$script"
 check 'failed commit is not rebuilt' "[[ ! -s '$STUB_LOG' ]]"
+touch -d '7 hours ago' "$LIFEGATHER_AUTOBUILD_DIR/last-failed-revision"
+STUB_FAIL='npm test' bash "$script" 2>/dev/null || true
+check 'a failed commit is retried after six hours' "grep -q 'npm test' '$STUB_LOG'"
+reset_calls
 bash "$script" --force
 check '--force retries it' "grep -q 'push --quiet ghcr.io/bgoldbeck/life-gather:sha-$third' '$STUB_LOG'"
 check 'success clears the failure' "[[ ! -f $LIFEGATHER_AUTOBUILD_DIR/last-failed-revision ]]"

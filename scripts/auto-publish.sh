@@ -9,7 +9,7 @@
 # Needs only bash, flock and Docker on the host (git is used if installed,
 # otherwise it runs in a container). Setup: docs/TRUENAS.md#automatic-rebuilds.
 #
-# Options: --force  rebuild even if main is already published or last failed.
+# Options: --force  rebuild even if main is already published or just failed.
 #
 # Settings (environment variables, all optional):
 #   LIFEGATHER_AUTOBUILD_DIR  state, log and registry login (default: a
@@ -17,6 +17,7 @@
 #   LIFEGATHER_TRUENAS_APP    TrueNAS app name to redeploy after publishing
 #   LIFEGATHER_HEALTH_URL     URL to poll after redeploying, e.g.
 #                             http://127.0.0.1:8787/health/ready
+#   LIFEGATHER_RETRY_HOURS    hours before a failed commit is tried again (6)
 
 # Everything lives in main(): bash reads scripts lazily, and the fast-forward
 # below can replace this file while it runs. Changes apply from the next run.
@@ -54,8 +55,14 @@ main() {
     target=$(git_cmd rev-parse --verify 'refs/remotes/origin/main^{commit}')
     published=$(read_state last-published-revision)
     failed=$(read_state last-failed-revision)
-    if [[ $force == false && ( $target == "$published" || $target == "$failed" ) ]]; then
-        return 0 # Nothing new: stay quiet so cron sends no mail.
+    # Nothing new: stay quiet so cron sends no mail. A failed commit is retried
+    # every few hours in case the failure was a download or network problem.
+    if [[ $force == false ]]; then
+        [[ $target == "$published" ]] && return 0
+        if [[ $target == "$failed" ]] && [[ -n $(find "$STATE_DIR/last-failed-revision" \
+            -mmin "-$((${LIFEGATHER_RETRY_HOURS:-6} * 60))") ]]; then
+            return 0
+        fi
     fi
 
     rotate_log
