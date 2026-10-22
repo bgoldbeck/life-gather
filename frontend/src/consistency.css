@@ -11,7 +11,7 @@
 }
 
 /* Form controls inside pages share height, border, radius and padding. */
-.main-content
+:is(.main-content, .assistant-dock)
   :is(
     input:not(
       [type='checkbox'],
@@ -34,25 +34,26 @@
   font-size: 0.875rem;
   line-height: 1.4;
 }
-.main-content select {
+:is(.main-content, .assistant-dock) select {
   padding-inline-end: 0.4rem;
 }
-.main-content textarea {
+:is(.main-content, .assistant-dock) textarea {
   min-height: 4.5rem;
 }
-.main-content :is(input, select, textarea):focus-visible {
+:is(.main-content, .assistant-dock) :is(input, select, textarea):focus-visible {
   outline: none;
   border-color: var(--ring);
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 35%, transparent);
 }
-.main-content :is(input, select, textarea, button):disabled {
+:is(.main-content, .assistant-dock)
+  :is(input, select, textarea, button):disabled {
   cursor: not-allowed;
 }
-.main-content input[type='file'] {
+:is(.main-content, .assistant-dock) input[type='file'] {
   max-width: 100%;
   font-size: 0.875rem;
 }
-.main-content input[type='file']::file-selector-button {
+:is(.main-content, .assistant-dock) input[type='file']::file-selector-button {
   margin-inline-end: 0.75rem;
   padding: 0.35rem 0.75rem;
   border: 1px solid var(--border);
@@ -63,18 +64,21 @@
   font-weight: 500;
   cursor: pointer;
 }
-.main-content input[type='file']::file-selector-button:hover {
+:is(.main-content, .assistant-dock)
+  input[type='file']::file-selector-button:hover {
   background: var(--muted);
 }
 
 /* Checkboxes and radios sit on one line with their label text. */
-.main-content :is(input[type='checkbox'], input[type='radio']) {
+:is(.main-content, .assistant-dock)
+  :is(input[type='checkbox'], input[type='radio']) {
   width: 1rem;
   height: 1rem;
   flex: none;
   accent-color: var(--primary);
 }
-.main-content label:has(> :is(input[type='checkbox'], input[type='radio'])) {
+:is(.main-content, .assistant-dock)
+  label:has(> :is(input[type='checkbox'], input[type='radio'])) {
   display: inline-flex;
   flex-direction: row;
   align-items: center;
@@ -83,7 +87,7 @@
 }
 
 /* Field labels: label text above its control reads as a caption. */
-.main-content
+:is(.main-content, .assistant-dock)
   label:has(> :is(input, select, textarea)):not(
     :has(> :is(input[type='checkbox'], input[type='radio']))
   ) {
@@ -102,9 +106,17 @@
   display: grid;
   gap: 0.3rem;
 }
+.action-row:empty {
+  display: none;
+}
+/* Beside a field, buttons and checkboxes match the field's height. */
+.action-row:has(> label > :is(input, select))
+  > :is(button[data-slot='button'], label:has(> input[type='checkbox'])) {
+  min-height: 2.25rem;
+}
 
 /* Buttons in stacked (grid) forms keep their natural width. */
-.main-content
+:is(.main-content, .assistant-dock)
   :is(section, form, div, details, fieldset):where(
     :not(.action-row, .graph-toolbar, .power-summary, .power-sources)
   )
@@ -113,7 +125,7 @@
 }
 
 /* Disclosure summaries look clickable and line up with headings. */
-.main-content summary {
+:is(.main-content, .assistant-dock) summary {
   cursor: pointer;
   font-weight: 500;
 }
@@ -135,8 +147,7 @@
 }
 
 /* Messages: errors read as a tinted callout, statuses as muted text. */
-.main-content p[role='alert'],
-.main-content p.chat-error {
+:is(.main-content, .assistant-dock) :is(p[role='alert'], p.chat-error) {
   margin-block: 0.5rem;
   padding: 0.55rem 0.8rem;
   border: 1px solid color-mix(in oklab, var(--destructive) 40%, transparent);
@@ -144,7 +155,7 @@
   background: color-mix(in oklab, var(--destructive) 9%, transparent);
   color: var(--foreground);
 }
-.main-content p[role='status']:not(.empty-state) {
+:is(.main-content, .assistant-dock) p[role='status']:not(.empty-state) {
   color: var(--muted-foreground);
 }
 
