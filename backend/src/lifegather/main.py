@@ -55,6 +55,7 @@ from lifegather.scans.schedule_routes import schedule_router
 from lifegather.scans.schedules import ScheduleService
 from lifegather.scans.service import ScanService
 from lifegather.scans.worker import ScanWorker
+from lifegather.search.routes import search_router
 from lifegather.storage.originals import move_inline_originals
 from lifegather.storage.settings import storage_from_settings
 from lifegather.version import __version__, build_info
@@ -175,6 +176,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(schedule_router())
     app.include_router(purchase_router())
     app.include_router(power_router())
+    app.include_router(search_router())
     app.add_middleware(CredentialBodyLimit)
 
     @app.exception_handler(MemoryError)

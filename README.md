@@ -1,6 +1,6 @@
 # LifeGather
 
-[![Source version](https://img.shields.io/badge/source_version-v0.67.0-426B46)](CHANGELOG.md)
+[![Source version](https://img.shields.io/badge/source_version-v0.68.0-426B46)](CHANGELOG.md)
 
 This badge identifies the source release. Check the login screen or app header for your running container’s version.
 
@@ -182,4 +182,4 @@ Markdown and CSV originals, bounded local previews and reviewed
 text capture. Light/dark appearance, sourced home/vehicle profiles, streaming chat
 and an evidence-backed graph are implemented in source; deployment is separate.
 
-[Memories](docs/MEMORIES.md) provides private source browsing, literal search, correction history and direct note capture without an AI connection.
+[Memories](docs/MEMORIES.md) provides private source browsing, literal search, correction history and direct note capture without an AI connection. The top-bar [search](docs/SEARCH.md) finds assets, records, photos, documents and sources together and opens each where it lives.

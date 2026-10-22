@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.68.0 — Search everything
+
+- A search box in the top bar finds assets, people/places and other records,
+  photos, documents and saved source text in one place, grouped by kind. Every
+  word must match; `%` and `_` are literal. Choosing a result opens it on its own
+  page: Photos, Documents and Memories now open straight to the chosen photo,
+  document or source, and a source from a photo or document opens that original.
+  See [docs/SEARCH.md](docs/SEARCH.md).
+- A photo's details list the assets it is attached to, each with an **Open**
+  button.
+- Merged duplicate assets appear once; superseded note versions and deleted
+  photos/documents are left out.
+- New read-only endpoints `GET /api/search` and `GET /api/photos/{id}/assets`.
+  Matching uses portable case-insensitive SQL, not SQLite full-text search, so it
+  carries over to PostgreSQL storage unchanged. No migration or dependency change.
+
 ## 0.67.0 — Web research for manuals and specifications
 
 - New Chat action **Research manuals on the web**: on request, the selected OpenAI

@@ -91,6 +91,8 @@ screens or new domain subsystems.
 - Improve retrieval and source/photo navigation where representative user tasks
   reveal friction. Add OCR/formats only for demonstrated intake gaps; common
   documents already have local extraction and reviewed originals.
+  v0.68.0 adds [search everything](SEARCH.md) in the top bar, with results that
+  open the exact photo, document, source or asset, and photo-to-asset links.
 - Add requested, cited and dated web research for manuals/specifications when
   local evidence is insufficient, with explicit permission to send private details.
   Research does not establish ownership or guarantee parts compatibility.
