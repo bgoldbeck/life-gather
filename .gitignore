@@ -41,3 +41,8 @@ Thumbs.db
 
 # Local source-code navigation graph
 graphify-out/
+
+# Synthetic legacy fixtures for the SQLite import tests (no real data or keys).
+!backend/tests/fixtures/*.sqlite3
+!backend/tests/fixtures/*/auth.sqlite3
+!backend/tests/fixtures/*.key
