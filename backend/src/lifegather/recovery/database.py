@@ -33,6 +33,7 @@ SUPPORTED_MIGRATIONS = frozenset(
         "0028_object_storage",
         "0029_receipt_detail_basis",
         "0030_pgvector",
+        "0031_conversation_retention",
     }
 )
 STORED_PARTS = {

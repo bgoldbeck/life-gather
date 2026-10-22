@@ -23,6 +23,7 @@ from lifegather.auth.store import AuthStore
 from lifegather.chat.claude import ClaudeProvider
 from lifegather.chat.google import GeminiProvider
 from lifegather.chat.provider import OpenAIProvider
+from lifegather.chat.retention import retention_sweeps
 from lifegather.chat.routes import chat_router
 from lifegather.config import Settings
 from lifegather.credentials.middleware import CredentialBodyLimit
@@ -134,13 +135,15 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
             worker = asyncio.create_task(
                 ScanWorker(app.state.scan_service, scheduler.dispatch).serve()
             )
+            retention = asyncio.create_task(retention_sweeps(store.engine))
             try:
                 async with mcp_server.session_manager.run():
                     yield
             finally:
-                worker.cancel()
-                with suppress(asyncio.CancelledError):
-                    await worker
+                for task in (worker, retention):
+                    task.cancel()
+                    with suppress(asyncio.CancelledError):
+                        await task
         finally:
             store.engine.dispose()
 

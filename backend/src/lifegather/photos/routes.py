@@ -20,6 +20,7 @@ from lifegather.photos.service import (
     MAX_BYTES,
     PhotoAttach,
     PhotoDelete,
+    PhotoDeleteMany,
     PhotoDetach,
     PhotoList,
     PhotoService,
@@ -128,5 +129,11 @@ def photo_router() -> APIRouter:
     @router.post("/delete")
     def delete(request: Request, body: PhotoDelete, current: Write) -> dict[str, Any]:
         return service(request).delete(current.user, body)
+
+    @router.post("/delete-many")
+    def delete_many(
+        request: Request, body: PhotoDeleteMany, current: Write
+    ) -> dict[str, Any]:
+        return service(request).delete_many(current.user, body)
 
     return router

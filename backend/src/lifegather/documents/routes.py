@@ -20,6 +20,7 @@ from lifegather.documents.extractor import MAX_BYTES
 from lifegather.documents.formats import MIMES, PreviewOptions
 from lifegather.documents.service import (
     DocumentDelete,
+    DocumentDeleteMany,
     DocumentPage,
     DocumentPreview,
     DocumentService,
@@ -111,6 +112,12 @@ def document_router() -> APIRouter:
         request: Request, body: DocumentDelete, current: Write
     ) -> dict[str, Any]:
         return service(request).delete(current.user, body)
+
+    @router.post("/delete-many")
+    def delete_many(
+        request: Request, body: DocumentDeleteMany, current: Write
+    ) -> dict[str, Any]:
+        return service(request).delete_many(current.user, body)
 
     @router.get("/{document_id}")
     def document(

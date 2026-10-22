@@ -20,6 +20,13 @@ class UserSettings(Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), primary_key=True)
     allow_external_ai: Mapped[bool]
     theme: Mapped[str] = mapped_column(server_default="system")
+    conversation_retention_days: Mapped[int | None] = mapped_column(
+        CheckConstraint(
+            "conversation_retention_days IS NULL "
+            "OR conversation_retention_days IN (30, 90, 365)",
+            name="ck_user_conversation_retention",
+        )
+    )
 
 
 class Credential(Base):

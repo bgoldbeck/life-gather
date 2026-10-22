@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
+import { BulkDelete } from './BulkDelete'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import './documents.css'
 import { DocumentPreview, type ExtractionMetadata } from './DocumentPreview'
@@ -441,6 +442,22 @@ export function DocumentsPanel({
           More documents
         </Button>
       )}
+      <BulkDelete
+        kind="documents"
+        items={(page?.items ?? [])
+          .filter((doc) => doc.deleted_at === null)
+          .map((doc) => ({
+            id: doc.id,
+            label: doc.filename,
+            updated_at: doc.updated_at,
+          }))}
+        request={request}
+        disabled={busy}
+        onDeleted={async (ids) => {
+          if (selected && ids.includes(selected.id)) setSelected(null)
+          await load()
+        }}
+      />
       {selected && (
         <DocumentEditor
           key={`${selected.id}:${selected.updated_at}`}
