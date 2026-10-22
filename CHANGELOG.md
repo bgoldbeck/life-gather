@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.76.0 — Selective deletion and conversation retention
+
+- Photos and Documents can delete several items at once: tick up to 50, confirm,
+  and they are deleted together or not at all. A changed or foreign item refuses
+  the whole selection. Each original file and photo preview is removed from file
+  storage right after the change is saved (retried on next start if storage is
+  unreachable); reviewed text, facts and history stay. See
+  [docs/SELECTIVE_DELETION.md](docs/SELECTIVE_DELETION.md).
+- New **Conversation retention** setting: keep chat conversations until you delete
+  them (default), or for 30 days, 90 days or 1 year after their last activity. The
+  page previews how many conversations a choice removes now. Expired
+  conversations without pending requests are deleted on save, on startup and
+  hourly, with the existing content-free deletion receipt. Saved memories,
+  sources, originals and records are never touched.
+- Deletion is permanent and not undoable.
+- New endpoints `POST /api/photos/delete-many`, `POST /api/documents/delete-many`,
+  `GET`/`PUT /api/chat/retention`. Migration `0031_conversation_retention` adds a
+  nullable `user_settings.conversation_retention_days` column; operator recovery
+  accepts snapshots at this migration.
 ## 0.75.0 — PostgreSQL storage
 
 - **Storage moved from SQLite to PostgreSQL.** `LIFEGATHER_DATABASE_URL` is now

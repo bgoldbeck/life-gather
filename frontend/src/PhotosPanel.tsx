@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
+import { BulkDelete } from './BulkDelete'
 import { PhotoAssetLinks } from './PhotoAssetLinks'
 import { isAIProvider, aiProviderLabel } from './aiProviders'
 import { AssetProposalCard } from './AssetProposalCard'
@@ -453,6 +454,26 @@ export function PhotosPanel({
           More photos
         </Button>
       )}
+      <BulkDelete
+        kind="photos"
+        items={items.map((row) => ({
+          id: row.id,
+          label: row.filename,
+          updated_at: row.updated_at,
+        }))}
+        request={request}
+        disabled={busy || retry || linking}
+        onDeleted={async (ids) => {
+          if (selected && ids.includes(selected.id)) {
+            setSelected(null)
+            clearSource()
+            setProposal('')
+            setReceipt('')
+            setDeleteAcknowledged(false)
+          }
+          await load()
+        }}
+      />
       {selected && (
         <section className="photo-detail" aria-label="Photo details">
           <h3>{selected.filename}</h3>

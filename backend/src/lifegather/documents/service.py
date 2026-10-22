@@ -50,6 +50,11 @@ class DocumentDelete(DocumentRead):
     expected_updated_at: int = Field(ge=0)
 
 
+class DocumentDeleteMany(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    documents: list[DocumentDelete] = Field(min_length=1, max_length=50)
+
+
 class DocumentPreview(DocumentRead, PreviewOptions):
     pass
 
@@ -310,31 +315,53 @@ class DocumentService:
         db.flush()
         return source.id
 
-    def delete(self, actor: Account, value: DocumentDelete) -> dict[str, Any]:
-        data = DocumentDelete.model_validate(value)
-        removed: str | None = None
-        with self.memory._write() as db:
-            row = self.owned(db, actor, data.document_id)
-            if row.deleted_at is None:
-                if row.updated_at != data.expected_updated_at:
-                    raise NoteConflict("Document changed. Reload before deleting.")
-                row.deleted_at = self.memory.clock()
-                row.updated_at = max(row.deleted_at, row.updated_at + 1)
-                row.original = None
-                row.extracted_text = ""
-                removed = row.original_key
-                self.memory._audit(
-                    db, actor, "document_deleted", row.id, row.deleted_at
-                )
-            result = self.view(row)
+    def _delete_in(
+        self, db: Session, actor: Account, data: DocumentDelete
+    ) -> tuple[Document, str | None]:
+        row = self.owned(db, actor, data.document_id)
+        if row.deleted_at is not None:
+            return row, None
+        if row.updated_at != data.expected_updated_at:
+            raise NoteConflict("Document changed. Reload before deleting.")
+        row.deleted_at = self.memory.clock()
+        row.updated_at = max(row.deleted_at, row.updated_at + 1)
+        row.original = None
+        row.extracted_text = ""
+        self.memory._audit(db, actor, "document_deleted", row.id, row.deleted_at)
+        return row, row.original_key
+
+    def _remove_stored(self, actor: Account, removed: dict[str, str | None]) -> None:
         # Only after the delete commits; a failed removal keeps the key so the
         # startup sweep retries it.
-        if removed is not None and delete_quietly(self.storage, [removed]):
-            with self.memory._write() as db:
-                row = self.owned(db, actor, data.document_id)
-                if row.original_key == removed:
-                    row.original_key = None
+        for identifier, key in removed.items():
+            if key is not None and delete_quietly(self.storage, [key]):
+                with self.memory._write() as db:
+                    row = self.owned(db, actor, identifier)
+                    if row.original_key == key:
+                        row.original_key = None
+
+    def delete(self, actor: Account, value: DocumentDelete) -> dict[str, Any]:
+        data = DocumentDelete.model_validate(value)
+        with self.memory._write() as db:
+            row, key = self._delete_in(db, actor, data)
+            result = self.view(row)
+        self._remove_stored(actor, {data.document_id: key})
         return result
+
+    def delete_many(self, actor: Account, value: DocumentDeleteMany) -> dict[str, Any]:
+        """Delete several documents at once; any stale version refuses them all."""
+        data = DocumentDeleteMany.model_validate(value)
+        if len({item.document_id for item in data.documents}) != len(data.documents):
+            raise MemoryError("Each document can be listed only once")
+        removed: dict[str, str | None] = {}
+        with self.memory._write() as db:
+            results = []
+            for item in data.documents:
+                row, key = self._delete_in(db, actor, item)
+                removed[item.document_id] = key
+                results.append(self.view(row, include_text=False))
+        self._remove_stored(actor, removed)
+        return {"documents": results, "deleted_count": len(results)}
 
     def source_document(self, actor: Account, source_id: str) -> dict[str, Any] | None:
         with Session(self.engine) as db:

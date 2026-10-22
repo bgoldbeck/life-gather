@@ -1,7 +1,7 @@
 import asyncio
 import json
 from collections.abc import AsyncIterator
-from typing import Annotated, Any
+from typing import Annotated, Any, get_args
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi import Path as PathParam
@@ -19,6 +19,7 @@ from lifegather.chat.privacy import (
     ConversationPrivacy,
     ConversationToken,
 )
+from lifegather.chat.retention import ConversationRetention, Days, RetentionInput
 from lifegather.chat.runner import answer
 from lifegather.chat.service import ChatService, SaveText, TurnInput
 from lifegather.chat.streaming import DeltaSink, StatusSink
@@ -50,6 +51,27 @@ def service(request: Request) -> ChatService:
 
 def chat_router() -> APIRouter:
     router = APIRouter(prefix="/api/chat")
+
+    @router.get("/retention")
+    def retention(
+        request: Request,
+        current: Authenticated,
+        preview_days: Annotated[int | None, Query()] = None,
+    ) -> dict[str, Any]:
+        if preview_days is not None and preview_days not in get_args(Days):
+            raise HTTPException(422, "Choose 30, 90 or 365 days")
+        retention = ConversationRetention(service(request).engine)
+        days = retention.days(current.user)
+        preview = retention.preview(
+            current.user, days if preview_days is None else preview_days
+        )
+        return {"conversation_days": days, "preview": preview}
+
+    @router.put("/retention")
+    def update_retention(
+        request: Request, body: RetentionInput, current: Mutation
+    ) -> dict[str, Any]:
+        return ConversationRetention(service(request).engine).update(current.user, body)
 
     @router.post("/context")
     def workspace_context(

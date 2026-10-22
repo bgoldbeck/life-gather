@@ -37,6 +37,7 @@ import { MemoriesPanel } from './MemoriesPanel'
 import { AssetsPanel } from './AssetsPanel'
 import { BuildInfo, type Build } from './BuildInfo'
 import { AppearanceSettings } from './AppearanceSettings'
+import { RetentionSettings } from './RetentionSettings'
 import { GraphPanel } from './GraphPanel'
 import { ProfilesPanel } from './ProfilesPanel'
 import { MaintenancePanel } from './MaintenancePanel'
@@ -330,6 +331,10 @@ export function Workspace({
                   />
                   <AppearanceSettings
                     theme={appearance}
+                    csrfToken={csrfToken}
+                    refreshSession={refreshSession}
+                  />
+                  <RetentionSettings
                     csrfToken={csrfToken}
                     refreshSession={refreshSession}
                   />

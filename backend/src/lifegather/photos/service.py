@@ -23,6 +23,7 @@ from lifegather.storage.originals import delete_quietly, object_key, read_origin
 
 MAX_BYTES = 8 * 1024 * 1024
 MAX_PREVIEW = 2 * 1024 * 1024
+StoredKeys = list[str | None]
 Purpose = Literal["receipt", "nameplate", "photo"]
 
 
@@ -49,6 +50,11 @@ class PhotoAttach(PhotoDetach):
 
 class PhotoDelete(PhotoRead):
     expected_updated_at: int = Field(ge=0)
+
+
+class PhotoDeleteMany(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    photos: list[PhotoDelete] = Field(min_length=1, max_length=50)
 
 
 @dataclass(frozen=True)
@@ -380,26 +386,50 @@ class PhotoService:
                 db.flush()
             return self.view(row)
 
-    def delete(self, actor: Account, value: PhotoDelete) -> dict[str, Any]:
-        data = PhotoDelete.model_validate(value)
-        removed: list[str | None] = []
-        with self.memory._write() as db:
-            row = self.owned(db, actor, data.photo_id)
-            if row.deleted_at is None:
-                if row.updated_at != data.expected_updated_at:
-                    raise NoteConflict("Photo changed. Reload before deleting.")
-                row.deleted_at = self.memory.clock()
-                row.original = row.preview = None
-                removed = [row.original_key, row.preview_key]
-                self.memory._audit(db, actor, "photo_deleted", row.id, row.deleted_at)
-            result = self.view(row)
+    def _delete_in(
+        self, db: Session, actor: Account, data: PhotoDelete
+    ) -> tuple[Photo, StoredKeys]:
+        row = self.owned(db, actor, data.photo_id)
+        if row.deleted_at is not None:
+            return row, []
+        if row.updated_at != data.expected_updated_at:
+            raise NoteConflict("Photo changed. Reload before deleting.")
+        row.deleted_at = self.memory.clock()
+        row.original = row.preview = None
+        self.memory._audit(db, actor, "photo_deleted", row.id, row.deleted_at)
+        return row, [row.original_key, row.preview_key]
+
+    def _remove_stored(self, actor: Account, removed: dict[str, StoredKeys]) -> None:
         # Only after the delete commits; a failed removal keeps the keys so the
         # startup sweep retries it.
-        if any(removed) and delete_quietly(self.storage, removed):
-            with self.memory._write() as db:
-                row = self.owned(db, actor, data.photo_id)
-                row.original_key = row.preview_key = None
+        for identifier, keys in removed.items():
+            if any(keys) and delete_quietly(self.storage, keys):
+                with self.memory._write() as db:
+                    row = self.owned(db, actor, identifier)
+                    row.original_key = row.preview_key = None
+
+    def delete(self, actor: Account, value: PhotoDelete) -> dict[str, Any]:
+        data = PhotoDelete.model_validate(value)
+        with self.memory._write() as db:
+            row, keys = self._delete_in(db, actor, data)
+            result = self.view(row)
+        self._remove_stored(actor, {data.photo_id: keys})
         return result
+
+    def delete_many(self, actor: Account, value: PhotoDeleteMany) -> dict[str, Any]:
+        """Delete several photos in one transaction; any stale version refuses all."""
+        data = PhotoDeleteMany.model_validate(value)
+        if len({item.photo_id for item in data.photos}) != len(data.photos):
+            raise MemoryError("Each photo can be listed only once")
+        removed: dict[str, StoredKeys] = {}
+        with self.memory._write() as db:
+            results = []
+            for item in data.photos:
+                row, keys = self._delete_in(db, actor, item)
+                removed[item.photo_id] = keys
+                results.append(self.view(row))
+        self._remove_stored(actor, removed)
+        return {"photos": results, "deleted_count": len(results)}
 
     def source_photo(self, actor: Account, source_id: str) -> dict[str, Any] | None:
         with Session(self.engine) as db:
