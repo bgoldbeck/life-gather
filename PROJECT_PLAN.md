@@ -1,7 +1,15 @@
 # LifeGather — Product and Engineering Plan
 
-**Status:** Authentication, private settings, memory core, and first reconciliation service slice implemented in source; first usable release in progress
-**Date:** Updated 2026-10-20
+**Status:** v0.59.0 tracking foundation implemented; AI-driven conversational tracking is the next feature
+**Date:** Updated 2026-10-21
+
+**Active priorities:** [tracking-first feature plan](docs/FEATURE_PLAN.md).
+User decision, 2026-10-21: make tracking and evidence-backed recall dependable
+before adding proactive automation, then complete a dedicated UI beautification
+phase. Natural-language AI tool use comes first; coherent multi-field changes
+must not require one turn per field. Existing requested/scheduled scans stay
+available. This plan supersedes historical future-feature ordering below; deferred
+domains are candidates, not a commitment to implement every feature.
 
 Current capability inventory and consolidated outstanding scope:
 [what LifeGather can do and what remains](docs/CAPABILITIES_AND_REMAINING_WORK.md).
@@ -124,7 +132,8 @@ existing identity review/corrections and durable extraction reuse. Attachment an
 financial extraction and conversational purchase-discovery scans remain ahead. The milestone
 paragraphs below include historical descriptions of earlier increments.
 
-Ordered continuation, 2026-10-18: [implementation ledger](docs/superpowers/plans/2026-10-18-ordered-roadmap.md).
+Historical continuation, 2026-10-18: [implementation ledger](docs/superpowers/plans/2026-10-18-ordered-roadmap.md).
+Use the [active feature plan](docs/FEATURE_PLAN.md) for new work priorities.
 Per-user Light/Dark/System appearance is implemented in v0.10.0; the interactive
 graph is implemented in v0.11.0; sourced home/vehicle profiles are implemented in v0.12.0. Private saved chat choices are implemented in v0.13.0; streaming replies are implemented in v0.14.0; bounded sourced record/connection recall is implemented in v0.15.0. Google Gemini support is implemented in v0.16.0; managed Antigravity is deferred for documented API limitations. Private reviewed PDF evidence is implemented in v0.17.0; [multi-item receipt review and sourced quantities](docs/MULTI_ITEM_RECEIPTS.md) are implemented in v0.19.0. Explicit sourced line totals and purchase dates are implemented in v0.20.0; editable source suggestions in v0.21.0 and USD/EUR/GBP/CAD/AUD/JPY support in v0.22.0 extend that workflow. Broader financial extraction and accounting remain ahead. Current asset-linked purchase browsing is implemented in v0.24.0; bounded reviewed purchase recall is implemented in v0.25.0. Explicitly reviewed clear-item automatic identity decisions are implemented in v0.26.0. Read-only candidate comparison across proposal/receipt/identity review is implemented in v0.27.0. Individual multi-unit evidence reassociation to existing records is implemented in v0.28.0. Atomic clear-identity decisions for explicitly reviewed receipt lines are implemented in v0.29.0. Source/target correction inspection and incoming movement history are implemented in v0.30.0. Reviewed reversible discovery-evidence batches are implemented in v0.31.0; explicit sourced replacement links are implemented in v0.32.0. Existing private photo reuse across item galleries is implemented in v0.33.0. Full-record consolidation remains ahead. Separate private Gmail consent is implemented in v0.34.0 as the prerequisite for [modular requested and scheduled email scans](docs/superpowers/plans/2026-10-18-modular-scheduled-scans.md); requested modular email evidence scans are implemented in v0.35.0; private daily/weekly schedules are implemented in v0.36.0. Reviewed cross-source purchase evidence is implemented in v0.37.0; automatic extraction, financial allocation and conversational scan-start tools remain ahead. Older milestone paragraphs below are historical context.
 
@@ -308,6 +317,12 @@ keep all existing destinations and private configuration workflows accessible.
 
 ## 9. Development sequence and acceptance gates
 
+The active sequence is AI-driven conversational tracking -> evidence intake and
+recall -> demonstrated tracking reliability -> UI beautification. See
+[phase acceptance criteria](docs/FEATURE_PLAN.md). The numbered stage list below
+records the original delivery sequence, not an instruction to start banking,
+reminders or every other deferred domain next.
+
 User addition, 2026-10-17: provide email/password signup and sign-in alongside Google, with email verification and password recovery. This authentication milestone is implemented in source with fake-sender tests; real SMTP configuration/delivery remains pending. See [email authentication requirements](docs/EMAIL_PASSWORD_AUTH.md).
 
 Source progress, 2026-10-17: Google login/session code, private settings/encrypted credentials, and the deterministic evidence-backed memory services are implemented with offline and two-user tests. The user reported local Google sign-in working. Credential storage needs an optional server key; it is not part of end-user login. Memory services include provenance, temporal corrections, search, bounded traversal, export, and tested database snapshots. Migration 0004 adds source-independent reconciliation with distinct product/purchase/unit identities, persistent review decisions, atomic retries, and reversible evidence reassociation. See `docs/RECONCILIATION.md` for the first slice and remaining limits. The private read-only MCP adapter now exposes owner-scoped recall and discovery inspection with protocol, concurrency, and authorization tests; see `docs/PRIVATE_MCP.md`. Writable tools, memory UI/HTTP adapters, chat, files, connectors, and jobs remain later work with their own authorization tests. See `docs/GOOGLE_LOGIN.md`, `docs/PRIVATE_SETTINGS.md`, and `docs/MEMORY_CORE.md`. Container builds/publication remain separately approved operations.
@@ -359,7 +374,14 @@ Each stage needs a bounded implementation plan, relevant tests, migrations where
 6. Keep models/provider SDKs behind adapters; upgrade dependencies deliberately and lock working versions.
 7. Commit at each passing acceptance gate. Avoid large speculative abstractions and autogenerated endpoints that bypass the domain layer.
 
-**Next planning step:** Reconcile the approved [private chat design](docs/superpowers/specs/2026-10-17-private-chat-design.md) and [implementation plan](docs/superpowers/plans/2026-10-17-private-chat.md) with the implemented [text-memory chat increment](docs/TEXT_CHAT.md) before extending chat. The user selected OpenAI and Claude for the broader shared runtime with private saved history, streaming, source links, read-only memory tools, usage limits, and explicit provider selection. Local text capture/search and optional OpenAI answers are implemented; Claude and the broader streaming runtime are not delivered by those documents. Preserve existing chat data and migrations, stable workspace IDs, external-data permission, and explicit provider selection. Email/password verification and recovery and local testing-account setup are implemented in source; real SMTP delivery still needs an installation choice and smoke test. General entity consolidation, extraction/uploads, connectors, and external-client OAuth remain separately scoped work. `docs/FIRST_TASK.md` is historical Phase 0 kickoff material, not the current assignment.
+**Next planning step:** Refine the [AI asset assistant design](docs/superpowers/specs/2026-10-21-ai-asset-assistant-design.md)
+against current source and the [tracking-first feature plan](docs/FEATURE_PLAN.md).
+The existing OpenAI, Claude and Gemini adapters, streaming/read-only recall,
+private asset services and sourced correction history are already implemented.
+Extend them with model-selected tools, necessary clarification and atomic coherent
+asset changes; do not rebuild chat from historical plans. Dedicated banking and
+proactive life-management automation remain deferred. `docs/FIRST_TASK.md` and
+older milestone exclusions are historical context, not current missing scope.
 
 ## 13. References
 

@@ -1,5 +1,11 @@
 # Ordered roadmap implementation plan
 
+**Priority update, 2026-10-21:** [tracking-first feature plan](../../FEATURE_PLAN.md)
+is now authoritative for new work. Build natural-language AI tracking, evidence
+intake/recall and verified reliability, followed by UI beautification. Defer new
+proactive automation and evaluate other expansions by demonstrated need. Preserve
+this ledger as delivery history; its original order is not the active backlog.
+
 v0.58.0 delivers [Power Center](../../POWER_CENTER.md): private capability catalog 1,
 observed health/freshness, local checks, recovery links and connection changes.
 No migration/dependency; no external probes or ingestion from health checks.
@@ -9,7 +15,7 @@ Live model/grant health without processing evidence remains unverified.
 > skills. No agents. The user authorized continuous implementation, routine design
 > decisions, and a separate commit/push/PR/merge/branch cleanup after every feature.
 
-**Goal:** Complete the remaining personal-life organization roadmap in the agreed order.
+**Goal:** Preserve implementation history; select new increments from the active tracking-first feature plan.
 **Architecture:** Preserve the private evidence store and framework-independent services;
 extend existing authenticated HTTP/MCP adapters and responsive React views in bounded releases.
 **Tech stack:** Existing Python/FastAPI/SQLAlchemy/Alembic/SQLite and React/TypeScript stack.
@@ -189,7 +195,7 @@ extend existing authenticated HTTP/MCP adapters and responsive React views in bo
   mismatch test caught stale editable metadata after the minor bump; watching the
   single version source fixes repeatable checks without manual reinstall workarounds.
 
-## Ordered features
+## Historical ordered features (superseded for future priorities)
 
 1. Appearance (merged, v0.10.0, PR #20): Light/Dark/System per authenticated user. Extend
    `user_settings` with migration `0011_appearance`; preserve external-AI consent.
