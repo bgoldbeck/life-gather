@@ -13,7 +13,9 @@ class VaultKey(Base):
 class UserSettings(Base):
     __tablename__ = "user_settings"
     __table_args__ = (
-        CheckConstraint("theme IN ('system','light','dark')", name="ck_user_theme"),
+        CheckConstraint(
+            "theme IN ('system','light','dark','forest-dark')", name="ck_user_theme"
+        ),
     )
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), primary_key=True)
     allow_external_ai: Mapped[bool]

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.64.0 — Standard dark theme
+
+- Add a new standard **Dark** theme based on the user's reference: deep navy and
+  slate surfaces, teal accents and bright text. System uses it when the device
+  prefers dark. Text, focus and status colors meet WCAG AA contrast.
+- The original green dark palette is now **Forest dark**, still selectable in
+  Settings › Appearance.
+- Migration `0027_forest_dark_theme` widens the theme constraint and moves every
+  saved `dark` choice to `forest-dark`, so nobody's current look changes; the
+  downgrade maps it back. The appearance API now also accepts `forest-dark`.
+
 ## 0.63.1 — Workspace layout polish
 
 - Workspace pages now sit on clearly bordered surfaces: Assets, Review,

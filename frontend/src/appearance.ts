@@ -1,20 +1,24 @@
 import { useEffect } from 'react'
 
-export type Theme = 'system' | 'light' | 'dark'
+export type Theme = 'system' | 'light' | 'dark' | 'forest-dark'
 
 export function useAppearance(theme: Theme) {
   useEffect(() => {
     const media = window.matchMedia?.('(prefers-color-scheme: dark)')
-    const apply = () =>
-      document.documentElement.classList.toggle(
+    const root = document.documentElement
+    const apply = () => {
+      const forest = theme === 'forest-dark'
+      root.classList.toggle(
         'dark',
-        theme === 'dark' || (theme === 'system' && !!media?.matches),
+        forest || theme === 'dark' || (theme === 'system' && !!media?.matches),
       )
+      root.classList.toggle('forest', forest)
+    }
     apply()
     media?.addEventListener('change', apply)
     return () => {
       media?.removeEventListener('change', apply)
-      document.documentElement.classList.remove('dark')
+      root.classList.remove('dark', 'forest')
     }
   }, [theme])
 }

@@ -20,7 +20,7 @@ class PreferencesInput(BaseModel):
 
 class AppearanceInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    theme: Literal["system", "light", "dark"]
+    theme: Literal["system", "light", "dark", "forest-dark"]
 
 
 class ReplacementInput(BaseModel):
