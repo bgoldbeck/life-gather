@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.62.0 — Start Gmail scans from the AI assistant
+
+- Ask the **AI assistant** to find purchases in, or import evidence from, a
+  connected Gmail mailbox for a stated period. It lists your mailboxes and queues
+  one existing purchase-discovery (with the assistant's AI connection/model) or
+  evidence-only scan; **View email scan** opens it.
+- The host checks that your words state the purpose and period, resolves at most
+  31 past UTC days, requires the address when several mailboxes are connected,
+  and keeps 20 messages unless you state a limit up to 50. Existing mailbox,
+  permission, busy and daily-limit checks apply; the scan is queued atomically
+  with the completed turn, and replays or stopped requests never add a run.
+- No migration, dependency or scan-handler change. Synthetic provider tests only.
+  See [AI assistant](docs/AI_ASSISTANT.md#email-scans).
+
 ## 0.61.0 — AI assistant progress status
 
 - AI assistant requests now stream short LifeGather-written progress lines while

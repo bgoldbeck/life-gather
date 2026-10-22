@@ -51,6 +51,29 @@ reasoning and never claim that anything was saved. The reply, and any saved
 result, appears only once the request's turn is committed. Stopping, retrying and
 replaying behave as before.
 
+## Email scans
+
+Available in v0.62.0. Ask, for example, "Find purchases in my Gmail from last
+week" or "Import my email text from March 1 to March 10 as evidence only, up to 5
+messages." The assistant can list your connected Gmail mailboxes and queue one
+existing scan:
+
+- **Purchase discovery** (`gmail_discovery`) uses the same AI connection and
+  model as the assistant to propose purchases from email text, exactly like
+  enabling discovery in Scans.
+- **Evidence only** (`gmail_import`) saves original email text with no AI call
+  and no inventory changes.
+
+Before anything is queued, your own words must state what to look for and which
+days; the model turns that period into dates, and the reply shows the exact UTC
+days, mailbox and message limit used. With several connected mailboxes you must
+name the address. Scans cover at most 31 past days and 20 messages unless you
+state another number (up to 50). Attachments are omitted. The existing
+mailbox, external-AI permission, one-active-scan and 20-runs-per-day checks
+still apply, and the scan is queued in the same commit that completes the chat
+turn. **View email scan** opens its progress, evidence and cancel control.
+Replaying the request returns the same scan.
+
 ## Pending questions
 
 A question the assistant asks is saved with the turn. Only your next message in
@@ -59,7 +82,7 @@ refused write or a changed record ends it.
 
 ## Limits
 
-- One physical asset per request; no batch entry, deletion, merging, or asset
+- One physical asset or one email scan per request; no batch entry, deletion, merging, or asset
   type assignment/typed template fields yet (use the asset page for those).
 - Home/place profiles are not edited by the AI assistant.
 - Ask AI remains the cited evidence-recall mode; assistant answers about records

@@ -83,6 +83,8 @@ screens or new domain subsystems.
 - Start existing Gmail purchase-discovery scans conversationally with explicit
   mailbox/time/purpose scope. Add bounded private attachment intake as a separate
   increment after the text/evidence loop works reliably.
+  v0.62.0 lets the [AI assistant](AI_ASSISTANT.md#email-scans) queue one
+  existing text discovery or evidence scan; attachment intake remains.
 - Improve retrieval and source/photo navigation where representative user tasks
   reveal friction. Add OCR/formats only for demonstrated intake gaps; common
   documents already have local extraction and reviewed originals.

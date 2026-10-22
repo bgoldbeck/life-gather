@@ -23,6 +23,7 @@ from lifegather.reconciliation.proposals import (
     ProposalService,
 )
 from lifegather.reconciliation.receipts import ReceiptExtraction, ReceiptService
+from lifegather.scans.service import ScanService
 
 
 class PhotoReading(BaseModel):
@@ -48,6 +49,7 @@ async def answer(
     emit: DeltaSink | None = None,
     google_provider: Provider | None = None,
     status: StatusSink | None = None,
+    scans: ScanService | None = None,
 ) -> dict[str, Any]:
     selected_context = (
         WorkspaceContexts(chat.engine).read(actor, body.context)
@@ -224,6 +226,8 @@ async def answer(
             selected_context,
             body.context.version if body.context else "",
             active,
+            scans,
+            body.credential_id,
         ).run(completion, status)
 
     def save_extraction(operation: Callable[[], dict[str, Any]]) -> dict[str, Any]:
