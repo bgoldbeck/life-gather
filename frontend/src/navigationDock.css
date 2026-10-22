@@ -1,4 +1,5 @@
 .app-layout.navigation-shell {
+  position: relative;
   display: grid;
   grid-template-columns: var(--navigation-width) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
@@ -46,19 +47,11 @@
   margin-top: 0.7rem;
   font-size: 0.75rem;
 }
-.navigation-controls label {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-}
-.navigation-controls select {
-  min-width: 0;
-  max-width: 100%;
-  padding: 0.25rem 0.4rem;
-  border: 1px solid var(--border);
-  border-radius: 0.35rem;
-  background: var(--card);
-  color: var(--foreground);
+.navigation-shell:not(.navigation-compact) .brand,
+.navigation-shell:not(.navigation-compact) .navigation-controls {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
 }
 .navigation-shell .sidebar-caption {
   order: 2;
@@ -193,4 +186,69 @@
 }
 .navigation-compact .nav-button {
   font-size: 12px;
+}
+
+/* Collapsed navigation: a thin icon rail on its docked edge. */
+.navigation-collapsed .sidebar {
+  padding: 0.6rem 0.4rem;
+  align-items: center;
+  overflow-x: hidden;
+}
+.navigation-collapsed .brand {
+  font-size: 0;
+}
+.navigation-collapsed .brand-mark {
+  margin: 0;
+}
+.navigation-collapsed .sidebar-caption,
+.navigation-collapsed .sidebar-note {
+  display: none;
+}
+.navigation-collapsed .navigation-controls {
+  justify-content: center;
+}
+.navigation-collapsed nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+.navigation-collapsed .nav-button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  justify-content: center;
+}
+.navigation-collapsed .nav-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.navigation-top.navigation-collapsed .sidebar,
+.navigation-bottom.navigation-collapsed .sidebar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.7rem;
+  overflow-y: hidden;
+}
+.navigation-top.navigation-collapsed .brand,
+.navigation-bottom.navigation-collapsed .brand {
+  order: 0;
+}
+.navigation-top.navigation-collapsed nav,
+.navigation-bottom.navigation-collapsed nav {
+  order: 1;
+  flex-direction: row;
+  flex: 1;
+  overflow-x: auto;
+}
+.navigation-top.navigation-collapsed .navigation-controls,
+.navigation-bottom.navigation-collapsed .navigation-controls {
+  order: 2;
+  margin: 0;
 }

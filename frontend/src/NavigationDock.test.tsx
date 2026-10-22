@@ -20,16 +20,27 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
+function dockButton(panel: string, edge: string) {
+  return screen.getByRole('button', { name: `Dock ${panel} ${edge}` })
+}
+
+function dockedEdge(panel: string) {
+  const group = screen.getByRole('group', {
+    name: `${panel[0].toUpperCase() + panel.slice(1)} dock position`,
+  })
+  return within(group)
+    .getAllByRole('button')
+    .find((button) => button.getAttribute('aria-pressed') === 'true')
+    ?.getAttribute('aria-label')
+    ?.split(' ')
+    .at(-1)
+}
+
 it('defaults navigation left and moves every edge without losing the page or assistant draft', async () => {
   const user = userEvent.setup()
   render(<Workspace userId="one" />)
-  const position = screen.getByRole('combobox', {
-    name: 'Navigation dock position',
-  })
-  expect(position).toHaveValue('left')
-  expect(
-    screen.getByRole('combobox', { name: 'Assistant dock position' }),
-  ).toHaveValue('right')
+  expect(dockedEdge('navigation')).toBe('left')
+  expect(dockedEdge('assistant')).toBe('right')
   await user.type(
     screen.getByLabelText('Message your assistant'),
     'Keep this draft',
@@ -40,14 +51,12 @@ it('defaults navigation left and moves every edge without losing the page or ass
     ).getByRole('button', { name: 'Memories' }),
   )
   for (const edge of ['top', 'bottom', 'right', 'left']) {
-    await user.selectOptions(position, edge)
+    await user.click(dockButton('navigation', edge))
     expect(screen.getByRole('heading', { name: 'Memories' })).toBeVisible()
     expect(screen.getByLabelText('Message your assistant')).toHaveValue(
       'Keep this draft',
     )
-    expect(
-      screen.getByRole('combobox', { name: 'Assistant dock position' }),
-    ).toHaveValue('right')
+    expect(dockedEdge('assistant')).toBe('right')
   }
   expect(localStorage.getItem('lifegather-navigation-dock:one')).not.toContain(
     'Keep this draft',
@@ -68,10 +77,7 @@ it('resizes by keyboard with independent dimensions, persists per account and re
   expect(handle).toHaveAttribute('aria-orientation', 'vertical')
   fireEvent.keyDown(handle, { key: 'ArrowRight' })
   expect(handle).toHaveAttribute('aria-valuenow', '226')
-  await user.selectOptions(
-    screen.getByRole('combobox', { name: 'Navigation dock position' }),
-    'bottom',
-  )
+  await user.click(dockButton('navigation', 'bottom'))
   handle = screen.getByRole('separator', { name: 'Resize navigation' })
   expect(handle).toHaveAttribute('aria-orientation', 'horizontal')
   fireEvent.keyDown(handle, { key: 'ArrowUp' })
@@ -80,16 +86,11 @@ it('resizes by keyboard with independent dimensions, persists per account and re
   expect(handle).toHaveAttribute('aria-valuenow', '320')
   first.unmount()
   const second = render(<Workspace userId="one" />)
-  expect(
-    screen.getByRole('combobox', { name: 'Navigation dock position' }),
-  ).toHaveValue('bottom')
+  expect(dockedEdge('navigation')).toBe('bottom')
   expect(
     screen.getByRole('separator', { name: 'Resize navigation' }),
   ).toHaveAttribute('aria-valuenow', '320')
-  await user.selectOptions(
-    screen.getByRole('combobox', { name: 'Navigation dock position' }),
-    'left',
-  )
+  await user.click(dockButton('navigation', 'left'))
   expect(
     screen.getByRole('separator', { name: 'Resize navigation' }),
   ).toHaveAttribute('aria-valuenow', '226')
@@ -102,9 +103,7 @@ it('resizes by keyboard with independent dimensions, persists per account and re
   expect(localStorage.getItem('lifegather-chat-dock:one')).toBe(assistant)
   second.unmount()
   render(<Workspace userId="two" />)
-  expect(
-    screen.getByRole('combobox', { name: 'Navigation dock position' }),
-  ).toHaveValue('left')
+  expect(dockedEdge('navigation')).toBe('left')
   expect(
     screen.getByRole('separator', { name: 'Resize navigation' }),
   ).toHaveAttribute('aria-valuenow', '216')
@@ -121,10 +120,7 @@ it.each([
     vi.stubGlobal('PointerEvent', MouseEvent)
     const user = userEvent.setup()
     const { container } = render(<Workspace userId="one" />)
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Navigation dock position' }),
-      String(edge),
-    )
+    await user.click(dockButton('navigation', String(edge)))
     vi.spyOn(
       container.querySelector('.app-layout')!,
       'getBoundingClientRect',
@@ -161,9 +157,7 @@ it('uses compact navigation on narrow screens without overwriting desktop positi
   expect(
     screen.queryByRole('separator', { name: 'Resize navigation' }),
   ).not.toBeInTheDocument()
-  expect(
-    screen.getByRole('combobox', { name: 'Navigation dock position' }),
-  ).toHaveValue('bottom')
+  expect(dockedEdge('navigation')).toBe('bottom')
   expect(localStorage.getItem('lifegather-navigation-dock:one')).toBe(original)
   vi.stubGlobal('innerWidth', 1200)
   fireEvent(window, new Event('resize'))
@@ -190,9 +184,7 @@ it('rejects invalid stored layout and remains usable without browser storage', a
     JSON.stringify({ edge: 'unsafe', width: 900, height: 'bad' }),
   )
   const first = render(<Workspace userId="one" />)
-  expect(
-    screen.getByRole('combobox', { name: 'Navigation dock position' }),
-  ).toHaveValue('left')
+  expect(dockedEdge('navigation')).toBe('left')
   first.unmount()
   vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
     throw new Error('Unavailable')
@@ -201,10 +193,7 @@ it('rejects invalid stored layout and remains usable without browser storage', a
     throw new Error('Unavailable')
   })
   render(<Workspace userId="one" />)
-  await userEvent.selectOptions(
-    screen.getByRole('combobox', { name: 'Navigation dock position' }),
-    'top',
-  )
+  await userEvent.click(dockButton('navigation', 'top'))
   fireEvent.keyDown(
     screen.getByRole('separator', { name: 'Resize navigation' }),
     { key: 'Home' },
@@ -212,4 +201,96 @@ it('rejects invalid stored layout and remains usable without browser storage', a
   expect(
     screen.getByRole('separator', { name: 'Resize navigation' }),
   ).toHaveAttribute('aria-valuenow', '112')
+})
+
+function mockArea(element: Element) {
+  vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({
+    left: 0,
+    right: 1000,
+    top: 0,
+    bottom: 800,
+    width: 1000,
+    height: 800,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  })
+}
+
+it('drags navigation by its header onto a highlighted drop zone and snaps there', async () => {
+  vi.stubGlobal('PointerEvent', MouseEvent)
+  const user = userEvent.setup()
+  const { container } = render(<Workspace userId="one" />)
+  await user.type(screen.getByLabelText('Message your assistant'), 'Draft')
+  mockArea(container.querySelector('.app-layout')!)
+  const header = container.querySelector('.brand')!
+  fireEvent.pointerDown(header, { button: 0, clientX: 60, clientY: 30 })
+  fireEvent.pointerMove(header, { clientX: 62, clientY: 31 })
+  expect(container.querySelector('.dock-drop-zones')).not.toBeInTheDocument()
+  fireEvent.pointerMove(header, { clientX: 960, clientY: 400 })
+  expect(container.querySelector('.dock-drop-zone[data-active]')).toHaveClass(
+    'dock-drop-right',
+  )
+  expect(screen.getByRole('status')).toHaveTextContent(
+    'Release to dock navigation right',
+  )
+  fireEvent.pointerUp(header)
+  expect(container.querySelector('.dock-drop-zones')).not.toBeInTheDocument()
+  expect(container.querySelector('.app-layout')).toHaveClass('navigation-right')
+  expect(dockedEdge('navigation')).toBe('right')
+  expect(
+    JSON.parse(localStorage.getItem('lifegather-navigation-dock:one')!),
+  ).toMatchObject({ edge: 'right' })
+  expect(screen.getByLabelText('Message your assistant')).toHaveValue('Draft')
+})
+
+it('cancels a navigation drag with Escape and ignores presses on nav buttons', () => {
+  vi.stubGlobal('PointerEvent', MouseEvent)
+  const { container } = render(<Workspace userId="one" />)
+  mockArea(container.querySelector('.app-layout')!)
+  const header = container.querySelector('.brand')!
+  fireEvent.pointerDown(header, { button: 0, clientX: 60, clientY: 30 })
+  fireEvent.pointerMove(header, { clientX: 500, clientY: 20 })
+  expect(container.querySelector('.dock-drop-zone[data-active]')).toHaveClass(
+    'dock-drop-top',
+  )
+  fireEvent.keyDown(window, { key: 'Escape' })
+  expect(container.querySelector('.dock-drop-zones')).not.toBeInTheDocument()
+  fireEvent.pointerUp(header)
+  expect(dockedEdge('navigation')).toBe('left')
+  const memories = within(
+    screen.getByRole('navigation', { name: 'Main navigation' }),
+  ).getByRole('button', { name: 'Memories' })
+  fireEvent.pointerDown(memories, { button: 0, clientX: 60, clientY: 200 })
+  fireEvent.pointerMove(memories, { clientX: 960, clientY: 400 })
+  expect(container.querySelector('.dock-drop-zones')).not.toBeInTheDocument()
+})
+
+it('collapses navigation to a remembered icon rail that keeps every destination', async () => {
+  const user = userEvent.setup()
+  const first = render(<Workspace userId="one" />)
+  await user.click(screen.getByRole('button', { name: 'Collapse navigation' }))
+  expect(first.container.querySelector('.app-layout')).toHaveClass(
+    'navigation-collapsed',
+  )
+  expect(
+    screen.queryByRole('separator', { name: 'Resize navigation' }),
+  ).not.toBeInTheDocument()
+  await user.click(
+    within(
+      screen.getByRole('navigation', { name: 'Main navigation' }),
+    ).getByRole('button', { name: 'Memories' }),
+  )
+  expect(screen.getByRole('heading', { name: 'Memories' })).toBeVisible()
+  first.unmount()
+  render(<Workspace userId="one" />)
+  const expand = screen.getByRole('button', { name: 'Expand navigation' })
+  expect(expand).toHaveAttribute('aria-expanded', 'false')
+  await user.click(expand)
+  expect(
+    screen.getByRole('separator', { name: 'Resize navigation' }),
+  ).toHaveAttribute('aria-valuenow', '216')
+  expect(
+    JSON.parse(localStorage.getItem('lifegather-navigation-dock:one')!),
+  ).toMatchObject({ edge: 'left', collapsed: false })
 })

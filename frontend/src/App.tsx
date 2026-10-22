@@ -260,6 +260,7 @@ export function Workspace({
                 key={name}
                 variant="ghost"
                 className="nav-button"
+                title={name}
                 data-tone={tone}
                 aria-current={view === name ? 'page' : undefined}
                 onClick={() => {
@@ -274,7 +275,7 @@ export function Workspace({
                 }}
               >
                 <ToneIcon icon={icon} tone={tone} size={15} />
-                <span>{name}</span>
+                <span className="nav-label">{name}</span>
               </Button>
             ))}
           </nav>
