@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.82.0 — Background scans from an outside scheduler
+
+The in-process scan loop stays the default; nothing changes unless you opt in.
+See [docs/EXTERNAL_BACKGROUND.md](docs/EXTERNAL_BACKGROUND.md).
+
+- `LIFEGATHER_BACKGROUND_MODE=external` starts no scan loop. Due schedules and
+  queued scans then run only on a **tick**, from `python -m lifegather.jobs`
+  (system cron) or `POST /internal/jobs/tick` with
+  `Authorization: Bearer <LIFEGATHER_JOB_TICK_TOKEN>` (Cloudflare Cron Trigger or
+  any HTTPS scheduler). The endpoint answers 404 unless external mode and a token
+  of 32+ visible ASCII characters are set; a wrong token answers 401, a tick
+  already running on the instance 409. Responses carry counts only.
+- Each tick has a time limit (`seconds`, 1–300, default 50). A scan still running
+  at the limit stops after its current step, keeps its checkpoint and recovery
+  attempts and resumes on the next tick. Ticks on several instances are safe
+  together through the existing scan leases.
+- Ticks keep the scheduler's own change attribution; a tick over HTTP is not
+  recorded as a web account request.
+- No migration. New settings are deployment-local and not stored in recovery
+  bundles.
+
 ## 0.81.0 — Account isolation hardening
 
 A second, database-enforced lock between accounts. See
