@@ -58,6 +58,7 @@ export function AppearanceSettings({
           <option value="system">System</option>
           <option value="light">Light</option>
           <option value="dark">Dark</option>
+          <option value="forest-dark">Forest dark</option>
         </select>
       </label>
       <Button onClick={() => void save()} disabled={busy}>

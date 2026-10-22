@@ -19,6 +19,7 @@ SUPPORTED_MIGRATIONS = frozenset(
         "0024_maintenance",
         "0025_document_formats",
         "0026_asset_types",
+        "0027_forest_dark_theme",
     }
 )
 
@@ -83,6 +84,7 @@ def validate_database(
                 "0024_maintenance",
                 "0025_document_formats",
                 "0026_asset_types",
+                "0027_forest_dark_theme",
             ):
                 # A current schema marker must include complete typed task storage.
                 # Older accepted snapshots deliberately need no maintenance tables.
@@ -101,14 +103,18 @@ def validate_database(
                     "AND r.task_id=t.id AND r.superseded_at IS NULL) LIMIT 1"
                 ).fetchone():
                     raise RecoveryError("Snapshot maintenance history is incomplete")
-            if revisions[0][0] in ("0025_document_formats", "0026_asset_types"):
+            if revisions[0][0] in (
+                "0025_document_formats",
+                "0026_asset_types",
+                "0027_forest_dark_theme",
+            ):
                 if db.execute(
                     "SELECT 1 FROM documents WHERE format NOT IN "
                     "('pdf','docx','xlsx','txt','md','csv') "
                     "OR NOT json_valid(extraction_metadata) LIMIT 1"
                 ).fetchone():
                     raise RecoveryError("Snapshot document metadata is invalid")
-            if revisions[0][0] == "0026_asset_types":
+            if revisions[0][0] in ("0026_asset_types", "0027_forest_dark_theme"):
                 db.execute(
                     "SELECT id,type_id,name,system_field,retired,position "
                     "FROM asset_type_fields LIMIT 0"

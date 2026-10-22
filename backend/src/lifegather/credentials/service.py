@@ -110,7 +110,7 @@ class PrivateSettings:
             )
 
     def set_theme(self, actor: Account, theme: str) -> None:
-        if theme not in {"system", "light", "dark"}:
+        if theme not in {"system", "light", "dark", "forest-dark"}:
             raise VaultError("Invalid appearance", 422)
         with Session(self.engine) as db, db.begin():
             db.execute(

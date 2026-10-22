@@ -9,6 +9,34 @@
 
 :root.dark {
   color-scheme: dark;
+  --background: #0b1220;
+  --foreground: #e6edf7;
+  --card: #111b2c;
+  --card-foreground: #e6edf7;
+  --popover: #111b2c;
+  --popover-foreground: #e6edf7;
+  --primary: #2dd4bf;
+  --primary-foreground: #04201d;
+  --secondary: #1b2a40;
+  --secondary-foreground: #c9d6ea;
+  --muted: #16223a;
+  --muted-foreground: #9fb0c8;
+  --border: #2a3b56;
+  --input: #2a3b56;
+  --ring: #5eead4;
+  --accent: #123a3d;
+  --accent-foreground: #ccfbf1;
+  --destructive: #ffb4a8;
+  --sidebar-surface: #0e1626;
+  --warning-surface: #3a2c0f;
+  --warning-foreground: #fcd98a;
+  --warning-border: #a07a2c;
+  --illustration-shadow: #00000059;
+}
+
+/* Forest dark: the original green palette, kept as a named choice. */
+:root.dark.forest {
+  color-scheme: dark;
   --background: #141d17;
   --foreground: #e1ebdd;
   --card: #1c2820;

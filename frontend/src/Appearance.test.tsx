@@ -5,7 +5,7 @@ import App from './App'
 
 afterEach(() => {
   vi.unstubAllGlobals()
-  document.documentElement.classList.remove('dark')
+  document.documentElement.classList.remove('dark', 'forest')
 })
 
 it('follows device changes when System is selected', async () => {
@@ -138,4 +138,41 @@ it('clears a user theme after sign-out and when another account is loaded', asyn
   await userEvent.click(screen.getByRole('button', { name: 'Sign out' }))
   await screen.findByRole('button', { name: 'Sign in' })
   expect(document.documentElement).not.toHaveClass('dark')
+})
+
+it('applies Forest dark as a dark palette and keeps standard Dark separate', async () => {
+  let appearance = 'forest-dark'
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (path: string, init?: RequestInit) => {
+      if (path === '/api/appearance' && init?.method === 'PUT') {
+        appearance = JSON.parse(init.body as string).theme
+        return { ok: true, status: 204 }
+      }
+      const body =
+        path === '/auth/session'
+          ? {
+              configured: false,
+              user: { id: 'alice', name: 'Alice', email: 'a@example.test' },
+              csrf_token: 'csrf',
+              appearance,
+            }
+          : path === '/api/settings'
+            ? { allow_external_ai: false, vault_configured: false }
+            : { items: [], next_cursor: null }
+      return { ok: true, json: async () => body }
+    }),
+  )
+  render(<App />)
+  await screen.findByText('Alice')
+  const root = document.documentElement
+  await waitFor(() => expect(root).toHaveClass('dark', 'forest'))
+  await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
+  expect(screen.getByLabelText('Color theme')).toHaveValue('forest-dark')
+  await userEvent.selectOptions(screen.getByLabelText('Color theme'), 'dark')
+  await userEvent.click(screen.getByRole('button', { name: 'Save appearance' }))
+  await waitFor(() => expect(root).not.toHaveClass('forest'))
+  expect(root).toHaveClass('dark')
+  await userEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+  await waitFor(() => expect(root).not.toHaveClass('dark'))
 })

@@ -86,3 +86,46 @@ def test_appearance_is_private_persistent_and_preserves_consent() -> None:
         assert client.get("/api/appearance").json() == {"theme": "system"}
         client.cookies.set("lifegather_session", alice.token)
         assert client.get("/api/appearance").json() == {"theme": "dark"}
+        assert (
+            client.put(
+                "/api/appearance", json={"theme": "forest-dark"}, headers=headers
+            ).status_code
+            == 204
+        )
+        assert client.get("/api/appearance").json() == {"theme": "forest-dark"}
+
+
+def test_forest_dark_migration_keeps_existing_dark_choices(tmp_path: Path) -> None:
+    from alembic import command
+    from alembic.config import Config
+    from sqlalchemy import text
+
+    import lifegather
+
+    store = AuthStore(tmp_path / "themes.sqlite3")
+    config = Config()
+    config.set_main_option(
+        "script_location", str(Path(lifegather.__file__).parent / "migrations")
+    )
+    with store.engine.begin() as connection:
+        config.attributes["connection"] = connection
+        command.upgrade(config, "0026_asset_types")
+    dark = store.login("dark", "dark@example.test", "Dark", now=100)
+    light = store.login("light", "light@example.test", "Light", now=100)
+    with store.engine.begin() as connection:
+        for user, theme in ((dark, "dark"), (light, "light")):
+            connection.execute(
+                text(
+                    "INSERT INTO user_settings(user_id,allow_external_ai,theme)"
+                    " VALUES (:id,0,:theme)"
+                ),
+                {"id": user.user.id, "theme": theme},
+            )
+    store.migrate()
+    settings = PrivateSettings(store.engine, None)
+    assert settings.theme(dark.user) == "forest-dark"
+    assert settings.theme(light.user) == "light"
+    with store.engine.begin() as connection:
+        config.attributes["connection"] = connection
+        command.downgrade(config, "0026_asset_types")
+    assert settings.theme(dark.user) == "dark"

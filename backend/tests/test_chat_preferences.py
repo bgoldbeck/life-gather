@@ -33,7 +33,7 @@ def test_chat_preference_migration_preserves_existing_settings(tmp_path: Path) -
     memory = MemoryService(store.engine)
     original = memory.ingest(actor, SourceInput(text="Synthetic preexisting memory"))
     store.migrate()
-    assert settings.theme(actor) == "dark"
+    assert settings.theme(actor) == "forest-dark"
     assert settings.preferences(actor) is True
     assert ChatPreferences(store.engine).get(actor).model == ""
     assert memory.get_source(actor, original.id).text == original.text
