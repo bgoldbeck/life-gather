@@ -149,7 +149,11 @@ def operator_snapshot(
     engine: Engine, destination: Path, transform: RowTransform | None = None
 ) -> dict[str, int]:
     """Consistent whole-database snapshot to a new protected file."""
-    descriptor = os.open(destination, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    descriptor = os.open(
+        destination,
+        os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0),
+        0o600,
+    )
     try:
         with os.fdopen(descriptor, "wb") as output, engine.connect() as connection:
             begin_snapshot(connection)

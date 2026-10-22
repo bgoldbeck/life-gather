@@ -5,6 +5,11 @@ from pathlib import Path
 
 from lifegather.storage.base import ObjectNotFound, StorageError, validate_key
 
+# Windows has no O_NOFOLLOW (symlinks are refused explicitly there) and needs
+# O_BINARY so the C runtime never translates line endings in stored bytes.
+NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
+BINARY = getattr(os, "O_BINARY", 0)
+
 
 class LocalStorage:
     def __init__(self, root: Path) -> None:
@@ -26,8 +31,12 @@ class LocalStorage:
             path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
             path = self._path(key)
             temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+            if not NOFOLLOW and temporary.is_symlink():
+                raise StorageError("Storage path is a symbolic link")
             descriptor = os.open(
-                temporary, os.O_CREAT | os.O_TRUNC | os.O_WRONLY | os.O_NOFOLLOW, 0o600
+                temporary,
+                os.O_CREAT | os.O_TRUNC | os.O_WRONLY | NOFOLLOW | BINARY,
+                0o600,
             )
             try:
                 with os.fdopen(descriptor, "wb") as output:
@@ -43,8 +52,10 @@ class LocalStorage:
 
     def get(self, key: str) -> bytes:
         path = self._path(key)
+        if not NOFOLLOW and path.is_symlink():
+            raise StorageError("Unable to read the stored file")
         try:
-            descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+            descriptor = os.open(path, os.O_RDONLY | NOFOLLOW | BINARY)
         except FileNotFoundError:
             raise ObjectNotFound("Stored file is missing") from None
         except OSError:

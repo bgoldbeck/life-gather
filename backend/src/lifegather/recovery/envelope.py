@@ -94,7 +94,11 @@ def decrypt_file(source: Path, destination: Path, password: bytes) -> None:
         ).decryptor()
         cipher.authenticate_additional_data(header)
         encrypted.seek(HEADER_BYTES)
-        descriptor = os.open(destination, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        descriptor = os.open(
+            destination,
+            os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0),
+            0o600,
+        )
         try:
             with os.fdopen(descriptor, "wb") as output:
                 remaining = size - HEADER_BYTES - TAG_BYTES

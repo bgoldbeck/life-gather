@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.82.1 — Release checks run on Windows again
+
+- Fix: the release script's backend verification (`uv run pytest`) failed on
+  Windows since private file storage arrived, because it opened stored files
+  with a symlink guard (`O_NOFOLLOW`) that Windows does not have. Stored files
+  now refuse symlinks explicitly on Windows, and every protected file the app
+  writes (stored originals, backups, recovery bundles, key files) is opened in
+  binary mode so Windows never rewrites line endings inside them.
+- The file-permission assertions in the storage test only run where POSIX
+  permissions exist. Linux and Docker behavior is unchanged.
+- No migration.
+
 ## 0.82.0 — Background scans from an outside scheduler
 
 The in-process scan loop stays the default; nothing changes unless you opt in.
