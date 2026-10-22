@@ -32,12 +32,9 @@ from lifegather.credentials.middleware import CredentialBodyLimit
 from lifegather.credentials.routes import private_router
 from lifegather.credentials.service import PrivateSettings, VaultError, read_keyring
 from lifegather.documents.routes import document_router
-from lifegather.documents.service import DocumentService
-from lifegather.mailboxes.attachments import GmailAttachmentHandler
-from lifegather.mailboxes.discovery import GmailDiscoveryHandler
+from lifegather.jobs import scan_service, scan_worker
 from lifegather.mailboxes.provider import GmailProvider
 from lifegather.mailboxes.routes import mailbox_router
-from lifegather.mailboxes.scan import GmailImportHandler
 from lifegather.maintenance.routes import maintenance_router
 from lifegather.mcp_api.tools import build_server
 from lifegather.mcp_api.transport import PrivateMCP
@@ -54,12 +51,9 @@ from lifegather.profiles.routes import profile_router
 from lifegather.purchases.routes import purchase_router
 from lifegather.reconciliation.queue_routes import review_router
 from lifegather.reconciliation.receipt_routes import receipt_router
-from lifegather.scans.registry import ScanRegistry
 from lifegather.scans.routes import scan_router
 from lifegather.scans.schedule_routes import schedule_router
-from lifegather.scans.schedules import ScheduleService
-from lifegather.scans.service import ScanService
-from lifegather.scans.worker import ScanWorker
+from lifegather.scans.tick_routes import tick_router
 from lifegather.search.routes import search_router
 from lifegather.startup import StartupError, run_startup_tasks, schema_current
 from lifegather.storage.settings import storage_from_settings
@@ -119,44 +113,28 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
             app.state.private_settings = PrivateSettings(
                 store.engine, keyring.active if keyring is not None else None
             )
-            app.state.scan_service = ScanService(
+            app.state.scan_service = scan_service(
                 store.engine,
-                ScanRegistry(
-                    [
-                        GmailImportHandler(
-                            store.engine,
-                            app.state.private_settings,
-                            app.state.gmail_provider,
-                        ),
-                        GmailAttachmentHandler(
-                            store.engine,
-                            app.state.private_settings,
-                            app.state.gmail_provider,
-                            DocumentService(store.engine, app.state.object_storage),
-                        ),
-                        GmailDiscoveryHandler(
-                            store.engine,
-                            app.state.private_settings,
-                            app.state.gmail_provider,
-                            {
-                                "openai": app.state.chat_provider,
-                                "anthropic": app.state.claude_provider,
-                                "google": app.state.google_provider,
-                            },
-                        ),
-                    ]
-                ),
+                app.state.private_settings,
+                app.state.gmail_provider,
+                app.state.object_storage,
+                {
+                    "openai": app.state.chat_provider,
+                    "anthropic": app.state.claude_provider,
+                    "google": app.state.google_provider,
+                },
             )
-            scheduler = ScheduleService(app.state.scan_service)
-            worker = asyncio.create_task(
-                ScanWorker(app.state.scan_service, scheduler.dispatch).serve()
-            )
-            retention = asyncio.create_task(retention_sweeps(store.engine))
+            app.state.scan_worker = scan_worker(app.state.scan_service)
+            app.state.tick_lock = asyncio.Lock()
+            tasks = []
+            if settings.background_mode == "inprocess":
+                tasks.append(asyncio.create_task(app.state.scan_worker.serve()))
+            tasks.append(asyncio.create_task(retention_sweeps(store.engine)))
             try:
                 async with mcp_server.session_manager.run():
                     yield
             finally:
-                for task in (worker, retention):
+                for task in tasks:
                     task.cancel()
                     with suppress(asyncio.CancelledError):
                         await task
@@ -199,6 +177,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(purchase_router())
     app.include_router(power_router())
     app.include_router(search_router())
+    app.include_router(tick_router(settings))
     app.add_middleware(CredentialBodyLimit)
     if settings.trusted_proxy_list:
         # Outermost, so rate limits and logs see the forwarded client and scheme.
@@ -250,7 +229,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
             method="unspecified" if external else method,
         ):
             response = await call_next(request)
-        if request.url.path.startswith(("/auth/", "/api/")):
+        if request.url.path.startswith(("/auth/", "/api/", "/internal/")):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Referrer-Policy"] = "no-referrer"
         elif settings.static_dir is not None and path not in {

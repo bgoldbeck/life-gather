@@ -56,7 +56,9 @@ a timezone such as `America/Los_Angeles`, daily/weekly frequency and local time,
 the preceding 1–30 days, search and message cap. The app must be running; your
 browser can be closed and you can be signed out. Work is queued when the worker
 checks due schedules; a busy single worker can delay dispatch. There is no
-email-arrival trigger, paid external scheduler or additional service.
+email-arrival trigger, paid external scheduler or additional service. Hosted or
+cron-driven installations can instead run schedules from outside the app; see
+[background scans from an outside scheduler](EXTERNAL_BACKGROUND.md).
 
 Five schedules per user are supported; edit an existing schedule to reuse a slot.
 Manual and scheduled runs share the 20-runs/day/user cap and one active run per

@@ -79,3 +79,9 @@ LIFEGATHER_TRUSTED_PROXIES=172.18.0.0/16
 Entries are IP addresses or CIDR networks, comma-separated; `*` is not accepted.
 Only requests whose direct peer is listed may set those headers. Secure cookies
 still follow `LIFEGATHER_PUBLIC_URL`, which must be the public HTTPS origin.
+
+## Background scans on sleeping containers
+
+Platforms that stop idle containers also stop the in-process scan loop. Set
+`LIFEGATHER_BACKGROUND_MODE=external` and tick from a scheduler; see
+[background scans from an outside scheduler](EXTERNAL_BACKGROUND.md).

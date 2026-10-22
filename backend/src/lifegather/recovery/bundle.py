@@ -105,7 +105,9 @@ class _Verified:
 
 @contextmanager
 def _exclusive_file(path: Path) -> Iterator[BinaryIO]:
-    descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    descriptor = os.open(
+        path, os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0), 0o600
+    )
     try:
         with os.fdopen(descriptor, "wb") as output:
             yield output
