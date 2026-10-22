@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.70.0 — AI price, currency and date suggestions for receipts
+
+- On a confirmed receipt's purchased line, **Purchase details → Suggest with
+  AI…** asks your selected OpenAI, Claude or Gemini connection to suggest the
+  line total, currency and purchase date. It sends only that receipt's saved
+  text, needs external-AI permission and uses one of the 20 daily AI requests.
+- Every suggestion is checked against the receipt before you see it: each
+  value must be printed inside an exact quoted passage, and the total must be
+  on that item's own line. Anything else is dropped. Doubts are listed instead
+  of guessed: a bare `$` (USD, CAD or AUD), no printed currency, `10/11/2026`
+  style dates that read either way, several amounts or dates, and dates next to
+  delivery, shipping or return wording.
+- Suggestions only fill the editable draft. Saving is still your explicit,
+  revisioned decision. A new "I checked the currency and date reading" option
+  (set automatically when you copy a suggestion) lets a revision use printed
+  values such as `$349.00`, `€349,00` or `Oct 11, 2026`; the server re-checks
+  them against the passage and refuses a currency that contradicts it. The
+  strict `Line total: USD 49.90` / `Purchase date:` rule is unchanged.
+- Migration `0029_receipt_detail_basis` records each revision's basis
+  (`labeled` for all existing rows, or `reviewed`). Downgrade is refused while
+  reviewed revisions exist. Recovery bundles at the new head are accepted.
+- New authenticated `POST /api/receipts/details/suggest`; MCP
+  `receipt_details_save` accepts the optional `basis`. No new dependency.
+  Live provider quality is not verified by the synthetic tests.
+
 ## 0.69.0 — Ask about photos and documents
 
 - The AI assistant can read one attached saved photo or document, answer

@@ -54,6 +54,9 @@ class ReceiptDetail(Base):
             "AND currency IN ('USD','EUR','GBP','CAD','AUD','JPY'))"
         ),
         CheckConstraint("(total_minor IS NULL) = (currency IS NULL)"),
+        CheckConstraint(
+            "basis IN ('labeled','reviewed')", name="ck_receipt_details_basis"
+        ),
     )
     id: Mapped[str] = mapped_column(primary_key=True)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
@@ -67,6 +70,7 @@ class ReceiptDetail(Base):
     purchase_date: Mapped[str | None]
     date_quote: Mapped[str | None]
     reason: Mapped[str]
+    basis: Mapped[str] = mapped_column(default="labeled", server_default="labeled")
     request_id: Mapped[str]
     fingerprint: Mapped[str]
     recorded_at: Mapped[int]

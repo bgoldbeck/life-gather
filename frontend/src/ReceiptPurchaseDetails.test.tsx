@@ -259,3 +259,104 @@ it('preserves an explicit non-USD currency in suggestions and saved history', as
   await screen.findByText('Line total: EUR 49.90 · Purchase date: 2026-10-18')
   expect(saves[0]).toMatchObject({ currency: 'EUR', line_total: '49.90' })
 })
+it('copies a grounded AI suggestion with its doubts into a reviewed draft', async () => {
+  const user = userEvent.setup()
+  const posts: { url: string; body: Record<string, unknown> }[] = []
+  const line = 'Acme Drill Qty: 2   $349.00'
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'POST' && init.body)
+        posts.push({ url, body: JSON.parse(String(init.body)) })
+      if (url.startsWith('/api/credentials'))
+        return new Response(
+          JSON.stringify({
+            items: [
+              { id: 'ai-1', kind: 'ai', provider: 'openai', label: 'Mine' },
+            ],
+          }),
+        )
+      if (url === '/api/settings')
+        return new Response(JSON.stringify({ allow_external_ai: true }))
+      if (url === '/api/chat/preferences')
+        return new Response(
+          JSON.stringify({ credential_id: 'ai-1', model: 'fixture-model' }),
+        )
+      if (url.endsWith('/suggest'))
+        return new Response(
+          JSON.stringify({
+            provider: 'openai',
+            model: 'fixture-model',
+            suggestion: {
+              line_total: '349.00',
+              currency: null,
+              money_quote: line,
+              purchase_date: '2026-10-11',
+              date_quote: 'Date: 10/11/2026',
+            },
+            ambiguities: [
+              {
+                field: 'currency',
+                message:
+                  'A bare $ can mean USD, CAD or AUD; confirm the currency',
+              },
+            ],
+            notes: 'Bare dollar sign.',
+          }),
+        )
+      if (url.endsWith('/save'))
+        return new Response(
+          JSON.stringify({
+            ...revision,
+            line_total: '349.00',
+            total_minor: 34900,
+            money_quote: line,
+            purchase_date: '2026-10-11',
+            date_quote: 'Date: 10/11/2026',
+            basis: 'reviewed',
+          }),
+        )
+      return new Response(JSON.stringify(empty))
+    }),
+  )
+  render(<ReceiptPurchaseDetails id="receipt" index={0} csrfToken="csrf" />)
+  await user.click(
+    await screen.findByRole('button', { name: 'Suggest with AI…' }),
+  )
+  await user.click(
+    await screen.findByRole('button', { name: 'Get AI suggestions' }),
+  )
+  expect(posts.at(-1)).toEqual({
+    url: '/api/receipts/details/suggest',
+    body: {
+      receipt_id: 'receipt',
+      index: 0,
+      credential_id: 'ai-1',
+      model: 'fixture-model',
+    },
+  })
+  expect(
+    await screen.findByText(/A bare \$ can mean USD, CAD or AUD/),
+  ).toBeVisible()
+  await user.click(
+    screen.getByRole('button', { name: 'Copy AI suggestion into draft' }),
+  )
+  expect(screen.getByLabelText('Unknown currency line total 1')).toHaveValue(
+    '349.00',
+  )
+  const save = screen.getByRole('button', { name: 'Save purchase details' })
+  // The currency stays unknown until a person chooses it.
+  expect(save).toBeDisabled()
+  await user.selectOptions(screen.getByLabelText('Currency 1'), 'CAD')
+  await user.click(save)
+  await screen.findByText(/reviewed reading/)
+  expect(posts.at(-1)?.body).toEqual(
+    expect.objectContaining({
+      currency: 'CAD',
+      line_total: '349.00',
+      money_quote: line,
+      purchase_date: '2026-10-11',
+      basis: 'reviewed',
+    }),
+  )
+})

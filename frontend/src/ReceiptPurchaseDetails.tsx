@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ChatRequestError } from './chatRequest'
+import { ReceiptDetailSuggestions } from './ReceiptDetailSuggestions'
 type Revision = {
   id: string
   revision: number
@@ -11,6 +12,7 @@ type Revision = {
   money_quote: string | null
   date_quote: string | null
   reason: string
+  basis?: 'labeled' | 'reviewed'
   recorded_at: number
 }
 type Page = {
@@ -44,6 +46,7 @@ export function ReceiptPurchaseDetails({
   const [date, setDate] = useState('')
   const [dateQuote, setDateQuote] = useState('')
   const [reason, setReason] = useState('')
+  const [reviewed, setReviewed] = useState(false)
   const [busy, setBusy] = useState(false)
   const [retry, setRetry] = useState(false)
   const [error, setError] = useState('')
@@ -64,7 +67,7 @@ export function ReceiptPurchaseDetails({
       })
       if (!response.ok)
         throw new ChatRequestError(
-          'Unable to save purchase details. Use exact labeled source passages; reload if this note or its details changed.',
+          'Unable to save purchase details. Use exact source passages that print the total and date; reload if this note or its details changed.',
           response.status,
         )
       return response.json()
@@ -79,6 +82,7 @@ export function ReceiptPurchaseDetails({
     setDate(row.current?.purchase_date ?? '')
     setDateQuote(row.current?.date_quote ?? '')
     setReason('')
+    setReviewed(false)
   }, [])
   useEffect(() => {
     const controller = new AbortController()
@@ -134,6 +138,7 @@ export function ReceiptPurchaseDetails({
       purchase_date: date || null,
       date_quote: dateQuote || null,
       reason,
+      basis: reviewed ? 'reviewed' : 'labeled',
     }
     pending.current = body
     try {
@@ -177,7 +182,9 @@ export function ReceiptPurchaseDetails({
         all {page?.quantity ?? 'selected'} units together; it is never
         multiplied by quantity. Explicit USD/EUR/GBP/CAD/AUD/JPY totals and
         YYYY-MM-DD purchase dates are supported. JPY uses whole yen; the others
-        use two decimal places. No currency conversion is performed. Leave
+        use two decimal places. Printed values such as $349.00 or 10/18/2026 can
+        be saved once you confirm their currency and date reading, for example
+        from an AI suggestion. No currency conversion is performed. Leave
         unknown values blank.
       </p>
       {error && <p role="alert">{error}</p>}
@@ -215,6 +222,7 @@ export function ReceiptPurchaseDetails({
                     setDate(suggested.purchase_date ?? '')
                     setDateQuote(suggested.date_quote ?? '')
                     setReason('Reviewed source suggestions')
+                    setReviewed(false)
                     setNotice(
                       'Suggestions copied into the draft. Nothing has been saved.',
                     )
@@ -224,6 +232,24 @@ export function ReceiptPurchaseDetails({
                 </Button>
               </>
             )}
+          <ReceiptDetailSuggestions
+            id={id}
+            index={index}
+            csrfToken={csrfToken}
+            disabled={locked}
+            onUse={(suggested) => {
+              setTotal(suggested.line_total ?? '')
+              setCurrency(suggested.currency ?? '')
+              setMoneyQuote(suggested.money_quote ?? '')
+              setDate(suggested.purchase_date ?? '')
+              setDateQuote(suggested.date_quote ?? '')
+              setReason('Checked AI suggestion against the receipt')
+              setReviewed(true)
+              setNotice(
+                'AI suggestion copied into the draft. Check the currency and date reading, then save. Nothing has been saved.',
+              )
+            }}
+          />
           <fieldset disabled={locked}>
             <label>
               Currency
@@ -232,6 +258,7 @@ export function ReceiptPurchaseDetails({
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
               >
+                {!currency && <option value="">Choose currency</option>}
                 {['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY'].map((code) => (
                   <option key={code} value={code}>
                     {code}
@@ -240,9 +267,9 @@ export function ReceiptPurchaseDetails({
               </select>
             </label>
             <label>
-              {currency} line total
+              {currency || 'Unknown currency'} line total
               <input
-                aria-label={`${currency} line total ${index + 1}`}
+                aria-label={`${currency || 'Unknown currency'} line total ${index + 1}`}
                 value={total}
                 inputMode="decimal"
                 maxLength={14}
@@ -281,6 +308,16 @@ export function ReceiptPurchaseDetails({
               />
             </label>
             <label>
+              <input
+                type="checkbox"
+                checked={reviewed}
+                onChange={(e) => setReviewed(e.target.checked)}
+              />{' '}
+              I checked the currency and date reading of the printed values
+              (allows passages such as $349.00 or 10/18/2026 instead of labeled
+              ones)
+            </label>
+            <label>
               Reason for this revision
               <input
                 aria-label={`Revision reason ${index + 1}`}
@@ -291,7 +328,11 @@ export function ReceiptPurchaseDetails({
             </label>
           </fieldset>
           <Button
-            disabled={busy || !page.can_edit || (!retry && !reason.trim())}
+            disabled={
+              busy ||
+              !page.can_edit ||
+              (!retry && (!reason.trim() || (!!total && !currency)))
+            }
             onClick={() => void save()}
           >
             {retry ? 'Retry same purchase details' : 'Save purchase details'}
@@ -317,6 +358,7 @@ export function ReceiptPurchaseDetails({
                     ? 'unknown'
                     : `${item.currency} ${item.line_total}`}{' '}
                   · Purchase date: {item.purchase_date ?? 'unknown'}
+                  {item.basis === 'reviewed' && ' · reviewed reading'}
                 </p>
                 {item.money_quote && (
                   <blockquote>{item.money_quote}</blockquote>

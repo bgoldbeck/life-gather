@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from lifegather.auth.store import Account
 from lifegather.memory.notes import NoteConflict
 from lifegather.memory.service import MemoryError, fingerprint
+from lifegather.reconciliation.printed_values import date_problem, money_problem
 from lifegather.reconciliation.receipt_models import ReceiptDetail, ReceiptProposal
 from lifegather.reconciliation.receipts import (
     ReceiptChoice,
@@ -59,6 +60,10 @@ class DetailSave(ReceiptRead):
     )
     date_quote: str | None = Field(default=None, min_length=1, max_length=200)
     reason: str = Field(min_length=1, max_length=300)
+    # labeled: strict "Line total: CODE amount" / "Purchase date: YYYY-MM-DD"
+    # passages. reviewed: a person confirmed the currency and date reading of
+    # values printed in the passage, e.g. an AI suggestion for "$349.00".
+    basis: Literal["labeled", "reviewed"] = "labeled"
 
     @model_validator(mode="after")
     def exact_money(self) -> Self:
@@ -115,6 +120,7 @@ class PurchaseDetails:
             "purchase_date": row.purchase_date,
             "date_quote": row.date_quote,
             "reason": row.reason,
+            "basis": row.basis,
             "recorded_at": row.recorded_at,
         }
 
@@ -197,6 +203,8 @@ class PurchaseDetails:
         # Preserve old USD fingerprints for lost-response replay.
         if data.currency == "USD":
             payload.pop("currency")
+        if data.basis == "labeled":
+            payload.pop("basis")
         signature = fingerprint(payload)
         with self.receipts.memory._write() as db:
             receipt, choice = self.context(db, actor, data.receipt_id, data.index)
@@ -231,10 +239,14 @@ class PurchaseDetails:
                     raise MemoryError(
                         "Quote the item and its line total exactly from the source"
                     )
-                amounts = MONEY_PATTERN.findall(quote)
-                if [(code.upper(), amount) for code, amount in amounts] != [
-                    (data.currency, data.line_total)
-                ]:
+                if data.basis == "reviewed":
+                    problem = money_problem(quote, data.line_total, data.currency)
+                    if problem:
+                        raise MemoryError(problem)
+                elif [
+                    (code.upper(), amount)
+                    for code, amount in MONEY_PATTERN.findall(quote)
+                ] != [(data.currency, data.line_total)]:
                     raise MemoryError(
                         "Use one exact Line total: CODE amount passage; "
                         "symbols alone are ambiguous"
@@ -251,12 +263,22 @@ class PurchaseDetails:
                         "Purchase date must be a real YYYY-MM-DD date"
                     ) from None
                 quote = data.date_quote or ""
+                if data.basis == "reviewed":
+                    if not quote or quote not in text:
+                        raise MemoryError(
+                            "Quote the purchase date exactly from the source"
+                        )
+                    problem = date_problem(quote, data.purchase_date)
+                    if problem:
+                        raise MemoryError(problem)
                 dates = re.findall(
                     r"\bpurchase date\s*:?\s*([0-9]{4}-[0-9]{2}-[0-9]{2})(?![0-9])",
                     quote,
                     re.I,
                 )
-                if not quote or quote not in text or dates != [data.purchase_date]:
+                if data.basis == "labeled" and (
+                    not quote or quote not in text or dates != [data.purchase_date]
+                ):
                     raise MemoryError("Use an exact Purchase date: YYYY-MM-DD passage")
             if head is None and total is None and data.purchase_date is None:
                 raise MemoryError("Add a sourced total or purchase date first")
@@ -273,6 +295,7 @@ class PurchaseDetails:
                 purchase_date=data.purchase_date,
                 date_quote=data.date_quote,
                 reason=data.reason,
+                basis=data.basis,
                 request_id=data.request_id,
                 fingerprint=signature,
                 recorded_at=self.receipts.memory.clock(),

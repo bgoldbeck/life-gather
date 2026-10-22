@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 from stored_files import files
 from test_mcp_http import rpc, signed_headers
@@ -490,13 +490,31 @@ def test_currency_migration_preserves_usd_history_and_legacy_replay(
     receipt = accepted(auth.engine, actor)
     service = PurchaseDetails(auth.engine)
     data = body(receipt)
-    saved = service.save(actor, data)
-    old_payload = data.model_dump(exclude={"currency"})
-    with Session(auth.engine) as db:
-        stored = db.get(ReceiptDetail, saved["id"])
-        assert stored is not None and stored.fingerprint == fingerprint(old_payload)
+    # Written as the 0015 release did: no currency or basis in the fingerprint.
+    old_payload = data.model_dump(exclude={"currency", "basis"})
+    with auth.engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO receipt_details (id,user_id,receipt_id,source_id,"
+                "line_index,revision,total_minor,currency,money_quote,purchase_date,"
+                "date_quote,reason,request_id,fingerprint,recorded_at) VALUES "
+                "('legacy-row',:user,:receipt,:source,0,1,4990,'USD',:money,"
+                "'2026-10-18',:when,:reason,'detail',:print,5)"
+            ),
+            {
+                "user": actor.id,
+                "receipt": receipt["id"],
+                "source": receipt["source_id"],
+                "money": MONEY,
+                "when": WHEN,
+                "reason": data.reason,
+                "print": fingerprint(old_payload),
+            },
+        )
     auth.migrate()
-    assert service.save(actor, data) == saved
+    saved = service.save(actor, data)
+    assert saved["id"] == "legacy-row" and saved["basis"] == "labeled"
+    assert saved["currency"] == "USD" and saved["total_minor"] == 4990
     page = service.get(actor, DetailRead(receipt_id=receipt["id"], index=0))
     assert page["items"] == [saved]
     auth.engine.dispose()
