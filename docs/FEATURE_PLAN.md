@@ -181,7 +181,7 @@ behaviour is chosen only by settings; Cloudflare-specific code stays in
 once the PostgreSQL migration merges. Public launch (5.4 onward going live) waits
 for the Phase 3 acceptance gate.
 
-- **5.1 Portable container.** Image includes the `s3` extra and Postgres driver;
+- **5.1 Portable container** (done in 0.78.0, see [portable container](PORTABLE_CONTAINER.md)). Image includes the `s3` extra and Postgres driver;
   vault key and settings accepted from environment variables with key IDs for
   rotation; migrations and startup file moves run as a lock-guarded one-shot job;
   separate liveness/readiness checks; trusted-proxy handling for scheme and

@@ -9,7 +9,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from mcp.server.transport_security import TransportSecuritySettings
+from sqlalchemy.exc import SQLAlchemyError
 from starlette.routing import Route
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from lifegather.assets.routes import asset_router
 from lifegather.assets.type_routes import asset_type_router
@@ -28,10 +30,9 @@ from lifegather.chat.routes import chat_router
 from lifegather.config import Settings
 from lifegather.credentials.middleware import CredentialBodyLimit
 from lifegather.credentials.routes import private_router
-from lifegather.credentials.service import PrivateSettings, VaultError, read_key
+from lifegather.credentials.service import PrivateSettings, VaultError, read_keyring
 from lifegather.documents.routes import document_router
 from lifegather.documents.service import DocumentService
-from lifegather.legacy_import import import_on_start
 from lifegather.mailboxes.attachments import GmailAttachmentHandler
 from lifegather.mailboxes.discovery import GmailDiscoveryHandler
 from lifegather.mailboxes.provider import GmailProvider
@@ -60,7 +61,7 @@ from lifegather.scans.schedules import ScheduleService
 from lifegather.scans.service import ScanService
 from lifegather.scans.worker import ScanWorker
 from lifegather.search.routes import search_router
-from lifegather.storage.originals import move_inline_originals
+from lifegather.startup import StartupError, run_startup_tasks, schema_current
 from lifegather.storage.settings import storage_from_settings
 from lifegather.version import __version__, build_info
 
@@ -88,14 +89,21 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings.data_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        keyring = read_keyring(settings)
         store = AuthStore(
             settings.database(), test_login_enabled=settings.test_login_enabled
         )
-        import_on_start(settings.data_dir, store.engine)
-        store.migrate()
-        app.state.auth_store = store
         app.state.object_storage = storage_from_settings(settings)
-        move_inline_originals(store.engine, app.state.object_storage)
+        if settings.migrate_on_start:
+            run_startup_tasks(
+                store, app.state.object_storage, settings.data_dir, keyring
+            )
+        elif not schema_current(store.engine):
+            store.engine.dispose()
+            raise StartupError(
+                "The database needs upgrading: run python -m lifegather.migrate"
+            )
+        app.state.auth_store = store
         sender = mail_sender
         if sender is None and settings.mail_enabled:
             sender = SmtpSender(
@@ -109,7 +117,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
         app.state.email_auth = EmailAuth(store, sender, settings.public_url)
         try:
             app.state.private_settings = PrivateSettings(
-                store.engine, read_key(settings.vault_key_file)
+                store.engine, keyring.active if keyring is not None else None
             )
             app.state.scan_service = ScanService(
                 store.engine,
@@ -192,6 +200,12 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(power_router())
     app.include_router(search_router())
     app.add_middleware(CredentialBodyLimit)
+    if settings.trusted_proxy_list:
+        # Outermost, so rate limits and logs see the forwarded client and scheme.
+        # The image runs uvicorn with --no-proxy-headers; only listed peers count.
+        app.add_middleware(
+            ProxyHeadersMiddleware, trusted_hosts=settings.trusted_proxy_list
+        )
 
     @app.exception_handler(MemoryError)
     async def memory_error(request: Request, error: MemoryError) -> JSONResponse:
@@ -239,7 +253,11 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
         if request.url.path.startswith(("/auth/", "/api/")):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Referrer-Policy"] = "no-referrer"
-        elif settings.static_dir is not None and path not in {"/mcp", "/health"}:
+        elif settings.static_dir is not None and path not in {
+            "/mcp",
+            "/health",
+            "/health/ready",
+        }:
             hashed_asset = re.fullmatch(
                 r"/assets/[^/]+-[A-Za-z0-9_-]{8,}\."
                 r"(?:js|css|woff2?|ttf|otf|png|jpe?g|gif|svg|webp|avif|ico)",
@@ -263,6 +281,20 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     async def health() -> dict[str, str]:
         """Report process liveness without exposing account or provider details."""
         return {"status": "ok"}
+
+    @app.get("/health/ready")
+    def ready() -> JSONResponse:
+        """Ready when startup finished and the database answers at schema head."""
+        store = getattr(app.state, "auth_store", None)
+        try:
+            ok = store is not None and schema_current(store.engine)
+        except SQLAlchemyError:
+            ok = False
+        return JSONResponse(
+            {"status": "ready" if ok else "not_ready"},
+            status_code=200 if ok else 503,
+            headers={"Cache-Control": "no-store"},
+        )
 
     if settings.static_dir is not None:
         app.mount("/", StaticFiles(directory=settings.static_dir, html=True), name="ui")

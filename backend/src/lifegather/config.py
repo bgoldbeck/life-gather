@@ -1,3 +1,4 @@
+import ipaddress
 from pathlib import Path
 from typing import Literal, Self
 from urllib.parse import urlsplit
@@ -30,6 +31,11 @@ class Settings(BaseSettings):
     test_login_enabled: bool = False
     google_client_secret: SecretStr = SecretStr("")
     vault_key_file: Path | None = None
+    # "id:base64key[,id:base64key...]"; the first key is active, others previous.
+    vault_keys: SecretStr = SecretStr("")
+    # Comma-separated IP addresses or CIDR networks allowed to set X-Forwarded-*.
+    trusted_proxies: str = ""
+    migrate_on_start: bool = True
     configuration_file: Path | None = None
     smtp_host: str = ""
     smtp_port: int = Field(default=587, ge=1, le=65535)
@@ -45,6 +51,25 @@ class Settings(BaseSettings):
     s3_region: str = ""
     s3_access_key_id: str = ""
     s3_secret_access_key: SecretStr = SecretStr("")
+
+    @property
+    def trusted_proxy_list(self) -> list[str]:
+        return [
+            part.strip() for part in self.trusted_proxies.split(",") if part.strip()
+        ]
+
+    @field_validator("trusted_proxies")
+    @classmethod
+    def valid_proxies(cls, value: str) -> str:
+        for part in value.split(","):
+            if part.strip():
+                try:
+                    ipaddress.ip_network(part.strip(), strict=False)
+                except ValueError:
+                    raise ValueError(
+                        "Trusted proxies must be IP addresses or CIDR networks"
+                    ) from None
+        return value
 
     @property
     def files_dir(self) -> Path:
