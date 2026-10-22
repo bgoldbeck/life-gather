@@ -355,7 +355,9 @@ export function PhotosPanel({
       )}
       {error && <p role="alert">{error}</p>}
       {status && <p role="status">{status}</p>}
-      {!items.length && <p>No photos saved here yet.</p>}
+      {!items.length && (
+        <p className="empty-state">No photos saved here yet.</p>
+      )}
       <ul className="photo-grid">
         {items.map((row) => (
           <li key={row.id}>

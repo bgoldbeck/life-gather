@@ -438,7 +438,7 @@ export function AssetsPanel({
       {error && <p role="alert">{error}</p>}
       {busy && <p role="status">Loading records…</p>}
       {!busy && !items.length && (
-        <p>
+        <p className="empty-state">
           No assets found. Use Add asset, or confirm a supported proposal in
           Chat.
         </p>

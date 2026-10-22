@@ -279,7 +279,7 @@ export function MemoriesPanel({
       {error && <p role="alert">{error}</p>}
       {status && <p role="status">{status}</p>}
       {!busy && !items.length && !error && (
-        <p>
+        <p className="empty-state">
           No saved evidence matches this view. Save a note or review text from a
           photo or PDF.
         </p>

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.63.1 — Workspace layout polish
+
+- Workspace pages now sit on clearly bordered surfaces: Assets, Review,
+  Maintenance, Memories, Graph, Documents, Photos and Profiles each render as one
+  card, and Settings sections share one aligned column with even gaps.
+- Page headings and intro text use one consistent size and muted style; empty
+  lists show a dashed, centred empty state instead of stray text.
+- Less dead space: compact navigation rows (the full list fits without
+  scrolling), a shorter top bar, tighter page padding and 14px body text.
+- The assistant dock has its own surface with a centred empty prompt; resize
+  handles no longer draw a second grey bar beside panel borders and still
+  highlight on hover and keyboard focus.
+- Theme-agnostic: only existing color tokens are used, so light and dark themes
+  inherit the changes. No API, data, migration or dependency change.
+
 ## 0.63.0 — AI assistant asset types and typed fields
 
 - The AI assistant can list your asset types, assign a current type when you name

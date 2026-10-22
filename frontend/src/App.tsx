@@ -251,7 +251,7 @@ export function Workspace({
           userId={userId}
           expandSignal={expandAssistant}
           page={
-            <main id="main-content" className="main-content">
+            <main id="main-content" className="main-content" data-view={view}>
               {view === 'Settings' ? (
                 <>
                   <PowerCenter

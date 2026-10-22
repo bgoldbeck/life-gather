@@ -282,7 +282,7 @@ function MaintenancePage({
       {error && <p role="alert">{error}</p>}
       {loading && <p role="status">Loading maintenance tasks…</p>}
       {!loading && !page?.items.length && !error && (
-        <p>No maintenance tasks in this view.</p>
+        <p className="empty-state">No maintenance tasks in this view.</p>
       )}
       <ul className="maintenance-tasks">
         {page?.items.map((task) => (
