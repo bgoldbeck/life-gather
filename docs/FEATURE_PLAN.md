@@ -85,7 +85,7 @@ screens or new domain subsystems.
 - Add AI price/currency/date suggestions to receipt intake using exact-money
   services, source quotes and ambiguity handling. This is purchase tracking, not
   a payment allocation or accounting ledger.
-  v0.69.0 adds [AI purchase-detail suggestions](MULTI_ITEM_RECEIPTS.md#ai-purchase-detail-suggestions-v0690)
+  v0.70.0 adds [AI purchase-detail suggestions](MULTI_ITEM_RECEIPTS.md#ai-purchase-detail-suggestions-v0700)
   grounded in exact printed passages, with ambiguities flagged.
 - Start existing Gmail purchase-discovery scans conversationally with explicit
   mailbox/time/purpose scope. Add bounded private attachment intake as a separate

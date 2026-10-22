@@ -102,7 +102,7 @@ restore. No new dependency, live ingestion, provider call or installation restar
 
 The purchase-detail reader offers exact USD line totals from the reviewed item’s own printed line and a uniquely labeled YYYY-MM-DD purchase date. Use source suggestions copies these into an editable draft; review and save explicitly. Ambiguous/multiple dates, invalid dates, other currencies, multiline item quotes and non-labeled prices remain unknown. No AI call, financial arithmetic or automatic write occurs. Current-source and original-file availability checks still apply.
 
-## AI purchase-detail suggestions (v0.69.0)
+## AI purchase-detail suggestions (v0.70.0)
 
 Under a purchased line's purchase details, choose **Suggest with AI…**, pick an
 owned AI connection and model (your chat choice is preselected) and press
