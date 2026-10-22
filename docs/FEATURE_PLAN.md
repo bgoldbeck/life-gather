@@ -161,8 +161,9 @@ approved palette references, accessibility and independently dockable panels.
 - Progress: v0.72.0 delivers the first [consistency pass](UI_CONSISTENCY.md):
   shared form controls, keyboard focus ring, alert/status messages, stated /
   inferred / unknown badges, page cards for Scans and Purchases and a roomier phone
-  top bar. Remaining: older internal forms (asset detail, chat proposal cards)
-  and graph controls. Docking moved to drag-to-dock in v0.71.0.
+  top bar. v0.79.0 finishes the second pass: asset details, the assistant's
+  proposal and evidence cards, graph controls and the Assets search row use the
+  same shared styles. Docking moved to drag-to-dock in v0.71.0.
 
 Acceptance: review representative populated and empty screens on desktop and 390px
 width in Light and Dark, test keyboard interaction and legibility, and rerun

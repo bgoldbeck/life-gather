@@ -30,6 +30,7 @@ export function GraphCanvas({
       <div className="graph-tools">
         <Button
           variant="outline"
+          size="icon"
           onClick={() => setZoom((z) => Math.min(2, z + 0.25))}
           disabled={zoom >= 2}
           aria-label="Zoom in"
@@ -38,6 +39,7 @@ export function GraphCanvas({
         </Button>
         <Button
           variant="outline"
+          size="icon"
           onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
           disabled={zoom <= 0.5}
           aria-label="Zoom out"

@@ -293,44 +293,46 @@ export function EvidencePanel({
             current unit mappings.
           </p>
         )}
-      {source.asset_proposal_id && onViewProposal && (
-        <Button
-          variant="outline"
-          disabled={saving}
-          onClick={() => onViewProposal(source.asset_proposal_id!)}
-        >
-          View asset proposal
-        </Button>
-      )}
-      {!source.asset_proposal_id && source.note?.is_current && onSuggest && (
-        <Button
-          variant="outline"
-          disabled={saving || opening || editing}
-          onClick={onSuggest}
-        >
-          Suggest an asset from this note
-        </Button>
-      )}
-      {source.receipt_proposal_id && onViewReceipt && (
-        <Button
-          variant="outline"
-          disabled={saving}
-          onClick={() => onViewReceipt(source.receipt_proposal_id!)}
-        >
-          View receipt review
-        </Button>
-      )}
-      {source.note?.is_current &&
-        onSuggestReceipt &&
-        !source.receipt_proposal_id && (
+      <div className="action-row">
+        {source.asset_proposal_id && onViewProposal && (
           <Button
             variant="outline"
-            disabled={opening || saving}
-            onClick={onSuggestReceipt}
+            disabled={saving}
+            onClick={() => onViewProposal(source.asset_proposal_id!)}
           >
-            Review multiple items from this note
+            View asset proposal
           </Button>
         )}
+        {!source.asset_proposal_id && source.note?.is_current && onSuggest && (
+          <Button
+            variant="outline"
+            disabled={saving || opening || editing}
+            onClick={onSuggest}
+          >
+            Suggest an asset from this note
+          </Button>
+        )}
+        {source.receipt_proposal_id && onViewReceipt && (
+          <Button
+            variant="outline"
+            disabled={saving}
+            onClick={() => onViewReceipt(source.receipt_proposal_id!)}
+          >
+            View receipt review
+          </Button>
+        )}
+        {source.note?.is_current &&
+          onSuggestReceipt &&
+          !source.receipt_proposal_id && (
+            <Button
+              variant="outline"
+              disabled={opening || saving}
+              onClick={onSuggestReceipt}
+            >
+              Review multiple items from this note
+            </Button>
+          )}
+      </div>
       {nextOffset !== null && (
         <Button
           disabled={opening || saving}

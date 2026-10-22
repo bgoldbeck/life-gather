@@ -5,7 +5,7 @@ language. This page records the shared conventions so new panels match.
 
 ## Conventions
 
-Status: delivered in 0.72.0.
+Status: delivered in 0.72.0; second pass in 0.79.0.
 
 - **Form controls.** Text inputs, selects, textareas and file pickers inside a page
   share one height, border, radius, padding and focus ring. Checkbox and radio
@@ -20,8 +20,19 @@ Status: delivered in 0.72.0.
   other panels; section headings use one size scale.
 - **Rows of actions.** Adjacent buttons and filter controls keep an even gap
   instead of touching; buttons in stacked forms keep their natural width.
+- **Assistant panel.** The docked assistant uses the same field, checkbox and
+  message styles as pages, so proposal, receipt and note-correction cards match
+  the forms they lead to. The compact composer keeps its docked layout.
+- **Buttons beside fields.** In an `.action-row` that holds a field, buttons and
+  checkbox labels match the field's height so the row lines up (Assets search,
+  graph focus controls). An empty `.action-row` takes no space.
+- **Asset details.** The detail card is an evenly spaced column; its evidence and
+  graph links share one row, and section headings follow the page scale.
 - **Narrow screens.** At 390px the top bar keeps room for search, and nothing
   scrolls sideways.
+
+Panel stylesheets set only layout (width, grid placement), never their own
+control borders, padding or focus rings.
 
 Use `<FactStatus status={...} />` for a statement's status, the `.action-row`
 class for a row of related buttons or filters, and `role="alert"` /
