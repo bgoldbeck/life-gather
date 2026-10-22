@@ -14,6 +14,9 @@ from lifegather.config import Settings
 READ_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 GMAIL_URL = "https://gmail.googleapis.com/gmail/v1/users/me"
+RESPONSE_LIMIT = 524288
+# Base64url JSON for one bounded attachment (4 MiB of bytes) plus envelope.
+ATTACHMENT_RESPONSE_LIMIT = 6 * 1024 * 1024
 
 
 class MailboxFailure(ValueError):
@@ -73,12 +76,24 @@ class GmailProvider:
         token: str = "",
         params: dict[str, str | int] | None = None,
     ) -> dict[str, Any]:
-        allowed = (method == "POST" and url == TOKEN_URL) or (
-            method == "GET"
-            and (
-                url in {GMAIL_URL + "/profile", GMAIL_URL + "/messages"}
-                or re.fullmatch(
-                    re.escape(GMAIL_URL) + r"/messages/[A-Za-z0-9_-]{1,100}", url
+        attachment = method == "GET" and bool(
+            re.fullmatch(
+                re.escape(GMAIL_URL)
+                + r"/messages/[A-Za-z0-9_-]{1,100}/attachments/[A-Za-z0-9_-]{1,2048}",
+                url,
+            )
+        )
+        limit = ATTACHMENT_RESPONSE_LIMIT if attachment else RESPONSE_LIMIT
+        allowed = (
+            attachment
+            or (method == "POST" and url == TOKEN_URL)
+            or (
+                method == "GET"
+                and (
+                    url in {GMAIL_URL + "/profile", GMAIL_URL + "/messages"}
+                    or re.fullmatch(
+                        re.escape(GMAIL_URL) + r"/messages/[A-Za-z0-9_-]{1,100}", url
+                    )
                 )
             )
         )
@@ -102,7 +117,7 @@ class GmailProvider:
                         raise ValueError("Mailbox request failed")
                     data = bytearray()
                     async for chunk in response.aiter_bytes():
-                        if len(data) + len(chunk) > 524288:
+                        if len(data) + len(chunk) > limit:
                             raise ValueError("Mailbox response too large")
                         data.extend(chunk)
                     import json

@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.77.0 — Gmail attachment intake
+
+- New scan source **Import Gmail attachments** (`gmail_attachments`), from Scans
+  or by asking the assistant (purpose `import_attachments`). Supported document
+  attachments (PDF, DOCX, XLSX, CSV, TXT, MD; at most 4 MiB each, three per
+  email, 20 emails per run, 10 by default) are downloaded read-only and saved as
+  private documents through the normal upload path and file storage, ready for
+  text review. No AI reads them and no inventory is created.
+- Other files are listed on the saved email source but never downloaded.
+  Replays reuse the same source, document and link; hand-uploaded duplicates are
+  linked, not stored twice. Documents can open the email a file came from.
+- The Gmail client allows one new read-only endpoint (message attachments) with
+  a 6 MiB response cap; every other operation is still refused.
+- Migration `0032_email_attachments` adds the email-to-document link table.
+  Recovery accepts snapshots at this revision. See
+  [docs/EMAIL_SCANS.md](docs/EMAIL_SCANS.md#attachment-intake-v0770).
+- Shipped ahead of the roadmap's "after reliable text scans" gate on request,
+  with conservative limits. Scheduled attachment scans and image attachments are
+  not included.
+
 ## 0.76.0 — Selective deletion and conversation retention
 
 - Photos and Documents can delete several items at once: tick up to 50, confirm,

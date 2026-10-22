@@ -82,12 +82,16 @@ existing scan:
   enabling discovery in Scans.
 - **Evidence only** (`gmail_import`) saves original email text with no AI call
   and no inventory changes.
+- **Attachments** (`gmail_attachments`, v0.77.0) saves supported attached
+  documents to Documents for text review, with no AI call; see
+  [attachment intake](EMAIL_SCANS.md#attachment-intake-v0770).
 
 Before anything is queued, your own words must state what to look for and which
 days; the model turns that period into dates, and the reply shows the exact UTC
 days, mailbox and message limit used. With several connected mailboxes you must
 name the address. Scans cover at most 31 past days and 20 messages unless you
-state another number (up to 50). Attachments are omitted. The existing
+state another number (up to 50); attachment scans default to 10 and allow up to
+20. Text scans omit attachments. The existing
 mailbox, external-AI permission, one-active-scan and 20-runs-per-day checks
 still apply, and the scan is queued in the same commit that completes the chat
 turn. **View email scan** opens its progress, evidence and cancel control.

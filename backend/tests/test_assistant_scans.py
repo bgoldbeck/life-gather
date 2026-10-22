@@ -165,6 +165,33 @@ def test_evidence_only_scan_needs_no_ai_discovery(case: ScanCase) -> None:
     assert "credential_id" not in run.config_json
 
 
+def test_attachment_scan_defaults_to_ten_messages(case: ScanCase) -> None:
+    mailbox = case.mailbox("owner@example.test")
+    queued = case.send(
+        case.conversation(),
+        "attachments",
+        "Save the receipt attachments from my email yesterday.",
+        step("list_mailboxes"),
+        step(
+            "start_email_scan",
+            email_scan=scan(
+                mailbox,
+                purpose="import_attachments",
+                purpose_quote="receipt attachments",
+                period_quote="yesterday",
+                from_date=(TODAY - timedelta(days=1)).isoformat(),
+                until_date=(TODAY - timedelta(days=1)).isoformat(),
+                max_messages=10,
+            ),
+        ),
+    )
+    assert "Started an attachment import" in queued["result"]["text"]
+    assert "up to 10 emails" in queued["result"]["text"]
+    [run] = case.runs()
+    assert run.handler_key == "gmail_attachments"
+    assert "credential_id" not in run.config_json
+
+
 @pytest.mark.parametrize(
     ("values", "error"),
     [

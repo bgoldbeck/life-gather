@@ -15,6 +15,7 @@ type Document = {
   extracted_text?: string
   text_truncated: boolean
   source_id: string | null
+  email_sources?: { source_id: string; filename: string }[]
   updated_at: number
   deleted_at: number | null
 }
@@ -221,6 +222,15 @@ function DocumentEditor({
           Open reviewed text and corrections
         </Button>
       )}
+      {doc.email_sources?.map((link) => (
+        <Button
+          key={link.source_id}
+          variant="outline"
+          onClick={() => void openSource(link.source_id)}
+        >
+          Open the email this attachment came from
+        </Button>
+      ))}
       {source && (
         <EvidencePanel
           key={source.id}

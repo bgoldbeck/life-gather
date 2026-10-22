@@ -91,7 +91,10 @@ screens or new domain subsystems.
   mailbox/time/purpose scope. Add bounded private attachment intake as a separate
   increment after the text/evidence loop works reliably.
   v0.62.0 lets the [AI assistant](AI_ASSISTANT.md#email-scans) queue one
-  existing text discovery or evidence scan; attachment intake remains.
+  existing text discovery or evidence scan. v0.77.0 adds bounded attachment
+  intake ([EMAIL_SCANS.md](EMAIL_SCANS.md#attachment-intake-v0770)), requested
+  ahead of this gate, so limits stay conservative (supported documents only,
+  4 MiB, three per email, 20 emails, reviewed in Documents).
 - Improve retrieval and source/photo navigation where representative user tasks
   reveal friction. Add OCR/formats only for demonstrated intake gaps; common
   documents already have local extraction and reviewed originals.

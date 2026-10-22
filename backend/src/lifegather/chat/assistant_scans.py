@@ -21,13 +21,16 @@ DATE = r"^\d{4}-\d{2}-\d{2}$"
 HANDLERS = {
     "discover_purchases": "gmail_discovery",
     "import_evidence": "gmail_import",
+    "import_attachments": "gmail_attachments",
 }
+# Attachment downloads are slower and fill document storage; keep them smaller.
+MAX_MESSAGES = {"gmail_attachments": 10}
 
 
 class EmailScanRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     mailbox_id: str = Field(min_length=1, max_length=36)
-    purpose: Literal["discover_purchases", "import_evidence"]
+    purpose: Literal["discover_purchases", "import_evidence", "import_attachments"]
     purpose_quote: str = Field(min_length=1, max_length=200)
     from_date: str = Field(pattern=DATE)
     until_date: str = Field(pattern=DATE)
@@ -124,15 +127,15 @@ class AssistantScans:
             raise StepError(
                 "period_quote is not the user's words. Ask which days to scan."
             )
-        if (
-            item.max_messages != DEFAULT_MESSAGES
-            and str(item.max_messages) not in runner.evidence
+        handler = HANDLERS[item.purpose]
+        default = MAX_MESSAGES.get(handler, DEFAULT_MESSAGES)
+        if item.max_messages != default and str(item.max_messages) not in (
+            runner.evidence
         ):
             raise StepError(
-                f"Use max_messages {DEFAULT_MESSAGES} unless the user stated a limit"
+                f"Use max_messages {default} unless the user stated a limit"
             )
         since, until, start, end = self._window(item)
-        handler = HANDLERS[item.purpose]
         config: dict[str, Any] = {
             "mailbox_id": item.mailbox_id,
             "from_timestamp": since,
@@ -182,6 +185,14 @@ class AssistantScans:
                 "connection and model. Email text is saved as evidence; clear "
                 "purchases may be added as inferred inventory you can review and "
                 "correct. Attachments are omitted."
+            )
+        elif handler == "gmail_attachments":
+            text = (
+                f"Started an attachment import of {scope}. Supported documents "
+                "(PDF, Word, Excel, CSV, text; up to 4 MiB, three per email) are "
+                "saved privately in Documents with a link to their email. No AI "
+                "reads them; review each document's text before it becomes "
+                "evidence. Other files are listed but not downloaded."
             )
         else:
             text = (

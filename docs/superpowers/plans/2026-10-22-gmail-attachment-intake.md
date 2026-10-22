@@ -16,8 +16,9 @@ reliable" gate, so limits stay conservative.
 - Each fetched file goes through the existing document upload (local extraction,
   SHA-256 dedupe, per-user quota, private file storage). No AI reads it; its text
   becomes evidence only after the user reviews it in Documents, as today.
-- The email's header/text is saved as the provenance source (same namespace as the
-  evidence-only import, so both scans share one episode), and a new
+- The email's header, attachment list and text excerpt are saved as the
+  provenance source in its own `gmail-attachments:<mailbox>` namespace (sharing
+  the text import's episode would conflict on different text), and a new
   `email_attachments` link table records message, part and document.
 - The assistant can queue this scan with purpose `import_attachments`.
 
