@@ -108,3 +108,19 @@ refused write or a changed record ends it.
   use only the details it read in that request.
 - Synthetic scripted-provider tests cover the tool loop. Real model quality has
   not been verified against live providers.
+
+## Photos and documents
+
+In progress (branch `claude/ask-about-photos-documents`). Scope: attach one saved
+photo or document to an AI assistant message, ask about it, and save details
+found in it to one asset with the original as evidence.
+
+Acceptance checks:
+- The assistant reads a document's saved or locally extracted text, or a photo's
+  saved transcription (transcribing the image once through the selected provider
+  when none exists), and answers questions about it.
+- Saved values must appear exactly in the attachment text or the user's words;
+  details found in the attachment cite the attachment's own source, so citations
+  open the original photo or document.
+- Ownership still needs the user's own words; replays do not re-transcribe or
+  duplicate facts; another account's photos/documents are refused.
