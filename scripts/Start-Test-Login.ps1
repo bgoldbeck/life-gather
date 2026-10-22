@@ -30,6 +30,7 @@ if ($existing.Count -eq 1) {
     foreach ($setting in $details.Config.Env) {
         if ($setting -notlike 'LIFEGATHER_*') { continue }
         if ($setting -match '^LIFEGATHER_[A-Z_]+=$' -or
+            $setting -match '^LIFEGATHER_DATABASE_URL=postgresql://lifegather:[a-f0-9]{32}@lifegather-preview-db:5432/lifegather$' -or
             $setting -match '^LIFEGATHER_(DATA_DIR=/data|STATIC_DIR=/app/static|APP_NAME=LifeGather|BUILD_REVISION=[a-f0-9]*|TEST_LOGIN_ENABLED=(true|false|1|0)|PUBLIC_URL=http://127\.0\.0\.1:8787)$') {
             continue
         }
@@ -46,6 +47,38 @@ if ($imageVersion -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$' -or $imageId -notmatch '^
     throw 'The downloaded image has no valid application version/immutable ID. Existing containers were not changed.'
 }
 $containerName = 'lifegather-preview-v' + $imageVersion
+
+# PostgreSQL sidecar with its own volume. Reused, never recreated or deleted.
+$network = 'lifegather-preview'
+$database = 'lifegather-preview-db'
+if (-not @(Invoke-Docker @('network', 'ls', '--quiet', '--filter', "name=^$network$"))) {
+    Invoke-Docker @('network', 'create', $network) | Out-Host
+}
+$databaseIds = @(Invoke-Docker @('container', 'ls', '--all', '--quiet', '--filter', "name=^/$database$"))
+if ($databaseIds.Count -eq 1) {
+    $databaseDetails = @(Invoke-Docker @('inspect', $databaseIds[0]) | ConvertFrom-Json)[0]
+    $passwordSetting = @($databaseDetails.Config.Env | Where-Object { $_ -match '^POSTGRES_PASSWORD=[a-f0-9]{32}$' })
+    if ($passwordSetting.Count -ne 1) { throw 'The preview database has a different configuration. Stopped to protect your data.' }
+    $password = $passwordSetting[0].Substring('POSTGRES_PASSWORD='.Length)
+    Invoke-Docker @('start', $databaseIds[0]) | Out-Host
+} else {
+    $password = [guid]::NewGuid().ToString('N')
+    Invoke-Docker @(
+        'run', '-d', '--name', $database, '--network', $network,
+        '-v', 'lifegather-preview-db-data:/var/lib/postgresql/data',
+        '-e', 'POSTGRES_DB=lifegather', '-e', 'POSTGRES_USER=lifegather',
+        '-e', "POSTGRES_PASSWORD=$password",
+        '-e', 'POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=C',
+        '--restart', 'unless-stopped', 'pgvector/pgvector:pg17'
+    ) | Out-Host
+}
+$ready = $false
+for ($attempt = 0; $attempt -lt 60; $attempt++) {
+    & docker exec $database pg_isready --host 127.0.0.1 --username lifegather *> $null
+    if ($LASTEXITCODE -eq 0) { $ready = $true; break }
+    Start-Sleep -Seconds 1
+}
+if (-not $ready) { throw 'The preview database did not start. The existing app container was not changed.' }
 if ($existing.Count -eq 1) {
     Invoke-Docker @('stop', $existing[0]) | Out-Host
     Invoke-Docker @('rm', $existing[0]) | Out-Host
@@ -53,9 +86,11 @@ if ($existing.Count -eq 1) {
 Invoke-Docker @(
     'run', '-d', '--name', $containerName, '--pull', 'never',
     '-p', '127.0.0.1:8787:8787', '-v', 'lifegather-preview-data:/data',
+    '--network', $network,
+    '-e', "LIFEGATHER_DATABASE_URL=postgresql://lifegather:$password@${database}:5432/lifegather",
     '-e', 'LIFEGATHER_TEST_LOGIN_ENABLED=true', '--restart', 'unless-stopped', $imageId
 ) | Out-Host
 Write-Host ''
 Write-Host "Started $containerName from image $imageId. Open http://127.0.0.1:8787/ after the app becomes healthy."
 Write-Host 'Sign out if needed, then click Continue as test user.'
-Write-Host 'Your lifegather-preview-data volume was preserved. Use test data only.'
+Write-Host 'Your lifegather-preview-data and lifegather-preview-db-data volumes were preserved. Use test data only.'

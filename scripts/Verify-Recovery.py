@@ -1,7 +1,9 @@
 """Synthetic recovery acceptance in an isolated Linux image; never starts the app.
 
-Run with network disabled, a read-only root, /tmp 64 MiB and /data >=512 MiB.
-Only a new TemporaryDirectory under /data is used; no existing database is opened.
+Run with a read-only root, /tmp 64 MiB, /data >=512 MiB and no network except a
+throwaway PostgreSQL server named by LIFEGATHER_TEST_DATABASE_URL. Only a new
+TemporaryDirectory under /data and two new databases are used; no existing
+database is opened.
 """
 
 import json
@@ -11,10 +13,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from zipfile import ZipFile
 
+import psycopg
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from PIL import Image
 from pypdf import PdfWriter
 from sqlalchemy import text
+from sqlalchemy.engine import make_url
 
 from lifegather.auth.store import AuthStore
 from lifegather.chat.context import ContextRead, ContextRef, WorkspaceContexts
@@ -37,13 +41,38 @@ from lifegather.memory.service import MemoryError, MemoryService
 from lifegather.photos.service import PhotoService
 from lifegather.profiles.service import ProfileChange, ProfileService
 from lifegather.recovery.__main__ import main
+from lifegather.storage import LocalStorage
 from lifegather.version import __version__
+
+SERVER = make_url(os.environ["LIFEGATHER_TEST_DATABASE_URL"])
+DATABASES = ("lifegather_recovery_source", "lifegather_recovery_restored")
+
+
+def admin(statement: str) -> None:
+    url = SERVER.set(drivername="postgresql").render_as_string(hide_password=False)
+    with psycopg.connect(url, autocommit=True) as connection:
+        connection.execute(statement)  # type: ignore[arg-type]
+
+
+def fresh(name: str) -> str:
+    admin(f"DROP DATABASE IF EXISTS {name} WITH (FORCE)")
+    admin(
+        f"CREATE DATABASE {name} TEMPLATE template0 ENCODING 'UTF8' "
+        "LC_COLLATE 'C' LC_CTYPE 'C'"
+    )
+    return SERVER.set(drivername="postgresql+psycopg", database=name).render_as_string(
+        hide_password=False
+    )
 
 
 def verify(root: Path) -> None:
     source = root / "source"
-    store = AuthStore(source / "auth.sqlite3")
+    source.mkdir(mode=0o700)
+    source_url, restored_url = (fresh(name) for name in DATABASES)
+    store = AuthStore(source_url)
     store.migrate()
+    # The default `<data_dir>/files` storage the backup command reads from.
+    files = LocalStorage(source / "files")
     alice = store.login("synthetic-a", "a@example.test", "Synthetic A", now=1).user
     bob = store.login("synthetic-b", "b@example.test", "Synthetic B", now=1).user
     memory = MemoryService(store.engine)
@@ -159,12 +188,14 @@ def verify(root: Path) -> None:
     credential = vault.save(alice, "ai", "example", "Synthetic", "synthetic secret")
     image = BytesIO()
     Image.new("RGB", (12, 12), "blue").save(image, "JPEG")
-    photo = PhotoService(store.engine).upload(alice, image.getvalue(), "synthetic.jpg")
+    photo = PhotoService(store.engine, files).upload(
+        alice, image.getvalue(), "synthetic.jpg"
+    )
     pdf = BytesIO()
     writer = PdfWriter()
     writer.add_blank_page(612, 792)
     writer.write(pdf)
-    document = DocumentService(store.engine).upload(
+    document = DocumentService(store.engine, files).upload(
         bob, pdf.getvalue(), "synthetic.pdf"
     )
     # Exercise the actual new parser workers and bytes through Linux recovery.
@@ -208,10 +239,12 @@ def verify(root: Path) -> None:
                 )
         new_originals[kind] = output.getvalue()
     new_documents = {
-        kind: DocumentService(store.engine).upload(bob, raw, "synthetic." + kind)
+        kind: DocumentService(store.engine, files).upload(bob, raw, "synthetic." + kind)
         for kind, raw in new_originals.items()
     }
-    with ZipFile(BytesIO(PersonalArchive(store.engine).download(bob))) as package:
+    with ZipFile(
+        BytesIO(PersonalArchive(store.engine, files).download(bob))
+    ) as package:
         manifest = json.loads(package.read("manifest.json"))
         members = {item["id"]: item for item in manifest["originals"]}
         for kind, entry in new_documents.items():
@@ -219,9 +252,16 @@ def verify(root: Path) -> None:
             assert member["path"].endswith("." + kind)
             assert package.read(member["path"]) == new_originals[kind]
     with store.engine.begin() as db:
-        db.execute(text("CREATE TABLE synthetic_padding (value BLOB)"))
-        db.execute(text("INSERT INTO synthetic_padding VALUES (zeroblob(41943040))"))
-    personal = PersonalArchive(store.engine).download(alice)
+        # Unsearchable padding row: exercises streaming of a >40 MiB snapshot.
+        db.execute(
+            text(
+                "INSERT INTO memory_fts (record_id,user_id,kind,body,terms) "
+                "VALUES ('synthetic-padding', :owner, 'padding', "
+                "repeat('0', 41943040), '{}')"
+            ),
+            {"owner": alice.id},
+        )
+    personal = PersonalArchive(store.engine, files).download(alice)
     assert len(personal) < 100000
     with ZipFile(BytesIO(personal)) as package:
         manifest = json.loads(package.read("manifest.json"))
@@ -235,6 +275,7 @@ def verify(root: Path) -> None:
     assert document["id"].encode() not in personal
     assert b"Synthetic ephemeral transcript to remove" not in personal
     os.environ["LIFEGATHER_DATA_DIR"] = str(source)
+    os.environ["LIFEGATHER_DATABASE_URL"] = source_url
     os.environ["LIFEGATHER_VAULT_KEY_FILE"] = str(key_path)
     phrase = root / "phrase"
     phrase.write_text("synthetic recovery passphrase\n", encoding="utf-8")
@@ -248,6 +289,7 @@ def verify(root: Path) -> None:
     os.environ["LIFEGATHER_CONFIGURATION_FILE"] = str(root / "lost.json")
     assert main(["verify", str(bundle), *flags]) == 0
     destination = root / "recovered"
+    os.environ["LIFEGATHER_DATABASE_URL"] = restored_url
     assert main(["restore", str(bundle), str(destination), *flags]) == 0
     assert main(["restore", str(bundle), str(destination), *flags]) == 1
     os.environ.pop("LIFEGATHER_GOOGLE_CLIENT_ID")
@@ -258,7 +300,8 @@ def verify(root: Path) -> None:
         vault_key_file=destination / "secrets" / "vault.key",
     )
     assert read_key(settings.vault_key_file) == key
-    recovered = AuthStore(settings.data_dir / "auth.sqlite3")
+    assert settings.database() == restored_url
+    recovered = AuthStore(settings.database())
     for kind, entry in new_documents.items():
         documents = DocumentService(recovered.engine)
         assert documents.get(bob, entry["id"])["format"] == kind
@@ -327,10 +370,10 @@ def verify(root: Path) -> None:
     )
     with recovered.engine.connect() as db:
         assert (
-            db.scalar(text("SELECT length(value) FROM synthetic_padding")) == 41943040
+            db.scalar(text("SELECT length(body) FROM memory_fts WHERE kind='padding'"))
+            == 41943040
         )
     for path in (
-        destination / "data" / "auth.sqlite3",
         destination / "installation.json",
         settings.vault_key_file,
     ):
@@ -345,12 +388,16 @@ def verify(root: Path) -> None:
                 "result": "passed",
                 "version": __version__,
                 "database_min_bytes": 41943040,
-                "network": "none",
+                "network": "database only",
             }
         )
     )
 
 
 if __name__ == "__main__":
-    with TemporaryDirectory(prefix="recovery-smoke-", dir="/data") as directory:
-        verify(Path(directory))
+    try:
+        with TemporaryDirectory(prefix="recovery-smoke-", dir="/data") as directory:
+            verify(Path(directory))
+    finally:
+        for name in DATABASES:
+            admin(f"DROP DATABASE IF EXISTS {name} WITH (FORCE)")

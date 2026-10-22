@@ -50,5 +50,5 @@ Private MCP exposes `purchase_list`, `purchase_get`, `purchase_evidence_history`
 explicitly human-reviewed `purchase_evidence_save` / `purchase_evidence_withdraw`.
 These writes are not added to the product chat's read-only tool runtime. HTTP writes
 require authenticated owner and CSRF; all references and database foreign keys are
-owner-scoped. Schema migration0020 is additive. Operator SQLite snapshots preserve
+owner-scoped. Schema migration0020 is additive. Operator database snapshots preserve
 source associations and full history; keep ordinary deployment backups before upgrade.

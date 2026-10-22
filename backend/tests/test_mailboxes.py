@@ -4,6 +4,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import httpx2
 import pytest
+from database_support import restore_copy
 from pydantic import SecretStr
 from test_reconciliation import setup
 
@@ -16,6 +17,7 @@ from lifegather.mailboxes.provider import (
     MailboxFailure,
 )
 from lifegather.mailboxes.service import Mailboxes
+from lifegather.memory.backup import operator_snapshot
 from lifegather.memory.notes import NoteConflict
 from lifegather.memory.service import MemoryError
 
@@ -105,7 +107,8 @@ def test_mailbox_session_bound_flow_private_vault_reconnect_and_disconnect(
     assert "synthetic-refresh" not in str(first)
     with pytest.raises(MemoryError):
         service.disconnect(bob, first["id"], first["revision"])
-    assert b"synthetic-refresh" not in auth.path.read_bytes()
+    operator_snapshot(auth.engine, tmp_path / "stored.jsonl")
+    assert b"synthetic-refresh" not in (tmp_path / "stored.jsonl").read_bytes()
     removed = service.disconnect(alice, first["id"], first["revision"])
     assert not removed["connected"]
     assert service.disconnect(alice, first["id"], first["revision"]) == removed
@@ -175,9 +178,9 @@ def test_mailbox_snapshot_and_generic_vault_revocation(tmp_path: Path) -> None:
             refresh_token=SecretStr("synthetic-refresh"),
         ),
     )
-    snapshot = tmp_path / "snapshot.sqlite3"
+    snapshot = tmp_path / "snapshot.jsonl"
     operator_snapshot(auth.engine, snapshot)
-    restored = AuthStore(snapshot)
+    restored = AuthStore(restore_copy(snapshot))
     restored.migrate()
     copied = Mailboxes(restored.engine, PrivateSettings(restored.engine, b"s" * 32))
     assert copied.list(actor) == service.list(actor)

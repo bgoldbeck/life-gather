@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from lifegather.assets.identity import member_ids
 from lifegather.auth.store import Account
+from lifegather.database import begin_snapshot
 from lifegather.memory.models import Assertion, Audit
 from lifegather.memory.origins import ChangeOrigin
 from lifegather.memory.service import MemoryError, MemoryService
@@ -46,7 +47,7 @@ class FieldHistory:
     def get(self, actor: Account, value: FieldHistoryRead) -> dict[str, Any]:
         data = FieldHistoryRead.model_validate(value)
         with Session(self.engine) as db:
-            db.connection().exec_driver_sql("BEGIN")
+            begin_snapshot(db)
             entity = self.memory._entity(db, actor, data.entity_id)
             identifiers = member_ids(db, actor, entity.id)
             query = select(Assertion).where(

@@ -25,7 +25,7 @@ backup, including all users and installation secrets.
   time, records format, file IDs/paths, original filenames, MIME types, sizes and
   SHA-256 hashes. It maps each original to its record and verifies the records file.
 
-Records and file metadata use one real SQLite read transaction, so a concurrent
+Records and file metadata use one real PostgreSQL read transaction, so a concurrent
 change cannot mix two versions in one archive. Original bytes come from
 [file storage](FILE_STORAGE.md) and are checked against that snapshot's hashes;
 a file deleted mid-download fails the archive instead of producing a partial one. The snapshot preserves original

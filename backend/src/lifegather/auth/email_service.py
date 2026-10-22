@@ -17,6 +17,7 @@ from lifegather.auth.email_validation import email_key, password_value
 from lifegather.auth.mail import MailSender
 from lifegather.auth.models import LoginSession, User
 from lifegather.auth.store import Account, AuthStore, SignedIn, digest
+from lifegather.database import begin_serialized
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +72,7 @@ class EmailAuth:
             raise EmailAuthError("Enter a name between 1 and 100 characters")
         hashed = hash_password(password)
         with Session(self.store.engine) as db:
-            db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+            begin_serialized(db)
             if self._collision(db, key):
                 raise EmailAuthError("An account with this email already exists", 409)
             user_id = str(uuid4())
@@ -111,7 +112,7 @@ class EmailAuth:
             limits.append((digest(action + ":account:" + account), 3 if mail else 10))
         account_allowed = True
         with Session(self.store.engine) as db:
-            db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+            begin_serialized(db)
             expired = (
                 select(AuthAttempt.key).where(AuthAttempt.expires_at <= now).limit(200)
             )
@@ -169,7 +170,7 @@ class EmailAuth:
         token = secrets.token_urlsafe(32)
         key = digest(token)
         with Session(self.store.engine) as db:
-            db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+            begin_serialized(db)
             expired = (
                 select(EmailChallenge.token_hash)
                 .where(
@@ -295,7 +296,7 @@ class EmailAuth:
             hash_password(password) if HASHER.check_needs_rehash(hashed) else hashed
         )
         with Session(self.store.engine) as db:
-            db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+            begin_serialized(db)
             current = db.get(EmailCredential, credential.user_id)
             if current is None or current.password_hash != hashed:
                 raise EmailAuthError("Email or password is incorrect", 401)
@@ -328,7 +329,7 @@ class EmailAuth:
             raise EmailAuthError("This link is invalid or expired")
         hashed = hash_password(password)
         with Session(self.store.engine) as db:
-            db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+            begin_serialized(db)
             challenge = db.get(EmailChallenge, digest(token))
             if (
                 challenge is None

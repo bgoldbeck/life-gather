@@ -4,6 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Engine, func, literal, select
+from sqlalchemy import cast as sql_cast
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Session
 
 from lifegather.assets.identity import member_ids
@@ -44,9 +46,7 @@ class AssetPurchases:
         asset = self.details.receipts.memory._entity(db, actor, data.asset_id)
         if asset.kind != "asset":
             raise MemoryError("Asset not found")
-        key = (
-            ReceiptProposal.id + literal(":") + func.substr(Observation.item_key, -1, 1)
-        )
+        key = ReceiptProposal.id + literal(":") + func.right(Observation.item_key, 1)
         query = (
             select(
                 ReceiptProposal,
@@ -69,7 +69,10 @@ class AssetPurchases:
                 Decision.superseded_at.is_(None),
                 Decision.outcome.in_(["create", "enrich"]),
                 Observation.item_key.in_([f"receipt-line-{i}" for i in range(8)]),
-                func.json_extract(Observation.payload, "$.kind") == "purchase",
+                func.jsonb_extract_path_text(
+                    sql_cast(Observation.payload, JSONB), "kind"
+                )
+                == "purchase",
                 key > data.cursor,
             )
         )

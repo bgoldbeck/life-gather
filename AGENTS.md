@@ -6,7 +6,7 @@ Current product direction: see `docs/superpowers/specs/2026-10-17-personal-disco
 
 ## Stack and boundaries
 - Frontend: React, TypeScript, Vite, Tailwind, shadcn/ui. Build accessible, responsive components.
-- Backend: Python, FastAPI, Pydantic, SQLAlchemy, Alembic, SQLite.
+- Backend: Python, FastAPI, Pydantic, SQLAlchemy, Alembic, PostgreSQL (psycopg 3). Tests run against PostgreSQL; see `docs/POSTGRESQL.md`.
 - MCP: official Python MCP SDK **v2** using `MCPServer` and Streamable HTTP. Verify actual installed API signatures before coding.
 - Deployment: Docker Compose with durable mounts; never put secrets in source control.
 - All domain business logic lives in framework-independent Python services; HTTP and MCP are thin authenticated adapters.
@@ -142,4 +142,4 @@ If a step fails, preserve the completed work and report the exact remaining step
 never claim that source merge implies image publication.
 
 ## Explicit anti-goals for initial milestones
-Do not introduce Neo4j, Graphiti, FalkorDB, Redis, Kubernetes, microservices, public SaaS infrastructure, public unauthenticated MCP, or a vector database unless a later task specifically requests and justifies them. Private multi-user accounts are required from the start. Email/bank ingestion is an approved later roadmap goal; implement it only in its scoped stage after isolation and reconciliation acceptance passes.
+Do not introduce Neo4j, Graphiti, FalkorDB, Redis, Kubernetes, microservices, public SaaS infrastructure, public unauthenticated MCP, or a separate vector database unless a later task specifically requests and justifies them. The pgvector extension inside the PostgreSQL database was approved by the user on 2026-10-22; use it rather than a separate vector store. Private multi-user accounts are required from the start. Email/bank ingestion is an approved later roadmap goal; implement it only in its scoped stage after isolation and reconciliation acceptance passes.

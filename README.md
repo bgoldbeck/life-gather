@@ -1,6 +1,6 @@
 # LifeGather
 
-[![Source version](https://img.shields.io/badge/source_version-v0.74.0-426B46)](CHANGELOG.md)
+[![Source version](https://img.shields.io/badge/source_version-v0.75.0-426B46)](CHANGELOG.md)
 
 This badge identifies the source release. Check the login screen or app header for your running container’s version.
 
@@ -95,7 +95,7 @@ docker compose restart backend
 docker compose down
 ```
 
-`docker compose down` preserves the named `lifegather-data` volume mounted at `/data`. **Do not add `--volumes` unless you intend to erase local application data.** New builds create a private SQLite account/session database there and apply packaged Alembic migrations on startup. Private data is never served from the frontend asset directory.
+Compose also runs a PostgreSQL (pgvector) `db` service; set `LIFEGATHER_DB_PASSWORD` in the root `.env` first (see [PostgreSQL](docs/POSTGRESQL.md)). `docker compose down` preserves the named `lifegather-db` database volume and the `lifegather-data` volume mounted at `/data`. **Do not add `--volumes` unless you intend to erase local application data.** The app applies packaged Alembic migrations on startup, and on its first start copies an existing `/data/auth.sqlite3` from older releases into the empty database. Private data is never served from the frontend asset directory.
 
 The container runs as UID/GID 10001, with a read-only root filesystem, a writable `/data` volume, a temporary `/tmp`, and dropped Linux capabilities. The source-build Compose file publishes only on `127.0.0.1`; the image-only TrueNAS Compose file publishes on all IPv4 interfaces (`0.0.0.0`) for LAN access. Configure Google login using the documented public URL and credentials; non-loopback login requires HTTPS. Remote exposure remains deferred, and the old published preview is unauthenticated.
 
@@ -162,7 +162,7 @@ The [text memory chat](docs/TEXT_CHAT.md) provides private persistent conversati
 
 - React, TypeScript, Vite, Tailwind CSS, and shadcn/ui
 - Python, FastAPI, Pydantic, SQLAlchemy, and Alembic
-- SQLite and Model Context Protocol (MCP)
+- PostgreSQL (with pgvector) and Model Context Protocol (MCP)
 - Docker Compose for private, self-hosted deployment
 
 ## Privacy principles

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from database_support import database
 from pydantic import ValidationError
 from sqlalchemy import event, insert, select, update
 from sqlalchemy.orm import Session
@@ -183,7 +184,7 @@ def test_deletion_removes_only_owned_transcript_and_replays_without_content_tomb
 def test_preview_uses_bounded_metadata_and_empty_conversations_can_be_deleted(
     tmp_path: Path,
 ) -> None:
-    store = AuthStore(tmp_path / "auth.sqlite3")
+    store = AuthStore(database(tmp_path))
     store.migrate()
     actor = store.login("synthetic", "synthetic@example.test", "Synthetic", now=1).user
     chat = ChatService(store.engine)
@@ -237,7 +238,7 @@ def test_preview_uses_bounded_metadata_and_empty_conversations_can_be_deleted(
         event.remove(store.engine, "before_cursor_execute", observe)
     assert preview["turn_count"] == 500 and preview["pending_count"] == 0
     assert len(json.dumps(preview)) < 500
-    assert all(sql.startswith(("BEGIN", "SELECT")) for sql in statements)
+    assert all(sql.startswith(("SET TRANSACTION", "SELECT")) for sql in statements)
     assert all(
         "chat_turns.text" not in sql and "chat_turns.result_json" not in sql
         for sql in statements

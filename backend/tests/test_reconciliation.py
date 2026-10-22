@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Literal
 
 import pytest
+from database_support import database, restore_copy
 from sqlalchemy import text
 
 from lifegather.auth.store import Account, AuthStore
@@ -16,7 +17,7 @@ from lifegather.reconciliation.service import ReconciliationService
 def setup(
     tmp_path: Path,
 ) -> tuple[AuthStore, Account, Account, MemoryService, ReconciliationService]:
-    store = AuthStore(tmp_path / "test.sqlite3")
+    store = AuthStore(database(tmp_path))
     store.migrate()
     alice = store.login("a", "a@example.test", "A", now=1).user
     bob = store.login("b", "b@example.test", "B", now=1).user
@@ -178,8 +179,6 @@ def test_owner_scope_validation_and_atomic_failure(tmp_path: Path) -> None:
             actor, result.id, result.decision_id, asset_ids=own_bob.asset_ids
         )
     assert reconcile.discover(actor, first) == result
-    with store.engine.connect() as connection:
-        assert connection.exec_driver_sql("PRAGMA foreign_key_check").all() == []
 
 
 def test_reassociation_undo_and_stale_decisions(tmp_path: Path) -> None:
@@ -208,9 +207,9 @@ def test_concurrent_replays_restore_and_dismissal(tmp_path: Path) -> None:
     assert reconcile.inventory(actor) == []
     assert reconcile.discover(actor, value) == dismissed
     assert reconcile.undo(actor, dismissed.decision_id).asset_ids == result.asset_ids
-    snapshot = tmp_path / "snapshot.sqlite3"
+    snapshot = tmp_path / "snapshot.jsonl"
     operator_snapshot(store.engine, snapshot)
-    restored = AuthStore(snapshot)
+    restored = AuthStore(restore_copy(snapshot))
     restored.migrate()
     assert (
         ReconciliationService(restored.engine).discover(actor, value).asset_ids
@@ -443,7 +442,7 @@ def test_prior_memory_alias_prevents_duplicate_and_upgrade_preserves_data(
     import lifegather
     from lifegather.memory.schemas import EntityInput, FactInput
 
-    store = AuthStore(tmp_path / "old.sqlite3")
+    store = AuthStore(database(tmp_path / "old", empty=True))
     config = Config()
     config.set_main_option(
         "script_location", str(Path(lifegather.__file__).parent / "migrations")
@@ -497,8 +496,6 @@ def test_prior_memory_alias_prevents_duplicate_and_upgrade_preserves_data(
         actor, discovery(memory, actor)
     )
     assert result.outcome == "review" and result.candidate_ids == [item.id]
-    with store.engine.connect() as connection:
-        assert connection.exec_driver_sql("PRAGMA foreign_key_check").all() == []
 
 
 def test_decision_and_fact_times_survive_a_backward_clock(tmp_path: Path) -> None:

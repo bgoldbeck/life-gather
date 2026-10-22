@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     app_name: str = "LifeGather"
     build_revision: str = Field(default="", pattern=r"^(?:[0-9a-f]{40})?$")
     data_dir: Path = Path("data")
+    database_url: SecretStr = SecretStr("")
     static_dir: Path | None = None
     public_url: str = "http://127.0.0.1:8787"
     google_client_id: str = ""
@@ -114,6 +115,25 @@ class Settings(BaseSettings):
                 }:
                     raise ValueError("Use an HTTPS S3 endpoint except on loopback")
         return self
+
+    @field_validator("database_url")
+    @classmethod
+    def postgresql_url(cls, value: SecretStr) -> SecretStr:
+        from lifegather.database import database_url
+
+        raw = value.get_secret_value()
+        return SecretStr(database_url(raw)) if raw.strip() else value
+
+    def database(self) -> str:
+        """The configured PostgreSQL URL; there is no implicit local database."""
+        raw = self.database_url.get_secret_value()
+        if not raw:
+            from lifegather.database import DatabaseConfigurationError
+
+            raise DatabaseConfigurationError(
+                "Set LIFEGATHER_DATABASE_URL to the PostgreSQL database"
+            )
+        return raw
 
     @field_validator(
         "vault_key_file", "configuration_file", "storage_dir", mode="before"

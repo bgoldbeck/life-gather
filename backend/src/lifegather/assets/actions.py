@@ -4,7 +4,7 @@ from typing import Any, Literal, Self
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from sqlalchemy import Engine, exists, or_, select
+from sqlalchemy import Engine, exists, func, or_, select
 from sqlalchemy.orm import Session, aliased
 
 from lifegather.assets.identity import canonical_id, identity_group, member_ids
@@ -463,8 +463,10 @@ class ActionService:
                             )
                         ),
                     )
-                    .distinct()
-                    .order_by(AssetAction.recorded_at.desc())
+                    .group_by(AssetAction.source_id)
+                    .order_by(
+                        func.max(AssetAction.recorded_at).desc(), AssetAction.source_id
+                    )
                     .limit(8)
                 )
             )

@@ -84,7 +84,7 @@ separate collection; both member IDs, choice dates and reversals are retained in
 
 ## Implementation and verification
 
-`RecordExport` owns one explicit SQLite read transaction, frozen table/column
+`RecordExport` owns one explicit PostgreSQL read transaction, frozen table/column
 projections, stable row ordering and whole-file bounds. It never selects binary
 columns or automatically includes new tables/columns. The HTTP download adapter
 requires a current session, origin and CSRF token, accepts only `{}`, derives the

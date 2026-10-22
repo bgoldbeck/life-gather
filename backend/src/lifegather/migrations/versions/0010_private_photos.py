@@ -44,7 +44,7 @@ def upgrade() -> None:
         "photos",
         ["user_id", "content_hash"],
         unique=True,
-        sqlite_where=sa.text("deleted_at IS NULL"),
+        postgresql_where=sa.text("deleted_at IS NULL"),
     )
     op.create_table(
         "photo_assets",

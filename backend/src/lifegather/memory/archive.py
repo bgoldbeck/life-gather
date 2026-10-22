@@ -4,7 +4,6 @@ import hashlib
 import json
 import re
 import secrets
-import sqlite3
 import stat
 from collections.abc import Buffer, Iterator
 from dataclasses import dataclass
@@ -14,10 +13,11 @@ from typing import cast
 from uuid import UUID
 from zipfile import ZIP_STORED, ZipFile, ZipInfo
 
-from sqlalchemy import Connection, Engine, Table, func, literal_column, select
+from sqlalchemy import Connection, Engine, Table, func, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from lifegather.auth.store import Account
+from lifegather.database import begin_snapshot
 from lifegather.documents.formats import MIMES
 from lifegather.documents.models import Document
 from lifegather.memory.export import EXCLUSIONS, FORMAT, ExportLimitError, RecordExport
@@ -47,7 +47,6 @@ class _Original:
     table: str
     category: str
     identifier: str
-    rowid: int
     filename: str
     mime: str
     size: int
@@ -85,7 +84,6 @@ def _originals(connection: Connection, actor: Account) -> list[_Original]:
     for model, category in ((Photo, "photos"), (Document, "documents")):
         table = cast(Table, model.__table__)
         columns = [
-            literal_column(f"{table.name}.rowid").label("rowid"),
             table.c.id,
             table.c.filename,
             table.c.size,
@@ -119,7 +117,6 @@ def _originals(connection: Connection, actor: Account) -> list[_Original]:
                 table.name,
                 category,
                 row["id"],
-                row["rowid"],
                 row["filename"],
                 row["mime"] if model is Photo else MIMES[row["format"]],
                 row["size"],
@@ -135,13 +132,21 @@ def _originals(connection: Connection, actor: Account) -> list[_Original]:
 
 
 def _inline_chunks(connection: Connection, item: _Original) -> Iterator[bytes]:
-    """Legacy bytes still held in the database row (SQLite incremental BLOB I/O)."""
-    driver = connection.connection.driver_connection
-    if not isinstance(driver, sqlite3.Connection):
-        raise ArchiveError("Original evidence archives require SQLite")
-    with driver.blobopen(item.table, "original", item.rowid, readonly=True) as blob:
-        while block := blob.read(CHUNK_BYTES):
-            yield block
+    """Legacy bytes still held in the row, read in bounded slices in the snapshot."""
+    table = Photo.__table__ if item.table == "photos" else Document.__table__
+    original = cast(Table, table).c.original
+    identifier = cast(Table, table).c.id
+    offset = 0
+    while offset < item.size:
+        block = connection.scalar(
+            select(func.substring(original, offset + 1, CHUNK_BYTES)).where(
+                identifier == item.identifier
+            )
+        )
+        if not block:
+            return
+        yield bytes(block)
+        offset += len(block)
 
 
 class PersonalArchive:
@@ -167,7 +172,6 @@ class PersonalArchive:
         except (
             ValueError,
             TypeError,
-            sqlite3.Error,
             SQLAlchemyError,
             StorageError,
             OSError,
@@ -177,7 +181,7 @@ class PersonalArchive:
 
     def _download(self, actor: Account) -> bytes:
         with self.engine.connect() as connection:
-            connection.exec_driver_sql("BEGIN")
+            begin_snapshot(connection)
             stamp = datetime.now(UTC)
             records = RecordExport(self.engine).render_in(
                 connection, actor, snapshot_at=stamp

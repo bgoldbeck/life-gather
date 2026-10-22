@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
+from database_support import restore_copy
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -72,9 +73,9 @@ def test_persistent_queue_unifies_proposals_and_identity_with_tenant_paging(
     )
     with pytest.raises(MemoryError):
         queue.detail(bob, pending.id)
-    backup = tmp_path / "queue-snapshot.sqlite3"
+    backup = tmp_path / "queue-snapshot.jsonl"
     operator_snapshot(auth.engine, backup)
-    restored = AuthStore(backup)
+    restored = AuthStore(restore_copy(backup))
     restored.migrate()
     assert ReviewService(restored.engine).list(actor, ReviewPage()) == queue.list(
         actor, ReviewPage()

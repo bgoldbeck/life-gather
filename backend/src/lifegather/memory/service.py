@@ -1,6 +1,5 @@
 import hashlib
 import json
-import re
 import time
 import unicodedata
 from collections.abc import Callable, Iterator
@@ -9,12 +8,13 @@ from datetime import date
 from typing import Any, Literal
 from uuid import uuid4
 
-from sqlalchemy import Engine, Select, and_, or_, select, text
+from sqlalchemy import Engine, Select, and_, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from lifegather.assets.identity import canonical_id, member_ids, secondary_ids
 from lifegather.auth.store import Account
+from lifegather.database import begin_serialized
 from lifegather.memory.models import (
     Alias,
     Assertion,
@@ -31,6 +31,12 @@ from lifegather.memory.schemas import (
     FactView,
     SourceInput,
     SourceView,
+)
+from lifegather.memory.search_index import (
+    index_record,
+    matches_words,
+    query_words,
+    search_index,
 )
 
 
@@ -62,7 +68,7 @@ class MemoryService:
     @contextmanager
     def _write(self) -> Iterator[Session]:
         with Session(self.engine) as db:
-            db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+            begin_serialized(db)
             try:
                 yield db
                 db.commit()
@@ -126,20 +132,7 @@ class MemoryService:
     def _index(
         db: Session, actor: Account, identifier: str, kind: str, body: str
     ) -> None:
-        db.execute(
-            text(
-                "DELETE FROM memory_fts WHERE user_id=:owner "
-                "AND record_id=:id AND kind=:kind"
-            ),
-            {"owner": actor.id, "id": identifier, "kind": kind},
-        )
-        db.execute(
-            text(
-                "INSERT INTO memory_fts(record_id,user_id,kind,body) "
-                "VALUES (:id,:owner,:kind,:body)"
-            ),
-            {"owner": actor.id, "id": identifier, "kind": kind, "body": body},
-        )
+        index_record(db, actor.id, identifier, kind, body)
 
     def ingest(self, actor: Account, value: SourceInput) -> SourceView:
         with self._write() as db:
@@ -670,23 +663,25 @@ class MemoryService:
         bounded(limit)
         if not query.strip() or len(query) > 200:
             raise MemoryError("Search requires 1 to 200 characters")
-        words = re.findall(r"[^\W_]+", query, re.UNICODE)
+        words = query_words(query)
         if not words or len(words) > 12:
             raise MemoryError("Search requires 1 to 12 words")
-        match = " AND ".join('"' + word + '"' for word in words)
+        index = search_index.c
+        replaced = (
+            select(NoteRevision.id)
+            .where(
+                NoteRevision.user_id == index.user_id,
+                NoteRevision.previous_source_id == index.record_id,
+                index.kind == "source",
+            )
+            .exists()
+        )
         with Session(self.engine) as db:
             matches = db.execute(
-                text(
-                    "SELECT record_id,kind FROM memory_fts "
-                    "WHERE memory_fts MATCH :query "
-                    "AND user_id=:owner AND NOT EXISTS ("
-                    "SELECT 1 FROM memory_note_revisions r "
-                    "WHERE r.user_id=memory_fts.user_id "
-                    "AND r.previous_source_id=memory_fts.record_id "
-                    "AND memory_fts.kind='source') "
-                    "ORDER BY kind,record_id LIMIT :limit"
-                ),
-                {"query": match, "owner": actor.id, "limit": limit},
+                select(index.record_id, index.kind)
+                .where(matches_words(actor.id, words), ~replaced)
+                .order_by(index.kind, index.record_id)
+                .limit(limit)
             ).all()
             results = []
             for identifier, kind in matches:

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from lifegather.assets.type_schemas import FieldValue, TypeAssign, TypeFieldSave
 from lifegather.assets.types import AssetTypes
 from lifegather.auth.store import Account
+from lifegather.database import begin_snapshot
 from lifegather.memory.history import event_origin
 from lifegather.memory.models import Assertion, Entity
 from lifegather.memory.notes import NoteConflict
@@ -149,7 +150,7 @@ class ManualAssets:
     def preview(self, actor: Account, value: ManualAssetFields) -> dict[str, Any]:
         data = ManualAssetFields.model_validate(value)
         with Session(self.engine) as db:
-            db.connection().exec_driver_sql("BEGIN")
+            begin_snapshot(db)
             self.check_type(db, actor, data)
             candidates, reliable = self.matches(db, actor, data)
             return {

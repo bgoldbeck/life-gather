@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, cast
 
 import pytest
+from database_support import database
 from test_asset_consolidation import prepared
 
 from lifegather.assets.consolidation import ReverseConsolidation
@@ -52,7 +53,7 @@ class Case:
 
 @pytest.fixture
 def case(tmp_path: Path) -> Iterator[Case]:
-    store = AuthStore(tmp_path / "auth.sqlite3")
+    store = AuthStore(database(tmp_path))
     store.migrate()
     actor = store.login("alice", "alice@example.test", "Synthetic", now=1).user
     foreign = store.login("bob", "bob@example.test", "Synthetic", now=1).user

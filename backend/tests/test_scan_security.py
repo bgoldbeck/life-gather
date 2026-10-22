@@ -2,6 +2,7 @@ import asyncio
 from pathlib import Path
 
 import pytest
+from database_support import restore_copy
 from test_reconciliation import setup
 from test_scans import SyntheticHandler, registry
 
@@ -25,9 +26,9 @@ def test_cancel_keeps_saved_evidence_and_snapshot_resumes(tmp_path: Path) -> Non
         )
     )
     scans.commit_batch(claim, batch)
-    snapshot = tmp_path / "scan-snapshot.sqlite3"
+    snapshot = tmp_path / "scan-snapshot.jsonl"
     operator_snapshot(auth.engine, snapshot)
-    restored = AuthStore(snapshot)
+    restored = AuthStore(restore_copy(snapshot))
     restored.migrate()
     now[0] = 161
     copied = ScanService(restored.engine, registry(), clock=lambda: now[0])

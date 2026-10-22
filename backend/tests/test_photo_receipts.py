@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from database_support import restore_copy
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -173,9 +174,9 @@ def test_photo_receipt_chat_replay_review_private_source_and_snapshot(
             )["items"][0]["id"]
             == photo["id"]
         )
-    snapshot = tmp_path / "restore.sqlite3"
+    snapshot = tmp_path / "restore.jsonl"
     operator_snapshot(chat.engine, snapshot)
-    restored = AuthStore(snapshot)
+    restored = AuthStore(restore_copy(snapshot))
     restored.migrate()
     assert ReceiptService(restored.engine).get(actor, receipt_id) == reviewed
     restored.engine.dispose()

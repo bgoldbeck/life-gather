@@ -22,7 +22,7 @@ The duplicate check covers bounded name/alias, product-model and serial matches;
 it cannot identify every differently described item. Candidates are owner-scoped
 and rechecked at confirmation; changed matches require checking again.
 
-Confirmation stores the human-reviewed fields and reconciles them in one SQLite
+Confirmation stores the human-reviewed fields and reconciles them in one PostgreSQL
 transaction. Ownership remains **inferred**, not verified or proof of current
 possession from a past purchase. Product links and original evidence use the
 existing reconciliation ledger. Serial data remains in the structured observation.

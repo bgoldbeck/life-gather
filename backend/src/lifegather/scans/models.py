@@ -25,7 +25,7 @@ class ScanRun(Base):
             "user_id",
             "resource_key",
             unique=True,
-            sqlite_where=text("state IN ('queued','running')"),
+            postgresql_where=text("state IN ('queued','running')"),
         ),
     )
     id: Mapped[str] = mapped_column(primary_key=True)

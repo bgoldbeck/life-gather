@@ -46,7 +46,7 @@ class PurchaseEvidence(Base):
             "user_id",
             "root_source_id",
             unique=True,
-            sqlite_where=text("superseded_at IS NULL"),
+            postgresql_where=text("superseded_at IS NULL"),
         ),
         Index("ix_purchase_evidence_group", "user_id", "purchase_id", "superseded_at"),
     )

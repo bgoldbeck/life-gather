@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from lifegather.assets.batch import EvidenceMovePreview
 from lifegather.assets.purchases import AssetPurchases, AssetPurchasesRead
 from lifegather.auth.store import Account
+from lifegather.database import begin_snapshot
 from lifegather.maintenance.models import MaintenanceRevision, MaintenanceTask
 from lifegather.memory.models import Alias, Assertion, Evidence
 from lifegather.memory.notes import NoteService
@@ -52,9 +53,8 @@ class RecordComparisonService:
     def get(self, actor: Account, value: RecordComparison) -> dict[str, Any]:
         data = RecordComparison.model_validate(value)
         with Session(self.engine) as db:
-            # sqlite3 legacy transaction mode does not BEGIN for SELECT alone.
             # All sections must describe the same committed state.
-            db.connection().exec_driver_sql("BEGIN")
+            begin_snapshot(db)
             return self._get_in(db, actor, data)
 
     def _get_in(

@@ -62,7 +62,7 @@ class ScanWorker:
             try:
                 await self.run_once()
             except OperationalError:
-                # A transient SQLite lock must not permanently kill background work.
+                # A transient database error must not permanently kill background work.
                 # Durable leases/checkpoints remain authoritative on the next tick.
                 await asyncio.sleep(5)
             await asyncio.sleep(1)

@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from database_support import database, restore_copy
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from sqlalchemy import select, text
@@ -102,9 +103,9 @@ def test_exact_total_concurrent_replay_history_clear_and_restore(
     assert service.get(actor, read)["items"] == [cleared, results[0]]
     with Session(auth.engine) as db:
         assert len(list(db.scalars(select(ReceiptDetail)))) == 2
-    snapshot = tmp_path / "snapshot.sqlite3"
+    snapshot = tmp_path / "snapshot.jsonl"
     operator_snapshot(auth.engine, snapshot)
-    restored = AuthStore(snapshot)
+    restored = AuthStore(restore_copy(snapshot))
     restored.migrate()
     assert PurchaseDetails(restored.engine).get(actor, read) == service.get(actor, read)
     restored.engine.dispose()
@@ -346,7 +347,7 @@ def test_upgrade_preserves_confirmed_receipt(tmp_path: Path) -> None:
 
     import lifegather
 
-    auth = AuthStore(tmp_path / "legacy.sqlite3")
+    auth = AuthStore(database(tmp_path / "legacy", empty=True))
     config = Config()
     config.set_main_option(
         "script_location", str(Path(lifegather.__file__).parent / "migrations")
@@ -478,7 +479,7 @@ def test_currency_migration_preserves_usd_history_and_legacy_replay(
     import lifegather
     from lifegather.memory.service import fingerprint
 
-    auth = AuthStore(tmp_path / "legacy-currency.sqlite3")
+    auth = AuthStore(database(tmp_path / "legacy-currency", empty=True))
     config = Config()
     config.set_main_option(
         "script_location", str(Path(lifegather.__file__).parent / "migrations")

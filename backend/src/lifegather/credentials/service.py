@@ -11,12 +11,13 @@ from uuid import uuid4
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
-from sqlalchemy import Engine, delete, func, select
-from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy import Engine, delete, func, select, update
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from lifegather.auth.store import Account
 from lifegather.credentials.models import Credential, UserSettings, VaultKey
+from lifegather.database import begin_serialized
 
 
 class VaultError(ValueError):
@@ -200,7 +201,7 @@ class PrivateSettings:
         self._encrypt(actor, row, value.secret.get_secret_value())
         with Session(self.engine) as db:
             # Serialize the per-owner quota check and insert, including concurrent jobs.
-            db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+            begin_serialized(db)
             count = db.scalar(
                 select(func.count())
                 .select_from(Credential)
@@ -238,6 +239,20 @@ class PrivateSettings:
 
     def remove(self, actor: Account, credential_id: str) -> None:
         with Session(self.engine) as db, db.begin():
+            # Owner-scoped composite keys would otherwise block the SET NULL rule.
+            for table in Credential.metadata.sorted_tables:
+                for key in table.foreign_keys:
+                    if key.column is Credential.__table__.c.id and (
+                        key.ondelete == "SET NULL"
+                    ):
+                        db.execute(
+                            update(table)
+                            .where(
+                                table.c.user_id == actor.id,
+                                key.parent == credential_id,
+                            )
+                            .values({key.parent.name: None})
+                        )
             result = db.execute(
                 delete(Credential)
                 .where(Credential.user_id == actor.id, Credential.id == credential_id)

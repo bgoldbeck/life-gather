@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from database_support import database
 from pydantic import SecretStr
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -71,7 +72,7 @@ def unit_bindings(store: AuthStore) -> list[tuple[str, str, int]]:
 
 def installation(tmp_path: Path) -> Installation:
     directory = tmp_path / "source"
-    store = AuthStore(directory / "auth.sqlite3")
+    store = AuthStore(database(directory))
     store.migrate()
     alice = store.login("alice", "alice@example.test", "Alice", now=1).user
     bob = store.login("bob", "bob@example.test", "Bob", now=1).user
@@ -149,6 +150,7 @@ def installation(tmp_path: Path) -> Installation:
     )
     settings = Settings(
         data_dir=directory,
+        database_url=SecretStr(database(directory)),
         vault_key_file=key_path,
         google_client_id="synthetic",
         google_client_secret=SecretStr(LITERAL_SECRET),
@@ -187,7 +189,12 @@ def test_complete_encrypted_backup_restores_owners_originals_history_money_and_v
         b"synthetic recovery credential" not in encrypted and case.key not in encrypted
     )
     destination = tmp_path / "restored"
-    assert service.restore(bundle, destination, PASSWORD) == saved
+    assert (
+        service.restore(
+            bundle, destination, PASSWORD, database(destination, empty=True)
+        )
+        == saved
+    )
     for name in list(os.environ):
         if name.startswith("LIFEGATHER_"):
             monkeypatch.delenv(name)
@@ -196,7 +203,7 @@ def test_complete_encrypted_backup_restores_owners_originals_history_money_and_v
     assert configuration.data_dir == destination / "data"
     assert configuration.google_client_secret.get_secret_value() == LITERAL_SECRET
     assert read_key(configuration.vault_key_file) == case.key
-    recovered = AuthStore(configuration.data_dir / "auth.sqlite3")
+    recovered = AuthStore(configuration.database())
     memory = MemoryService(recovered.engine)
     assert [
         fact.model_dump() for fact in memory.timeline(case.alice, case.primary)
@@ -261,13 +268,20 @@ def test_rejected_recovery_never_overwrites_existing_files_or_creates_a_partial_
     assert bundle.read_bytes() == before
     destination = tmp_path / "restored"
     with pytest.raises(RecoveryError, match="passphrase"):
-        service.restore(bundle, destination, b"wrong synthetic password")
+        service.restore(
+            bundle,
+            destination,
+            b"wrong synthetic password",
+            database(destination, empty=True),
+        )
     assert not destination.exists()
     destination.mkdir()
     important = destination / "important"
     important.write_text("Existing data", encoding="utf-8")
     with pytest.raises(RecoveryError, match="new recovery"):
-        service.restore(bundle, destination, PASSWORD)
+        service.restore(
+            bundle, destination, PASSWORD, database(destination, empty=True)
+        )
     assert important.read_text(encoding="utf-8") == "Existing data"
 
 

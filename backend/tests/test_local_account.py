@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
+from database_support import database
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -14,7 +15,7 @@ PASSWORD = "a private local testing passphrase!"
 
 
 def test_concurrent_setup_creates_only_one_account(tmp_path: Path) -> None:
-    store = AuthStore(tmp_path / "auth.sqlite3")
+    store = AuthStore(database(tmp_path))
     store.migrate()
     auth = EmailAuth(store, None, "http://127.0.0.1:8787")
 
@@ -36,7 +37,7 @@ def test_concurrent_setup_creates_only_one_account(tmp_path: Path) -> None:
 
 
 def test_local_account_uses_normal_login_without_mail(tmp_path: Path) -> None:
-    store = AuthStore(tmp_path / "auth.sqlite3")
+    store = AuthStore(database(tmp_path))
     store.migrate()
     auth = EmailAuth(store, None, "http://127.0.0.1:8787")
     account = auth.provision_local_account(
@@ -58,7 +59,7 @@ def test_local_account_uses_normal_login_without_mail(tmp_path: Path) -> None:
 
 
 def test_local_account_does_not_claim_existing_google_identity(tmp_path: Path) -> None:
-    store = AuthStore(tmp_path / "auth.sqlite3")
+    store = AuthStore(database(tmp_path))
     store.migrate()
     with Session(store.engine) as db, db.begin():
         db.add(
@@ -89,7 +90,7 @@ def test_local_account_does_not_claim_existing_google_identity(tmp_path: Path) -
 def test_invalid_local_account_leaves_no_user(
     tmp_path: Path, name: str, email: str, password: str
 ) -> None:
-    store = AuthStore(tmp_path / "auth.sqlite3")
+    store = AuthStore(database(tmp_path))
     store.migrate()
     with pytest.raises(EmailAuthError):
         EmailAuth(store, None, "http://127.0.0.1:8787").provision_local_account(

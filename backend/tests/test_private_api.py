@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from database_support import database
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
@@ -128,7 +129,7 @@ def test_migration_preserves_existing_accounts(tmp_path: Path) -> None:
 
     import lifegather
 
-    store = AuthStore(tmp_path / "existing.sqlite3")
+    store = AuthStore(database(tmp_path / "existing", empty=True))
     config = Config()
     config.set_main_option(
         "script_location", str(Path(lifegather.__file__).parent / "migrations")
@@ -157,5 +158,5 @@ def test_migration_preserves_existing_accounts(tmp_path: Path) -> None:
     with store.engine.connect() as connection:
         assert (
             connection.scalar(text("SELECT version_num FROM alembic_version"))
-            == "0029_receipt_detail_basis"
+            == "0030_pgvector"
         )

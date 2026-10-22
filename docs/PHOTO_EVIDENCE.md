@@ -153,7 +153,7 @@ Delete photo is a separate acknowledged operation that clears the original and
 preview for all attached assets. A changed attachment/reading/claim invalidates a
 stale deletion acknowledgment. Derived text, facts, metadata and audit history are
 retained and marked through the deleted-photo provenance; unresolved proposals from
-a deleted original cannot be accepted. Earlier backups and SQLite recovery pages
+a deleted original cannot be accepted. Earlier backups and database recovery pages
 may retain bytes: this is not a secure-erasure promise. Reupload after deletion
 creates a new record without reviving old links. Link removal, event galleries,
 PDFs, multi-item receipts, prices, dates, quantities, chat file picking and graph

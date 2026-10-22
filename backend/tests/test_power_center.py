@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from database_support import database
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 from sqlalchemy import func, select
@@ -27,7 +28,7 @@ NOW = 1_792_500_000
 def setup(
     tmp_path: Path,
 ) -> tuple[AuthStore, Account, Account, PrivateSettings, PowerCenter]:
-    store = AuthStore(tmp_path / "power.sqlite3")
+    store = AuthStore(database(tmp_path / "power"))
     store.migrate()
     alice = store.login("power-alice", "alice@example.test", "Alice", now=NOW).user
     bob = store.login("power-bob", "bob@example.test", "Bob", now=NOW).user

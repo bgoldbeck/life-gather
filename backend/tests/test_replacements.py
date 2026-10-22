@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from database_support import restore_copy
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from test_asset_actions import change
@@ -87,9 +88,9 @@ def test_withdrawal_preserves_temporal_history_and_snapshot_replay(
         for fact in memory.facts(actor, request.asset_id)
         if fact.id == result["fact_id"]
     )
-    snapshot = tmp_path / "replacement.sqlite3"
+    snapshot = tmp_path / "replacement.jsonl"
     operator_snapshot(auth.engine, snapshot)
-    restored = AuthStore(snapshot)
+    restored = AuthStore(restore_copy(snapshot))
     restored.migrate()
     service = ReplacementService(restored.engine)
     assert service.change(actor, request) == result

@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
+from database_support import restore_copy
 from fastapi.testclient import TestClient
 from stored_files import files
 from test_documents import synthetic_pdf
@@ -134,9 +135,9 @@ def test_library_paging_ties_bounds_and_restore(tmp_path: Path) -> None:
         with pytest.raises(MemoryError):
             library.list(actor, LibraryPage(query=query))
     assert library.list(actor, LibraryPage(query='" OR private --'))["items"] == []
-    snapshot = tmp_path / "library-snapshot.sqlite3"
+    snapshot = tmp_path / "library-snapshot.jsonl"
     operator_snapshot(auth.engine, snapshot)
-    restored = AuthStore(snapshot)
+    restored = AuthStore(restore_copy(snapshot))
     restored.migrate()
     assert (
         MemoryLibrary(restored.engine).list(actor, LibraryPage(query="Needle")) == first

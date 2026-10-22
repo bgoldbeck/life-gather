@@ -38,7 +38,7 @@ Photo reading still requires an actually vision-capable model.
 
 ## Health and freshness
 
-Checks read one owner-scoped SQLite snapshot. Metadata uses the existing
+Checks read one owner-scoped PostgreSQL snapshot. Metadata uses the existing
 100-credential, 10-mailbox and 5-schedule limits; recent failed/expired diagnostics
 show at most ten runs with an explicit incomplete-overview warning. Seven-day
 activity counts completed scans and newly imported messages, not discovered assets;

@@ -1,11 +1,35 @@
 name: lifegather
 
 services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: lifegather
+      POSTGRES_USER: lifegather
+      POSTGRES_PASSWORD: "${LIFEGATHER_DB_PASSWORD:?Set LIFEGATHER_DB_PASSWORD (letters and digits)}"
+      # Byte-order collation keeps sorting and paging identical everywhere.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - lifegather-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lifegather -d lifegather"]
+      interval: 5s
+      timeout: 3s
+      start_period: 20s
+      retries: 10
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
   backend:
     build: .
     ports:
       - "127.0.0.1:${LIFEGATHER_PORT:-8787}:8787"
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
+      LIFEGATHER_DATABASE_URL: "postgresql://lifegather:${LIFEGATHER_DB_PASSWORD:?Set LIFEGATHER_DB_PASSWORD}@db:5432/lifegather"
       LIFEGATHER_APP_NAME: "${LIFEGATHER_APP_NAME:-LifeGather}"
       LIFEGATHER_TEST_LOGIN_ENABLED: "${LIFEGATHER_TEST_LOGIN_ENABLED:-false}"
       LIFEGATHER_DATA_DIR: /data
@@ -38,3 +62,4 @@ services:
 
 volumes:
   lifegather-data:
+  lifegather-db:

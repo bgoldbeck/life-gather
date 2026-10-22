@@ -63,6 +63,30 @@ function Get-CheckedOutput {
     return ($result -join "`n").Trim()
 }
 
+# Throwaway PostgreSQL (with pgvector) for backend tests and the container smoke.
+$postgresImage = 'pgvector/pgvector:pg17'
+function Start-TestDatabase {
+    param([string]$Name, [string]$Password, [string[]]$Options)
+    Invoke-Checked docker (@(
+        'run', '--detach', '--name', $Name,
+        '--env', "POSTGRES_PASSWORD=$Password",
+        '--env', 'POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=C'
+    ) + $Options + @($postgresImage))
+    # TCP readiness: the image's initialization server listens on a socket only.
+    for ($attempt = 0; $attempt -lt 60; $attempt++) {
+        & docker exec $Name pg_isready --host 127.0.0.1 --username postgres *> $null
+        if ($LASTEXITCODE -eq 0) { return }
+        Start-Sleep -Seconds 1
+    }
+    throw 'The temporary PostgreSQL database did not become ready. Release stopped.'
+}
+
+function Remove-TestContainer {
+    param([string]$Name)
+    & docker rm --force --volumes $Name | Out-Host
+    if ($LASTEXITCODE -ne 0) { Write-Warning "Remove leftover test container $Name manually." }
+}
+
 function Show-ImageSize {
     param([string]$Reference)
     $found = & docker image ls --quiet $Reference
@@ -106,6 +130,11 @@ function Get-PublishIdentity {
 
 Push-Location $repoRoot
 $probeName = $null
+$testDatabase = $null
+$smokeDatabase = $null
+$smokeNetwork = $null
+# Random per run; only ever used by the throwaway test containers.
+$testPassword = [guid]::NewGuid().ToString('N')
 $authDirectory = $null
 try {
     Write-Stage 'Preflight'
@@ -178,7 +207,19 @@ try {
     Push-Location (Join-Path $repoRoot 'backend')
     try {
         Invoke-Checked uv @('sync', '--locked')
-        Invoke-Checked uv @('run', '--locked', 'pytest')
+        $testDatabase = 'lifegather-test-db-' + [guid]::NewGuid().ToString('N')
+        Start-TestDatabase $testDatabase $testPassword @('--publish', '127.0.0.1::5432')
+        $published = @(Get-CheckedOutput docker @('port', $testDatabase, '5432/tcp'))[0] -split "`n"
+        $testPort = ($published[0] -split ':')[-1].Trim()
+        if ($testPort -notmatch '^[0-9]+$') { throw 'Unable to find the test database port.' }
+        $env:LIFEGATHER_TEST_DATABASE_URL = "postgresql://postgres:$testPassword@127.0.0.1:$testPort/postgres"
+        try {
+            Invoke-Checked uv @('run', '--locked', 'pytest')
+        } finally {
+            Remove-Item Env:LIFEGATHER_TEST_DATABASE_URL -ErrorAction SilentlyContinue
+            Remove-TestContainer $testDatabase
+            $testDatabase = $null
+        }
         Invoke-Checked uv @('run', '--locked', 'ruff', 'check', '.')
         Invoke-Checked uv @('run', '--locked', 'ruff', 'format', '--check', '.')
         Invoke-Checked uv @('run', '--locked', 'mypy')
@@ -194,8 +235,15 @@ try {
         Invoke-Checked npm @('run', 'build')
     } finally { Pop-Location }
     Write-Stage 'Compose validation'
-    Invoke-Checked docker @('compose', 'config', '--quiet')
-    Invoke-Checked docker @('compose', '-f', 'deploy/compose.image.yaml', 'config', '--quiet')
+    $configuredPassword = $env:LIFEGATHER_DB_PASSWORD
+    if (-not $configuredPassword) { $env:LIFEGATHER_DB_PASSWORD = 'composevalidation' }
+    try {
+        Invoke-Checked docker @('compose', 'config', '--quiet')
+        Invoke-Checked docker @('compose', '-f', 'deploy/compose.image.yaml', 'config', '--quiet')
+    } finally {
+        if ($configuredPassword) { $env:LIFEGATHER_DB_PASSWORD = $configuredPassword }
+        else { Remove-Item Env:LIFEGATHER_DB_PASSWORD -ErrorAction SilentlyContinue }
+    }
     if ($CheckOnly) {
         $releaseOutcome = 'CHECKS PASSED'
         Write-Host 'Checks passed. No image built or uploaded.'
@@ -215,8 +263,15 @@ try {
 
     Write-Stage 'Isolated container smoke verification'
     $probeName = 'lifegather-release-' + [guid]::NewGuid().ToString('N')
+    # An internal network: the database is reachable by the app only, no internet.
+    $smokeNetwork = $probeName + '-net'
+    Invoke-Checked docker @('network', 'create', '--internal', $smokeNetwork)
+    $smokeDatabase = $probeName + '-db'
+    Start-TestDatabase $smokeDatabase $testPassword @('--network', $smokeNetwork, '--network-alias', 'db')
     Invoke-Checked docker @(
         'run', '--detach', '--pull=never', '--name', $probeName,
+        '--network', $smokeNetwork,
+        '--env', "LIFEGATHER_DATABASE_URL=postgresql://postgres:$testPassword@db:5432/postgres",
         '--read-only', '--tmpfs', '/tmp:size=64m,mode=1777',
         '--tmpfs', '/data:size=64m,uid=10001,gid=10001,mode=0700',
         '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges:true', $commitTag
@@ -257,17 +312,27 @@ with urllib.request.urlopen(base + '/api/version') as r:
     assert json.load(r) == build
 assert build['version'] == '__RELEASE_VERSION__'
 assert build['revision'] == '__RELEASE_REVISION__'
-assert Path('/data/auth.sqlite3').is_file()
+from sqlalchemy import create_engine, text
+engine = create_engine(os.environ['LIFEGATHER_DATABASE_URL'].replace('postgresql://', 'postgresql+psycopg://', 1))
+with engine.connect() as connection:
+    assert connection.scalar(text('SELECT count(*) FROM alembic_version')) == 1
+    assert connection.scalar(text("SELECT count(*) FROM pg_extension WHERE extname = 'vector'")) == 1
+    assert connection.scalar(text('SELECT count(*) FROM users')) == 0
+engine.dispose()
 probe = Path('/data/.release-probe')
 probe.write_text('synthetic check')
 probe.unlink()
-print('Container health, UI, auth migration, user, and private storage verified.')
+print('Container health, UI, PostgreSQL migration, user, and private storage verified.')
 '@
     $smoke = $smoke.Replace('__RELEASE_VERSION__', $appVersion).Replace('__RELEASE_REVISION__', $revision)
     $smoke | & docker exec --interactive $probeName python -
     if ($LASTEXITCODE -ne 0) { throw 'Container smoke test failed. Nothing uploaded.' }
     Invoke-Checked docker @('rm', '--force', $probeName)
     $probeName = $null
+    Remove-TestContainer $smokeDatabase
+    $smokeDatabase = $null
+    Invoke-Checked docker @('network', 'rm', $smokeNetwork)
+    $smokeNetwork = $null
     if (-not $Publish) {
         Write-Host "Build and checks passed: $commitTag. No upload requested."
         $releaseOutcome = 'BUILT (no upload)'
@@ -335,6 +400,13 @@ print('Container health, UI, auth migration, user, and private storage verified.
     if ($probeName) {
         & docker rm --force $probeName | Out-Host
         if ($LASTEXITCODE -ne 0) { Write-Warning "Remove leftover test container $probeName manually." }
+    }
+    foreach ($leftover in @($testDatabase, $smokeDatabase)) {
+        if ($leftover) { Remove-TestContainer $leftover }
+    }
+    if ($smokeNetwork) {
+        & docker network rm $smokeNetwork | Out-Host
+        if ($LASTEXITCODE -ne 0) { Write-Warning "Remove leftover test network $smokeNetwork manually." }
     }
     if ($authDirectory) {
         # Remove only these exact per-run paths, without recursive filesystem deletion.

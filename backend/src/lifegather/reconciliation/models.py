@@ -85,7 +85,7 @@ class Decision(Record):
             "user_id",
             "observation_id",
             unique=True,
-            sqlite_where=text("superseded_at IS NULL"),
+            postgresql_where=text("superseded_at IS NULL"),
         ),
     )
     observation_id: Mapped[str]

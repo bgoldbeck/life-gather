@@ -3,6 +3,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
+from database_support import database
 from sqlalchemy import func, select
 
 from lifegather.auth.email_models import EmailCredential
@@ -31,7 +32,7 @@ class Mailbox:
 
 
 def setup(tmp_path: Path) -> tuple[AuthStore, EmailAuth, Mailbox]:
-    store = AuthStore(tmp_path / "auth.sqlite3")
+    store = AuthStore(database(tmp_path))
     store.migrate()
     mailbox = Mailbox()
     return store, EmailAuth(store, mailbox, "http://127.0.0.1:8787"), mailbox

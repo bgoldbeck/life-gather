@@ -3,6 +3,7 @@ from datetime import date
 from pathlib import Path
 
 import pytest
+from database_support import database
 
 from lifegather.auth.store import AuthStore
 from lifegather.memory.schemas import EntityInput, FactInput, SourceInput
@@ -12,7 +13,7 @@ from lifegather.memory.service import MemoryError, MemoryService
 def test_trimmer_lifecycle_provenance_and_historical_corrections(
     tmp_path: Path,
 ) -> None:
-    auth = AuthStore(tmp_path / "memory.sqlite3")
+    auth = AuthStore(database(tmp_path / "memory"))
     auth.migrate()
     actor = auth.login("alice", "a@example.test", "Alice", now=1).user
     tick = [100]
@@ -107,7 +108,7 @@ def test_trimmer_lifecycle_provenance_and_historical_corrections(
 
 
 def test_retries_distinct_items_and_owner_boundaries(tmp_path: Path) -> None:
-    auth = AuthStore(tmp_path / "memory.sqlite3")
+    auth = AuthStore(database(tmp_path / "memory"))
     auth.migrate()
     alice = auth.login("alice", "a@example.test", "Alice", now=1).user
     bob = auth.login("bob", "b@example.test", "Bob", now=1).user

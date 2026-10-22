@@ -1,5 +1,4 @@
 import hashlib
-import os
 import secrets
 from dataclasses import dataclass
 from pathlib import Path
@@ -7,12 +6,17 @@ from uuid import uuid4
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine, delete, event, select
-from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy import delete, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from lifegather.auth.email_models import EmailCredential, ExternalIdentity
 from lifegather.auth.models import LoginFlow, LoginSession, User
+from lifegather.database import (
+    begin_serialized,
+    check_collation,
+    create_database_engine,
+)
 
 ISSUER = "https://accounts.google.com"
 TEST_ISSUER = "lifegather:test"
@@ -56,38 +60,20 @@ class Flow:
 class AuthStore:
     """Framework-independent identity and opaque session storage."""
 
-    def __init__(self, path: Path, *, test_login_enabled: bool = False) -> None:
-        self.path = path
+    def __init__(self, url: str, *, test_login_enabled: bool = False) -> None:
         self.test_login_enabled = test_login_enabled
-        self.engine = create_engine(
-            "sqlite:///" + path.resolve().as_posix(),
-            connect_args={"check_same_thread": False, "timeout": 15},
-        )
-
-        @event.listens_for(self.engine, "connect")
-        def configure_sqlite(connection: object, _: object) -> None:
-            # SQLAlchemy's DBAPI callback is intentionally driver-specific.
-            from sqlite3 import Connection
-
-            assert isinstance(connection, Connection)
-            connection.execute("PRAGMA foreign_keys=ON")
-            connection.execute("PRAGMA journal_mode=WAL")
+        self.engine = create_database_engine(url)
 
     def migrate(self) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        try:
-            descriptor = os.open(self.path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        except FileExistsError:
-            self.path.chmod(0o600)
-        else:
-            os.close(descriptor)
         config = Config()
         location = Path(__file__).parents[1] / "migrations"
         config.set_main_option("script_location", str(location))
         with self.engine.begin() as connection:
+            check_collation(connection)
+            # Concurrent starts (app and setup command) must not race migrations.
+            begin_serialized(connection)
             config.attributes["connection"] = connection
             command.upgrade(config, "head")
-        self.path.chmod(0o600)
 
     def _cleanup(self, db: Session, now: int) -> None:
         # Bound cleanup work; expiry is enforced even for rows not yet removed.
@@ -153,7 +139,7 @@ class AuthStore:
 
     def login(self, subject: str, email: str, name: str, *, now: int) -> SignedIn:
         with Session(self.engine) as db:
-            db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+            begin_serialized(db)
             self._cleanup(db, now)
             user = db.scalar(
                 select(User)
@@ -200,7 +186,7 @@ class AuthStore:
         if not self.test_login_enabled:
             raise InvalidFlow("Test login is disabled")
         with Session(self.engine) as db:
-            db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+            begin_serialized(db)
             self._cleanup(db, now)
             user = db.scalar(
                 select(User)

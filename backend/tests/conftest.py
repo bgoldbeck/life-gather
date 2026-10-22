@@ -1,6 +1,21 @@
+from collections.abc import Iterator
 from pathlib import Path
 
+import database_support
 import pytest
+
+
+@pytest.fixture(scope="session", autouse=True)
+def postgresql_server() -> Iterator[None]:
+    database_support.start()
+    yield
+    database_support.finish()
+
+
+@pytest.fixture(autouse=True)
+def drop_test_databases() -> Iterator[None]:
+    yield
+    database_support.drop_created()
 
 
 @pytest.fixture(autouse=True)
@@ -8,6 +23,9 @@ def isolated_configuration(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setenv("LIFEGATHER_TEST_LOGIN_ENABLED", "false")
     monkeypatch.setenv("LIFEGATHER_BUILD_REVISION", "")
     monkeypatch.setenv("LIFEGATHER_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv(
+        "LIFEGATHER_DATABASE_URL", database_support.database(tmp_path / "data")
+    )
     monkeypatch.setenv("LIFEGATHER_GOOGLE_CLIENT_ID", "")
     monkeypatch.setenv("LIFEGATHER_GOOGLE_CLIENT_SECRET", "")
     monkeypatch.setenv("LIFEGATHER_PUBLIC_URL", "http://127.0.0.1:8787")

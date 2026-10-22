@@ -77,7 +77,7 @@ Migration `0006_text_chat` adds conversations, turns, and daily usage with owner
 constraints. Existing users and memory records are preserved. Conversations are
 listed in UUID order with pages of 25; messages are ordered chronologically with
 pages of 25. Conversations and failures survive reload/restart. Original sources
-remain in the existing memory tables. Operator SQLite snapshots include chat;
+remain in the existing memory tables. Operator database snapshots include chat;
 the restore test verifies it. A user-facing chat export/erasure flow remains ahead.
 
 Each submitted turn has a stable request ID. Replays return its persisted state;

@@ -1,31 +1,51 @@
 """Read-only validation of complete installation snapshots and original bytes."""
 
+import binascii
 import hashlib
 import json
+import re
 import secrets
-import sqlite3
-from contextlib import closing
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from sqlalchemy import Engine, Table, select
+from sqlalchemy.exc import SQLAlchemyError
 
-from lifegather.recovery.envelope import CHUNK_BYTES, RecoveryError
+from lifegather.database import begin_snapshot
+from lifegather.memory.backup import (
+    RowTransform,
+    SnapshotError,
+    SnapshotReader,
+    application_tables,
+    current_migration,
+)
+from lifegather.recovery.envelope import RecoveryError
 from lifegather.storage.base import ObjectStorage, StorageError
 from lifegather.storage.originals import verified
 
 SUPPORTED_MIGRATIONS = frozenset(
     {
-        "0023_asset_consolidation",
-        "0024_maintenance",
-        "0025_document_formats",
-        "0026_asset_types",
         "0027_forest_dark_theme",
         "0028_object_storage",
         "0029_receipt_detail_basis",
+        "0030_pgvector",
     }
 )
+STORED_PARTS = {
+    "documents": (("original", "original_key", "size", "content_hash"),),
+    "photos": (
+        ("original", "original_key", "size", "content_hash"),
+        ("preview", "preview_key", "preview_size", None),
+    ),
+}
+DOCUMENT_FORMATS = frozenset({"pdf", "docx", "xlsx", "txt", "md", "csv"})
+HASH = re.compile(r"[a-f0-9]{64}")
+
+Rows = Callable[[str], Iterator[dict[str, Any]]]
 
 
 @dataclass(frozen=True)
@@ -37,263 +57,233 @@ class DatabaseSummary:
     documents: int
 
 
-def connect_readonly(path: Path) -> sqlite3.Connection:
-    connection = sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)
-    connection.execute("PRAGMA query_only=ON")
-    # Keep SQLite's built-in JSON checks available: the supported Linux SQLite
-    # rejects json_valid() in CHECK constraints with trusted_schema=OFF. This is
-    # a fresh connection with no application functions or extensions loaded;
-    # query_only and mode=ro prevent writes during validation.
-    connection.execute("PRAGMA foreign_keys=ON")
-    return connection
-
-
-def finalize_snapshot(path: Path) -> None:
-    """Normalize only the private copied snapshot into a standalone database."""
+def _json(value: Any) -> bool:
     try:
-        with closing(sqlite3.connect(path)) as db:
-            if db.execute("PRAGMA journal_mode=DELETE").fetchone() != ("delete",):
-                raise RecoveryError("Unable to prepare a standalone snapshot")
-    except sqlite3.Error:
-        raise RecoveryError("Unable to prepare a standalone snapshot") from None
+        json.loads(value)
+    except (TypeError, ValueError, RecursionError):
+        return False
+    return True
 
 
-def inline_stored_objects(path: Path, storage: ObjectStorage) -> None:
-    """Copy stored originals/previews back into the private snapshot copy.
+def inline_stored_objects(storage: ObjectStorage) -> RowTransform:
+    """Copy stored originals/previews back into snapshot rows as they are written.
 
     The bundle stays self-contained and independent of the storage backend; a
     restored installation moves the bytes out to its own storage on startup.
     """
-    parts = (
-        ("documents", "original", "original_key", "size", "content_hash"),
-        ("photos", "original", "original_key", "size", "content_hash"),
-        ("photos", "preview", "preview_key", "preview_size", None),
-    )
-    try:
-        with closing(sqlite3.connect(path)) as db:
-            for table, column, key_column, size_column, digest_column in parts:
-                rows = db.execute(
-                    f"SELECT rowid,{key_column},{size_column},"
-                    f"{digest_column or 'NULL'},deleted_at FROM {table} "
-                    f"WHERE {key_column} IS NOT NULL"
-                ).fetchall()
-                for rowid, key, size, digest, deleted_at in rows:
-                    value = None
-                    if deleted_at is None:
-                        value = verified(storage.get(key), size, digest)
-                    db.execute(
-                        f"UPDATE {table} SET {column}=?,{key_column}=NULL "
-                        "WHERE rowid=?",
-                        (value, rowid),
+
+    def inline(table: str, row: dict[str, Any]) -> dict[str, Any]:
+        for column, key_column, size_column, digest_column in STORED_PARTS.get(
+            table, ()
+        ):
+            key = row[key_column]
+            if key is None:
+                continue
+            row[column] = (
+                None
+                if row["deleted_at"] is not None
+                else verified(
+                    storage.get(key),
+                    row[size_column],
+                    row[digest_column] if digest_column else None,
+                )
+            )
+            row[key_column] = None
+        return row
+
+    return inline
+
+
+def _validate(migration: str, rows: Rows, key: bytes | None) -> DatabaseSummary:
+    """Verify schema version, history heads, vault identity and original hashes.
+
+    No migration, provider request or application worker runs during
+    verification. Rows stream one at a time; only identifiers are retained.
+    """
+    if migration not in SUPPORTED_MIGRATIONS:
+        raise RecoveryError("Snapshot migration is not supported by this release")
+    current_tasks = {
+        (row["user_id"], row["task_id"])
+        for row in rows("maintenance_revisions")
+        if row["superseded_at"] is None
+    }
+    if any(
+        (row["user_id"], row["id"]) not in current_tasks
+        for row in rows("maintenance_tasks")
+    ):
+        raise RecoveryError("Snapshot maintenance history is incomplete")
+    if any(
+        row.get("basis", "labeled") not in ("labeled", "reviewed")
+        for row in rows("receipt_details")
+    ):
+        raise RecoveryError("Snapshot receipt detail basis is invalid")
+    for row in rows("documents"):
+        if row["format"] not in DOCUMENT_FORMATS or not _json(
+            row["extraction_metadata"]
+        ):
+            raise RecoveryError("Snapshot document metadata is invalid")
+    revisions = set()
+    for row in rows("asset_type_revisions"):
+        if not _json(row["definition_json"]):
+            raise RecoveryError("Snapshot asset type definition is invalid")
+        revisions.add((row["user_id"], row["type_id"], row["id"]))
+    if any(
+        (row["user_id"], row["id"], row["revision"]) not in revisions
+        for row in rows("asset_types")
+    ):
+        raise RecoveryError("Snapshot asset type history is incomplete")
+
+    fingerprints = [(row["id"], row["fingerprint"]) for row in rows("vault_key")]
+    credentials = list(rows("credentials"))
+    if len(fingerprints) > 1 or (fingerprints and fingerprints[0][0] != 1):
+        raise RecoveryError("Snapshot vault identity is invalid")
+    if key is not None and len(key) != 32:
+        raise RecoveryError("Recovery requires the original 32-byte vault key")
+    if fingerprints:
+        if key is None or not secrets.compare_digest(
+            hashlib.sha256(key).hexdigest(), str(fingerprints[0][1])
+        ):
+            raise RecoveryError("The original vault key is missing or does not match")
+    elif credentials:
+        raise RecoveryError("Snapshot credentials have no vault identity")
+    if credentials:
+        if key is None:
+            raise RecoveryError("The original vault key is required")
+        cipher = AESGCM(key)
+        for row in credentials:
+            if (
+                not isinstance(row["nonce"], bytes)
+                or len(row["nonce"]) != 12
+                or not isinstance(row["ciphertext"], bytes)
+                or len(row["ciphertext"]) > 32784
+                or any(
+                    len(row[name]) > limit
+                    for name, limit in (
+                        ("id", 36),
+                        ("user_id", 36),
+                        ("kind", 64),
+                        ("provider", 64),
                     )
-            db.commit()
-    except StorageError:
-        raise RecoveryError("A stored original is missing or does not match") from None
-    except sqlite3.Error:
-        raise RecoveryError("Unable to prepare a standalone snapshot") from None
+                )
+            ):
+                raise RecoveryError("Snapshot credential bytes are invalid")
+            context = json.dumps(
+                [
+                    "lifegather-vault-v1",
+                    row["user_id"],
+                    row["id"],
+                    row["kind"],
+                    row["provider"],
+                ],
+                separators=(",", ":"),
+            ).encode()
+            secret = cipher.decrypt(row["nonce"], row["ciphertext"], context).decode(
+                "utf-8"
+            )
+            if not secret.strip() or len(secret) > 8192:
+                raise RecoveryError("Snapshot credential bytes are invalid")
+
+    counts = {}
+    for table in ("photos", "documents"):
+        count = 0
+        for row in rows(table):
+            count += 1
+            if any(row.get(part[1]) is not None for part in STORED_PARTS[table]):
+                # Snapshots must carry every original themselves.
+                raise RecoveryError("Snapshot refers to files outside the bundle")
+            if not isinstance(row["content_hash"], str) or not HASH.fullmatch(
+                row["content_hash"]
+            ):
+                raise RecoveryError("Snapshot original hash metadata is invalid")
+            original = row["original"]
+            if table == "photos":
+                preview = row["preview"]
+                if (row["deleted_at"] is None and preview is None) or (
+                    preview is not None and len(preview) != row["preview_size"]
+                ):
+                    raise RecoveryError(
+                        "Snapshot photo preview metadata is inconsistent"
+                    )
+            if original is None:
+                if row["deleted_at"] is None:
+                    raise RecoveryError("Snapshot is missing an active original")
+                continue
+            if row["size"] != len(original):
+                raise RecoveryError("Snapshot original length does not match metadata")
+            if not secrets.compare_digest(
+                hashlib.sha256(original).hexdigest(), row["content_hash"]
+            ):
+                raise RecoveryError("Snapshot original hash does not match metadata")
+        counts[table] = count
+    return DatabaseSummary(
+        migration=migration,
+        users=sum(1 for _ in rows("users")),
+        credentials=len(credentials),
+        photos=counts["photos"],
+        documents=counts["documents"],
+    )
+
+
+def validate_snapshot(path: Path, key: bytes | None) -> DatabaseSummary:
+    """Validate a portable snapshot file without any database server."""
+    try:
+        with path.open("rb") as source:
+            reader = SnapshotReader(source)
+            return _validate(reader.migration, reader.rows, key)
+    except RecoveryError:
+        raise
+    except (
+        SnapshotError,
+        InvalidTag,
+        KeyError,
+        ValueError,
+        TypeError,
+        binascii.Error,
+        OSError,
+    ):
+        raise RecoveryError("Unable to validate the installation snapshot") from None
 
 
 def validate_database(
-    path: Path, key: bytes | None, *, standalone: bool = False
+    engine: Engine, key: bytes | None, storage: ObjectStorage | None = None
 ) -> DatabaseSummary:
-    """Verify existing schema, ownership constraints, vault and original hashes.
+    """Validate a live or restored PostgreSQL database in one consistent read.
 
-    No migration, provider request or application worker runs during verification.
-    Original BLOBs are read in chunks rather than loading the database into memory.
+    With `storage`, stored originals are read and checked as if inlined.
     """
+    inline = inline_stored_objects(storage) if storage is not None else None
     try:
-        if standalone:
-            with path.open("rb") as source:
-                header = source.read(100)
-            if header[:16] != b"SQLite format 3\x00" or header[18:20] != b"\x01\x01":
-                raise RecoveryError("Recovery requires a standalone SQLite snapshot")
-        with closing(connect_readonly(path)) as db:
-            if db.execute("PRAGMA integrity_check").fetchone() != ("ok",):
-                raise RecoveryError("Snapshot integrity check failed")
-            if db.execute("PRAGMA foreign_key_check").fetchone() is not None:
-                raise RecoveryError("Snapshot ownership constraints are inconsistent")
-            revisions = db.execute(
-                "SELECT version_num FROM alembic_version LIMIT 2"
-            ).fetchall()
-            if len(revisions) != 1 or revisions[0][0] not in SUPPORTED_MIGRATIONS:
-                raise RecoveryError(
-                    "Snapshot migration is not supported by this release"
-                )
-            if revisions[0][0] in (
-                "0024_maintenance",
-                "0025_document_formats",
-                "0026_asset_types",
-                "0027_forest_dark_theme",
-                "0028_object_storage",
-                "0029_receipt_detail_basis",
-            ):
-                # A current schema marker must include complete typed task storage.
-                # Older accepted snapshots deliberately need no maintenance tables.
-                db.execute(
-                    "SELECT id,entity_id,source_id,request_id,fingerprint,recorded_at "
-                    "FROM maintenance_tasks LIMIT 0"
-                )
-                db.execute(
-                    "SELECT id,task_id,previous_id,title,due_on,timezone,state,"
-                    "completed_on,source_id,request_id,fingerprint,recorded_at,"
-                    "superseded_at FROM maintenance_revisions LIMIT 0"
-                )
-                if db.execute(
-                    "SELECT 1 FROM maintenance_tasks t WHERE NOT EXISTS ("
-                    "SELECT 1 FROM maintenance_revisions r WHERE r.user_id=t.user_id "
-                    "AND r.task_id=t.id AND r.superseded_at IS NULL) LIMIT 1"
-                ).fetchone():
-                    raise RecoveryError("Snapshot maintenance history is incomplete")
-            if revisions[0][0] in (
-                "0025_document_formats",
-                "0026_asset_types",
-                "0027_forest_dark_theme",
-                "0028_object_storage",
-                "0029_receipt_detail_basis",
-            ):
-                if db.execute(
-                    "SELECT 1 FROM documents WHERE format NOT IN "
-                    "('pdf','docx','xlsx','txt','md','csv') "
-                    "OR NOT json_valid(extraction_metadata) LIMIT 1"
-                ).fetchone():
-                    raise RecoveryError("Snapshot document metadata is invalid")
-            if revisions[0][0] in (
-                "0026_asset_types",
-                "0027_forest_dark_theme",
-                "0028_object_storage",
-                "0029_receipt_detail_basis",
-            ):
-                db.execute(
-                    "SELECT id,type_id,name,system_field,retired,position "
-                    "FROM asset_type_fields LIMIT 0"
-                )
-                db.execute(
-                    "SELECT id,type_id,previous_id,request_id,fingerprint,"
-                    "definition_json,recorded_at FROM asset_type_revisions LIMIT 0"
-                )
-                if db.execute(
-                    "SELECT 1 FROM asset_types t WHERE NOT EXISTS "
-                    "(SELECT 1 FROM asset_type_revisions r WHERE r.user_id=t.user_id "
-                    "AND r.type_id=t.id AND r.id=t.revision) LIMIT 1"
-                ).fetchone():
-                    raise RecoveryError("Snapshot asset type history is incomplete")
-                if db.execute(
-                    "SELECT 1 FROM asset_type_revisions "
-                    "WHERE NOT json_valid(definition_json) LIMIT 1"
-                ).fetchone():
-                    raise RecoveryError("Snapshot asset type definition is invalid")
-            if (
-                revisions[0][0] in ("0028_object_storage", "0029_receipt_detail_basis")
-                and db.execute(
-                    "SELECT 1 FROM documents WHERE original_key IS NOT NULL UNION ALL "
-                    "SELECT 1 FROM photos WHERE original_key IS NOT NULL "
-                    "OR preview_key IS NOT NULL LIMIT 1"
-                ).fetchone()
-            ):
-                # Snapshots must carry every original themselves.
-                raise RecoveryError("Snapshot refers to files outside the bundle")
-            if (
-                revisions[0][0] == "0029_receipt_detail_basis"
-                and db.execute(
-                    "SELECT 1 FROM receipt_details "
-                    "WHERE basis NOT IN ('labeled','reviewed') LIMIT 1"
-                ).fetchone()
-            ):
-                raise RecoveryError("Snapshot receipt detail basis is invalid")
-            fingerprints = db.execute(
-                "SELECT id,fingerprint FROM vault_key LIMIT 2"
-            ).fetchall()
-            credential_count = db.execute(
-                "SELECT count(*) FROM credentials"
-            ).fetchone()[0]
-            if len(fingerprints) > 1 or (fingerprints and fingerprints[0][0] != 1):
-                raise RecoveryError("Snapshot vault identity is invalid")
-            if key is not None and len(key) != 32:
-                raise RecoveryError("Recovery requires the original 32-byte vault key")
-            if fingerprints:
-                if key is None or not secrets.compare_digest(
-                    hashlib.sha256(key).hexdigest(), str(fingerprints[0][1])
+        with engine.connect() as connection:
+            begin_snapshot(connection)
+            connection.exec_driver_sql("SET TRANSACTION READ ONLY")
+            migration = current_migration(connection)
+            tables: dict[str, Table] = {
+                table.name: table for table in application_tables(connection)
+            }
+
+            def rows(name: str) -> Iterator[dict[str, Any]]:
+                table = tables.get(name)
+                if table is None:
+                    raise RecoveryError("Snapshot is missing a required table")
+                for row in connection.execution_options(yield_per=100).execute(
+                    select(*table.columns)
                 ):
-                    raise RecoveryError(
-                        "The original vault key is missing or does not match"
-                    )
-            elif credential_count:
-                raise RecoveryError("Snapshot credentials have no vault identity")
-            if credential_count:
-                if key is None:
-                    raise RecoveryError("The original vault key is required")
-                malformed = db.execute(
-                    "SELECT 1 FROM credentials WHERE length(nonce) != 12 "
-                    "OR length(ciphertext) > 32784 OR length(id) > 36 "
-                    "OR length(user_id) > 36 OR length(kind) > 64 "
-                    "OR length(provider) > 64 LIMIT 1"
-                ).fetchone()
-                if malformed:
-                    raise RecoveryError("Snapshot credential bytes are invalid")
-                cipher = AESGCM(key)
-                for identifier, owner, kind, provider, nonce, ciphertext in db.execute(
-                    "SELECT id,user_id,kind,provider,nonce,ciphertext FROM credentials"
-                ):
-                    context = json.dumps(
-                        ["lifegather-vault-v1", owner, identifier, kind, provider],
-                        separators=(",", ":"),
-                    ).encode()
-                    secret = cipher.decrypt(nonce, ciphertext, context).decode("utf-8")
-                    if not secret.strip() or len(secret) > 8192:
-                        raise RecoveryError("Snapshot credential bytes are invalid")
-            counts = {}
-            for table in ("photos", "documents"):
-                if db.execute(
-                    f"SELECT 1 FROM {table} WHERE length(content_hash) != 64 LIMIT 1"
-                ).fetchone():
-                    raise RecoveryError("Snapshot original hash metadata is invalid")
-                count = 0
-                for (
-                    rowid,
-                    size,
-                    expected,
-                    deleted_at,
-                    present,
-                    stored_size,
-                ) in db.execute(
-                    "SELECT rowid,size,content_hash,deleted_at,"
-                    f"original IS NOT NULL,length(original) FROM {table}"
-                ):
-                    count += 1
-                    if not present:
-                        if deleted_at is None:
-                            raise RecoveryError(
-                                "Snapshot is missing an active original"
-                            )
-                        continue
-                    if size != stored_size:
-                        raise RecoveryError(
-                            "Snapshot original length does not match metadata"
-                        )
-                    digest = hashlib.sha256()
-                    with db.blobopen(
-                        table, "original", rowid, readonly=True
-                    ) as original:
-                        while block := original.read(CHUNK_BYTES):
-                            digest.update(block)
-                    if not secrets.compare_digest(digest.hexdigest(), str(expected)):
-                        raise RecoveryError(
-                            "Snapshot original hash does not match metadata"
-                        )
-                counts[table] = count
-            if db.execute(
-                "SELECT 1 FROM photos WHERE (deleted_at IS NULL AND preview IS NULL) "
-                "OR (preview IS NOT NULL AND length(preview) != preview_size) LIMIT 1"
-            ).fetchone():
-                raise RecoveryError("Snapshot photo preview metadata is inconsistent")
-            return DatabaseSummary(
-                migration=revisions[0][0],
-                users=db.execute("SELECT count(*) FROM users").fetchone()[0],
-                credentials=credential_count,
-                photos=counts["photos"],
-                documents=counts["documents"],
-            )
+                    values = dict(row._mapping)
+                    yield inline(name, values) if inline is not None else values
+
+            summary = _validate(migration, rows, key)
+            connection.rollback()
+            return summary
     except RecoveryError:
         raise
-    except (sqlite3.Error, InvalidTag, ValueError, TypeError, OSError):
+    except StorageError:
+        raise RecoveryError("A stored original is missing or does not match") from None
+    except (
+        SnapshotError,
+        InvalidTag,
+        KeyError,
+        ValueError,
+        TypeError,
+        SQLAlchemyError,
+    ):
         raise RecoveryError("Unable to validate the installation snapshot") from None

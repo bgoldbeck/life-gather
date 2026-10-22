@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pytest
+from database_support import restore_copy
 from stored_files import files
 from test_asset_actions import change
 from test_evidence_batch import batch
@@ -117,9 +118,9 @@ def test_evidence_and_photo_reuse_replacement_manual_recovery_and_private_recall
         )
     assert photos.binary(actor, original["id"], True)[0] == image_bytes()
 
-    snapshot = tmp_path / "lifecycle.sqlite3"
+    snapshot = tmp_path / "lifecycle.jsonl"
     operator_snapshot(auth.engine, snapshot)
-    restored = AuthStore(snapshot)
+    restored = AuthStore(restore_copy(snapshot))
     restored.migrate()
     assert EvidenceBatchService(restored.engine).move(actor, move) == moved
     assert (

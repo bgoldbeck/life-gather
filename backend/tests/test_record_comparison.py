@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import pytest
+from database_support import restore_copy
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from sqlalchemy import event
@@ -131,7 +132,7 @@ def test_complete_comparison_retains_evidence_aliases_photos_units_and_money(
         sql.lstrip().upper().startswith(("INSERT", "UPDATE", "DELETE"))
         for sql in queries
     )
-    assert "BEGIN" in queries
+    assert "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ" in queries
     assert before == {
         table: memory.export_page(actor, table)
         for table in ("facts", "sources", "entities")
@@ -433,9 +434,9 @@ def test_replacement_warning_and_snapshot_preserve_original_records(
     )
     result = RecordComparisonService(auth.engine).get(actor, data)
     assert result["complete"] and result["warnings"][0]["code"] == "replacement"
-    snapshot = tmp_path / "comparison.sqlite3"
+    snapshot = tmp_path / "comparison.jsonl"
     operator_snapshot(auth.engine, snapshot)
-    restored = AuthStore(snapshot)
+    restored = AuthStore(restore_copy(snapshot))
     restored.migrate()
     assert RecordComparisonService(restored.engine).get(actor, data) == result
 

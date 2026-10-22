@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from lifegather.assets.identity import canonical_id, identity_group, member_ids
 from lifegather.auth.store import Account
+from lifegather.database import begin_snapshot
 from lifegather.memory.models import Assertion
 from lifegather.memory.service import MemoryError, MemoryService, fingerprint
 
@@ -54,7 +55,7 @@ class WorkspaceContexts:
 
     def read(self, actor: Account, value: ContextRead) -> dict[str, Any]:
         with Session(self.engine) as db:
-            db.connection().exec_driver_sql("BEGIN")
+            begin_snapshot(db)
             return self.read_in(db, actor, value)
 
     def read_in(

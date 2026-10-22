@@ -22,6 +22,7 @@ INSTALLATION_FIELDS = frozenset(
         "smtp_sender",
         "smtp_implicit_tls",
         "data_dir",
+        "database_url",
         "vault_key_file",
     }
 )

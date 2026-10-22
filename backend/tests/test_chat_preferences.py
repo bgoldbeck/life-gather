@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from database_support import database
 from fastapi.testclient import TestClient
 
 from lifegather.main import create_app
@@ -18,7 +19,7 @@ def test_chat_preference_migration_preserves_existing_settings(tmp_path: Path) -
     from lifegather.memory.schemas import SourceInput
     from lifegather.memory.service import MemoryService
 
-    store = AuthStore(tmp_path / "legacy.sqlite3")
+    store = AuthStore(database(tmp_path / "legacy", empty=True))
     config = Config()
     config.set_main_option(
         "script_location", str(Path(lifegather.__file__).parent / "migrations")

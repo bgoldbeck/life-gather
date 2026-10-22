@@ -11,10 +11,40 @@ TrueNAS Docker-based Apps can install a container image directly. A GitHub sourc
 | Suggested host port | `8787/TCP` |
 | Run-as UID/GID | `10001:10001` |
 | Persistent mount | `/data` |
+| Database | PostgreSQL with pgvector (`pgvector/pgvector:pg17`), see [PostgreSQL](POSTGRESQL.md) |
 
 The current app is a foundation preview with no authentication or personal-memory storage. Use a private test network only. Do not expose it to the internet or enter personal records. Google sign-in and per-user data isolation are the next milestone.
 
 The source now includes the first Google login slice, but the existing published preview has not been rebuilt for it. New image builds require the configuration described in [Google login setup](GOOGLE_LOGIN.md); do not assume pulling the old preview enables authentication. Deployment over a LAN IP needs an HTTPS public origin for Google login; remote-access setup remains deferred.
+
+## PostgreSQL
+
+LifeGather needs a PostgreSQL database. The YAML install below runs it as a
+second container (`db`) in the same app with its own volume, reachable only by
+LifeGather. Before installing, add an environment variable
+`LIFEGATHER_DB_PASSWORD` with a long random value of letters and digits (for
+example the output of `openssl rand -hex 24`) and keep a copy: changing it later
+does not change the password of an existing database. For managed NAS storage,
+bind-mount a dedicated dataset to `/var/lib/postgresql/data` in the `db` service
+instead of the named `lifegather-db` volume, and include it in your snapshots and
+replication. Never delete it: it holds your records.
+
+### Upgrading an existing SQLite installation
+
+Releases up to 0.74 kept everything in `/data/auth.sqlite3`. To move to
+PostgreSQL:
+
+1. Take and verify an encrypted backup with the old release
+   ([operator recovery](OPERATOR_RECOVERY.md)), and snapshot the `/data` dataset.
+2. Edit the app's YAML to the new [image-only Compose file](../deploy/compose.image.yaml),
+   keeping your existing `/data` mount, port and other settings, and set
+   `LIFEGATHER_DB_PASSWORD`.
+3. Save and redeploy. On its first start the app copies `/data/auth.sqlite3`
+   into the empty database in one transaction and logs `Imported N rows`. If the
+   copy fails nothing is kept and the app stays down; the old file is untouched,
+   so you can roll back by restoring the previous YAML and image tag.
+4. Sign in and check items, photos and documents, then take a new backup. You can
+   delete `/data/auth.sqlite3` afterwards; it is ignored once PostgreSQL has data.
 
 ## TrueNAS installation
 
@@ -25,7 +55,8 @@ These instructions target the Docker-based Apps system in TrueNAS 24.10 and late
 3. Keep the image's default command and health check. Do not enable privileged mode or add Linux capabilities.
 4. Keep the run-as user at UID/GID `10001:10001`. If the wizard overrides it, configure its custom user accordingly.
 5. Mount writable persistent storage at `/data`. The YAML example uses a named Docker volume for testing. For managed NAS storage, first create a dedicated TrueNAS dataset, grant UID/GID 10001 the required read/write/traverse access, and bind-mount that dataset to `/data`. Do not use a recursive permission reset on an existing shared dataset.
-6. Install, wait for healthy status, then open `http://YOUR_NAS_PRIVATE_IP:8787`. `/health` should return `{"status":"ok"}`.
+6. Set `LIFEGATHER_DB_PASSWORD` as described in [PostgreSQL](#postgresql). The Custom App wizard runs one container, so use **Install via YAML** for the bundled database, or point `LIFEGATHER_DATABASE_URL` at an existing PostgreSQL server prepared as in [PostgreSQL](POSTGRESQL.md).
+7. Install, wait for healthy status, then open `http://YOUR_NAS_PRIVATE_IP:8787`. `/health` should return `{"status":"ok"}`.
 
 No source build or registry credentials are needed once the package is public. The image serves both the web UI and backend, and does not need a separate Node.js container.
 
@@ -40,7 +71,7 @@ docker compose -f deploy/compose.image.yaml pull
 docker compose -f deploy/compose.image.yaml up -d --wait
 ```
 
-For a repeatable deployment or rollback, pin the image by its published digest (`ghcr.io/bgoldbeck/life-gather@sha256:...`) or select a previously published commit tag. Keep the same persistent storage mount. Do not remove the data volume when updating. Database migration/rollback policies will be added before persistent records are introduced.
+For a repeatable deployment or rollback, pin the image by its published digest (`ghcr.io/bgoldbeck/life-gather@sha256:...`) or select a previously published commit tag. Keep the same persistent storage mounts. Do not remove the data or database volumes when updating. Migrations run automatically on startup; an image rollback across a migration needs the database backup taken before the update.
 
 Public images contain application code and bundled assets, not users' `/data` volumes, local `.env` files or provider credentials.
 

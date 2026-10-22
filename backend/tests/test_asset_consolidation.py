@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from database_support import database, restore_copy
 from sqlalchemy.orm import Session
 from stored_files import files
 from test_reconciliation import discovery, setup
@@ -441,9 +442,9 @@ def test_complete_identity_current_reads_future_discovery_and_reversal(
                 update={"consolidation_id": saved["id"], "request_id": "later"}
             ),
         )
-    snapshot = tmp_path / "consolidated.sqlite3"
+    snapshot = tmp_path / "consolidated.jsonl"
     operator_snapshot(auth.engine, snapshot)
-    recovered = AuthStore(snapshot)
+    recovered = AuthStore(restore_copy(snapshot))
     recovered.migrate()
     assert any(
         row.id == fact.id
@@ -696,7 +697,7 @@ def test_upgrade_preserves_originals_and_database_blocks_foreign_members(
     import lifegather
     from lifegather.assets.models import ConsolidationMember
 
-    store = AuthStore(tmp_path / "old.sqlite3")
+    store = AuthStore(database(tmp_path / "old", empty=True))
     config = Config()
     config.set_main_option(
         "script_location", str(Path(lifegather.__file__).parent / "migrations")
@@ -741,5 +742,5 @@ def test_upgrade_preserves_originals_and_database_blocks_foreign_members(
     with store.engine.connect() as connection:
         assert (
             connection.scalar(text("SELECT version_num FROM alembic_version"))
-            == "0029_receipt_detail_basis"
+            == "0030_pgvector"
         )

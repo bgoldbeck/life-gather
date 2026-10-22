@@ -7,6 +7,7 @@ from typing import Any
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
 import pytest
+from database_support import database
 from fastapi.testclient import TestClient
 from PIL import Image
 from sqlalchemy import func, select, text
@@ -82,7 +83,7 @@ def repack(
 
 
 def target(tmp_path: Path, subject: str = "restored") -> tuple[AuthStore, Account]:
-    store = AuthStore(tmp_path / "target" / "auth.sqlite3")
+    store = AuthStore(database(tmp_path / "target"))
     store.migrate()
     return store, store.login(subject, subject + "@example.test", subject, now=1).user
 

@@ -1,9 +1,10 @@
-from sqlalchemy import ForeignKey, String, UniqueConstraint
+from sqlalchemy import BigInteger, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
-    pass
+    # Integers were 64-bit in SQLite: timestamps are epoch microseconds.
+    type_annotation_map = {int: BigInteger}
 
 
 class User(Base):

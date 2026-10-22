@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pytest
+from database_support import restore_copy
 from test_automatic_receipts import automatic
 from test_purchase_details import SOURCE, body
 from test_receipts import extraction
@@ -111,9 +112,9 @@ def test_reviewed_receipt_unit_sale_recall_and_restore_preserve_exact_evidence(
     assert RecallTools(ChatService(auth.engine)).collect(foreign, plan)["records"] == []
     with pytest.raises(MemoryError):
         AssetService(auth.engine).get(foreign, AssetRead(asset_id=target.id))
-    snapshot = tmp_path / "receipt-lifecycle.sqlite3"
+    snapshot = tmp_path / "receipt-lifecycle.jsonl"
     operator_snapshot(auth.engine, snapshot)
-    restored = AuthStore(snapshot)
+    restored = AuthStore(restore_copy(snapshot))
     restored.migrate()
     assert set(ReconciliationService(restored.engine).inventory(actor)) == expected
     assert (

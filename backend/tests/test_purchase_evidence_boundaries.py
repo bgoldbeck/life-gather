@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from database_support import restore_copy
 from pydantic import ValidationError
 from test_reconciliation import setup
 
@@ -157,9 +158,9 @@ def test_concurrent_replay_restore_and_explicit_payment_link(tmp_path: Path) -> 
         service.save(bob, payment)
     with pytest.raises(MemoryError):
         service.save(actor, data.model_copy(update={"role": "receipt"}))
-    snapshot = tmp_path / "purchases.sqlite3"
+    snapshot = tmp_path / "purchases.jsonl"
     operator_snapshot(auth.engine, snapshot)
-    restored = AuthStore(snapshot)
+    restored = AuthStore(restore_copy(snapshot))
     restored.migrate()
     copied = PurchaseEvidenceService(restored.engine)
     assert copied.get(actor, rows[0]["purchase_id"]) == service.get(

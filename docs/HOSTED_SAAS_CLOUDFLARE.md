@@ -35,7 +35,7 @@ restricted-scope verification for Gmail and an operational backup/restore story.
 | Area | Current state (v0.66.0) | Hosted impact |
 | --- | --- | --- |
 | Packaging | One image: Vite build served as static files by FastAPI/uvicorn on port 8787, non-root, read-only root FS | Runs unchanged as a Cloudflare Container |
-| Database | SQLite file `/data/auth.sqlite3`, FTS5 search; Postgres migration planned | Container disk is ephemeral, so Postgres is a hard prerequisite |
+| Database | SQLite file `/data/auth.sqlite3`, FTS5 search; PostgreSQL with pgvector from 0.75 | Container disk is ephemeral, so Postgres is a hard prerequisite |
 | Files | `lifegather.storage`: `local` or `s3`; keys `users/<id>/...`; hash-checked reads | R2 fits directly. Image lacks the `s3` extra (boto3) |
 | Accounts | Google login and email/password; any Google account may register; per-user isolation | Already multi-user; needs abuse controls and lifecycle work |
 | Isolation | Owner checks in services (`owner_id`/`user_id` in ~90 modules) | Add DB-enforced backstop (RLS) and a cross-tenant test suite |
@@ -276,8 +276,7 @@ $26/month per instance, so measure real memory use before picking `standard-1`.
   requested on 2026-10-22 and is now Phase 5 of the feature plan. Proposed
   resolution: when Step D starts, update that anti-goal line to reference Phase 5,
   so hosted infrastructure is allowed only within its scoped increments.
-- `PROJECT_PLAN.md` still names SQLite as the database; the PostgreSQL migration
-  plan supersedes it and should update it when it merges.
+- Resolved in 0.75: `PROJECT_PLAN.md` and the app now use PostgreSQL.
 - `REMOTE_ACCESS.md` defers remote access; that deferral is about the self-hosted
   phone path and is unaffected by a separate hosted option.
 

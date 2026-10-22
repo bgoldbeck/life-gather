@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from database_support import database, restore_copy
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from test_asset_proposals import review, setup
@@ -98,9 +99,9 @@ def test_ownership_intervals_history_replay_and_restore(tmp_path: Path) -> None:
     )
     assert actions.export_page(bob)["items"] == []
     assert memory.get_source(alice, original.id).text == original.text
-    backup = tmp_path / "restored.sqlite3"
+    backup = tmp_path / "restored.jsonl"
     operator_snapshot(auth.engine, backup)
-    restored = AuthStore(backup)
+    restored = AuthStore(restore_copy(backup))
     restored.migrate()
     assert (
         AssetService(restored.engine).get(
@@ -283,7 +284,7 @@ def test_upgrade_keeps_existing_inventory_and_owner_foreign_keys(
 
     import lifegather
 
-    store = AuthStore(tmp_path / "old.sqlite3")
+    store = AuthStore(database(tmp_path / "old", empty=True))
     config = Config()
     config.set_main_option(
         "script_location", str(Path(lifegather.__file__).parent / "migrations")

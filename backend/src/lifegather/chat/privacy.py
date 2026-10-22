@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from lifegather.auth.store import Account
 from lifegather.chat.models import Conversation, Turn
 from lifegather.chat.service import ChatService
+from lifegather.database import begin_snapshot
 from lifegather.memory.models import Audit
 from lifegather.memory.notes import NoteConflict
 from lifegather.memory.service import MemoryError, MemoryService, fingerprint
@@ -87,7 +88,7 @@ class ConversationPrivacy:
 
     def preview(self, actor: Account, identifier: str) -> dict[str, Any]:
         with Session(self.engine) as db:
-            db.connection().exec_driver_sql("BEGIN")
+            begin_snapshot(db)
             return self._preview_in(db, actor, identifier)
 
     def stop(

@@ -411,7 +411,7 @@ def test_export_executes_only_read_queries_and_rolls_back_snapshot(
         RecordExport(auth.engine).download(actor)
     finally:
         event.remove(auth.engine, "before_cursor_execute", record)
-    assert statements[0] == "BEGIN"
+    assert statements[0] == "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"
     assert all(statement.startswith("SELECT ") for statement in statements[1:])
     assert len(statements) == 1 + len(COLLECTIONS)
     memory.ingest(actor, SourceInput(text="Write after completed export"))

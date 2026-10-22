@@ -42,7 +42,7 @@ def main(argv: list[str] | None = None) -> int:
         if password != confirmation:
             raise EmailAuthError("Passwords do not match; no account was created")
         password_value(password)
-        store = AuthStore(settings.data_dir / "auth.sqlite3")
+        store = AuthStore(settings.database())
         store.migrate()
         EmailAuth(store, None, settings.public_url).provision_local_account(
             name, email, password, now=int(time.time())
