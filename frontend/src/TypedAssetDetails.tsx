@@ -8,6 +8,7 @@ import {
   type AssetType,
   type TemplateField,
 } from './assetTypes'
+import { FactStatus } from './FactStatus'
 
 type Fact = {
   id: string
@@ -313,7 +314,7 @@ export function TypedAssetDetails({
             <div key={fact.id}>
               <dt>{fact.label ?? field?.name ?? 'Saved custom field'}</dt>
               <dd>
-                {fact.value ?? 'Unknown'} · {fact.status}
+                {fact.value ?? 'Unknown'} <FactStatus status={fact.status} />
                 {fact.superseded_at ? ' · Earlier statement' : ''}
                 {fact.evidence.map((evidence) => (
                   <Button

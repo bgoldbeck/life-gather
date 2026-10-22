@@ -5,6 +5,7 @@ import './shell.css'
 import App from './App.tsx'
 import './appearance.css'
 import './layout.css'
+import './consistency.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

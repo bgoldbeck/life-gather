@@ -78,6 +78,7 @@ export function PurchaseSourcePicker({
       </p>
       {error && <p role="alert">{error}</p>}
       <form
+        className="action-row"
         onSubmit={(event) => {
           event.preventDefault()
           setQuery(draft)
@@ -91,7 +92,6 @@ export function PurchaseSourcePicker({
             maxLength={200}
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            className="ml-2 rounded border bg-background p-2"
           />
         </label>
         <Button variant="outline" type="submit" disabled={disabled || busy}>

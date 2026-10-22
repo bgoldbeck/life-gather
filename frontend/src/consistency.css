@@ -1,0 +1,213 @@
+/*
+ * Phase 4 consistency pass: one look for controls, focus, messages and
+ * statuses across every page. Theme tokens only, so Light, Dark and Forest
+ * dark all inherit it. Loaded last; see docs/UI_CONSISTENCY.md.
+ */
+
+/* Keyboard focus: one visible ring everywhere, shown only for keyboard use. */
+:is(a, button, summary, select, textarea, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Form controls inside pages share height, border, radius and padding. */
+.main-content
+  :is(
+    input:not(
+      [type='checkbox'],
+      [type='radio'],
+      [type='file'],
+      [type='range'],
+      [type='color']
+    ),
+    select,
+    textarea
+  ) {
+  min-height: 2.25rem;
+  max-width: 100%;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--input);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+.main-content select {
+  padding-inline-end: 0.4rem;
+}
+.main-content textarea {
+  min-height: 4.5rem;
+}
+.main-content :is(input, select, textarea):focus-visible {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 35%, transparent);
+}
+.main-content :is(input, select, textarea, button):disabled {
+  cursor: not-allowed;
+}
+.main-content input[type='file'] {
+  max-width: 100%;
+  font-size: 0.875rem;
+}
+.main-content input[type='file']::file-selector-button {
+  margin-inline-end: 0.75rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.main-content input[type='file']::file-selector-button:hover {
+  background: var(--muted);
+}
+
+/* Checkboxes and radios sit on one line with their label text. */
+.main-content :is(input[type='checkbox'], input[type='radio']) {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  accent-color: var(--primary);
+}
+.main-content label:has(> :is(input[type='checkbox'], input[type='radio'])) {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+/* Field labels: label text above its control reads as a caption. */
+.main-content
+  label:has(> :is(input, select, textarea)):not(
+    :has(> :is(input[type='checkbox'], input[type='radio']))
+  ) {
+  font-weight: 500;
+}
+
+/* A row of related actions or filters: even gaps, wraps on narrow screens. */
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.5rem 0.75rem;
+  margin-block: 0.75rem;
+}
+.action-row > label {
+  display: grid;
+  gap: 0.3rem;
+}
+
+/* Buttons in stacked (grid) forms keep their natural width. */
+.main-content
+  :is(section, form, div, details, fieldset):where(
+    :not(.action-row, .graph-toolbar, .power-summary, .power-sources)
+  )
+  > button[data-slot='button'] {
+  justify-self: start;
+}
+
+/* Disclosure summaries look clickable and line up with headings. */
+.main-content summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+
+/* Section headings: one size scale under the page title. */
+.main-content[data-view] section :is(h2, h3):not(:first-child) {
+  font-family: inherit;
+  letter-spacing: -0.01em;
+}
+.main-content[data-view] > section h2:not(:first-child) {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.main-content[data-view] > section h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* Messages: errors read as a tinted callout, statuses as muted text. */
+.main-content p[role='alert'],
+.main-content p.chat-error {
+  margin-block: 0.5rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid color-mix(in oklab, var(--destructive) 40%, transparent);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--destructive) 9%, transparent);
+  color: var(--foreground);
+}
+.main-content p[role='status']:not(.empty-state) {
+  color: var(--muted-foreground);
+}
+
+/* Statement status: stated, inferred and unknown look different. */
+.fact-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.35rem;
+  text-transform: capitalize;
+  vertical-align: 0.05em;
+  white-space: nowrap;
+}
+.fact-status:is([data-status='stated'], [data-status='verified']) {
+  border-color: color-mix(in oklab, var(--tone-assets) 45%, transparent);
+  background: color-mix(
+    in oklab,
+    var(--tone-assets) var(--tone-tint),
+    transparent
+  );
+  color: var(--foreground);
+}
+.fact-status[data-status='inferred'] {
+  border-style: dashed;
+  border-color: color-mix(in oklab, var(--tone-power) 60%, transparent);
+  background: color-mix(in oklab, var(--tone-power) 8%, transparent);
+  color: var(--foreground);
+}
+.fact-status[data-status='unknown'] {
+  border-style: dotted;
+}
+
+/* Scans and Purchases sit on the same bordered page card as other panels. */
+.main-content:is([data-view='Scans'], [data-view='Purchases']) > section {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+}
+
+@media (max-width: 800px) {
+  .main-content:is([data-view='Scans'], [data-view='Purchases']) > section {
+    padding: 16px;
+  }
+}
+
+/* Phones: give the top bar's search the room the label and name were using. */
+@media (max-width: 600px) {
+  .topbar > span:first-child,
+  .topbar .account-actions > span {
+    display: none;
+  }
+  .topbar .global-search {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}

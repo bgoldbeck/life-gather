@@ -19,6 +19,7 @@ import {
   ConsolidationHistory,
   type IdentityChoice,
 } from './ConsolidationHistory'
+import { FactStatus } from './FactStatus'
 
 type Asset = {
   id: string
@@ -358,22 +359,24 @@ export function AssetsPanel({
   return (
     <section className="assets-panel" aria-label="Your assets">
       <h1>Assets</h1>
-      <Button
-        onClick={() => {
-          setAdding(true)
-          setNotice('')
-        }}
-        disabled={adding}
-      >
-        Add asset
-      </Button>
-      <Button
-        variant="outline"
-        disabled={adding}
-        onClick={() => setManagingTypes((value) => !value)}
-      >
-        {managingTypes ? 'Close asset type manager' : 'Manage asset types'}
-      </Button>
+      <div className="action-row">
+        <Button
+          onClick={() => {
+            setAdding(true)
+            setNotice('')
+          }}
+          disabled={adding}
+        >
+          Add asset
+        </Button>
+        <Button
+          variant="outline"
+          disabled={adding}
+          onClick={() => setManagingTypes((value) => !value)}
+        >
+          {managingTypes ? 'Close asset type manager' : 'Manage asset types'}
+        </Button>
+      </div>
       {managingTypes && (
         <AssetTypeManager
           csrfToken={csrfToken}
@@ -736,7 +739,7 @@ export function AssetsPanel({
                 {fact.object_id
                   ? (fact.object_name ?? 'Linked item')
                   : JSON.stringify(fact.display_value ?? fact.value)}{' '}
-                · {fact.status} ·{' '}
+                <FactStatus status={fact.status} /> ·{' '}
                 {fact.superseded_at === null
                   ? 'latest version of this statement'
                   : 'superseded version'}
