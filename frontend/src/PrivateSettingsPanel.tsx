@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { RecordExportPanel } from './RecordExportPanel'
+import { RecordRestorePanel } from './RecordRestorePanel'
 
 type Entry = {
   id: string
@@ -192,6 +193,10 @@ export function PrivateSettingsPanel({
       <h1 id="settings-heading">Settings</h1>
       <p>Your privacy choices and credentials belong to your account.</p>
       <RecordExportPanel
+        csrfToken={csrfToken}
+        refreshSession={refreshSession}
+      />
+      <RecordRestorePanel
         csrfToken={csrfToken}
         refreshSession={refreshSession}
       />

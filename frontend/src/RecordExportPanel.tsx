@@ -172,9 +172,9 @@ export function RecordExportPanel({
         Original images and document files are excluded from JSON. Choose ZIP
         below to include your active saved originals. Stored credentials,
         sign-in data, settings, scan schedules and processing caches remain
-        excluded. This is a records copy, not a complete backup; it cannot be
-        restored through the app. Installation recovery remains the installation
-        owner's responsibility.
+        excluded. This is a records copy, not a complete backup. Only the ZIP
+        archive can be restored, into an account with no saved records.
+        Installation recovery remains the installation owner's responsibility.
       </p>
       <p>
         Up to 10,000 records and 16 MiB. If your export exceeds either limit, no

@@ -36,7 +36,7 @@ from lifegather.mailboxes.scan import GmailImportHandler
 from lifegather.maintenance.routes import maintenance_router
 from lifegather.mcp_api.tools import build_server
 from lifegather.mcp_api.transport import PrivateMCP
-from lifegather.memory.export_routes import export_router
+from lifegather.memory.export_routes import export_router, restore_router
 from lifegather.memory.history_routes import history_router
 from lifegather.memory.notes import NoteConflict
 from lifegather.memory.origins import change_origin
@@ -152,6 +152,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.state.chat_slots = asyncio.Semaphore(4)
     app.state.photo_slots = asyncio.Semaphore(2)
     app.state.document_slots = asyncio.Semaphore(1)
+    app.state.restore_slots = asyncio.Semaphore(1)
     app.state.mcp_gate = PrivateMCP(mcp_app, app, settings)
     app.state.mcp_server = mcp_server
     app.router.routes.append(Route("/mcp", app.state.mcp_gate))
@@ -167,6 +168,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(graph_router())
     app.include_router(library_router())
     app.include_router(export_router())
+    app.include_router(restore_router())
     app.include_router(profile_router())
     app.include_router(maintenance_router())
     app.include_router(history_router())
