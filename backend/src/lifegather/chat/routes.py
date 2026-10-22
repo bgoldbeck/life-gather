@@ -21,7 +21,7 @@ from lifegather.chat.privacy import (
 )
 from lifegather.chat.runner import answer
 from lifegather.chat.service import ChatService, SaveText, TurnInput
-from lifegather.chat.streaming import DeltaSink
+from lifegather.chat.streaming import DeltaSink, StatusSink
 from lifegather.documents.service import DocumentService
 from lifegather.maintenance.service import MaintenanceService
 from lifegather.memory.notes import CorrectionInput, NoteService
@@ -37,6 +37,11 @@ from lifegather.reconciliation.receipts import ReceiptService
 Authenticated = Annotated[CurrentSession, Depends(require_session)]
 Mutation = Annotated[CurrentSession, Depends(require_write_session)]
 Cursor = Annotated[str, Query(max_length=36)]
+# Modes the stream endpoint runs, with their first host-written status.
+STREAMED = {
+    "ask": "Finding supporting evidence…",
+    "assistant": "Checking your request…",
+}
 
 
 def service(request: Request) -> ChatService:
@@ -212,6 +217,7 @@ def chat_router() -> APIRouter:
         current: CurrentSession,
         emit: DeltaSink | None = None,
         begun: tuple[dict[str, Any], bool] | None = None,
+        status: StatusSink | None = None,
     ) -> dict[str, Any]:
         chat = service(request)
         row, fresh = (
@@ -258,6 +264,7 @@ def chat_router() -> APIRouter:
                     request.app.state.claude_provider,
                     emit,
                     google_provider=request.app.state.google_provider,
+                    status=status,
                 )
 
         if body.mode == "organize":
@@ -340,15 +347,20 @@ def chat_router() -> APIRouter:
     async def stream(
         request: Request, conversation_id: str, body: TurnInput, current: Mutation
     ) -> StreamingResponse:
-        if body.mode != "ask":
-            raise HTTPException(422, "Streaming is available for Ask AI")
+        if body.mode not in STREAMED:
+            raise HTTPException(
+                422, "Streaming is available for Ask AI and AI assistant"
+            )
         begun = service(request).begin(current.user, conversation_id, body)
 
         async def generate() -> AsyncIterator[bytes]:
-            queue: asyncio.Queue[str] = asyncio.Queue(maxsize=8)
+            queue: asyncio.Queue[dict[str, str]] = asyncio.Queue(maxsize=8)
 
             async def emit(text: str) -> None:
-                await queue.put(text)
+                await queue.put({"type": "draft", "text": text})
+
+            async def progress(text: str) -> None:
+                await queue.put({"type": "status", "text": text})
 
             def event(value: dict[str, Any]) -> bytes:
                 return (
@@ -356,18 +368,18 @@ def chat_router() -> APIRouter:
                 ).encode()
 
             task = asyncio.create_task(
-                run(request, conversation_id, body, current, emit, begun)
+                run(request, conversation_id, body, current, emit, begun, progress)
             )
             try:
-                yield event({"type": "status", "text": "Finding supporting evidence…"})
+                yield event({"type": "status", "text": STREAMED[body.mode]})
                 while not task.done():
                     try:
-                        text = await asyncio.wait_for(queue.get(), timeout=0.25)
-                        yield event({"type": "draft", "text": text})
+                        update = await asyncio.wait_for(queue.get(), timeout=0.25)
+                        yield event(update)
                     except TimeoutError:
                         continue
                 while not queue.empty():
-                    yield event({"type": "draft", "text": queue.get_nowait()})
+                    yield event(queue.get_nowait())
                 yield event({"type": "complete", "turn": await task})
             finally:
                 if begun[1]:

@@ -8,6 +8,8 @@ import httpx2
 from pydantic_core import from_json
 
 DeltaSink = Callable[[str], Awaitable[None]]
+# Progress phrases are written by LifeGather, separately from answer drafts.
+StatusSink = Callable[[str], Awaitable[None]]
 
 
 async def events(response: httpx2.Response) -> AsyncIterator[dict[str, Any]]:

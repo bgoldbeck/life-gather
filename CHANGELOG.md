@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.61.0 — AI assistant progress status
+
+- AI assistant requests now stream short LifeGather-written progress lines while
+  they run: understanding the request, searching assets, reading current details,
+  checking details before adding or saving, and preparing a question or reply.
+  Chat shows the latest line in its live status area.
+- Status lines are fixed host phrases at real tool-loop stages. No model output,
+  reasoning or draft reply is streamed, and no status says a save happened; the
+  saved outcome still arrives only in the committed turn with its receipt links.
+- The existing private stream endpoint now accepts `assistant` as well as `ask`;
+  other modes are still refused there. Replay, cancellation, context and
+  permission checks are unchanged. No migration, dependency or provider-contract
+  change. Synthetic provider tests only. See [AI assistant](docs/AI_ASSISTANT.md).
+
 ## 0.60.0 — AI asset assistant
 
 - Add an **AI assistant** Chat action that uses the configured OpenAI, Claude or

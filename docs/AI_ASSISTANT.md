@@ -42,6 +42,15 @@ the provider/model and your ownership words. Change history shows the method
 Replaying the same request returns the stored outcome without another model call.
 Stopping a request before its write commits prevents the write.
 
+## Progress while it works
+
+Since v0.61.0 Chat shows short progress lines while an assistant request runs, such
+as "Searching your assets…" or "Checking details before saving…". LifeGather
+writes these itself at each tool-loop stage; they never contain model text or
+reasoning and never claim that anything was saved. The reply, and any saved
+result, appears only once the request's turn is committed. Stopping, retrying and
+replaying behave as before.
+
 ## Pending questions
 
 A question the assistant asks is saved with the turn. Only your next message in

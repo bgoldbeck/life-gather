@@ -11,7 +11,7 @@ from lifegather.chat.context import WorkspaceContexts
 from lifegather.chat.provider import Answer, Completion, Provider
 from lifegather.chat.recall import RecallPlan, RecallTools
 from lifegather.chat.service import ChatService, SaveText, TurnInput, save_text
-from lifegather.chat.streaming import AnswerPreview, DeltaSink
+from lifegather.chat.streaming import AnswerPreview, DeltaSink, StatusSink
 from lifegather.credentials.service import PrivateSettings
 from lifegather.memory.notes import NoteService
 from lifegather.memory.origins import change_origin
@@ -47,6 +47,7 @@ async def answer(
     claude_provider: Provider | None = None,
     emit: DeltaSink | None = None,
     google_provider: Provider | None = None,
+    status: StatusSink | None = None,
 ) -> dict[str, Any]:
     selected_context = (
         WorkspaceContexts(chat.engine).read(actor, body.context)
@@ -223,7 +224,7 @@ async def answer(
             selected_context,
             body.context.version if body.context else "",
             active,
-        ).run(completion)
+        ).run(completion, status)
 
     def save_extraction(operation: Callable[[], dict[str, Any]]) -> dict[str, Any]:
         with change_origin(

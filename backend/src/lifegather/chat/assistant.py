@@ -14,6 +14,7 @@ from lifegather.assets.service import AssetList, AssetService
 from lifegather.auth.store import Account
 from lifegather.chat.context import ContextRead, WorkspaceContexts
 from lifegather.chat.models import Turn
+from lifegather.chat.streaming import StatusSink
 from lifegather.memory.notes import NoteConflict
 from lifegather.memory.origins import change_origin
 from lifegather.memory.service import MemoryError, fingerprint
@@ -24,6 +25,18 @@ MAX_READS = 8
 MAX_CONTEXT_BYTES = 24000
 MAX_ORIGINS = 3
 NOTHING_SAVED = " No changes were saved."
+# Host-written progress phrases; model text never reaches a status event and a
+# status never reports a save (only the committed turn can).
+STATUS = {
+    "start": "Understanding your request…",
+    "next": "Choosing the next step…",
+    "search_assets": "Searching your assets…",
+    "read_asset": "Reading current asset details…",
+    "create_asset": "Checking details before adding…",
+    "update_asset": "Checking details before saving…",
+    "clarify": "Preparing a question…",
+    "answer": "Preparing a reply…",
+}
 
 
 class FieldChange(BaseModel):
@@ -654,10 +667,16 @@ class AssistantRunner:
         completion: Callable[
             [str, dict[str, Any], type[BaseModel]], Awaitable[dict[str, Any]]
         ],
+        status: StatusSink | None = None,
     ) -> dict[str, Any]:
+        async def report(stage: str) -> None:
+            if status is not None:
+                await status(STATUS.get(stage, "Checking your request…"))
+
         steps: list[dict[str, Any]] = []
         reads = 0
         for used in range(MAX_COMPLETIONS):
+            await report("next" if used else "start")
             payload = self.payload(steps, reads, MAX_COMPLETIONS - used)
             if (
                 len(json.dumps(payload, ensure_ascii=False).encode())
@@ -667,6 +686,7 @@ class AssistantRunner:
             step = AssistantStep.model_validate(
                 await completion(INSTRUCTION, payload, AssistantStep)
             )
+            await report(step.action)
             try:
                 if step.action in {"search_assets", "read_asset"}:
                     if reads >= MAX_READS:
