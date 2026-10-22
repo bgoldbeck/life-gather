@@ -189,6 +189,26 @@ def test_restore_refuses_non_empty_account_and_repeat_without_changes(
     assert not list((tmp_path / "target" / "files" / "users" / third.id).glob("**/*"))
 
 
+def test_restore_round_trip_keeps_non_pdf_documents(tmp_path: Path) -> None:
+    # Exports omit the legacy page column for non-PDF documents; restore must
+    # still accept the archive it produced (found by the browser checks).
+    case = installation(tmp_path)
+    engine = case.store.engine
+    DocumentService(engine, stored(engine)).upload(
+        case.alice, b"Synthetic receipt\nTotal 49.99 USD\n", "receipt.txt"
+    )
+    raw = PersonalArchive(engine, stored(engine)).download(case.alice)
+    _, records, _ = unpack(raw)
+    [document] = records["collections"]["documents"]
+    assert document["format"] == "txt" and document["pages"] is None
+    store, actor = target(tmp_path)
+    storage = stored(store.engine)
+    result = PersonalRestore(store.engine, storage).restore(actor, raw)
+    assert result["total_records"] == records["total_records"]
+    _, restored, _ = unpack(PersonalArchive(store.engine, storage).download(actor))
+    assert restored["collections"]["documents"] == [document]
+
+
 def test_restore_into_source_installation_is_refused(tmp_path: Path) -> None:
     case, raw = rich_archive(tmp_path)
     fresh = case.store.login("carol", "carol@example.test", "Carol", now=1).user

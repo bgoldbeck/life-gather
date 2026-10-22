@@ -119,6 +119,9 @@ Treat this as a release gate as well as continuing work during Phases 1 and 2.
 
 - Exercise the full create -> evidence -> recall -> correction -> restart ->
   export/recovery loop with representative synthetic possessions and two accounts.
+  v0.79.0 adds [browser end-to-end checks](END_TO_END_CHECKS.md): sign in, add an
+  asset, attach a receipt photo and document, search, back up and restore into a
+  second installation, on PostgreSQL.
 - Retain direct correction, safe existing duplicate resolution, history and
   inspectable unknowns. Broaden undo only for operations that support safe reversal.
   v0.73.0 adds [undo](UNDO.md) for review-queue decisions (including dismissals),

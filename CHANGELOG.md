@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.79.0 — End-to-end reliability checks
+
+- New browser checks (Playwright, Chromium) walk through sign-in, adding an
+  asset with the duplicate prompt, attaching a receipt photo, uploading and
+  reviewing a receipt document, search everything, backing up a personal archive
+  and restoring it into a second installation, and sign-out. They run against
+  the real backend on throwaway PostgreSQL databases with synthetic data:
+  `npm run test:e2e` from `frontend/`. See
+  [docs/END_TO_END_CHECKS.md](docs/END_TO_END_CHECKS.md).
+- Fix: restoring a personal archive that contains a text, Markdown, CSV, Word or
+  Excel document no longer fails with "Archive record is missing a required
+  value". Archives downloaded earlier restore correctly with this release.
+- No migration.
+
 ## 0.78.0 — Portable container
 
 Self-hosted Docker Compose keeps working unchanged; every new option is off or

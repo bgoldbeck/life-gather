@@ -1,0 +1,5 @@
+Synthetic test receipt
+Example Hardware Store
+Brass desk lamp  1 x 49.99 USD
+Total 49.99 USD
+This document is synthetic test data.
