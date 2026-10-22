@@ -4,6 +4,7 @@ from io import BytesIO
 from pathlib import Path
 
 import pytest
+from database_support import database
 from fastapi.testclient import TestClient
 from PIL import Image
 from pydantic import ValidationError
@@ -39,7 +40,7 @@ from lifegather.photos.service import PhotoDelete, PhotoDeleteMany, PhotoService
 
 
 def accounts(tmp_path: Path) -> tuple[AuthStore, Account, Account]:
-    store = AuthStore(tmp_path / "data" / "auth.sqlite3")
+    store = AuthStore(database(tmp_path / "data"))
     store.migrate()
     alice = store.login("alice", "a@example.test", "Alice", now=1).user
     bob = store.login("bob", "b@example.test", "Bob", now=1).user

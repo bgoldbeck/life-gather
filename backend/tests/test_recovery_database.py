@@ -54,7 +54,9 @@ def test_recovery_refuses_future_migrations_and_corrupt_document_originals(
     with pytest.raises(RecoveryError, match="migration"):
         validate_snapshot(snapshot(store, copy), None)
     with store.engine.begin() as db:
-        db.execute(text("UPDATE alembic_version SET version_num='0031_conversation_retention'"))
+        db.execute(
+            text("UPDATE alembic_version SET version_num='0031_conversation_retention'")
+        )
         db.execute(
             text(
                 "UPDATE documents SET original_key=NULL, "
