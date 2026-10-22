@@ -31,6 +31,8 @@ class Photo(Base):
     preview_size: Mapped[int]
     original: Mapped[bytes | None] = mapped_column(deferred=True)
     preview: Mapped[bytes | None] = mapped_column(deferred=True)
+    original_key: Mapped[str | None] = mapped_column(deferred=True)
+    preview_key: Mapped[str | None] = mapped_column(deferred=True)
     source_id: Mapped[str | None]
     created_at: Mapped[int]
     updated_at: Mapped[int]

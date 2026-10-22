@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from stored_files import files
 from test_documents import synthetic_pdf
 from test_mcp_http import rpc, signed_headers
 from test_photos import image_bytes, reading
@@ -46,7 +47,7 @@ def test_library_current_search_history_and_source_categories(tmp_path: Path) ->
         library.list(bob, LibraryPage(query="filter", include_history=True))["items"]
         == []
     )
-    photo_service = PhotoService(auth.engine)
+    photo_service = PhotoService(auth.engine, files(auth.engine))
     photo = photo_service.upload(actor, image_bytes(), "synthetic-plate.jpg")
     photo_source = photo_service.save_reading(actor, photo["id"], reading())[
         "source_id"
@@ -69,7 +70,7 @@ def test_library_current_search_history_and_source_categories(tmp_path: Path) ->
         PhotoDelete(photo_id=photo["id"], expected_updated_at=latest["updated_at"]),
     )
     assert library.list(actor, LibraryPage(kind="photos"))["items"]
-    documents = DocumentService(auth.engine)
+    documents = DocumentService(auth.engine, files(auth.engine))
     pdf = documents.upload(actor, synthetic_pdf(), "synthetic.pdf")
     reviewed = documents.save_text(
         actor,

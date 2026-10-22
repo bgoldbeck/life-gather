@@ -10,6 +10,7 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy import event, insert, select, update
 from sqlalchemy.orm import Session
+from stored_files import files
 from test_recovery_bundle import installation
 
 from lifegather.auth.store import Account, AuthStore
@@ -136,11 +137,15 @@ def test_deletion_removes_only_owned_transcript_and_replays_without_content_tomb
         )
     assert chat.usage(case.alice) == budget
     assert (
-        PhotoService(case.store.engine).binary(case.alice, case.photo, True)[0]
+        PhotoService(case.store.engine, files(case.store.engine)).binary(
+            case.alice, case.photo, True
+        )[0]
         == case.photo_original
     )
     assert (
-        DocumentService(case.store.engine).binary(case.bob, case.document)
+        DocumentService(case.store.engine, files(case.store.engine)).binary(
+            case.bob, case.document
+        )
         == case.document_original
     )
     assert (

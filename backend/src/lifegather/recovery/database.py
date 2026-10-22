@@ -12,6 +12,8 @@ from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from lifegather.recovery.envelope import CHUNK_BYTES, RecoveryError
+from lifegather.storage.base import ObjectStorage, StorageError
+from lifegather.storage.originals import verified
 
 SUPPORTED_MIGRATIONS = frozenset(
     {
@@ -20,6 +22,7 @@ SUPPORTED_MIGRATIONS = frozenset(
         "0025_document_formats",
         "0026_asset_types",
         "0027_forest_dark_theme",
+        "0028_object_storage",
     }
 )
 
@@ -50,6 +53,41 @@ def finalize_snapshot(path: Path) -> None:
         with closing(sqlite3.connect(path)) as db:
             if db.execute("PRAGMA journal_mode=DELETE").fetchone() != ("delete",):
                 raise RecoveryError("Unable to prepare a standalone snapshot")
+    except sqlite3.Error:
+        raise RecoveryError("Unable to prepare a standalone snapshot") from None
+
+
+def inline_stored_objects(path: Path, storage: ObjectStorage) -> None:
+    """Copy stored originals/previews back into the private snapshot copy.
+
+    The bundle stays self-contained and independent of the storage backend; a
+    restored installation moves the bytes out to its own storage on startup.
+    """
+    parts = (
+        ("documents", "original", "original_key", "size", "content_hash"),
+        ("photos", "original", "original_key", "size", "content_hash"),
+        ("photos", "preview", "preview_key", "preview_size", None),
+    )
+    try:
+        with closing(sqlite3.connect(path)) as db:
+            for table, column, key_column, size_column, digest_column in parts:
+                rows = db.execute(
+                    f"SELECT rowid,{key_column},{size_column},"
+                    f"{digest_column or 'NULL'},deleted_at FROM {table} "
+                    f"WHERE {key_column} IS NOT NULL"
+                ).fetchall()
+                for rowid, key, size, digest, deleted_at in rows:
+                    value = None
+                    if deleted_at is None:
+                        value = verified(storage.get(key), size, digest)
+                    db.execute(
+                        f"UPDATE {table} SET {column}=?,{key_column}=NULL "
+                        "WHERE rowid=?",
+                        (value, rowid),
+                    )
+            db.commit()
+    except StorageError:
+        raise RecoveryError("A stored original is missing or does not match") from None
     except sqlite3.Error:
         raise RecoveryError("Unable to prepare a standalone snapshot") from None
 
@@ -85,6 +123,7 @@ def validate_database(
                 "0025_document_formats",
                 "0026_asset_types",
                 "0027_forest_dark_theme",
+                "0028_object_storage",
             ):
                 # A current schema marker must include complete typed task storage.
                 # Older accepted snapshots deliberately need no maintenance tables.
@@ -107,6 +146,7 @@ def validate_database(
                 "0025_document_formats",
                 "0026_asset_types",
                 "0027_forest_dark_theme",
+                "0028_object_storage",
             ):
                 if db.execute(
                     "SELECT 1 FROM documents WHERE format NOT IN "
@@ -114,7 +154,11 @@ def validate_database(
                     "OR NOT json_valid(extraction_metadata) LIMIT 1"
                 ).fetchone():
                     raise RecoveryError("Snapshot document metadata is invalid")
-            if revisions[0][0] in ("0026_asset_types", "0027_forest_dark_theme"):
+            if revisions[0][0] in (
+                "0026_asset_types",
+                "0027_forest_dark_theme",
+                "0028_object_storage",
+            ):
                 db.execute(
                     "SELECT id,type_id,name,system_field,retired,position "
                     "FROM asset_type_fields LIMIT 0"
@@ -134,6 +178,16 @@ def validate_database(
                     "WHERE NOT json_valid(definition_json) LIMIT 1"
                 ).fetchone():
                     raise RecoveryError("Snapshot asset type definition is invalid")
+            if (
+                revisions[0][0] == "0028_object_storage"
+                and db.execute(
+                    "SELECT 1 FROM documents WHERE original_key IS NOT NULL UNION ALL "
+                    "SELECT 1 FROM photos WHERE original_key IS NOT NULL "
+                    "OR preview_key IS NOT NULL LIMIT 1"
+                ).fetchone()
+            ):
+                # Snapshots must carry every original themselves.
+                raise RecoveryError("Snapshot refers to files outside the bundle")
             fingerprints = db.execute(
                 "SELECT id,fingerprint FROM vault_key LIMIT 2"
             ).fetchall()

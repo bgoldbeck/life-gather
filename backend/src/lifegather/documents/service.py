@@ -17,6 +17,8 @@ from lifegather.documents.models import Document
 from lifegather.memory.notes import NoteConflict, NoteService
 from lifegather.memory.schemas import SourceInput
 from lifegather.memory.service import MemoryError, MemoryService
+from lifegather.storage.base import ObjectStorage, StorageError
+from lifegather.storage.originals import delete_quietly, object_key, read_original
 
 
 class DocumentRead(BaseModel):
@@ -53,9 +55,23 @@ class DocumentPreview(DocumentRead, PreviewOptions):
 
 
 class DocumentService:
-    def __init__(self, engine: Engine) -> None:
+    def __init__(self, engine: Engine, storage: ObjectStorage | None = None) -> None:
         self.engine = engine
+        self.storage = storage
         self.memory = MemoryService(engine)
+
+    def _original(self, row: Document) -> bytes:
+        if row.deleted_at is not None:
+            raise MemoryError("Original document was deleted")
+        try:
+            raw = read_original(
+                self.storage, row.original_key, row.original, row.size, row.content_hash
+            )
+        except StorageError:
+            raise MemoryError("Original document is unavailable") from None
+        if raw is None:
+            raise MemoryError("Original document was deleted")
+        return raw
 
     @staticmethod
     def owned(db: Session, actor: Account, identifier: str) -> Document:
@@ -116,10 +132,7 @@ class DocumentService:
 
     def binary(self, actor: Account, identifier: str) -> bytes:
         with Session(self.engine) as db:
-            row = self.owned(db, actor, identifier)
-            if row.deleted_at is not None or row.original is None:
-                raise MemoryError("Original document was deleted")
-            return row.original
+            return self._original(self.owned(db, actor, identifier))
 
     def upload(
         self,
@@ -158,57 +171,75 @@ class DocumentService:
                 "Document could not be read within its limits; "
                 "check format, encoding and selection"
             ) from None
-        with self.memory._write() as db:
-            if active:
-                active()
-            existing = db.scalar(
-                select(Document)
-                .where(
-                    Document.user_id == actor.id,
-                    Document.content_hash == digest,
-                    Document.deleted_at.is_(None),
+        storage = self.storage
+        if storage is None:
+            raise MemoryError("File storage is not configured")
+        key: str | None = None
+        try:
+            with self.memory._write() as db:
+                if active:
+                    active()
+                existing = db.scalar(
+                    select(Document)
+                    .where(
+                        Document.user_id == actor.id,
+                        Document.content_hash == digest,
+                        Document.deleted_at.is_(None),
+                    )
+                    .limit(1)
                 )
-                .limit(1)
-            )
-            if existing is not None:
-                return self.view(existing)
-            count, size = db.execute(
-                select(
-                    func.count(Document.id), func.coalesce(func.sum(Document.size), 0)
-                ).where(Document.user_id == actor.id, Document.deleted_at.is_(None))
-            ).one()
-            if count >= 200 or size + len(raw) > 256 * 1024 * 1024:
-                raise MemoryError("Private document storage quota reached")
-            now = self.memory.clock()
-            row = Document(
-                id=str(uuid4()),
-                user_id=actor.id,
-                content_hash=digest,
-                filename=filename,
-                format=extension,
-                extraction_metadata=json.dumps(extracted.metadata, ensure_ascii=False),
-                size=len(raw),
-                pages=extracted.pages,
-                extracted_text=extracted.text,
-                text_truncated=extracted.truncated,
-                original=raw,
-                source_id=None,
-                created_at=now,
-                updated_at=now,
-                deleted_at=None,
-            )
-            db.add(row)
-            db.flush()
-            self.memory._audit(db, actor, "document_uploaded", row.id, now)
-            return self.view(row)
+                if existing is not None:
+                    return self.view(existing)
+                count, size = db.execute(
+                    select(
+                        func.count(Document.id),
+                        func.coalesce(func.sum(Document.size), 0),
+                    ).where(Document.user_id == actor.id, Document.deleted_at.is_(None))
+                ).one()
+                if count >= 200 or size + len(raw) > 256 * 1024 * 1024:
+                    raise MemoryError("Private document storage quota reached")
+                now = self.memory.clock()
+                identifier = str(uuid4())
+                key = object_key(actor.id, "documents", identifier, "original")
+                try:
+                    storage.save(raw, key)
+                except StorageError:
+                    raise MemoryError("Unable to store the original document") from None
+                row = Document(
+                    id=identifier,
+                    user_id=actor.id,
+                    content_hash=digest,
+                    filename=filename,
+                    format=extension,
+                    extraction_metadata=json.dumps(
+                        extracted.metadata, ensure_ascii=False
+                    ),
+                    size=len(raw),
+                    pages=extracted.pages,
+                    extracted_text=extracted.text,
+                    text_truncated=extracted.truncated,
+                    original=None,
+                    original_key=key,
+                    source_id=None,
+                    created_at=now,
+                    updated_at=now,
+                    deleted_at=None,
+                )
+                db.add(row)
+                db.flush()
+                self.memory._audit(db, actor, "document_uploaded", row.id, now)
+                return self.view(row)
+        except BaseException:
+            # The row was not committed, so its stored copy must not linger.
+            if key is not None:
+                delete_quietly(storage, [key])
+            raise
 
     def preview(self, actor: Account, value: DocumentPreview) -> dict[str, Any]:
         data = DocumentPreview.model_validate(value)
         with Session(self.engine) as db:
             row = self.owned(db, actor, data.document_id)
-            if row.deleted_at is not None or row.original is None:
-                raise MemoryError("Original document was deleted")
-            extension, raw = row.format, row.original
+            extension, raw = row.format, self._original(row)
         try:
             return extract_document(
                 raw,
@@ -256,6 +287,7 @@ class DocumentService:
 
     def delete(self, actor: Account, value: DocumentDelete) -> dict[str, Any]:
         data = DocumentDelete.model_validate(value)
+        removed: str | None = None
         with self.memory._write() as db:
             row = self.owned(db, actor, data.document_id)
             if row.deleted_at is None:
@@ -265,10 +297,19 @@ class DocumentService:
                 row.updated_at = max(row.deleted_at, row.updated_at + 1)
                 row.original = None
                 row.extracted_text = ""
+                removed = row.original_key
                 self.memory._audit(
                     db, actor, "document_deleted", row.id, row.deleted_at
                 )
-            return self.view(row)
+            result = self.view(row)
+        # Only after the delete commits; a failed removal keeps the key so the
+        # startup sweep retries it.
+        if removed is not None and delete_quietly(self.storage, [removed]):
+            with self.memory._write() as db:
+                row = self.owned(db, actor, data.document_id)
+                if row.original_key == removed:
+                    row.original_key = None
+        return result
 
     def source_document(self, actor: Account, source_id: str) -> dict[str, Any] | None:
         with Session(self.engine) as db:

@@ -266,6 +266,7 @@ def chat_router() -> APIRouter:
                     google_provider=request.app.state.google_provider,
                     status=status,
                     scans=getattr(request.app.state, "scan_service", None),
+                    storage=request.app.state.object_storage,
                 )
 
         if body.mode == "organize":

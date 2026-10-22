@@ -30,6 +30,7 @@ class Document(Base):
     extracted_text: Mapped[str]
     text_truncated: Mapped[bool]
     original: Mapped[bytes | None] = mapped_column(deferred=True)
+    original_key: Mapped[str | None] = mapped_column(deferred=True)
     source_id: Mapped[str | None]
     created_at: Mapped[int]
     updated_at: Mapped[int]

@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pytest
+from stored_files import files
 from test_asset_actions import change
 from test_evidence_batch import batch
 from test_photos import image_bytes
@@ -30,7 +31,7 @@ def test_evidence_and_photo_reuse_replacement_manual_recovery_and_private_recall
     auth, actor, foreign, memory, reconcile, _, line, target, _, batches, _, move = (
         batch(tmp_path)
     )
-    photos = PhotoService(auth.engine)
+    photos = PhotoService(auth.engine, files(auth.engine))
     original = photos.upload(
         actor, image_bytes(), "synthetic.jpg", "receipt", move.asset_id
     )
@@ -129,7 +130,10 @@ def test_evidence_and_photo_reuse_replacement_manual_recovery_and_private_recall
         ReplacementService(restored.engine).change(actor, withdrawn_request)
         == withdrawn
     )
-    assert PhotoService(restored.engine).link(actor, photo_request) == linked
+    assert (
+        PhotoService(restored.engine, files(restored.engine)).link(actor, photo_request)
+        == linked
+    )
     context = RecallTools(ChatService(restored.engine)).collect(
         actor,
         RecallPlan(

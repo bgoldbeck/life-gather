@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from stored_files import files
 from test_asset_actions import change
 from test_asset_proposals import TEXT, fields, review, setup
 from test_mcp_http import rpc, signed_headers
@@ -170,7 +171,7 @@ def test_deleted_pdf_blocks_manual_and_automatic_proposals(tmp_path: Path) -> No
     )
 
     auth, actor, _, _, _, service, _ = setup(tmp_path)
-    documents = DocumentService(auth.engine)
+    documents = DocumentService(auth.engine, files(auth.engine))
     doc = documents.upload(actor, synthetic_pdf(), "synthetic.pdf")
     doc = documents.save_text(
         actor,

@@ -8,6 +8,7 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from stored_files import files
 from test_asset_types import definition
 from test_reconciliation import setup
 
@@ -116,7 +117,11 @@ def test_type_definitions_json_zip_and_encrypted_operator_recovery(
     template = types.save(case.alice, definition())
     raw = RecordExport(case.store.engine).download(case.alice)
     with ZipFile(
-        BytesIO(PersonalArchive(case.store.engine).download(case.alice))
+        BytesIO(
+            PersonalArchive(case.store.engine, files(case.store.engine)).download(
+                case.alice
+            )
+        )
     ) as archive:
         records = json.loads(archive.read("records.json"))
         assert records["collections"]["asset_types"][0]["id"] == template["id"]

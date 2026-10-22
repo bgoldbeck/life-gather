@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.66.0 — Private file storage
+
+- Original documents, photos and photo previews are now kept in private file
+  storage instead of inside the database, behind one storage interface with two
+  backends chosen by configuration: a local directory (default `/data/files`, on
+  the existing `/data` mount) and an S3-compatible private bucket for a future
+  hosted setup (`LIFEGATHER_STORAGE_BACKEND=s3`, optional `s3` extra). See
+  [docs/FILE_STORAGE.md](docs/FILE_STORAGE.md).
+- Every file read is checked against its recorded size and SHA-256; deleting a
+  document or photo removes its stored files, retrying on the next start if
+  storage was unreachable.
+- Migration `0028_object_storage` adds storage key columns. Existing files keep
+  working: on startup each one is copied to storage, verified and only then
+  cleared from the database, one row at a time. Downgrade is refused while files
+  live in storage.
+- Personal archive downloads read through storage. Encrypted recovery bundles keep
+  the same format and stay self-contained: stored originals are copied back into
+  the snapshot and verified; a restored app moves them out again.
 ## 0.65.0 — Colorful icons and visual flair
 
 - Every navigation page has its own icon in a colored tile (Power Center bolt,

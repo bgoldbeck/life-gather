@@ -51,9 +51,10 @@ def export_router() -> APIRouter:
         current: Annotated[CurrentSession, Depends(require_write_session)],
     ) -> Response:
         try:
-            content = PersonalArchive(request.app.state.auth_store.engine).download(
-                current.user
-            )
+            content = PersonalArchive(
+                request.app.state.auth_store.engine,
+                request.app.state.object_storage,
+            ).download(current.user)
         except ExportLimitError as error:
             raise HTTPException(413, str(error)) from None
         except ArchiveError as error:

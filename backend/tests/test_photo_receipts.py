@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from stored_files import files
 from test_chat import send
 from test_mcp_http import rpc, signed_headers
 from test_photos import image_bytes, reading
@@ -67,7 +68,7 @@ def photo_chat(
         headers, actor = signed_headers(app, "receipt-photo-owner")
         foreign, _ = signed_headers(app, "receipt-photo-foreign")
         chat = ChatService(app.state.auth_store.engine)
-        photo = PhotoService(chat.engine).upload(
+        photo = PhotoService(chat.engine, files(chat.engine)).upload(
             actor, image_bytes(), "receipt.jpg", "receipt"
         )
         connection = app.state.private_settings.save(
@@ -115,7 +116,12 @@ def test_photo_receipt_chat_replay_review_private_source_and_snapshot(
     draft = service.get(actor, receipt_id)
     assert [row["quantity"] for row in draft["items"]] == [2, 1]
     assert all(row["kind"] == "mention" for row in draft["items"])
-    assert PhotoService(chat.engine).get(actor, photo["id"])["source_id"] == source_id
+    assert (
+        PhotoService(chat.engine, files(chat.engine)).get(actor, photo["id"])[
+            "source_id"
+        ]
+        == source_id
+    )
     assert (
         client.get(f"/api/chat/sources/{source_id}", headers=headers).json()["photo"][
             "id"
@@ -162,9 +168,9 @@ def test_photo_receipt_chat_replay_review_private_source_and_snapshot(
     assert history["items"][0]["proposal_origin"]["provider"] == "openai"
     for identifier in identifiers:
         assert (
-            PhotoService(chat.engine).list(actor, PhotoList(asset_id=identifier))[
-                "items"
-            ][0]["id"]
+            PhotoService(chat.engine, files(chat.engine)).list(
+                actor, PhotoList(asset_id=identifier)
+            )["items"][0]["id"]
             == photo["id"]
         )
     snapshot = tmp_path / "restore.sqlite3"
@@ -183,7 +189,7 @@ def test_invalid_photo_receipt_rolls_back_transcription_and_draft(
     tmp_path: Path, invalid: str
 ) -> None:
     auth, actor, _, memory, _ = setup(tmp_path)
-    photos = PhotoService(auth.engine)
+    photos = PhotoService(auth.engine, files(auth.engine))
     photo = photos.upload(actor, image_bytes(), "receipt.jpg")
     value = receipt_reading()
     if invalid == "quote":
@@ -212,7 +218,7 @@ def test_photo_receipt_refuses_foreign_deleted_or_changed_transcription(
     tmp_path: Path,
 ) -> None:
     auth, actor, foreign, _, _ = setup(tmp_path)
-    photos = PhotoService(auth.engine)
+    photos = PhotoService(auth.engine, files(auth.engine))
     photo = photos.upload(actor, image_bytes(), "receipt.jpg")
     with pytest.raises(MemoryError):
         photos.save_receipt_reading(foreign, photo["id"], receipt_reading())
@@ -240,7 +246,7 @@ def test_receipt_photo_uses_current_transcription_after_inactive_single_review(
     photo_chat: tuple[Any, ...],
 ) -> None:
     client, headers, _, actor, chat, photo, provider, options = photo_chat
-    PhotoService(chat.engine).save_reading(
+    PhotoService(chat.engine, files(chat.engine)).save_reading(
         actor,
         photo["id"],
         {
@@ -249,7 +255,9 @@ def test_receipt_photo_uses_current_transcription_after_inactive_single_review(
             "explanation": "Multiple items; review separately.",
         },
     )
-    source_id = PhotoService(chat.engine).get(actor, photo["id"])["source_id"]
+    source_id = PhotoService(chat.engine, files(chat.engine)).get(actor, photo["id"])[
+        "source_id"
+    ]
     corrected = NoteService(chat.engine).correct(
         actor,
         CorrectionInput(
@@ -281,7 +289,9 @@ def test_active_single_photo_proposal_blocks_receipt_before_provider(
     photo_chat: tuple[Any, ...],
 ) -> None:
     client, headers, _, actor, chat, photo, provider, options = photo_chat
-    PhotoService(chat.engine).save_reading(actor, photo["id"], reading())
+    PhotoService(chat.engine, files(chat.engine)).save_reading(
+        actor, photo["id"], reading()
+    )
     conversation = chat.create(actor)["id"]
     result = send(
         client,
@@ -301,7 +311,7 @@ def test_unclear_receipt_keeps_evidence_without_inventory(
     tmp_path: Path, empty_text: str
 ) -> None:
     auth, actor, _, memory, _ = setup(tmp_path)
-    photos = PhotoService(auth.engine)
+    photos = PhotoService(auth.engine, files(auth.engine))
     photo = photos.upload(actor, image_bytes(), "unclear.jpg")
     result = photos.save_receipt_reading(
         actor,
@@ -319,7 +329,7 @@ def test_concurrent_photo_receipt_saves_keep_one_original_and_review(
     tmp_path: Path,
 ) -> None:
     auth, actor, _, memory, _ = setup(tmp_path)
-    photos = PhotoService(auth.engine)
+    photos = PhotoService(auth.engine, files(auth.engine))
     photo = photos.upload(actor, image_bytes(), "receipt.jpg")
 
     def save(_: int) -> dict[str, Any]:
@@ -340,7 +350,7 @@ def test_photo_receipt_discards_provider_result_after_delete_or_cancel(
 
     def change() -> None:
         if race == "deleted":
-            photos = PhotoService(chat.engine)
+            photos = PhotoService(chat.engine, files(chat.engine))
             current = photos.get(actor, photo["id"])
             photos.delete(
                 actor,
@@ -363,7 +373,12 @@ def test_photo_receipt_discards_provider_result_after_delete_or_cancel(
         **options,
     ).json()
     assert result["state"] in {"failed", "canceled"}
-    assert PhotoService(chat.engine).get(actor, photo["id"])["source_id"] is None
+    assert (
+        PhotoService(chat.engine, files(chat.engine)).get(actor, photo["id"])[
+            "source_id"
+        ]
+        is None
+    )
     assert chat.memory.export_page(actor, "sources")["items"] == []
     assert chat.memory.export_page(actor, "entities")["items"] == []
 
@@ -413,7 +428,7 @@ def test_photo_receipt_cannot_hide_multiple_units_by_shortening_the_quote(
     tmp_path: Path, text: str
 ) -> None:
     auth, actor, _, memory, _ = setup(tmp_path)
-    photos = PhotoService(auth.engine)
+    photos = PhotoService(auth.engine, files(auth.engine))
     photo = photos.upload(actor, image_bytes(), "receipt.jpg")
     value = receipt_reading()
     value["transcription"] = text
@@ -438,7 +453,7 @@ def test_single_item_ignores_prices_dimensions_and_other_line_quantities(
     tmp_path: Path, text: str
 ) -> None:
     auth, actor, _, _, _ = setup(tmp_path)
-    photos = PhotoService(auth.engine)
+    photos = PhotoService(auth.engine, files(auth.engine))
     photo = photos.upload(actor, image_bytes(), "receipt.jpg")
     value = receipt_reading()
     value["transcription"] = text
@@ -458,7 +473,7 @@ def test_photo_receipt_accepts_all_eight_lines_and_twenty_reviewed_units(
     tmp_path: Path,
 ) -> None:
     auth, actor, _, _, reconcile = setup(tmp_path)
-    photos = PhotoService(auth.engine)
+    photos = PhotoService(auth.engine, files(auth.engine))
     photo = photos.upload(actor, image_bytes(), "receipt.jpg")
     value = receipt_reading()
     value["items"] = [

@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from sqlalchemy import insert, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from stored_files import files
 from test_maintenance import change, plan, prepared
 
 from lifegather.auth.store import AuthStore
@@ -106,7 +107,9 @@ def test_personal_json_zip_and_snapshot_keep_only_own_exact_task_history(
     assert sources[first["revision"]["source_id"]]["event_date"] is None
     assert b"PRIVATE OTHER TASK" not in raw and foreign["id"].encode() not in raw
     assert all("user_id" not in row for rows in collections.values() for row in rows)
-    with ZipFile(BytesIO(PersonalArchive(store.engine).download(alice))) as archive:
+    with ZipFile(
+        BytesIO(PersonalArchive(store.engine, files(store.engine)).download(alice))
+    ) as archive:
         records = archive.read("records.json")
         manifest = json.loads(archive.read("manifest.json"))
         assert manifest["records_format"] == "lifegather-records/4"

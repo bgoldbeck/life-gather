@@ -4,6 +4,7 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from stored_files import files
 from test_purchase_details import SOURCE, accepted, body
 from test_receipts import choices, extraction
 from test_reconciliation import setup
@@ -138,7 +139,7 @@ def test_named_record_recall_preserves_deleted_file_provenance(
 
     auth, actor, _, _, _ = setup(tmp_path)
     if kind == "pdf":
-        docs = DocumentService(auth.engine)
+        docs = DocumentService(auth.engine, files(auth.engine))
         original = docs.upload(actor, synthetic_pdf(), "synthetic.pdf")
         original = docs.save_text(
             actor,
@@ -149,7 +150,7 @@ def test_named_record_recall_preserves_deleted_file_provenance(
             ),
         )
     else:
-        photos = PhotoService(auth.engine)
+        photos = PhotoService(auth.engine, files(auth.engine))
         original = photos.upload(actor, image_bytes(), "synthetic.jpg", "receipt", "")
         photos.save_reading(
             actor,

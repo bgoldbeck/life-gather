@@ -24,8 +24,10 @@ backup, including all users and installation secrets.
   time, records format, file IDs/paths, original filenames, MIME types, sizes and
   SHA-256 hashes. It maps each original to its record and verifies the records file.
 
-Records and original bytes use one real SQLite read transaction, so a concurrent
-change cannot mix two versions in one archive. The snapshot preserves original
+Records and file metadata use one real SQLite read transaction, so a concurrent
+change cannot mix two versions in one archive. Original bytes come from
+[file storage](FILE_STORAGE.md) and are checked against that snapshot's hashes;
+a file deleted mid-download fails the archive instead of producing a partial one. The snapshot preserves original
 IDs, sources, confidence/unknowns, correction/consolidation history, custom details,
 valid-world dates and recorded times. A common filename or value does not combine
 distinct records or purchased units.
@@ -42,7 +44,7 @@ already prepared.
 
 The first archive slice supports at most **1,000 originals** and **64 MiB total ZIP
 bytes**, including records, manifest, headers and central directory. Records also
-retain their **10,000-row / 16 MiB JSON** limits. Preparation streams BLOBs in chunks
+retain their **10,000-row / 16 MiB JSON** limits. Preparation copies originals in chunks
 into a bounded in-memory archive; it never copies a whole database or writes a
 temporary all-user backup file.
 

@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import event
 from sqlalchemy.engine import Connection
 from sqlalchemy.orm import Session
+from stored_files import files
 from test_documents import synthetic_pdf
 from test_mcp_http import signed_headers
 from test_photos import image_bytes
@@ -170,11 +171,15 @@ def test_export_keeps_chat_and_original_metadata_without_file_bytes(
     tmp_path: Path,
 ) -> None:
     auth, actor, foreign, memory, _ = setup(tmp_path)
-    photo = PhotoService(auth.engine).upload(actor, image_bytes(), "synthetic.jpg")
-    document = DocumentService(auth.engine).upload(
+    photo = PhotoService(auth.engine, files(auth.engine)).upload(
+        actor, image_bytes(), "synthetic.jpg"
+    )
+    document = DocumentService(auth.engine, files(auth.engine)).upload(
         actor, synthetic_pdf(), "synthetic.pdf"
     )
-    PhotoService(auth.engine).upload(foreign, image_bytes(), "FOREIGN.jpg")
+    PhotoService(auth.engine, files(auth.engine)).upload(
+        foreign, image_bytes(), "FOREIGN.jpg"
+    )
     chat = ChatService(auth.engine)
     conversation = chat.create(actor)["id"]
     row, _ = chat.begin(
@@ -361,8 +366,8 @@ def test_export_does_not_reconstitute_deleted_originals(tmp_path: Path) -> None:
     from lifegather.photos.service import PhotoDelete
 
     auth, actor, _, _, _ = setup(tmp_path)
-    photos = PhotoService(auth.engine)
-    documents = DocumentService(auth.engine)
+    photos = PhotoService(auth.engine, files(auth.engine))
+    documents = DocumentService(auth.engine, files(auth.engine))
     photo = photos.upload(actor, image_bytes(), "deleted.jpg")
     document = documents.upload(actor, synthetic_pdf(), "deleted.pdf")
     photos.delete(

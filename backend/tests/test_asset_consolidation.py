@@ -4,6 +4,7 @@ from typing import Any
 
 import pytest
 from sqlalchemy.orm import Session
+from stored_files import files
 from test_reconciliation import discovery, setup
 
 from lifegather.assets.consolidation import (
@@ -509,7 +510,7 @@ def test_galleries_graph_and_profile_corrections_use_one_current_identity(
     from lifegather.profiles.service import ProfileChange, ProfileService
 
     auth, actor, _, memory, source, records, service, request = prepared(tmp_path)
-    photos = PhotoService(auth.engine)
+    photos = PhotoService(auth.engine, files(auth.engine))
     photo = photos.upload(actor, image_bytes(), "synthetic.jpg", asset_id=records[1].id)
     place = memory.create_entity(
         actor,
@@ -740,5 +741,5 @@ def test_upgrade_preserves_originals_and_database_blocks_foreign_members(
     with store.engine.connect() as connection:
         assert (
             connection.scalar(text("SELECT version_num FROM alembic_version"))
-            == "0027_forest_dark_theme"
+            == "0028_object_storage"
         )

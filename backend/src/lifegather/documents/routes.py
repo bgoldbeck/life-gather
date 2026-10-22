@@ -35,7 +35,9 @@ def document_router() -> APIRouter:
     router = APIRouter(prefix="/api/documents")
 
     def service(request: Request) -> DocumentService:
-        return DocumentService(request.app.state.auth_store.engine)
+        return DocumentService(
+            request.app.state.auth_store.engine, request.app.state.object_storage
+        )
 
     @router.get("")
     def documents(

@@ -8,6 +8,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from pydantic import SecretStr
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from stored_files import files
 from test_documents import synthetic_pdf
 from test_photos import image_bytes
 from test_purchase_details import accepted, body
@@ -20,6 +21,7 @@ from lifegather.assets.consolidation import (
 from lifegather.auth.store import Account, AuthStore
 from lifegather.config import Settings
 from lifegather.credentials.service import PrivateSettings, VaultError, read_key
+from lifegather.documents.models import Document
 from lifegather.documents.service import DocumentService
 from lifegather.memory.schemas import EntityInput, SourceInput
 from lifegather.memory.service import MemoryError, MemoryService
@@ -29,6 +31,7 @@ from lifegather.reconciliation.models import Binding
 from lifegather.reconciliation.purchase_details import DetailRead, PurchaseDetails
 from lifegather.recovery.bundle import RecoveryService
 from lifegather.recovery.envelope import RecoveryError
+from lifegather.storage.originals import move_inline_originals
 
 PASSWORD = b"synthetic recovery password"
 LITERAL_SECRET = "Synthetic ${DO_NOT_EXPAND}\n雪"
@@ -118,10 +121,10 @@ def installation(tmp_path: Path) -> Installation:
     )
     photo_original = image_bytes()
     document_original = synthetic_pdf()
-    photo = PhotoService(store.engine).upload(
+    photo = PhotoService(store.engine, files(store.engine)).upload(
         alice, photo_original, "synthetic.jpg", asset_id=pair[0].id
     )
-    document = DocumentService(store.engine).upload(
+    document = DocumentService(store.engine, files(store.engine)).upload(
         bob, document_original, "synthetic.pdf"
     )
     money = "Acme Drill Qty: 2; Line total: JPY 1200"
@@ -207,11 +210,16 @@ def test_complete_encrypted_backup_restores_owners_originals_history_money_and_v
     assert vault.preferences(case.alice)
     with pytest.raises(VaultError):
         vault.read_secret(case.bob, case.credential)
-    photos = PhotoService(recovered.engine)
+    # The bundle carries originals inline; the restored app moves them out again.
+    assert not (destination / "data" / "files").exists()
+    assert move_inline_originals(recovered.engine, files(recovered.engine)) == 2
+    with Session(case.store.engine) as db:
+        assert db.scalar(select(Document.original_key)) is not None
+    photos = PhotoService(recovered.engine, files(recovered.engine))
     assert photos.binary(case.alice, case.photo, True)[0] == case.photo_original
     with pytest.raises(MemoryError):
         photos.get(case.bob, case.photo)
-    documents = DocumentService(recovered.engine)
+    documents = DocumentService(recovered.engine, files(recovered.engine))
     assert documents.binary(case.bob, case.document) == case.document_original
     with pytest.raises(MemoryError):
         documents.binary(case.alice, case.document)
@@ -261,3 +269,14 @@ def test_rejected_recovery_never_overwrites_existing_files_or_creates_a_partial_
     with pytest.raises(RecoveryError, match="new recovery"):
         service.restore(bundle, destination, PASSWORD)
     assert important.read_text(encoding="utf-8") == "Existing data"
+
+
+def test_backup_refuses_a_missing_stored_original(tmp_path: Path) -> None:
+    case = installation(tmp_path)
+    with Session(case.store.engine) as db:
+        key = db.scalar(select(Document.original_key))
+    assert key is not None
+    files(case.store.engine).delete(key)
+    with pytest.raises(RecoveryError, match="stored original"):
+        RecoveryService(case.settings).create(tmp_path / "missing.lgbackup", PASSWORD)
+    assert not (tmp_path / "missing.lgbackup").exists()

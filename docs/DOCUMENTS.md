@@ -68,7 +68,8 @@ retains reviewed text and evidence history. The UI requires acknowledgment and a
 current revision before deletion. Other users cannot read originals or metadata.
 Private MCP exposes bounded metadata/extraction reads without file bytes.
 
-Migration `0013_private_documents` stores originals in the durable SQLite database.
+Migration `0013_private_documents` stored originals in the database; from v0.66.0
+they live in private [file storage](FILE_STORAGE.md) and existing ones move there.
 The pinned pypdf parser runs in a separate process with an 8-second wall timeout,
 2-MiB stream-decompression limits and external JBIG2 decoding disabled. Linux also
 applies a 256-MiB address-space limit and 5-second CPU limit. Windows verification

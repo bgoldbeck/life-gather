@@ -19,6 +19,10 @@ dependencies = [
     "uvicorn>=0.54.0",
 ]
 
+[project.optional-dependencies]
+# S3-compatible private object storage (LIFEGATHER_STORAGE_BACKEND=s3).
+s3 = ["boto3>=1.40.0"]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
