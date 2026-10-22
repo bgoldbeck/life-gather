@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.66.1 — Tighter workspace gutters
+
+- Pages now fill the space between the navigation and the assistant instead of
+  sitting in a centred fixed-width column, removing the empty band beside the
+  sidebar on wide windows. Settings sections use the same full width.
+- Narrower default navigation (244px → 216px; **Reset navigation layout**
+  applies it to a saved layout), a shorter top bar, and 20px page gutters
+  (12px on phones).
+- On phones the top bar stays on one row; the build label is hidden there.
+- Layout only. No API, data, migration or dependency change.
+
 ## 0.66.0 — Private file storage
 
 - Original documents, photos and photo previews are now kept in private file

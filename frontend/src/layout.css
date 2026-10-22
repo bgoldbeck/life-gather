@@ -5,7 +5,7 @@
 
 /* Navigation: compact rows so the full list fits without scrolling. */
 .navigation-shell .sidebar {
-  padding: 0.875rem 0.75rem;
+  padding: 0.75rem 0.625rem;
 }
 .navigation-shell .sidebar-caption {
   margin: 0.5rem 0 0.875rem 2px;
@@ -45,24 +45,26 @@
 
 /* Top bar: shorter, so content starts higher. */
 .topbar {
-  min-height: 56px;
-  padding: 8px 24px;
+  min-height: 52px;
+  padding: 6px 20px;
 }
 .topbar .breadcrumb {
   color: var(--foreground);
   font-weight: 500;
 }
 
-/* Page canvas. */
+/* Page canvas: fill the space between navigation and assistant with a
+ * single narrow gutter instead of centring in a fixed-width column. */
 .workspace-body > .main-content {
-  padding: 24px 28px 32px;
+  max-width: none;
+  padding: 16px 20px 24px;
   font-size: 14px;
   line-height: 1.55;
 }
 .main-content[data-view]:not([data-view='Overview']) > section {
   width: 100%;
-  max-width: 68rem;
-  margin-inline: auto;
+  max-width: none;
+  margin-inline: 0;
 }
 
 /* Consistent page headings and intro copy across panels. */
@@ -103,14 +105,14 @@
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
 }
 
-/* Settings: one aligned column with even gaps instead of mixed widths. */
+/* Settings: one full-width column with even gaps instead of mixed widths. */
 .main-content[data-view='Settings'] > section {
-  max-width: 52rem;
-  margin: 0 auto 16px;
+  max-width: none;
+  margin: 0 0 12px;
 }
 .main-content[data-view='Settings'] .private-settings {
-  max-width: 52rem;
-  gap: 16px;
+  max-width: none;
+  gap: 12px;
 }
 .main-content[data-view='Settings'] .private-settings > h1 + p {
   margin-top: -12px;
@@ -160,7 +162,7 @@
 
 @media (max-width: 800px) {
   .workspace-body > .main-content {
-    padding: 16px;
+    padding: 12px;
   }
   .main-content:is(
       [data-view='Assets'],
@@ -178,7 +180,17 @@
   .password-settings {
     padding: 16px;
   }
+  /* One row: drop the build label and keep the rest from wrapping. */
   .topbar {
-    padding: 0.5rem 0.75rem;
+    padding: 0.4rem 0.75rem;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+  .topbar .account-actions {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+  }
+  .topbar .build-info {
+    display: none;
   }
 }

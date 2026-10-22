@@ -12,7 +12,7 @@ import './navigationDock.css'
 type Edge = 'left' | 'right' | 'top' | 'bottom'
 type Layout = { edge: Edge; width: number; height: number }
 type Props = { userId: string; navigation: ReactNode; children: ReactNode }
-const defaults: Layout = { edge: 'left', width: 244, height: 160 }
+const defaults: Layout = { edge: 'left', width: 216, height: 160 }
 const edges: Edge[] = ['left', 'right', 'top', 'bottom']
 const minimum = { width: 200, height: 112 }
 const maximum = { width: 400, height: 320 }

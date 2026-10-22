@@ -67,7 +67,7 @@ it('resizes by keyboard with independent dimensions, persists per account and re
   let handle = screen.getByRole('separator', { name: 'Resize navigation' })
   expect(handle).toHaveAttribute('aria-orientation', 'vertical')
   fireEvent.keyDown(handle, { key: 'ArrowRight' })
-  expect(handle).toHaveAttribute('aria-valuenow', '254')
+  expect(handle).toHaveAttribute('aria-valuenow', '226')
   await user.selectOptions(
     screen.getByRole('combobox', { name: 'Navigation dock position' }),
     'bottom',
@@ -92,13 +92,13 @@ it('resizes by keyboard with independent dimensions, persists per account and re
   )
   expect(
     screen.getByRole('separator', { name: 'Resize navigation' }),
-  ).toHaveAttribute('aria-valuenow', '254')
+  ).toHaveAttribute('aria-valuenow', '226')
   await user.click(
     screen.getByRole('button', { name: 'Reset navigation layout' }),
   )
   expect(
     screen.getByRole('separator', { name: 'Resize navigation' }),
-  ).toHaveAttribute('aria-valuenow', '244')
+  ).toHaveAttribute('aria-valuenow', '216')
   expect(localStorage.getItem('lifegather-chat-dock:one')).toBe(assistant)
   second.unmount()
   render(<Workspace userId="two" />)
@@ -107,7 +107,7 @@ it('resizes by keyboard with independent dimensions, persists per account and re
   ).toHaveValue('left')
   expect(
     screen.getByRole('separator', { name: 'Resize navigation' }),
-  ).toHaveAttribute('aria-valuenow', '244')
+  ).toHaveAttribute('aria-valuenow', '216')
 })
 
 it.each([
