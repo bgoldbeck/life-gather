@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.82.2 — Smaller image uploads for app updates
+
+- The Docker image now keeps third-party Python packages in their own layer,
+  separate from LifeGather's code. That layer changes only when
+  `backend/uv.lock` or `backend/pyproject.toml` does, so a typical code update
+  uploads about 1 MB of backend code plus the 1.6 MB web app instead of the
+  whole 57 MB Python environment. The first push after this change still
+  uploads the new layers once.
+- Measured on a cloud build of this revision: about 103 MB compressed in total
+  (44 MB Debian/Python base, 56 MB dependencies, 1 MB app, 1.6 MB web app) and
+  about 317 MB unpacked. The installed files are identical to before.
+- No migration.
+
 ## 0.82.1 — Release checks run on Windows again
 
 - Fix: the release script's backend verification (`uv run pytest`) failed on
