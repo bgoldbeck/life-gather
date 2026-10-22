@@ -20,6 +20,7 @@ class ChangeOrigin(BaseModel):
         "user_statement",
         "ai_extraction",
         "ai_inference",
+        "ai_assistant",
         "import",
         "review",
         "correction",

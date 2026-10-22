@@ -177,141 +177,153 @@ class ManualAssets:
     def save(self, actor: Account, value: ManualAssetCreate) -> dict[str, Any]:
         data = ManualAssetCreate.model_validate(value)
         with self.memory._write() as db, change_origin(method="manual_entry"):
-            source = self.memory._ingest_in(
+            return self._save_in(db, actor, data)
+
+    def _save_in(
+        self,
+        db: Session,
+        actor: Account,
+        value: ManualAssetCreate,
+        *,
+        preface: str = "",
+        namespace: str = "manual-assets",
+    ) -> dict[str, Any]:
+        """Transaction-scoped save; callers own the transaction and origin."""
+        data = ManualAssetCreate.model_validate(value)
+        source = self.memory._ingest_in(
+            db,
+            actor,
+            SourceInput(
+                text=preface
+                + (
+                    f"{data.quote()}\nNotes:\n{data.notes}\n"
+                    f"Identity choice: {data.action}\n"
+                    f"Target: {data.asset_id or 'new item'}"
+                    + (
+                        "\nAsset type input:\n"
+                        + json.dumps(
+                            {
+                                "type_id": data.type_id,
+                                "type_revision": data.type_revision,
+                                "type_values": [
+                                    item.model_dump(mode="json")
+                                    for item in data.type_values
+                                ],
+                            },
+                            sort_keys=True,
+                            ensure_ascii=False,
+                        )
+                        if data.type_id
+                        else ""
+                    )
+                ),
+                namespace=namespace,
+                external_id=data.request_id,
+            ),
+        )
+        saved = event_origin(db, actor, source.id, ("manual_asset_saved",))
+        if saved and saved.get("related_id"):
+            return self.result(
+                db, actor, source.id, saved["related_id"], data.action == "new"
+            )
+        candidates, reliable = self.matches(db, actor, data)
+        self.check_type(db, actor, data)
+        if sorted(data.candidate_ids) != candidates:
+            raise NoteConflict(
+                "Possible matches changed. Check duplicates again before saving."
+            )
+        if data.action == "new" and reliable:
+            raise NoteConflict(
+                "This identifier already matches an item; use that existing asset"
+            )
+        if data.action == "link":
+            if data.asset_id not in candidates or (
+                reliable and data.asset_id not in reliable
+            ):
+                raise NoteConflict(
+                    "Choose a matching item from the current duplicate check"
+                )
+            assert data.asset_id is not None
+            if self.excluded(db, actor, data.asset_id):
+                raise NoteConflict(
+                    "This item has an ownership correction. "
+                    "Update ownership in its details first."
+                )
+        discovery = self.reconcile._discover_in(
+            db, actor, data.discovery(source.id), ownership_status="stated"
+        )
+        if discovery.outcome == "review" or (
+            data.action == "link" and discovery.asset_ids != [data.asset_id]
+        ):
+            discovery = self.reconcile._change_in(
                 db,
                 actor,
-                SourceInput(
-                    text=(
-                        f"{data.quote()}\nNotes:\n{data.notes}\n"
-                        f"Identity choice: {data.action}\n"
-                        f"Target: {data.asset_id or 'new item'}"
-                        + (
-                            "\nAsset type input:\n"
-                            + json.dumps(
-                                {
-                                    "type_id": data.type_id,
-                                    "type_revision": data.type_revision,
-                                    "type_values": [
-                                        item.model_dump(mode="json")
-                                        for item in data.type_values
-                                    ],
-                                },
-                                sort_keys=True,
-                                ensure_ascii=False,
-                            )
-                            if data.type_id
-                            else ""
-                        )
-                    ),
-                    namespace="manual-assets",
-                    external_id=data.request_id,
-                ),
+                discovery.id,
+                discovery.decision_id,
+                "resolve",
+                [data.asset_id] if data.asset_id else None,
+                ownership_status="stated",
             )
-            saved = event_origin(db, actor, source.id, ("manual_asset_saved",))
-            if saved and saved.get("related_id"):
-                return self.result(
-                    db, actor, source.id, saved["related_id"], data.action == "new"
-                )
-            candidates, reliable = self.matches(db, actor, data)
-            self.check_type(db, actor, data)
-            if sorted(data.candidate_ids) != candidates:
-                raise NoteConflict(
-                    "Possible matches changed. Check duplicates again before saving."
-                )
-            if data.action == "new" and reliable:
-                raise NoteConflict(
-                    "This identifier already matches an item; use that existing asset"
-                )
-            if data.action == "link":
-                if data.asset_id not in candidates or (
-                    reliable and data.asset_id not in reliable
-                ):
-                    raise NoteConflict(
-                        "Choose a matching item from the current duplicate check"
+        asset_id = discovery.asset_ids[0]
+        if data.type_id:
+            from lifegather.assets.identity import member_ids
+
+            assignments = list(
+                db.scalars(
+                    select(Assertion)
+                    .where(
+                        Assertion.user_id == actor.id,
+                        Assertion.subject_id.in_(member_ids(db, actor, asset_id)),
+                        Assertion.predicate == "profile_asset_type",
+                        Assertion.superseded_at.is_(None),
                     )
-                assert data.asset_id is not None
-                if self.excluded(db, actor, data.asset_id):
-                    raise NoteConflict(
-                        "This item has an ownership correction. "
-                        "Update ownership in its details first."
-                    )
-            discovery = self.reconcile._discover_in(
-                db, actor, data.discovery(source.id), ownership_status="stated"
+                    .limit(3)
+                )
             )
-            if discovery.outcome == "review" or (
-                data.action == "link" and discovery.asset_ids != [data.asset_id]
-            ):
-                discovery = self.reconcile._change_in(
+            if not assignments:
+                self.types._assign_in(
                     db,
                     actor,
-                    discovery.id,
-                    discovery.decision_id,
-                    "resolve",
-                    [data.asset_id] if data.asset_id else None,
-                    ownership_status="stated",
+                    TypeAssign(
+                        entity_id=asset_id,
+                        type_id=data.type_id,
+                        request_id="manual:" + fingerprint(data.request_id),
+                    ),
                 )
-            asset_id = discovery.asset_ids[0]
-            if data.type_id:
-                from lifegather.assets.identity import member_ids
-
-                assignments = list(
-                    db.scalars(
-                        select(Assertion)
-                        .where(
-                            Assertion.user_id == actor.id,
-                            Assertion.subject_id.in_(member_ids(db, actor, asset_id)),
-                            Assertion.predicate == "profile_asset_type",
-                            Assertion.superseded_at.is_(None),
-                        )
-                        .limit(3)
-                    )
+            elif any(row.value_json != json.dumps(data.type_id) for row in assignments):
+                raise NoteConflict(
+                    "Different type. Change it explicitly in asset details first."
                 )
-                if not assignments:
-                    self.types._assign_in(
-                        db,
-                        actor,
-                        TypeAssign(
-                            entity_id=asset_id,
-                            type_id=data.type_id,
-                            request_id="manual:" + fingerprint(data.request_id),
-                        ),
-                    )
-                elif any(
-                    row.value_json != json.dumps(data.type_id) for row in assignments
-                ):
-                    raise NoteConflict(
-                        "Different type. Change it explicitly in asset details first."
-                    )
-                for field_value in data.type_values:
-                    self.types._field_in(
-                        db,
-                        actor,
-                        TypeFieldSave(
-                            entity_id=asset_id,
-                            type_id=data.type_id,
-                            request_id="manual:"
-                            + fingerprint([data.request_id, field_value.field_id]),
-                            **field_value.model_dump(),
-                        ),
-                    )
-            for field in ("manufacturer", "model", "serial"):
-                if entry := getattr(data, field):
-                    self.memory._put_fact_in(
-                        db,
-                        actor,
-                        FactInput(
-                            subject_id=asset_id,
-                            predicate="profile_" + field,
-                            value=entry,
-                            source_id=source.id,
-                            quote=f"{field.title()}: {entry}",
-                            operation_key=f"manual:{data.request_id}:{field}",
-                        ),
-                        None,
-                    )
-            with change_origin(related_id=asset_id):
-                self.memory._audit(
-                    db, actor, "manual_asset_saved", source.id, self.memory.clock()
+            for field_value in data.type_values:
+                self.types._field_in(
+                    db,
+                    actor,
+                    TypeFieldSave(
+                        entity_id=asset_id,
+                        type_id=data.type_id,
+                        request_id="manual:"
+                        + fingerprint([data.request_id, field_value.field_id]),
+                        **field_value.model_dump(),
+                    ),
                 )
-            db.flush()
-            return self.result(db, actor, source.id, asset_id, data.action == "new")
+        for field in ("manufacturer", "model", "serial"):
+            if entry := getattr(data, field):
+                self.memory._put_fact_in(
+                    db,
+                    actor,
+                    FactInput(
+                        subject_id=asset_id,
+                        predicate="profile_" + field,
+                        value=entry,
+                        source_id=source.id,
+                        quote=f"{field.title()}: {entry}",
+                        operation_key=f"manual:{data.request_id}:{field}",
+                    ),
+                    None,
+                )
+        with change_origin(related_id=asset_id):
+            self.memory._audit(
+                db, actor, "manual_asset_saved", source.id, self.memory.clock()
+            )
+        db.flush()
+        return self.result(db, actor, source.id, asset_id, data.action == "new")

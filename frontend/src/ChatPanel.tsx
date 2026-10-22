@@ -156,6 +156,7 @@ export function ChatPanel({
   const conversationPage = useRef<AbortController | null>(null)
   const usesAI = [
     'ask',
+    'assistant',
     'extract',
     'extract_receipt',
     'extract_photo',
@@ -804,23 +805,25 @@ export function ChatPanel({
                   <p className="chat-label">
                     You ·{' '}
                     {turn.mode === 'organize'
-                      ? 'Assistant'
-                      : turn.mode === 'save'
-                        ? 'Save memory'
-                        : turn.mode === 'search'
-                          ? 'Keyword search'
-                          : turn.mode === 'extract' ||
-                              turn.mode === 'extract_receipt'
-                            ? turn.mode === 'extract_receipt'
-                              ? 'Suggest receipt items'
-                              : 'Suggest asset'
-                            : turn.mode === 'scan_email'
-                              ? 'Request email scan'
-                              : turn.mode === 'extract_photo_receipt'
-                                ? 'Review receipt photo'
-                                : turn.mode === 'extract_photo'
-                                  ? 'Read photo'
-                                  : 'Ask AI'}
+                      ? 'Local assistant'
+                      : turn.mode === 'assistant'
+                        ? 'AI assistant'
+                        : turn.mode === 'save'
+                          ? 'Save memory'
+                          : turn.mode === 'search'
+                            ? 'Keyword search'
+                            : turn.mode === 'extract' ||
+                                turn.mode === 'extract_receipt'
+                              ? turn.mode === 'extract_receipt'
+                                ? 'Suggest receipt items'
+                                : 'Suggest asset'
+                              : turn.mode === 'scan_email'
+                                ? 'Request email scan'
+                                : turn.mode === 'extract_photo_receipt'
+                                  ? 'Review receipt photo'
+                                  : turn.mode === 'extract_photo'
+                                    ? 'Read photo'
+                                    : 'Ask AI'}
                   </p>
                   <p className="chat-text">{turn.text}</p>
                   <div className="chat-response">
@@ -952,7 +955,9 @@ export function ChatPanel({
                     ? 'Preparing a proposal for your review…'
                     : mode === 'ask'
                       ? 'Searching your evidence and preparing an answer…'
-                      : 'Saving your request…'}
+                      : mode === 'assistant'
+                        ? 'Checking your records…'
+                        : 'Saving your request…'}
                 </p>
               )}
             </div>
@@ -1030,7 +1035,8 @@ export function ChatPanel({
                     setMode(e.target.value)
                   }}
                 >
-                  <option value="organize">Assistant</option>
+                  <option value="assistant">AI assistant</option>
+                  <option value="organize">Local assistant (no AI)</option>
                   <option value="save">Save memory</option>
                   <option value="search">Keyword search</option>
                   <option value="scan_email">Request an email scan</option>
@@ -1152,7 +1158,7 @@ export function ChatPanel({
               {!usesPhoto && !usesScan && (
                 <>
                   <label htmlFor="chat-text">
-                    {mode === 'organize'
+                    {mode === 'organize' || mode === 'assistant'
                       ? 'Message your assistant'
                       : mode === 'save'
                         ? 'Memory to save'
@@ -1175,13 +1181,15 @@ export function ChatPanel({
                     }}
                   />
                   <p>
-                    {mode === 'organize'
-                      ? 'Try “Edit my F150”, then ‘Set custom "Tire size" to 205/55R16’ while viewing it. Supplied details keep evidence and history. Choose Ask AI for other questions.'
-                      : mode === 'search'
-                        ? 'Use 1–12 keywords. Every word must match.'
-                        : mode === 'extract' || mode === 'extract_receipt'
-                          ? 'Review the proposal before creating an asset. Correct the saved note first if its text is wrong.'
-                          : 'Only Save memory adds your original text to searchable memory.'}
+                    {mode === 'assistant'
+                      ? 'Try “I own a Makita drill, model DHP484” or “My F150’s tire size is 205/55R16 and paint is Oxford White.” Values must be in your words; your message is saved as evidence.'
+                      : mode === 'organize'
+                        ? 'Try “Edit my F150”, then ‘Set custom "Tire size" to 205/55R16’ while viewing it. Supplied details keep evidence and history. Choose Ask AI for other questions.'
+                        : mode === 'search'
+                          ? 'Use 1–12 keywords. Every word must match.'
+                          : mode === 'extract' || mode === 'extract_receipt'
+                            ? 'Review the proposal before creating an asset. Correct the saved note first if its text is wrong.'
+                            : 'Only Save memory adds your original text to searchable memory.'}
                   </p>
                 </>
               )}
@@ -1205,7 +1213,7 @@ export function ChatPanel({
                 >
                   {retryNeeded
                     ? 'Retry same request'
-                    : mode === 'organize'
+                    : mode === 'organize' || mode === 'assistant'
                       ? 'Send'
                       : mode === 'save'
                         ? 'Save memory'

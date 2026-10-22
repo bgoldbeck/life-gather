@@ -41,6 +41,7 @@ class TurnInput(BaseModel):
         "extract_photo_receipt",
         "scan_email",
         "organize",
+        "assistant",
     ]
     source_id: str = Field(default="", max_length=36)
     photo_id: str = Field(default="", max_length=36)
@@ -60,6 +61,7 @@ class TurnInput(BaseModel):
             raise ValueError("Only email scan requests include scan scope")
         if self.mode in {
             "ask",
+            "assistant",
             "extract",
             "extract_photo",
             "extract_receipt",
