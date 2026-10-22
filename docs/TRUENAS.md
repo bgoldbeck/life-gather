@@ -171,7 +171,7 @@ named `tank`; use your own.
 
 | Setting | Meaning |
 | --- | --- |
-| `LIFEGATHER_TRUENAS_APP` | App to redeploy (`midclt call -j app.redeploy <name>`). The image-only Compose file uses `pull_policy: always`, so a redeploy recreates the app from the new `latest`. Volumes and datasets are kept. |
+| `LIFEGATHER_TRUENAS_APP` | App to redeploy (`midclt call -j app.redeploy <name>`, the same job as the app's **Redeploy** button). The build already tagged the new image `latest` on the NAS, and the image-only Compose file also uses `pull_policy: always`, so the app is recreated from the new `latest`. The app must use the `latest` tag, not a pinned digest. Volumes and datasets are kept. |
 | `LIFEGATHER_HEALTH_URL` | Polled for three minutes after the redeploy; the run fails if it never answers. |
 | `LIFEGATHER_AUTOBUILD_DIR` | State folder. Default: `lifegather-autobuild` next to the clone. |
 
