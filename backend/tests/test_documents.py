@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pypdf import PdfWriter
 from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
+from stored_files import files
 
 from lifegather.documents.service import DocumentService, DocumentText
 from lifegather.main import create_app
@@ -51,7 +52,7 @@ def test_private_pdf_originals_reviewed_text_and_retry_identity() -> None:
         store = client.app.state.auth_store  # type: ignore[attr-defined]
         alice = store.login("alice", "a@example.test", "Alice", now=2000000000).user
         bob = store.login("bob", "b@example.test", "Bob", now=2000000000).user
-        service = DocumentService(store.engine)
+        service = DocumentService(store.engine, files(store.engine))
         raw = synthetic_pdf()
         doc = service.upload(alice, raw, "synthetic-receipt.pdf")
         assert doc["source_id"] is None and doc["pages"] == 1
@@ -95,7 +96,9 @@ def test_rejects_invalid_encrypted_or_overlong_pdf(raw: bytes) -> None:
         store = client.app.state.auth_store  # type: ignore[attr-defined]
         actor = store.login("owner", "o@example.test", "Owner", now=2000000000).user
         with pytest.raises(MemoryError):
-            DocumentService(store.engine).upload(actor, raw, "synthetic.pdf")
+            DocumentService(store.engine, files(store.engine)).upload(
+                actor, raw, "synthetic.pdf"
+            )
 
 
 def test_pdf_api_privacy_corrections_and_original_deletion() -> None:
@@ -194,7 +197,7 @@ def test_pdf_parse_timeout_does_not_persist_an_upload(
     with TestClient(create_app()) as client:
         store = client.app.state.auth_store  # type: ignore[attr-defined]
         actor = store.login("owner", "o@example.test", "Owner", now=2000000000).user
-        service = DocumentService(store.engine)
+        service = DocumentService(store.engine, files(store.engine))
         with pytest.raises(MemoryError):
             service.upload(actor, synthetic_pdf(), "synthetic.pdf")
         assert service.list(actor)["items"] == []
@@ -204,7 +207,7 @@ def test_pdf_extraction_is_limited_and_compression_is_bounded() -> None:
     with TestClient(create_app()) as client:
         store = client.app.state.auth_store  # type: ignore[attr-defined]
         actor = store.login("owner", "o@example.test", "Owner", now=2000000000).user
-        service = DocumentService(store.engine)
+        service = DocumentService(store.engine, files(store.engine))
         limited = service.upload(actor, synthetic_pdf("X" * 4100), "long.pdf")
         assert limited["text_truncated"] and len(limited["extracted_text"]) == 4000
         blank = service.upload(actor, synthetic_pdf(""), "blank.pdf")
@@ -222,9 +225,9 @@ def test_private_mcp_document_reads_do_not_include_original_bytes() -> None:
     with TestClient(app) as client:
         alice, owner = signed_headers(app, "document-alice")
         bob, _ = signed_headers(app, "document-bob")
-        doc = DocumentService(app.state.auth_store.engine).upload(
-            owner, synthetic_pdf(), "synthetic.pdf"
-        )
+        doc = DocumentService(
+            app.state.auth_store.engine, files(app.state.auth_store.engine)
+        ).upload(owner, synthetic_pdf(), "synthetic.pdf")
         listing = rpc(client, alice, "document_list", {}).json()["result"]
         assert "synthetic.pdf" in str(listing) and "extracted_text" not in str(listing)
         read = rpc(client, alice, "document_get", {"document_id": doc["id"]}).json()[

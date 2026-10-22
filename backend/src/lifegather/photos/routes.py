@@ -35,7 +35,9 @@ def photo_router() -> APIRouter:
     router = APIRouter(prefix="/api/photos")
 
     def service(request: Request) -> PhotoService:
-        return PhotoService(request.app.state.auth_store.engine)
+        return PhotoService(
+            request.app.state.auth_store.engine, request.app.state.object_storage
+        )
 
     @router.get("")
     def photos(

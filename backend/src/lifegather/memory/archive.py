@@ -6,7 +6,7 @@ import re
 import secrets
 import sqlite3
 import stat
-from collections.abc import Buffer
+from collections.abc import Buffer, Iterator
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from io import BytesIO
@@ -22,6 +22,7 @@ from lifegather.documents.formats import MIMES
 from lifegather.documents.models import Document
 from lifegather.memory.export import EXCLUSIONS, FORMAT, ExportLimitError, RecordExport
 from lifegather.photos.models import Photo
+from lifegather.storage.base import ObjectStorage, StorageError
 from lifegather.version import __version__
 
 ARCHIVE_FORMAT = "lifegather-personal-archive/1"
@@ -51,6 +52,7 @@ class _Original:
     mime: str
     size: int
     digest: str
+    key: str | None
 
     @property
     def path(self) -> str:
@@ -86,6 +88,7 @@ def _originals(connection: Connection, actor: Account) -> list[_Original]:
             table.c.size,
             table.c.content_hash,
             func.length(table.c.original).label("stored_size"),
+            table.c.original_key,
         ]
         if model is Photo:
             columns.append(table.c.mime)
@@ -103,9 +106,9 @@ def _originals(connection: Connection, actor: Account) -> list[_Original]:
                     "Personal archive exceeds the 1,000-original limit"
                 )
             if (
-                row["stored_size"] is None
+                (row["original_key"] is None and row["stored_size"] is None)
+                or (row["original_key"] is None and row["size"] != row["stored_size"])
                 or row["size"] <= 0
-                or row["size"] != row["stored_size"]
                 or not re.fullmatch(r"[a-f0-9]{64}", row["content_hash"])
             ):
                 raise ArchiveError("Saved original evidence could not be verified")
@@ -118,6 +121,7 @@ def _originals(connection: Connection, actor: Account) -> list[_Original]:
                 row["mime"] if model is Photo else MIMES[row["format"]],
                 row["size"],
                 row["content_hash"],
+                row["original_key"],
             )
             path = item.path  # Reject unsafe IDs and ambiguous paths before ZIP output.
             if path in paths:
@@ -127,9 +131,30 @@ def _originals(connection: Connection, actor: Account) -> list[_Original]:
     return files
 
 
+def _inline_chunks(connection: Connection, item: _Original) -> Iterator[bytes]:
+    """Legacy bytes still held in the database row (SQLite incremental BLOB I/O)."""
+    driver = connection.connection.driver_connection
+    if not isinstance(driver, sqlite3.Connection):
+        raise ArchiveError("Original evidence archives require SQLite")
+    with driver.blobopen(item.table, "original", item.rowid, readonly=True) as blob:
+        while block := blob.read(CHUNK_BYTES):
+            yield block
+
+
 class PersonalArchive:
-    def __init__(self, engine: Engine) -> None:
+    def __init__(self, engine: Engine, storage: ObjectStorage | None = None) -> None:
         self.engine = engine
+        self.storage = storage
+
+    def _chunks(self, connection: Connection, item: _Original) -> Iterator[bytes]:
+        if item.key is None:
+            yield from _inline_chunks(connection, item)
+            return
+        if self.storage is None:
+            raise ArchiveError("Saved original evidence could not be verified")
+        data = self.storage.get(item.key)
+        for start in range(0, len(data), CHUNK_BYTES):
+            yield data[start : start + CHUNK_BYTES]
 
     def download(self, actor: Account) -> bytes:
         try:
@@ -141,6 +166,7 @@ class PersonalArchive:
             TypeError,
             sqlite3.Error,
             SQLAlchemyError,
+            StorageError,
             OSError,
             OverflowError,
         ):
@@ -158,9 +184,6 @@ class PersonalArchive:
                 raise ExportLimitError(
                     "Personal archive exceeds the 64 MiB download limit"
                 )
-            driver = connection.connection.driver_connection
-            if not isinstance(driver, sqlite3.Connection):
-                raise ArchiveError("Original evidence archives require SQLite")
             manifest_files = []
             with _BoundedBuffer() as output:
                 with ZipFile(
@@ -170,13 +193,8 @@ class PersonalArchive:
                     for item in files:
                         digest = hashlib.sha256()
                         count = 0
-                        with (
-                            driver.blobopen(
-                                item.table, "original", item.rowid, readonly=True
-                            ) as original,
-                            archive.open(_info(item.path, stamp), "w") as target,
-                        ):
-                            while block := original.read(CHUNK_BYTES):
+                        with archive.open(_info(item.path, stamp), "w") as target:
+                            for block in self._chunks(connection, item):
                                 count += len(block)
                                 if count > item.size or target.write(block) != len(
                                     block

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Self
+from typing import Literal, Self
 from urllib.parse import urlsplit
 
 from pydantic import Field, SecretStr, field_validator, model_validator
@@ -36,6 +36,19 @@ class Settings(BaseSettings):
     smtp_password: SecretStr = SecretStr("")
     smtp_sender: str = ""
     smtp_implicit_tls: bool = False
+    storage_backend: Literal["local", "s3"] = "local"
+    storage_dir: Path | None = None
+    s3_bucket: str = ""
+    s3_prefix: str = ""
+    s3_endpoint_url: str = ""
+    s3_region: str = ""
+    s3_access_key_id: str = ""
+    s3_secret_access_key: SecretStr = SecretStr("")
+
+    @property
+    def files_dir(self) -> Path:
+        """Local original-file directory; inside the data mount by default."""
+        return self.storage_dir or self.data_dir / "files"
 
     @property
     def mail_enabled(self) -> bool:
@@ -83,7 +96,28 @@ class Settings(BaseSettings):
             file_secret_settings,
         )
 
-    @field_validator("vault_key_file", "configuration_file", mode="before")
+    @model_validator(mode="after")
+    def validate_storage(self) -> Self:
+        if self.storage_backend == "s3":
+            if not self.s3_bucket:
+                raise ValueError("Configure LIFEGATHER_S3_BUCKET for S3 storage")
+            if bool(self.s3_access_key_id) != bool(
+                self.s3_secret_access_key.get_secret_value()
+            ):
+                raise ValueError("Configure both S3 access key ID and secret")
+            if self.s3_endpoint_url and not self.s3_endpoint_url.startswith("https://"):
+                url = urlsplit(self.s3_endpoint_url)
+                if url.scheme != "http" or url.hostname not in {
+                    "localhost",
+                    "127.0.0.1",
+                    "::1",
+                }:
+                    raise ValueError("Use an HTTPS S3 endpoint except on loopback")
+        return self
+
+    @field_validator(
+        "vault_key_file", "configuration_file", "storage_dir", mode="before"
+    )
     @classmethod
     def empty_key_path(cls, value: object) -> object:
         return None if value == "" else value
@@ -134,6 +168,10 @@ class Settings(BaseSettings):
             self.static_dir.resolve()
         ):
             raise ValueError("Private data must be outside the static directory")
+        if self.static_dir is not None and self.files_dir.resolve().is_relative_to(
+            self.static_dir.resolve()
+        ):
+            raise ValueError("Private files must be outside the static directory")
         if self.vault_key_file is not None:
             key = self.vault_key_file.resolve()
             if key.is_relative_to(self.data_dir.resolve()) or (

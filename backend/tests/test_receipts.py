@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from stored_files import files
 from test_chat import send
 from test_mcp_http import rpc, signed_headers
 from test_reconciliation import setup
@@ -365,7 +366,7 @@ def test_receipt_pdf_original_and_deleted_source(tmp_path: Path, deleted: bool) 
     )
 
     auth, actor, _, memory, reconcile = setup(tmp_path)
-    documents = DocumentService(auth.engine)
+    documents = DocumentService(auth.engine, files(auth.engine))
     document = documents.upload(actor, synthetic_pdf(), "synthetic.pdf")
     document = documents.save_text(
         actor,
@@ -418,7 +419,7 @@ def test_receipt_photo_provenance_and_deleted_source(
     from lifegather.photos.service import PhotoDelete, PhotoList, PhotoService
 
     auth, actor, _, _, reconcile = setup(tmp_path)
-    photos = PhotoService(auth.engine)
+    photos = PhotoService(auth.engine, files(auth.engine))
     photo = photos.upload(actor, image_bytes(), "synthetic.jpg", "receipt", "")
     photos.save_reading(
         actor,

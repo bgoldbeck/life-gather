@@ -8,6 +8,7 @@ from zipfile import ZipFile
 
 import pytest
 from fastapi.testclient import TestClient
+from stored_files import files
 
 from lifegather.documents.service import DocumentService, DocumentText
 from lifegather.main import create_app
@@ -85,7 +86,7 @@ def test_formats_keep_reviewed_evidence_originals_owner_and_archive(
         store = client.app.state.auth_store  # type: ignore[attr-defined]
         alice = store.login("formats-alice", "a@example.test", "A", now=2000000000).user
         bob = store.login("formats-bob", "b@example.test", "B", now=2000000000).user
-        service = DocumentService(store.engine)
+        service = DocumentService(store.engine, files(store.engine))
         doc = service.upload(alice, raw, "synthetic." + extension)
         assert doc["format"] == extension
         assert doc["pages"] is None
@@ -110,7 +111,9 @@ def test_formats_keep_reviewed_evidence_originals_owner_and_archive(
             == doc["extracted_text"]
         )
         assert service.source_document(alice, saved["source_id"])["format"] == extension  # type: ignore[index]
-        with ZipFile(BytesIO(PersonalArchive(store.engine).download(alice))) as archive:
+        with ZipFile(
+            BytesIO(PersonalArchive(store.engine, files(store.engine)).download(alice))
+        ) as archive:
             manifest = json.loads(archive.read("manifest.json"))
             original = manifest["originals"][0]
             assert original["path"].endswith("." + extension)
@@ -126,7 +129,7 @@ def test_xlsx_selection_and_csv_encoding_delimiter_preview() -> None:
     with TestClient(create_app()) as client:
         store = client.app.state.auth_store  # type: ignore[attr-defined]
         actor = store.login("preview", "p@example.test", "P", now=2000000000).user
-        service = DocumentService(store.engine)
+        service = DocumentService(store.engine, files(store.engine))
         doc = service.upload(actor, office("xlsx"), "inventory.xlsx")
         assert doc["extraction_metadata"]["sheets"] == ["Inventory", "Other"]
         assert "formula" in doc["extracted_text"].lower()
@@ -163,8 +166,13 @@ def test_rejects_unsafe_mislabeled_or_unsupported_files(
         store = client.app.state.auth_store  # type: ignore[attr-defined]
         actor = store.login("reject", "r@example.test", "R", now=2000000000).user
         with pytest.raises(MemoryError):
-            DocumentService(store.engine).upload(actor, raw, filename)
-        assert DocumentService(store.engine).list(actor)["items"] == []
+            DocumentService(store.engine, files(store.engine)).upload(
+                actor, raw, filename
+            )
+        assert (
+            DocumentService(store.engine, files(store.engine)).list(actor)["items"]
+            == []
+        )
 
 
 def test_document_http_mcp_preview_search_and_deletion() -> None:
@@ -215,7 +223,9 @@ def test_document_http_mcp_preview_search_and_deletion() -> None:
             "result"
         ]
         assert "csv" in str(read) and "parser_version" in str(read)
-        service = DocumentService(app.state.auth_store.engine)
+        service = DocumentService(
+            app.state.auth_store.engine, files(app.state.auth_store.engine)
+        )
         saved = service.save_text(
             actor,
             DocumentText(
@@ -245,7 +255,7 @@ def test_non_pdf_documents_survive_encrypted_recovery(tmp_path: Path) -> None:
     from lifegather.recovery.bundle import RecoveryService
 
     case = installation(tmp_path)
-    service = DocumentService(case.store.engine)
+    service = DocumentService(case.store.engine, files(case.store.engine))
     originals = [(kind, office(kind)) for kind in ("docx", "xlsx")]
     originals += [
         (kind, ("Synthetic 0012 " + kind).encode()) for kind in ("txt", "md", "csv")
@@ -259,7 +269,7 @@ def test_non_pdf_documents_survive_encrypted_recovery(tmp_path: Path) -> None:
     recovery.restore(bundle, restored, PASSWORD)
     store = AuthStore(restored / "data" / "auth.sqlite3")
     for doc, (kind, raw) in zip(documents, originals, strict=True):
-        reader = DocumentService(store.engine)
+        reader = DocumentService(store.engine, files(store.engine))
         assert reader.binary(case.alice, doc["id"]) == raw
         assert reader.get(case.alice, doc["id"])["format"] == kind
         with pytest.raises(MemoryError):
@@ -307,7 +317,7 @@ def test_document_migration_preserves_existing_pdf_bytes_and_refuses_lossy_downg
     store = AuthStore(tmp_path / "migration.sqlite3")
     store.migrate()
     actor = store.login("migration", "m@example.test", "M", now=1).user
-    service = DocumentService(store.engine)
+    service = DocumentService(store.engine, files(store.engine))
     raw = synthetic_pdf()
     doc = service.upload(actor, raw, "legacy.pdf")
     saved = service.save_text(
@@ -322,6 +332,28 @@ def test_document_migration_preserves_existing_pdf_bytes_and_refuses_lossy_downg
     config.set_main_option(
         "script_location", str(Path(__file__).parents[1] / "src/lifegather/migrations")
     )
+    storage = files(store.engine)
+
+    def inline() -> None:
+        # Older schemas hold originals in the database; 0028 refuses otherwise.
+        with store.engine.begin() as connection:
+            rows = connection.execute(
+                text("SELECT id, original_key FROM documents WHERE original_key!=''")
+            ).all()
+            for identifier, key in rows:
+                connection.execute(
+                    text(
+                        "UPDATE documents SET original=:raw, original_key=NULL "
+                        "WHERE id=:id"
+                    ),
+                    {"raw": storage.get(key), "id": identifier},
+                )
+
+    with pytest.raises(RuntimeError, match="object storage"):
+        with store.engine.begin() as connection:
+            config.attributes["connection"] = connection
+            command.downgrade(config, "0027_forest_dark_theme")
+    inline()
     with store.engine.begin() as connection:
         config.attributes["connection"] = connection
         command.downgrade(config, "0024_maintenance")
@@ -336,6 +368,7 @@ def test_document_migration_preserves_existing_pdf_bytes_and_refuses_lossy_downg
     assert restored["format"] == "pdf" and restored["source_id"] == saved["source_id"]
     assert service.binary(actor, doc["id"]) == raw
     service.upload(actor, b"Synthetic new text", "new.txt")
+    inline()
     with pytest.raises(ValueError, match="non-PDF"):
         with store.engine.begin() as connection:
             config.attributes["connection"] = connection

@@ -15,12 +15,25 @@ from lifegather.installation_config import (
 from lifegather.recovery.envelope import RecoveryError
 
 PORTABLE_FIELDS = INSTALLATION_FIELDS - {"data_dir", "vault_key_file"}
+STORAGE_DEFAULTS: dict[str, Any] = {
+    "storage_backend": "local",
+    "storage_dir": None,
+    "s3_bucket": "",
+    "s3_prefix": "",
+    "s3_endpoint_url": "",
+    "s3_region": "",
+    "s3_access_key_id": "",
+    "s3_secret_access_key": "",
+}
 LOCAL_FIELDS = {
     "data_dir",
     "vault_key_file",
     "static_dir",
     "configuration_file",
     "build_revision",
+    # Where original files live is deployment-local, like data_dir: bundles carry
+    # the originals themselves and a restore uses its own storage settings.
+    *STORAGE_DEFAULTS,
 }
 BOOLEAN_FIELDS = {"test_login_enabled", "smtp_implicit_tls"}
 
@@ -66,6 +79,7 @@ def validate_configuration(path: Path, root: Path, has_key: bool) -> dict[str, A
             "vault_key_file": root / "secrets" / "vault.key" if has_key else None,
             "static_dir": None,
             "build_revision": "",
+            **STORAGE_DEFAULTS,
         }
         # Every model field is supplied, so the operator's ambient settings cannot
         # change validation of the configuration stored inside the encrypted file.

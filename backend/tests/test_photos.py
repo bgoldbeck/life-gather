@@ -12,6 +12,7 @@ from PIL import Image
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+from stored_files import files
 from test_asset_proposals import fields, review, setup
 from test_chat import send
 from test_mcp_http import rpc, signed_headers
@@ -74,7 +75,7 @@ def test_decode_strips_metadata_and_refuses_invalid_animation_and_pixel_bombs() 
 def test_upload_dedup_attachment_isolation_delete_and_restore(tmp_path: Path) -> None:
     auth, alice, bob, _, _, proposals, proposal = setup(tmp_path)
     asset = proposals.review(alice, review(proposal["id"]))["result"]["asset_ids"][0]
-    photos = PhotoService(auth.engine)
+    photos = PhotoService(auth.engine, files(auth.engine))
     raw = image_bytes()
     with ThreadPoolExecutor(max_workers=3) as pool:
         rows = list(
@@ -100,7 +101,12 @@ def test_upload_dedup_attachment_isolation_delete_and_restore(tmp_path: Path) ->
     operator_snapshot(auth.engine, backup)
     restored = AuthStore(backup)
     restored.migrate()
-    assert PhotoService(restored.engine).binary(alice, first["id"], True)[0] == raw
+    assert (
+        PhotoService(restored.engine, files(restored.engine)).binary(
+            alice, first["id"], True
+        )[0]
+        == raw
+    )
     with Session(auth.engine) as db:
         row = db.scalar(select(Photo).where(Photo.id == first["id"]))
         assert row is not None
@@ -115,7 +121,11 @@ def test_upload_dedup_attachment_isolation_delete_and_restore(tmp_path: Path) ->
     with pytest.raises(MemoryError):
         photos.binary(alice, first["id"])
     assert photos.upload(alice, raw, "again.jpg")["id"] != first["id"]
-    assert PhotoService(restored.engine).binary(alice, first["id"], True)[0] == raw
+    # Deletion removes the stored bytes; a database-only copy keeps just the key.
+    with pytest.raises(MemoryError, match="unavailable"):
+        PhotoService(restored.engine, files(restored.engine)).binary(
+            alice, first["id"], True
+        )
     restored.engine.dispose()
     auth.engine.dispose()
 
@@ -134,7 +144,7 @@ def test_photo_source_proposal_transaction_validation_correction_and_deletion(
     tmp_path: Path,
 ) -> None:
     auth, alice, _, _, _, proposals, _ = setup(tmp_path)
-    photos = PhotoService(auth.engine)
+    photos = PhotoService(auth.engine, files(auth.engine))
     photo = photos.upload(alice, image_bytes(), "plate.jpg")
     invalid = reading()
     invalid["candidate"]["serial"] = "invented"
@@ -342,7 +352,7 @@ def test_upload_http_mcp_auth_headers_and_vision_consent(
                 payload: dict[str, Any],
                 schema: type[BaseModel],
             ) -> Completion:
-                PhotoService(store.engine).delete(
+                PhotoService(store.engine, files(store.engine)).delete(
                     actor,
                     PhotoDelete(
                         photo_id=second["id"], expected_updated_at=second["updated_at"]
@@ -361,7 +371,12 @@ def test_upload_http_mcp_auth_headers_and_vision_consent(
             **{**options, "photo_id": second["id"]},
         )
         assert late.json()["state"] == "failed"
-        assert PhotoService(store.engine).get(actor, second["id"])["source_id"] is None
+        assert (
+            PhotoService(store.engine, files(store.engine)).get(actor, second["id"])[
+                "source_id"
+            ]
+            is None
+        )
 
 
 def test_openai_vision_wire_is_explicit_bounded_and_stateless() -> None:
@@ -418,7 +433,7 @@ def test_detach_only_one_gallery_preserves_original_evidence_and_retry(
             source_id=proposal["source_id"],
         ),
     )
-    photos = PhotoService(auth.engine)
+    photos = PhotoService(auth.engine, files(auth.engine))
     first = photos.upload(alice, image_bytes(), "synthetic.jpg", asset_id=asset)
     row = photos.upload(alice, image_bytes(), "synthetic.jpg", asset_id=second.id)
     body = PhotoDetach(
@@ -470,7 +485,7 @@ def test_detach_http_mcp_boundaries_and_audit_preserve_evidence() -> None:
                 operation_key="car",
             ),
         )
-        photos = PhotoService(memory.engine)
+        photos = PhotoService(memory.engine, files(memory.engine))
         row = photos.upload(actor, image_bytes(), "car.jpg", asset_id=asset.id)
         body = {
             "photo_id": row["id"],

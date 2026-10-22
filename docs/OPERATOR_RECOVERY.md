@@ -38,7 +38,10 @@ secrets, without copying arbitrary environment variables or unrelated files.
 Missing/mismatched vault keys cause refusal even when an initialized vault is empty.
 The running app can continue writing: SQLite's online backup supplies a consistent
 database snapshot, including FTS. Keep external configuration and key files stable
-while capturing the bundle; they are not part of SQLite's transaction.
+while capturing the bundle; they are not part of SQLite's transaction. From
+v0.66.0 originals in [file storage](FILE_STORAGE.md) are copied into the snapshot
+and hash-checked, so bundles stay self-contained; storage settings are not captured
+and a restored app moves the bytes into its own storage on first start.
 
 Commands print bounded JSON summaries (version/revision, migration, timestamp,
 database bytes and counts), never original content or secret values. Success exits

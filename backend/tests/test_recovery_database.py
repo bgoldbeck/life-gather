@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from sqlalchemy import text
+from stored_files import files
 from test_documents import synthetic_pdf
 from test_photos import image_bytes
 
@@ -13,7 +14,7 @@ from lifegather.auth.store import AuthStore
 from lifegather.credentials.service import PrivateSettings
 from lifegather.documents.service import DocumentService
 from lifegather.photos.service import PhotoService
-from lifegather.recovery.database import validate_database
+from lifegather.recovery.database import inline_stored_objects, validate_database
 from lifegather.recovery.envelope import RecoveryError
 
 
@@ -24,7 +25,13 @@ def test_recovery_refuses_future_migrations_and_corrupt_document_originals(
     store = AuthStore(path)
     store.migrate()
     actor = store.login("synthetic", "synthetic@example.test", "Synthetic", now=1).user
-    DocumentService(store.engine).upload(actor, synthetic_pdf(), "synthetic.pdf")
+    DocumentService(store.engine, files(store.engine)).upload(
+        actor, synthetic_pdf(), "synthetic.pdf"
+    )
+    # A snapshot must carry its originals, not only storage keys.
+    with pytest.raises(RecoveryError, match="outside the bundle"):
+        validate_database(path, None)
+    inline_stored_objects(path, files(store.engine))
     assert validate_database(path, None).documents == 1
     with closing(sqlite3.connect(path)) as db:
         db.execute("UPDATE alembic_version SET version_num='future_schema'")
@@ -52,8 +59,13 @@ def test_snapshot_validation_covers_originals_vault_and_owner_bound_ciphertext(
     alice_key = vault.save(alice, "ai", "example", "Synthetic", "synthetic secret")
     bob_key = vault.save(bob, "ai", "example", "Synthetic", "other synthetic secret")
     original = image_bytes()
-    photo = PhotoService(store.engine).upload(alice, original, "synthetic.jpg")
-    DocumentService(store.engine).upload(bob, synthetic_pdf(), "synthetic.pdf")
+    photo = PhotoService(store.engine, files(store.engine)).upload(
+        alice, original, "synthetic.jpg"
+    )
+    DocumentService(store.engine, files(store.engine)).upload(
+        bob, synthetic_pdf(), "synthetic.pdf"
+    )
+    inline_stored_objects(path, files(store.engine))
     summary = validate_database(path, key)
     assert (summary.users, summary.credentials, summary.photos, summary.documents) == (
         2,

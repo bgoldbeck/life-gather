@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from stored_files import files
 from test_mcp_http import rpc, signed_headers
 from test_receipts import TEXT, choices, extraction
 from test_reconciliation import setup
@@ -305,7 +306,7 @@ def test_deleted_pdf_preserves_purchase_history_without_new_writes(
     )
 
     auth, actor, _, _, _ = setup(tmp_path)
-    docs = DocumentService(auth.engine)
+    docs = DocumentService(auth.engine, files(auth.engine))
     doc = docs.upload(actor, synthetic_pdf(), "synthetic.pdf")
     doc = docs.save_text(
         actor,

@@ -32,6 +32,7 @@ from lifegather.recovery.database import (
     DatabaseSummary,
     connect_readonly,
     finalize_snapshot,
+    inline_stored_objects,
     validate_database,
 )
 from lifegather.recovery.envelope import (
@@ -41,6 +42,8 @@ from lifegather.recovery.envelope import (
     decrypt_file,
     encrypt_file,
 )
+from lifegather.storage.base import StorageError
+from lifegather.storage.settings import storage_from_settings
 from lifegather.version import __version__
 
 MAX_MANIFEST_BYTES = 65536
@@ -185,6 +188,7 @@ class RecoveryService:
                 finally:
                     engine.dispose()
                 finalize_snapshot(database)
+                inline_stored_objects(database, storage_from_settings(self.settings))
                 summary = validate_database(database, key, standalone=True)
                 config_path = staging / "configuration.json"
                 _write_bytes(
@@ -236,7 +240,7 @@ class RecoveryService:
                 return _Verified(manifest, summary, database, configuration, key).info()
         except RecoveryError:
             raise
-        except (OSError, ValueError, sqlite3.Error, SQLAlchemyError):
+        except (OSError, ValueError, sqlite3.Error, SQLAlchemyError, StorageError):
             raise RecoveryError(
                 "Unable to create the encrypted recovery bundle"
             ) from None

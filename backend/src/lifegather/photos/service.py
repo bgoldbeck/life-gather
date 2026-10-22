@@ -18,6 +18,8 @@ from lifegather.memory.notes import NoteConflict, NoteService
 from lifegather.memory.schemas import SourceInput
 from lifegather.memory.service import MemoryError, MemoryService
 from lifegather.photos.models import Photo, PhotoAsset
+from lifegather.storage.base import ObjectStorage, StorageError
+from lifegather.storage.originals import delete_quietly, object_key, read_original
 
 MAX_BYTES = 8 * 1024 * 1024
 MAX_PREVIEW = 2 * 1024 * 1024
@@ -94,8 +96,9 @@ def decode(raw: bytes) -> Decoded:
 
 
 class PhotoService:
-    def __init__(self, engine: Engine) -> None:
+    def __init__(self, engine: Engine, storage: ObjectStorage | None = None) -> None:
         self.engine = engine
+        self.storage = storage
         self.memory = MemoryService(engine)
 
     @staticmethod
@@ -163,7 +166,22 @@ class PhotoService:
             row = self.owned(db, actor, identifier)
             if row.deleted_at is not None:
                 raise MemoryError("Photo was deleted")
-            value = row.original if original else row.preview
+            try:
+                value = (
+                    read_original(
+                        self.storage,
+                        row.original_key,
+                        row.original,
+                        row.size,
+                        row.content_hash,
+                    )
+                    if original
+                    else read_original(
+                        self.storage, row.preview_key, row.preview, row.preview_size
+                    )
+                )
+            except StorageError:
+                raise MemoryError("Photo unavailable") from None
             if value is None:
                 raise MemoryError("Photo unavailable")
             return value, row.mime
@@ -215,54 +233,75 @@ class PhotoService:
             raise MemoryError("Invalid photo name or purpose")
         decoded = decode(raw)
         content_hash = hashlib.sha256(raw).hexdigest()
-        with self.memory._write() as db:
-            row = db.scalar(
-                select(Photo).where(
-                    Photo.user_id == actor.id,
-                    Photo.content_hash == content_hash,
-                    Photo.deleted_at.is_(None),
-                )
-            )
-            if row is None:
-                count, size = db.execute(
-                    select(
-                        func.count(Photo.id),
-                        func.coalesce(func.sum(Photo.size + Photo.preview_size), 0),
-                    ).where(Photo.user_id == actor.id, Photo.deleted_at.is_(None))
-                ).one()
-                if (
-                    count >= 200
-                    or size + len(raw) + len(decoded.preview) > 256 * 1024 * 1024
-                ):
-                    raise MemoryError(
-                        "Photo storage limit reached (200 photos / 256 MiB)"
+        storage = self.storage
+        if storage is None:
+            raise MemoryError("File storage is not configured")
+        keys: list[str] = []
+        try:
+            with self.memory._write() as db:
+                row = db.scalar(
+                    select(Photo).where(
+                        Photo.user_id == actor.id,
+                        Photo.content_hash == content_hash,
+                        Photo.deleted_at.is_(None),
                     )
-                now = self.memory.clock()
-                row = Photo(
-                    id=str(uuid4()),
-                    user_id=actor.id,
-                    content_hash=content_hash,
-                    filename=filename,
-                    purpose=purpose,
-                    mime=decoded.mime,
-                    size=len(raw),
-                    width=decoded.width,
-                    height=decoded.height,
-                    preview_size=len(decoded.preview),
-                    original=raw,
-                    preview=decoded.preview,
-                    source_id=None,
-                    created_at=now,
-                    updated_at=now,
-                    deleted_at=None,
                 )
-                db.add(row)
+                if row is None:
+                    count, size = db.execute(
+                        select(
+                            func.count(Photo.id),
+                            func.coalesce(func.sum(Photo.size + Photo.preview_size), 0),
+                        ).where(Photo.user_id == actor.id, Photo.deleted_at.is_(None))
+                    ).one()
+                    if (
+                        count >= 200
+                        or size + len(raw) + len(decoded.preview) > 256 * 1024 * 1024
+                    ):
+                        raise MemoryError(
+                            "Photo storage limit reached (200 photos / 256 MiB)"
+                        )
+                    now = self.memory.clock()
+                    identifier = str(uuid4())
+                    keys = [
+                        object_key(actor.id, "photos", identifier, part)
+                        for part in ("original", "preview")
+                    ]
+                    try:
+                        storage.save(raw, keys[0])
+                        storage.save(decoded.preview, keys[1])
+                    except StorageError:
+                        raise MemoryError("Unable to store the photo") from None
+                    row = Photo(
+                        id=identifier,
+                        user_id=actor.id,
+                        content_hash=content_hash,
+                        filename=filename,
+                        purpose=purpose,
+                        mime=decoded.mime,
+                        size=len(raw),
+                        width=decoded.width,
+                        height=decoded.height,
+                        preview_size=len(decoded.preview),
+                        original=None,
+                        preview=None,
+                        original_key=keys[0],
+                        preview_key=keys[1],
+                        source_id=None,
+                        created_at=now,
+                        updated_at=now,
+                        deleted_at=None,
+                    )
+                    db.add(row)
+                    db.flush()
+                    self.memory._audit(db, actor, "photo_uploaded", row.id, now)
+                if asset_id:
+                    self.attach(db, actor, row, asset_id)
                 db.flush()
-                self.memory._audit(db, actor, "photo_uploaded", row.id, now)
-            if asset_id:
-                self.attach(db, actor, row, asset_id)
-            db.flush()
-            return self.view(row)
+                return self.view(row)
+        except BaseException:
+            # The row was not committed, so its stored copies must not linger.
+            delete_quietly(storage, keys)
+            raise
 
     def detach(self, actor: Account, value: PhotoDetach) -> dict[str, Any]:
         data = PhotoDetach.model_validate(value)
@@ -323,6 +362,7 @@ class PhotoService:
 
     def delete(self, actor: Account, value: PhotoDelete) -> dict[str, Any]:
         data = PhotoDelete.model_validate(value)
+        removed: list[str | None] = []
         with self.memory._write() as db:
             row = self.owned(db, actor, data.photo_id)
             if row.deleted_at is None:
@@ -330,8 +370,16 @@ class PhotoService:
                     raise NoteConflict("Photo changed. Reload before deleting.")
                 row.deleted_at = self.memory.clock()
                 row.original = row.preview = None
+                removed = [row.original_key, row.preview_key]
                 self.memory._audit(db, actor, "photo_deleted", row.id, row.deleted_at)
-            return self.view(row)
+            result = self.view(row)
+        # Only after the delete commits; a failed removal keeps the keys so the
+        # startup sweep retries it.
+        if any(removed) and delete_quietly(self.storage, removed):
+            with self.memory._write() as db:
+                row = self.owned(db, actor, data.photo_id)
+                row.original_key = row.preview_key = None
+        return result
 
     def source_photo(self, actor: Account, source_id: str) -> dict[str, Any] | None:
         with Session(self.engine) as db:

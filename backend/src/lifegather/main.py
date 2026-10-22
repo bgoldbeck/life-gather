@@ -55,6 +55,8 @@ from lifegather.scans.schedule_routes import schedule_router
 from lifegather.scans.schedules import ScheduleService
 from lifegather.scans.service import ScanService
 from lifegather.scans.worker import ScanWorker
+from lifegather.storage.originals import move_inline_originals
+from lifegather.storage.settings import storage_from_settings
 from lifegather.version import __version__, build_info
 
 
@@ -87,6 +89,8 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
         )
         store.migrate()
         app.state.auth_store = store
+        app.state.object_storage = storage_from_settings(settings)
+        move_inline_originals(store.engine, app.state.object_storage)
         sender = mail_sender
         if sender is None and settings.mail_enabled:
             sender = SmtpSender(

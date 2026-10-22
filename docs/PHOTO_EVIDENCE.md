@@ -128,11 +128,10 @@ exact bytes (including metadata) and download only as attachments with canonical
 extensions, octet-stream and nosniff. All image routes require the private session
 and no-store; mutations require origin and CSRF checks.
 
-Originals and previews are deferred SQLite BLOBs in the existing private database,
-outside the webroot. This bounded first slice favors atomic evidence and consistent
-operator snapshots over a separate object store; allow adequate disk space for
-snapshots, WAL and uploads. Existing operator snapshots include all image bytes,
-metadata and attachment links. Metadata list/MCP reads never load image BLOBs.
+From v0.66.0 originals and previews live in private [file storage](FILE_STORAGE.md)
+(`/data/files` by default, or a private S3-compatible bucket), outside the webroot;
+the database keeps their keys, sizes and hashes. Operator recovery bundles still
+include all image bytes, metadata and attachment links. Metadata list/MCP reads never load image BLOBs.
 Use the authenticated original download for per-file export. Exporting only graph
 JSON does not export image bytes.
 

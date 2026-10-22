@@ -24,6 +24,7 @@ from lifegather.reconciliation.proposals import (
 )
 from lifegather.reconciliation.receipts import ReceiptExtraction, ReceiptService
 from lifegather.scans.service import ScanService
+from lifegather.storage.base import ObjectStorage
 
 
 class PhotoReading(BaseModel):
@@ -50,6 +51,7 @@ async def answer(
     google_provider: Provider | None = None,
     status: StatusSink | None = None,
     scans: ScanService | None = None,
+    storage: ObjectStorage | None = None,
 ) -> dict[str, Any]:
     selected_context = (
         WorkspaceContexts(chat.engine).read(actor, body.context)
@@ -120,7 +122,7 @@ async def answer(
                 "proposal_id": existing["id"],
                 "sources": [{"id": note.id, "text": note.text}],
             }
-    photos = PhotoService(chat.engine)
+    photos = PhotoService(chat.engine, storage)
     image = None
     if body.mode in {"extract_photo", "extract_photo_receipt"}:
         photo = photos.get(actor, body.photo_id)

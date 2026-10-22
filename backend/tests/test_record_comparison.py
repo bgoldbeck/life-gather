@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from sqlalchemy import event
+from stored_files import files
 from test_mcp_http import rpc, signed_headers
 from test_photos import image_bytes
 from test_reconciliation import discovery, setup
@@ -79,7 +80,7 @@ def test_complete_comparison_retains_evidence_aliases_photos_units_and_money(
             operation_key="incoming",
         ),
     )
-    photos = PhotoService(auth.engine)
+    photos = PhotoService(auth.engine, files(auth.engine))
     photo = photos.upload(actor, image_bytes(), "synthetic.jpg", "photo", old)
     attached = photos.link(
         actor,
@@ -376,7 +377,7 @@ def test_each_collection_bound_refuses_all_partial_details(
         line["asset_ids"], ("alias one", "alias two"), strict=True
     ):
         memory.add_alias(actor, identifier, name, source.id)
-    photos = PhotoService(auth.engine)
+    photos = PhotoService(auth.engine, files(auth.engine))
     photo = photos.upload(
         actor, image_bytes(), "synthetic.jpg", "photo", line["asset_ids"][0]
     )

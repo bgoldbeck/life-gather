@@ -11,6 +11,7 @@ from zipfile import ZIP_STORED, ZipFile
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import Connection, event, text
+from stored_files import files as stored
 from test_documents import synthetic_pdf
 from test_photos import image_bytes
 from test_recovery_bundle import installation
@@ -45,8 +46,12 @@ def files(tmp_path: Path) -> Files:
     return Files(
         store,
         actor,
-        PhotoService(store.engine).upload(actor, image, "synthetic.jpg"),
-        DocumentService(store.engine).upload(actor, pdf, "synthetic.pdf"),
+        PhotoService(store.engine, stored(store.engine)).upload(
+            actor, image, "synthetic.jpg"
+        ),
+        DocumentService(store.engine, stored(store.engine)).upload(
+            actor, pdf, "synthetic.pdf"
+        ),
         image,
         pdf,
     )
@@ -69,7 +74,7 @@ def test_owned_archive_preserves_originals_history_money_units_and_customs(
     tmp_path: Path,
 ) -> None:
     case = installation(tmp_path)
-    document = DocumentService(case.store.engine).upload(
+    document = DocumentService(case.store.engine, stored(case.store.engine)).upload(
         case.alice, case.document_original, "owner-document.pdf"
     )
     custom = ProfileService(case.store.engine).save(
@@ -91,7 +96,9 @@ def test_owned_archive_preserves_originals_history_money_units_and_customs(
         ciphertext = db.exec_driver_sql(
             "SELECT ciphertext FROM credentials WHERE id=?", (case.credential,)
         ).scalar_one()
-    raw = PersonalArchive(case.store.engine).download(case.alice)
+    raw = PersonalArchive(case.store.engine, stored(case.store.engine)).download(
+        case.alice
+    )
     manifest, records, content = unpack(raw)
     assert manifest["format"] == "lifegather-personal-archive/1"
     assert records["format"] == "lifegather-records/4"
@@ -142,7 +149,7 @@ def test_owned_archive_preserves_originals_history_money_units_and_customs(
 
 def test_archive_does_not_resurrect_deleted_originals(tmp_path: Path) -> None:
     case = files(tmp_path)
-    DocumentService(case.store.engine).delete(
+    DocumentService(case.store.engine, stored(case.store.engine)).delete(
         case.actor,
         DocumentDelete(
             document_id=case.document["id"],
@@ -150,7 +157,9 @@ def test_archive_does_not_resurrect_deleted_originals(tmp_path: Path) -> None:
         ),
     )
     manifest, records, _ = unpack(
-        PersonalArchive(case.store.engine).download(case.actor)
+        PersonalArchive(case.store.engine, stored(case.store.engine)).download(
+            case.actor
+        )
     )
     assert [entry["id"] for entry in manifest["originals"]] == [case.photo["id"]]
     assert case.document["id"] in [
@@ -168,13 +177,15 @@ def test_archive_refuses_unverifiable_active_originals(
     case = files(tmp_path)
     change = {
         "hash": "content_hash='" + "0" * 64 + "'",
-        "missing": "original=NULL",
+        "missing": "original=NULL, original_key=NULL",
         "length": "size=size+1",
     }[corruption]
     with case.store.engine.begin() as db:
         db.execute(text(f"UPDATE {table} SET {change}"))
     with pytest.raises(ArchiveError):
-        PersonalArchive(case.store.engine).download(case.actor)
+        PersonalArchive(case.store.engine, stored(case.store.engine)).download(
+            case.actor
+        )
     # The failed download released its read transaction and changed no records.
     with case.store.engine.begin() as db:
         assert db.scalar(text("SELECT count(*) FROM photos")) == 1
@@ -195,7 +206,9 @@ def test_archive_limits_refuse_partial_and_release_snapshot(
     }[limit]
     monkeypatch.setattr(target, name, bound)
     with pytest.raises(ExportLimitError):
-        PersonalArchive(case.store.engine).download(case.actor)
+        PersonalArchive(case.store.engine, stored(case.store.engine)).download(
+            case.actor
+        )
     with case.store.engine.begin() as db:
         assert db.scalar(text("SELECT count(*) FROM documents")) == 1
 
@@ -205,13 +218,17 @@ def test_archive_byte_limit_includes_zip_closing_directory(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     case = files(tmp_path)
-    complete = PersonalArchive(case.store.engine).download(case.actor)
+    complete = PersonalArchive(case.store.engine, stored(case.store.engine)).download(
+        case.actor
+    )
     monkeypatch.setattr(archives, "MAX_ARCHIVE_BYTES", len(complete) - 50)
     with pytest.raises(ExportLimitError):
-        PersonalArchive(case.store.engine).download(case.actor)
+        PersonalArchive(case.store.engine, stored(case.store.engine)).download(
+            case.actor
+        )
 
 
-def test_records_and_originals_share_one_snapshot_during_concurrent_deletion(
+def test_concurrent_deletion_never_produces_a_mixed_archive(
     tmp_path: Path,
 ) -> None:
     case = files(tmp_path)
@@ -230,7 +247,9 @@ def test_records_and_originals_share_one_snapshot_during_concurrent_deletion(
             changed = True
             with ThreadPoolExecutor(max_workers=1) as pool:
                 pool.submit(
-                    DocumentService(case.store.engine).delete,
+                    DocumentService(
+                        case.store.engine, stored(case.store.engine)
+                    ).delete,
                     case.actor,
                     DocumentDelete(
                         document_id=case.document["id"],
@@ -240,20 +259,24 @@ def test_records_and_originals_share_one_snapshot_during_concurrent_deletion(
 
     event.listen(case.store.engine, "after_cursor_execute", delete_after_metadata)
     try:
-        manifest, records, content = unpack(
-            PersonalArchive(case.store.engine).download(case.actor)
-        )
+        # The snapshot still lists the document but its stored file is gone, so
+        # the archive fails whole rather than mixing two versions.
+        with pytest.raises(ArchiveError):
+            PersonalArchive(case.store.engine, stored(case.store.engine)).download(
+                case.actor
+            )
     finally:
         event.remove(case.store.engine, "after_cursor_execute", delete_after_metadata)
     assert changed
-    entry = next(
-        item for item in manifest["originals"] if item["id"] == case.document["id"]
-    )
-    assert content[entry["path"]] == case.pdf
-    assert records["collections"]["documents"][0]["deleted_at"] is None
     with pytest.raises(MemoryError):
-        DocumentService(case.store.engine).binary(case.actor, case.document["id"])
-    later, _, _ = unpack(PersonalArchive(case.store.engine).download(case.actor))
+        DocumentService(case.store.engine, stored(case.store.engine)).binary(
+            case.actor, case.document["id"]
+        )
+    later, _, _ = unpack(
+        PersonalArchive(case.store.engine, stored(case.store.engine)).download(
+            case.actor
+        )
+    )
     assert all(item["id"] != case.document["id"] for item in later["originals"])
 
 
@@ -277,7 +300,9 @@ def test_empty_archive_is_valid_and_download_executes_only_reads(
     event.listen(case.store.engine, "before_cursor_execute", observe)
     try:
         manifest, records, content = unpack(
-            PersonalArchive(case.store.engine).download(empty)
+            PersonalArchive(case.store.engine, stored(case.store.engine)).download(
+                empty
+            )
         )
     finally:
         event.remove(case.store.engine, "before_cursor_execute", observe)
@@ -293,10 +318,10 @@ def test_archive_http_is_private_csrf_guarded_and_excludes_other_owners(
         store = client.app.state.auth_store  # type: ignore[attr-defined]
         alice = store.login("alice", "alice@example.test", "Synthetic", now=2000000000)
         bob = store.login("bob", "bob@example.test", "Synthetic", now=2000000000)
-        photo = PhotoService(store.engine).upload(
+        photo = PhotoService(store.engine, stored(store.engine)).upload(
             alice.user, image_bytes(), "alice.jpg"
         )
-        other = DocumentService(store.engine).upload(
+        other = DocumentService(store.engine, stored(store.engine)).upload(
             bob.user, synthetic_pdf(), "bob-private.pdf"
         )
         assert client.post("/api/export/archive", json={}).status_code == 401

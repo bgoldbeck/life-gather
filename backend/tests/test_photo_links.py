@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+from stored_files import files
 from test_mcp_http import rpc, signed_headers
 from test_photos import image_bytes
 from test_unit_corrections import prepared
@@ -31,7 +32,7 @@ def test_existing_photo_link_preserves_bytes_evidence_units_and_safe_replay(
     tmp_path: Path,
 ) -> None:
     auth, actor, _, memory, reconcile, _, line, target, _ = prepared(tmp_path)
-    service = PhotoService(auth.engine)
+    service = PhotoService(auth.engine, files(auth.engine))
     row = service.upload(
         actor, image_bytes(), "synthetic.jpg", "receipt", line["asset_ids"][0]
     )
@@ -68,9 +69,15 @@ def test_existing_photo_link_preserves_bytes_evidence_units_and_safe_replay(
     operator_snapshot(auth.engine, snapshot)
     restored = AuthStore(snapshot)
     restored.migrate()
-    assert PhotoService(restored.engine).link(actor, request) == linked[0]
     assert (
-        PhotoService(restored.engine).binary(actor, row["id"], True)[0] == image_bytes()
+        PhotoService(restored.engine, files(restored.engine)).link(actor, request)
+        == linked[0]
+    )
+    assert (
+        PhotoService(restored.engine, files(restored.engine)).binary(
+            actor, row["id"], True
+        )[0]
+        == image_bytes()
     )
 
 
@@ -78,7 +85,7 @@ def test_stale_attach_cannot_restore_a_later_removed_link_or_deleted_photo(
     tmp_path: Path,
 ) -> None:
     auth, actor, bob, memory, _, _, line, target, _ = prepared(tmp_path)
-    service = PhotoService(auth.engine)
+    service = PhotoService(auth.engine, files(auth.engine))
     row = service.upload(
         actor, image_bytes(), "synthetic.jpg", asset_id=line["asset_ids"][0]
     )
@@ -126,7 +133,7 @@ def test_failed_attachment_rolls_back_the_link_and_photo_version(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     auth, actor, _, _, _, _, _, target, _ = prepared(tmp_path)
-    service = PhotoService(auth.engine)
+    service = PhotoService(auth.engine, files(auth.engine))
     row = service.upload(actor, image_bytes(), "synthetic.jpg")
 
     def fail(*args: Any) -> None:
@@ -160,7 +167,9 @@ def test_existing_photo_http_mcp_auth_csrf_and_request_limit() -> None:
                 name="Target", kind="asset", source_id=source.id, operation_key="target"
             ),
         )
-        row = PhotoService(engine).upload(actor, image_bytes(), "synthetic.jpg")
+        row = PhotoService(engine, files(engine)).upload(
+            actor, image_bytes(), "synthetic.jpg"
+        )
         body = {
             "photo_id": row["id"],
             "asset_id": target.id,
