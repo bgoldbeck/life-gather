@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.63.0 — AI assistant asset types and typed fields
+
+- The AI assistant can list your asset types, assign a current type when you name
+  it ("it's a vehicle") and save that type's field values, such as tire size or
+  filter specification, together with other details on one asset. Reading an
+  asset now reports its type and type field values by name.
+- Type IDs must come from this request's type list or asset read; values must
+  appear exactly in your words; fields must belong to the assigned or chosen type.
+  Unnamed, unknown, retired or foreign types, retired fields and fields from
+  another type are refused. A VIN still uses the standard VIN detail.
+- Type assignment, type fields, other details and the turn receipt commit
+  together or not at all; a changed type keeps its earlier assignment in history.
+  History records the ai assistant method and receipts link each source.
+- Uses the existing asset-type services; no migration, dependency or HTTP/MCP
+  contract change. Synthetic provider tests only. See [AI assistant](docs/AI_ASSISTANT.md).
+
 ## 0.62.0 — Start Gmail scans from the AI assistant
 
 - Ask the **AI assistant** to find purchases in, or import evidence from, a

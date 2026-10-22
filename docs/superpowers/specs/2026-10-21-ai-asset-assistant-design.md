@@ -1,6 +1,7 @@
 # AI-driven asset assistant
 
-Date: 2026-10-21. Status: first slice implemented in v0.60.0 (see
+Date: 2026-10-21. Status: first slice implemented in v0.60.0, asset types and
+typed template fields in v0.63.0 (see
 [AI assistant](../../AI_ASSISTANT.md) and its limits); remaining items below are open. This is an architectural extension of the existing chat runtime.
 
 Priority alignment, 2026-10-21: [tracking-first feature plan](../../FEATURE_PLAN.md)
