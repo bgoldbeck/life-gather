@@ -17,6 +17,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from lifegather.auth.routes import SESSION_COOKIE
 from lifegather.auth.store import AuthStore
 from lifegather.config import Settings
+from lifegather.database import account_scope
 from lifegather.mcp_api.schemas import INPUTS
 from lifegather.mcp_api.tools import Access
 
@@ -137,9 +138,10 @@ class PrivateMCP:
             await self.error(scope, receive, send, 429, "MCP busy; try again shortly")
             return
         try:
-            await self._request(
-                scope, receive, send, Access(store, token, current.user.id)
-            )
+            with account_scope(current.user.id):
+                await self._request(
+                    scope, receive, send, Access(store, token, current.user.id)
+                )
         finally:
             self.slots.release()
 

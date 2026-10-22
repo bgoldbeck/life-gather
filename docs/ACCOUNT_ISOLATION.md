@@ -1,35 +1,63 @@
 # Account isolation (Phase 5.3)
 
-Status: in progress. Every service already filters by the signed-in account.
-This increment adds a second, database-enforced lock so one missed filter cannot
-read or change another account's data, and a cross-account test suite.
+Status: delivered in 0.79.0, except per-user quotas. Every service already filtered
+by the signed-in account; this adds a second, database-enforced lock so one missed
+filter cannot read or change another account's data.
 
-## Scope
+## How it works
 
-- **Row-level security.** A migration creates the `lifegather_account` database
-  role, grants it table access and enables PostgreSQL row-level security on every
-  table with a `user_id` column (and `users` by `id`). Policies only show rows
-  whose owner equals the acting account.
-- **Acting account per request.** Signing in to the web API or MCP binds the
-  account; each database connection taken while bound switches to
-  `lifegather_account` and records the account id. Startup, migrations, the
-  scheduler, retention sweeps and operator recovery stay in the unrestricted
-  system context.
-- **Background jobs.** Each claimed scan job runs bound to its owner.
-- **Files.** While an account is bound, file storage refuses keys outside
+- **Row-level security.** Migration `0033_account_row_security` creates the
+  database role `lifegather_account` (roles are server-wide, so it is created once
+  and reused), grants it table access and makes the connecting user a member. It
+  enables PostgreSQL row-level security on every table with a `user_id` column
+  and on `users` (by `id`), with one `account_rows` policy each: rows are visible,
+  writable and insertable only when the owner equals the
+  `lifegather.account_id` setting.
+- **Acting account.** `lifegather.database.ACTING_ACCOUNT` holds the account a
+  request or job acts for. Signing in to a web route (`require_session`) or an MCP
+  call binds it. Each database connection taken while it is set switches to
+  `lifegather_account` and sets `lifegather.account_id`; connections taken with no
+  account switch back to the unrestricted connecting user.
+- **System context.** Startup tasks, migrations, schedule dispatch and job
+  claiming, conversation retention sweeps, sign-in itself and operator recovery
+  run with no acting account and see every row, as before. The connecting user
+  owns the tables (or is the superuser), so policies do not apply to it.
+- **Background jobs.** The scan worker claims a job in the system context, then
+  runs it bound to the job's owner.
+- **Files.** While an account is bound, file storage refuses any key outside
   `users/<account>/`.
-- **Tests.** A cross-account suite signs in two accounts and tries every HTTP
-  route and MCP tool that takes an identifier with the other account's ids; a
-  guard test fails when a new route or owned table is not covered. A test removes
-  a service filter on purpose and shows RLS still hides the other account's rows.
 
-Per-user file-size and storage quotas (the third 5.3 item) are a separate
-increment.
+## Requirements
 
-## Acceptance
+The database user in `LIFEGATHER_DATABASE_URL` must be able to create the role
+(superuser or `CREATEROLE`) the first time the migration runs, unless an
+administrator created `lifegather_account` and granted it to that user beforehand
+(see [PostgreSQL](POSTGRESQL.md)). The Docker Compose setup and the test suite use
+a superuser. New tables created by later migrations
+are granted to `lifegather_account` automatically, but a new table with a
+`user_id` column must add its own `account_rows` policy; a test fails until it
+does.
 
-- No cross-account reads or writes through HTTP routes or MCP tools, with RLS on.
-- A deliberately removed service filter is caught by RLS.
-- Every owned table has RLS and a policy; new owned tables fail a guard test
-  until they do.
-- The full backend suite passes with RLS active in every signed-in request.
+## Tests
+
+`backend/tests/test_account_isolation.py`:
+
+- every owned table has row-level security and the policy;
+- raw SQL with no owner filter, acting for one account, sees and changes only
+  that account's rows, and cannot move a row to another account;
+- a deliberately removed owner filter in a service is caught by row-level
+  security through the HTTP API;
+- file storage refuses another account's keys; scan jobs act for their owner;
+- a second account calls every HTTP route (about 115, except sign-in and health)
+  and every MCP tool with the first account's identifiers in path, query and
+  body fields. No response contains the first account's records or ids, and a
+  digest of all its rows is unchanged. About 87% of routes and 89% of tools get
+  past input validation with generated bodies; the rest are refused earlier;
+- a guard test fails when a route or tool gains an identifier the suite does not
+  know how to fill.
+
+## Not included
+
+Per-user file-size and total storage quotas (the remaining 5.3 item) are a
+separate increment. Sign-in bookkeeping tables (`login_flows`, `auth_attempts`)
+and the encrypted `vault_key` have no owner column and no policy.

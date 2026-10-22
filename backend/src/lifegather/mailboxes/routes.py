@@ -9,6 +9,7 @@ from lifegather.auth.routes import (
     SESSION_COOKIE,
     require_session,
     require_write_session,
+    session_for,
 )
 from lifegather.auth.store import CurrentSession
 from lifegather.credentials.service import VaultError
@@ -81,7 +82,7 @@ def mailbox_router() -> APIRouter:
             samesite="lax",
         )
         try:
-            current = require_session(request)
+            current = session_for(request)
             state = request.query_params.get("state", "")
             code = request.query_params.get("code", "")
             if not state or len(state) > 100 or len(code) > 4096:
@@ -97,7 +98,7 @@ def mailbox_router() -> APIRouter:
             provider: GmailProvider = request.app.state.gmail_provider
             grant = await provider.exchange(code, verifier)
             # A session revoked during the network call cannot save credentials.
-            latest = require_session(request)
+            latest = session_for(request)
             if latest.user.id != current.user.id:
                 return response
             service(request).connect(latest.user, grant)

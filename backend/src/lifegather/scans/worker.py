@@ -5,9 +5,10 @@ from collections.abc import Callable
 
 from sqlalchemy.exc import OperationalError
 
+from lifegather.database import account_scope
 from lifegather.memory.origins import change_origin
 from lifegather.scans.registry import ScanContext
-from lifegather.scans.service import LeaseLost, ScanCanceled, ScanService
+from lifegather.scans.service import LeaseLost, ScanCanceled, ScanClaim, ScanService
 
 
 class ScanWorker:
@@ -23,6 +24,13 @@ class ScanWorker:
         claim = self.scans.claim()
         if claim is None:
             return False
+        # Claiming and dispatch see every account; the job itself sees only
+        # its owner's rows and files.
+        with account_scope(claim.actor.id):
+            await self._run(claim)
+        return True
+
+    async def _run(self, claim: ScanClaim) -> None:
         context = ScanContext(
             claim.actor,
             claim.id,
@@ -55,7 +63,6 @@ class ScanWorker:
                 "Scan stopped. Check the connection and requested scope, then retry. "
                 "Completed evidence is retained.",
             )
-        return True
 
     async def serve(self) -> None:
         while True:

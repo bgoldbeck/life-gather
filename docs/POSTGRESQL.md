@@ -37,13 +37,17 @@ Create a dedicated database with byte-order collation and allow the extension:
 
 ```sql
 CREATE ROLE lifegather LOGIN PASSWORD 'letters-and-digits';
+-- Row-level security role used while acting for one account (0.79.0+).
+CREATE ROLE lifegather_account NOLOGIN NOINHERIT;
+GRANT lifegather_account TO lifegather;
 CREATE DATABASE lifegather OWNER lifegather TEMPLATE template0
   ENCODING 'UTF8' LC_COLLATE 'C' LC_CTYPE 'C';
 \c lifegather
 CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
-Creating the extension needs a superuser once; the migration then finds it.
+Creating the extension and the `lifegather_account` role needs a superuser once;
+the migrations then find them. See [account isolation](ACCOUNT_ISOLATION.md).
 
 ## Moving an existing SQLite installation
 

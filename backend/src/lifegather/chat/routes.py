@@ -8,7 +8,11 @@ from fastapi import Path as PathParam
 from fastapi.responses import StreamingResponse
 
 from lifegather.assets.actions import ActionService
-from lifegather.auth.routes import require_session, require_write_session
+from lifegather.auth.routes import (
+    require_session,
+    require_write_session,
+    session_for,
+)
 from lifegather.auth.store import CurrentSession
 from lifegather.chat.context import ContextRead, WorkspaceContexts
 from lifegather.chat.organizer import HELP
@@ -252,7 +256,7 @@ def chat_router() -> APIRouter:
         turn_id = row["id"]
 
         def active() -> None:
-            refreshed = require_session(request)
+            refreshed = session_for(request)
             if refreshed.user.id != current.user.id:
                 raise HTTPException(401, "Sign in required")
             # Reuse the pending row check without changing state.
