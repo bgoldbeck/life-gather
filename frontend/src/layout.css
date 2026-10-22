@@ -1,0 +1,184 @@
+/*
+ * Workspace layout polish: consistent structure, spacing and separation.
+ * Uses only existing theme tokens so every appearance theme inherits it.
+ */
+
+/* Navigation: compact rows so the full list fits without scrolling. */
+.navigation-shell .sidebar {
+  padding: 0.875rem 0.75rem;
+}
+.navigation-shell .sidebar-caption {
+  margin: 0.5rem 0 0.875rem 2px;
+}
+.sidebar nav {
+  gap: 2px;
+}
+.nav-button {
+  height: 36px;
+  padding: 0 10px;
+  gap: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.nav-button:hover:not([aria-current='page']) {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.nav-button[aria-current='page'] {
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.navigation-shell .sidebar-note {
+  margin-top: auto;
+  padding: 0.875rem 0.25rem 0.25rem;
+  border-top: 1px solid var(--border);
+}
+.navigation-shell .sidebar-note p {
+  line-height: 1.6;
+  margin-top: 2px;
+}
+
+/* Resize handles: the panel border already marks the edge; show on intent. */
+.navigation-resizer,
+.dock-resizer {
+  background: transparent;
+}
+
+/* Top bar: shorter, so content starts higher. */
+.topbar {
+  min-height: 56px;
+  padding: 8px 24px;
+}
+.topbar .breadcrumb {
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+/* Page canvas. */
+.workspace-body > .main-content {
+  padding: 24px 28px 32px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.main-content[data-view]:not([data-view='Overview']) > section {
+  width: 100%;
+  max-width: 68rem;
+  margin-inline: auto;
+}
+
+/* Consistent page headings and intro copy across panels. */
+.main-content[data-view] > section > :is(h1, h2):first-child,
+.main-content[data-view] .power-heading h1 {
+  font-family: inherit;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.25rem;
+}
+.main-content[data-view] > section > :is(h1, h2):first-child + p {
+  color: var(--muted-foreground);
+  max-width: 70ch;
+  margin-bottom: 0.5rem;
+}
+
+/* Panels without their own cards sit on one bordered surface. */
+.main-content:is(
+    [data-view='Assets'],
+    [data-view='Review'],
+    [data-view='Maintenance'],
+    [data-view='Memories'],
+    [data-view='Graph'],
+    [data-view='Documents'],
+    [data-view='Photos'],
+    [data-view='Profiles']
+  )
+  > section,
+.main-content[data-view='Settings'] > :is(.power-center, .settings-panel),
+.settings-card,
+.password-settings {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+}
+
+/* Settings: one aligned column with even gaps instead of mixed widths. */
+.main-content[data-view='Settings'] > section {
+  max-width: 52rem;
+  margin: 0 auto 16px;
+}
+.main-content[data-view='Settings'] .private-settings {
+  max-width: 52rem;
+  gap: 16px;
+}
+.main-content[data-view='Settings'] .private-settings > h1 + p {
+  margin-top: -12px;
+  color: var(--muted-foreground);
+}
+
+/* Power Center: tighter stat cards. */
+.power-summary,
+.power-sources {
+  gap: 12px;
+}
+.power-center h2 {
+  margin: 1.25rem 0 0.5rem;
+}
+
+/* Empty states read as a defined region rather than stray text. */
+.empty-state {
+  margin-top: 0.5rem;
+  padding: 1.5rem 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+/* Assistant dock: its own surface, with the empty prompt centred. */
+.assistant-dock {
+  background: var(--card);
+  box-shadow: none;
+}
+.dock-toolbar {
+  min-height: 48px;
+}
+.dock-content .chat-messages:has(> .chat-empty) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.dock-content .chat-empty {
+  max-width: 34ch;
+}
+.dock-content .chat-composer {
+  background: var(--background);
+  border-radius: 12px;
+}
+
+@media (max-width: 800px) {
+  .workspace-body > .main-content {
+    padding: 16px;
+  }
+  .main-content:is(
+      [data-view='Assets'],
+      [data-view='Review'],
+      [data-view='Maintenance'],
+      [data-view='Memories'],
+      [data-view='Graph'],
+      [data-view='Documents'],
+      [data-view='Photos'],
+      [data-view='Profiles']
+    )
+    > section,
+  .main-content[data-view='Settings'] > :is(.power-center, .settings-panel),
+  .settings-card,
+  .password-settings {
+    padding: 16px;
+  }
+  .topbar {
+    padding: 0.5rem 0.75rem;
+  }
+}

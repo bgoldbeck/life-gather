@@ -217,7 +217,7 @@ export function ReviewPanel({ csrfToken }: { csrfToken: string }) {
       {error && <p role="alert">{error}</p>}
       {status && <p role="status">{status}</p>}
       {!busy && !items.length && !error && (
-        <p>No pending reviews in this view.</p>
+        <p className="empty-state">No pending reviews in this view.</p>
       )}
       <ul className="asset-list">
         {items.map((item) => (

@@ -50,7 +50,8 @@ describe('LifeGather shell', () => {
       await screen.findByText(
         'No saved evidence matches this view. Save a note or review text from a photo or PDF.',
       ),
-    ).toBeVisible()
+    ).toHaveClass('empty-state')
+    expect(screen.getByRole('main')).toHaveAttribute('data-view', 'Memories')
     expect(screen.getByLabelText('Search saved evidence')).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Memories' })).toHaveAttribute(
       'aria-current',

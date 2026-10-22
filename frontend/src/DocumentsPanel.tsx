@@ -404,7 +404,9 @@ export function DocumentsPanel({
         </Button>
       </form>
       {busy && <p role="status">Working on your private document…</p>}
-      {page && !page.items.length && <p>No documents uploaded yet.</p>}
+      {page && !page.items.length && (
+        <p className="empty-state">No documents uploaded yet.</p>
+      )}
       <ul>
         {page?.items.map((doc) => (
           <li key={doc.id}>

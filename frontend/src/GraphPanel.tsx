@@ -170,7 +170,7 @@ export function GraphPanel({
       </p>
       {error && <p role="alert">{error}</p>}
       {page?.items.length === 0 && !selected && (
-        <p>
+        <p className="empty-state">
           No graph records yet. Save and review an item in Chat to begin; no
           example personal data is added.
         </p>
