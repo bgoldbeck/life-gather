@@ -8,9 +8,10 @@ from typing import Literal
 
 from sqlalchemy.exc import OperationalError
 
+from lifegather.database import account_scope
 from lifegather.memory.origins import ChangeOrigin, change_origin
 from lifegather.scans.registry import ScanContext
-from lifegather.scans.service import LeaseLost, ScanCanceled, ScanService
+from lifegather.scans.service import LeaseLost, ScanCanceled, ScanClaim, ScanService
 
 Outcome = Literal["idle", "ran", "paused"]
 
@@ -41,6 +42,12 @@ class ScanWorker:
         claim = self.scans.claim()
         if claim is None:
             return "idle"
+        # Claiming and dispatch see every account; the job itself sees only
+        # its owner's rows and files.
+        with account_scope(claim.actor.id):
+            return await self._run(claim, deadline)
+
+    async def _run(self, claim: ScanClaim, deadline: float | None) -> Outcome:
         context = ScanContext(
             claim.actor,
             claim.id,
@@ -86,9 +93,9 @@ class ScanWorker:
         in the queue for the next tick, so a tick overruns by at most one step.
         """
         deadline = time.monotonic() + seconds
-        # Start from the neutral origin, as the in-process loop does, so an HTTP
-        # tick is never attributed to a web account request.
-        with change_origin(**ChangeOrigin().model_dump()):
+        # Start from the neutral origin and the trusted system context, as the
+        # in-process loop does: an HTTP tick is never a web account request.
+        with account_scope(None), change_origin(**ChangeOrigin().model_dump()):
             return await self._tick(deadline)
 
     async def _tick(self, deadline: float) -> TickReport:

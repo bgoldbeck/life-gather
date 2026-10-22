@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.81.0 — Background scans from an outside scheduler
+## 0.82.0 — Background scans from an outside scheduler
 
 The in-process scan loop stays the default; nothing changes unless you opt in.
 See [docs/EXTERNAL_BACKGROUND.md](docs/EXTERNAL_BACKGROUND.md).
@@ -21,6 +21,29 @@ See [docs/EXTERNAL_BACKGROUND.md](docs/EXTERNAL_BACKGROUND.md).
 - No migration. New settings are deployment-local and not stored in recovery
   bundles.
 
+## 0.81.0 — Account isolation hardening
+
+A second, database-enforced lock between accounts. See
+[docs/ACCOUNT_ISOLATION.md](docs/ACCOUNT_ISOLATION.md).
+
+- Migration `0033_account_row_security` creates the server-wide database role
+  `lifegather_account`, grants it table access and turns on PostgreSQL row-level
+  security for every table with a `user_id` column, plus `users`. Its policies
+  show and accept only rows owned by the acting account. The database user in
+  `LIFEGATHER_DATABASE_URL` must be able to create roles (the Compose superuser
+  can); otherwise the migration stops with a permission error.
+- Signed-in web requests and MCP calls act for their account: each database
+  connection they take switches to `lifegather_account` with the account id, so
+  a query that forgets its owner filter still sees only that account's rows.
+  Each claimed scan job runs the same way for its owner. Startup, migrations,
+  the scheduler, retention sweeps and operator recovery stay unrestricted.
+- While acting for an account, file storage refuses keys outside
+  `users/<account>/`.
+- New cross-account test suite: a second account calls every HTTP route and MCP
+  tool with the first account's identifiers; no response may contain its
+  records and none of its rows may change. Guard tests fail when a new owned
+  table lacks a policy or a new identifier is not covered.
+- Per-user file-size and storage quotas are not part of this release.
 ## 0.80.0 — End-to-end reliability checks
 
 - New browser checks (Playwright, Chromium) walk through sign-in, adding an

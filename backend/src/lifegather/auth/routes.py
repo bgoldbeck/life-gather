@@ -6,6 +6,7 @@ from typing import Annotated
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
@@ -21,6 +22,7 @@ from lifegather.auth.store import (
 )
 from lifegather.config import Settings
 from lifegather.credentials.service import PrivateSettings
+from lifegather.database import bind_account
 from lifegather.version import build_info
 
 SESSION_COOKIE = "lifegather_session"
@@ -36,11 +38,21 @@ def store_for(request: Request) -> AuthStore:
     return store
 
 
-def require_session(request: Request) -> CurrentSession:
+def session_for(request: Request) -> CurrentSession:
+    """Authenticate the request and act for its account from here on."""
     token = request.cookies.get(SESSION_COOKIE, "")
     current = store_for(request).authenticate(token, now=int(time.time()))
     if current is None:
         raise HTTPException(status_code=401, detail="Sign in required")
+    bind_account(current.user.id)
+    return current
+
+
+async def require_session(request: Request) -> CurrentSession:
+    current = await run_in_threadpool(session_for, request)
+    # Bound in the request's own context, so the endpoint and anything it runs
+    # in the thread pool use the account's row-level security.
+    bind_account(current.user.id)
     return current
 
 

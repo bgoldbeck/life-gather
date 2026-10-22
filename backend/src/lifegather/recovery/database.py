@@ -35,6 +35,7 @@ SUPPORTED_MIGRATIONS = frozenset(
         "0030_pgvector",
         "0031_conversation_retention",
         "0032_email_attachments",
+        "0033_account_row_security",
     }
 )
 STORED_PARTS = {

@@ -14,7 +14,11 @@ from fastapi import (
 )
 from starlette.concurrency import run_in_threadpool
 
-from lifegather.auth.routes import require_session, require_write_session
+from lifegather.auth.routes import (
+    require_session,
+    require_write_session,
+    session_for,
+)
 from lifegather.auth.store import CurrentSession
 from lifegather.photos.service import (
     MAX_BYTES,
@@ -76,7 +80,7 @@ def photo_router() -> APIRouter:
             except TimeoutError:
                 raise HTTPException(408, "Upload timed out") from None
             # Check again after receiving bytes, before persisting anything.
-            require_write_session(request, require_session(request))
+            require_write_session(request, session_for(request))
             return await run_in_threadpool(
                 service(request).upload,
                 current.user,
