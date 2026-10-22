@@ -32,6 +32,7 @@ def step(action: str, **values: Any) -> dict[str, Any]:
         "asset_id": None,
         "new_asset": None,
         "fields": [],
+        "email_scan": None,
         "message": None,
         "choice_ids": [],
     }
@@ -586,7 +587,7 @@ def test_step_schema_is_strict_for_all_provider_adapters() -> None:
                 yield from objects(child)
 
     found = list(objects(schema))
-    assert len(found) == 3
+    assert len(found) == 4
     for node in found:
         assert node["additionalProperties"] is False
         assert sorted(node["required"]) == sorted(node["properties"])

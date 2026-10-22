@@ -1189,7 +1189,7 @@ export function ChatPanel({
                   />
                   <p>
                     {mode === 'assistant'
-                      ? 'Try “I own a Makita drill, model DHP484” or “My F150’s tire size is 205/55R16 and paint is Oxford White.” Values must be in your words; your message is saved as evidence.'
+                      ? 'Try “I own a Makita drill, model DHP484” or “My F150’s tire size is 205/55R16 and paint is Oxford White.” You can also ask it to “find purchases in my Gmail from last week.” Values must be in your words; your message is saved as evidence.'
                       : mode === 'organize'
                         ? 'Try “Edit my F150”, then ‘Set custom "Tire size" to 205/55R16’ while viewing it. Supplied details keep evidence and history. Choose Ask AI for other questions.'
                         : mode === 'search'

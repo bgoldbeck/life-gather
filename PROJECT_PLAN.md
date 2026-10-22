@@ -1,6 +1,6 @@
 # LifeGather — Product and Engineering Plan
 
-**Status:** v0.60.0 adds the first AI asset assistant slice ([AI assistant](docs/AI_ASSISTANT.md)); Phase 1 hardening and evidence intake follow
+**Status:** v0.60.0 adds the first AI asset assistant slice ([AI assistant](docs/AI_ASSISTANT.md)), v0.61.0 streams its progress and v0.62.0 lets it start Gmail scans; Phase 1 hardening and evidence intake follow
 **Date:** Updated 2026-10-21
 
 **Active priorities:** [tracking-first feature plan](docs/FEATURE_PLAN.md).

@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from lifegather.assets.manual import ManualAssetCreate, ManualAssets
 from lifegather.assets.service import AssetList, AssetService
 from lifegather.auth.store import Account
+from lifegather.chat.assistant_scans import AssistantScans, EmailScanRequest, today
 from lifegather.chat.context import ContextRead, WorkspaceContexts
 from lifegather.chat.models import Turn
 from lifegather.chat.streaming import StatusSink
@@ -19,6 +20,7 @@ from lifegather.memory.notes import NoteConflict
 from lifegather.memory.origins import change_origin
 from lifegather.memory.service import MemoryError, fingerprint
 from lifegather.profiles.service import ProfileChange, ProfileField, ProfileService
+from lifegather.scans.service import ScanService
 
 MAX_COMPLETIONS = 6
 MAX_READS = 8
@@ -34,6 +36,8 @@ STATUS = {
     "read_asset": "Reading current asset details…",
     "create_asset": "Checking details before adding…",
     "update_asset": "Checking details before saving…",
+    "list_mailboxes": "Listing your connected mailboxes…",
+    "start_email_scan": "Checking the email scan scope…",
     "clarify": "Preparing a question…",
     "answer": "Preparing a reply…",
 }
@@ -66,6 +70,8 @@ class AssistantStep(BaseModel):
         "read_asset",
         "create_asset",
         "update_asset",
+        "list_mailboxes",
+        "start_email_scan",
         "clarify",
         "answer",
     ]
@@ -73,6 +79,7 @@ class AssistantStep(BaseModel):
     asset_id: str | None = Field(max_length=36)
     new_asset: NewAsset | None
     fields: list[FieldChange] = Field(max_length=8)
+    email_scan: EmailScanRequest | None
     message: str | None = Field(max_length=1500)
     choice_ids: list[str] = Field(max_length=5)
 
@@ -103,7 +110,16 @@ INSTRUCTION = (
     "Set duplicate_choice to new or link only when the user answered the pending "
     "duplicate question; otherwise none. One write per request: never plan a "
     "second item. If the user abandons a pending question, answer briefly. Answers "
-    "about records use only read results; never claim anything was saved."
+    "about records use only read results; never claim anything was saved. "
+    "Email: list_mailboxes() lists the user's connected Gmail mailboxes; "
+    "start_email_scan(email_scan) queues ONE scan of one mailbox only when the "
+    "user asks to search, scan or import their email. purpose is "
+    "discover_purchases (find purchases with AI) or import_evidence (save email "
+    "text only, no AI); purpose_quote and period_quote are the user's exact words "
+    "stating what to look for and which days. Resolve the period to inclusive "
+    "from_date/until_date (YYYY-MM-DD, UTC) using today; at most 31 past days. "
+    "max_messages is 20 unless the user states a number up to 50. Ask when the "
+    "purpose, period or mailbox is unclear, or the period is too long."
 )
 
 
@@ -133,6 +149,8 @@ class AssistantRunner:
         selected: dict[str, Any] | None,
         selected_version: str,
         active: Callable[[], None],
+        scans: ScanService | None = None,
+        credential_id: str = "",
     ) -> None:
         self.engine = engine
         self.actor = actor
@@ -147,6 +165,7 @@ class AssistantRunner:
         self.contexts = WorkspaceContexts(engine)
         self.manual = ManualAssets(engine)
         self.profiles = ProfileService(engine)
+        self.email = AssistantScans(self, scans, credential_id)
         # Host-owned identifiers the model may reference, with observed versions.
         self.known: dict[str, dict[str, Any]] = {}
         self.trace: list[dict[str, Any]] = []
@@ -632,6 +651,8 @@ class AssistantRunner:
         }
 
     def limit(self, text: str) -> dict[str, Any]:
+        if not text.endswith((".", "?", "!")):
+            text += "."
         return {
             "text": text + NOTHING_SAVED,
             "provider": self.provider,
@@ -658,6 +679,7 @@ class AssistantRunner:
             if self.pending
             else None,
             "selected_record": self.selected,
+            "today": today().isoformat(),
             "steps": steps,
             "remaining": {"replies": left, "reads": MAX_READS - reads},
         }
@@ -688,7 +710,7 @@ class AssistantRunner:
             )
             await report(step.action)
             try:
-                if step.action in {"search_assets", "read_asset"}:
+                if step.action in {"search_assets", "read_asset", "list_mailboxes"}:
                     if reads >= MAX_READS:
                         raise StepError("Read limit reached; clarify or answer now")
                     reads += 1
@@ -697,6 +719,9 @@ class AssistantRunner:
                         self.trace.append(
                             {"tool": "search_assets", "query": step.query}
                         )
+                    elif step.action == "list_mailboxes":
+                        result = self.email.list()
+                        self.trace.append({"tool": "list_mailboxes"})
                     else:
                         result = self.read(step.asset_id)
                         self.trace.append(
@@ -708,6 +733,8 @@ class AssistantRunner:
                     return self.create(step)
                 if step.action == "update_asset":
                     return self.update(step)
+                if step.action == "start_email_scan":
+                    return self.email.start(step.email_scan)
                 if step.action == "clarify":
                     return self.clarify(step)
                 return self.answer(step)
