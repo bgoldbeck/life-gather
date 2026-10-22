@@ -317,7 +317,9 @@ def test_existing_chat_fingerprints_do_not_gain_empty_scan_field(
         assert stored.fingerprint == fingerprint(
             [
                 conversation,
-                data.model_dump(exclude={"source_id", "photo_id", "scan", "context"}),
+                data.model_dump(
+                    exclude={"source_id", "photo_id", "scan", "context", "research"}
+                ),
             ]
         )
     result = chat.finish(actor, row["id"], {"text": "Saved original."})

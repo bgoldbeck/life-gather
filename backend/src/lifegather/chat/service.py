@@ -15,6 +15,7 @@ from lifegather.auth.store import Account
 from lifegather.chat.context import ContextRef, WorkspaceContexts
 from lifegather.chat.models import Conversation, Turn, Usage
 from lifegather.chat.provider_names import SUPPORTED_PROVIDERS
+from lifegather.chat.research import ResearchScope
 from lifegather.credentials.service import PrivateSettings
 from lifegather.mailboxes.scan import GmailScanConfig
 from lifegather.memory.notes import NoteService
@@ -42,11 +43,13 @@ class TurnInput(BaseModel):
         "scan_email",
         "organize",
         "assistant",
+        "research",
     ]
     source_id: str = Field(default="", max_length=36)
     photo_id: str = Field(default="", max_length=36)
     scan: GmailScanConfig | None = None
     context: ContextRef | None = None
+    research: ResearchScope | None = None
     text: str = Field(min_length=1, max_length=4000)
     credential_id: str = Field(default="", max_length=36)
     model: str = Field(default="", max_length=100, pattern=r"^[a-zA-Z0-9._:-]*$")
@@ -59,6 +62,14 @@ class TurnInput(BaseModel):
             raise ValueError("Choose an email scan scope")
         if self.mode != "scan_email" and self.scan is not None:
             raise ValueError("Only email scan requests include scan scope")
+        if (self.mode == "research") != (self.research is not None):
+            raise ValueError("Only web research requests include research scope")
+        if (
+            self.research
+            and self.research.share_record
+            and not (self.context and self.context.entity_id)
+        ):
+            raise ValueError("Select a record before sharing its details")
         if self.mode in {
             "ask",
             "assistant",
@@ -66,6 +77,7 @@ class TurnInput(BaseModel):
             "extract_photo",
             "extract_receipt",
             "extract_photo_receipt",
+            "research",
         } and (not self.credential_id or not self.model):
             raise ValueError("Choose an AI connection and model")
         if self.mode in {"extract", "extract_receipt"} and not self.source_id:
@@ -85,6 +97,7 @@ def request_key(conversation_id: str, data: TurnInput) -> str:
         | ({"photo_id"} if not data.photo_id else set())
         | ({"scan"} if data.scan is None else set())
         | ({"context"} if data.context is None else set())
+        | ({"research"} if data.research is None else set())
     )
     return fingerprint([conversation_id, data.model_dump(exclude=excluded)])
 

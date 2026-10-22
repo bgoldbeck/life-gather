@@ -94,6 +94,8 @@ screens or new domain subsystems.
 - Add requested, cited and dated web research for manuals/specifications when
   local evidence is insufficient, with explicit permission to send private details.
   Research does not establish ownership or guarantee parts compatibility.
+  v0.67.0 adds [web research](WEB_RESEARCH.md) in Chat for OpenAI and Claude
+  connections; saving research findings as evidence remains.
 
 Acceptance: import an original, inspect extracted candidates, save supported facts,
 revisit them later, follow citations to the original and correct a mistake. Replay

@@ -3,12 +3,15 @@
 import base64
 import json
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 import httpx2
 from pydantic import BaseModel, ConfigDict, Field
 
 from lifegather.chat.streaming import DeltaSink, openai_response
+
+if TYPE_CHECKING:
+    from lifegather.chat.research import ResearchCompletion
 
 
 class SearchPlan(BaseModel):
@@ -57,6 +60,15 @@ class OpenAIProvider:
         schema: type[BaseModel],
     ) -> Completion:
         return await self._complete(secret, model, instruction, payload, schema)
+
+    async def research(
+        self, secret: str, model: str, instruction: str, request: str
+    ) -> "ResearchCompletion":
+        from lifegather.chat.research import openai_research
+
+        return await openai_research(
+            self.transport, secret, model, instruction, request
+        )
 
     async def stream_complete(
         self,

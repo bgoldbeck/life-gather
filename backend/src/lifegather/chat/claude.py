@@ -2,13 +2,16 @@
 
 import base64
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx2
 from pydantic import BaseModel
 
 from lifegather.chat.provider import Completion, ProviderError
 from lifegather.chat.streaming import DeltaSink, claude_response
+
+if TYPE_CHECKING:
+    from lifegather.chat.research import ResearchCompletion
 
 
 def wire_schema(value: Any) -> Any:
@@ -71,6 +74,15 @@ class ClaudeProvider:
         schema: type[BaseModel],
     ) -> Completion:
         return await self._complete(secret, model, instruction, payload, schema)
+
+    async def research(
+        self, secret: str, model: str, instruction: str, request: str
+    ) -> "ResearchCompletion":
+        from lifegather.chat.research import claude_research
+
+        return await claude_research(
+            self.transport, secret, model, instruction, request
+        )
 
     async def stream_complete(
         self,
