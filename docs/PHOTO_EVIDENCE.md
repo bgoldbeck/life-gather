@@ -33,7 +33,8 @@ Receipt validation also refuses a cropped quote that hides an explicit multiple
 on its source line. Repeated short passages are checked against all matching line
 contexts (at most 32 before requiring a less ambiguous quote). Use a full exact
 item/quantity passage rather than defaulting such a line to one unit. Existing
-accepted history is preserved. Arbitrary image questions remain separate work.
+accepted history is preserved. Since v0.69.0 the AI assistant answers questions
+about an attached photo ([details](AI_ASSISTANT.md#photos-and-documents)).
 
 ## Direct Chat upload (v0.41.0)
 

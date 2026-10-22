@@ -449,7 +449,12 @@ class AssetTypes:
             return self._assign_in(db, actor, data)
 
     def _field_in(
-        self, db: Session, actor: Account, data: TypeFieldSave
+        self,
+        db: Session,
+        actor: Account,
+        data: TypeFieldSave,
+        *,
+        source_id: str | None = None,
     ) -> dict[str, Any]:
         subject = self._asset(db, actor, data.entity_id)
         template = self._get(db, actor, data.type_id)
@@ -492,17 +497,21 @@ class AssetTypes:
             )
             if assigned is None:
                 raise MemoryError("Assign this type before adding its field values")
-        source = self.memory._ingest_in(
-            db,
-            actor,
-            SourceInput(
-                text=(
-                    f"Asset: {data.entity_id}\nType: {data.type_id}\n"
-                    f"Field: {data.field_id}\n{data.text}"
+        source = (
+            self.memory._source(db, actor, source_id)
+            if source_id
+            else self.memory._ingest_in(
+                db,
+                actor,
+                SourceInput(
+                    text=(
+                        f"Asset: {data.entity_id}\nType: {data.type_id}\n"
+                        f"Field: {data.field_id}\n{data.text}"
+                    ),
+                    namespace="asset-type-fields",
+                    external_id=data.request_id,
                 ),
-                namespace="asset-type-fields",
-                external_id=data.request_id,
-            ),
+            )
         )
         fact = self.memory._put_fact_in(
             db,

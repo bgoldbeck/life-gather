@@ -410,6 +410,36 @@ class PhotoService:
             )
             return self.view(row) if row else None
 
+    def save_transcription(
+        self, actor: Account, identifier: str, text: str
+    ) -> dict[str, Any]:
+        """Save a first transcription as the photo's source; keep any existing one."""
+        if len(text) > 4000:
+            raise MemoryError("Photo transcription exceeds the reading limit")
+        with self.memory._write() as db:
+            row = self.owned(db, actor, identifier)
+            if row.deleted_at is not None:
+                raise MemoryError("Photo was deleted")
+            if not row.source_id:
+                source = self.memory._ingest_in(
+                    db,
+                    actor,
+                    SourceInput(
+                        text=text
+                        or "[No readable text was extracted from this photo.]",
+                        source_type="conversation",
+                        namespace="photo-memory",
+                        external_id=row.id,
+                    ),
+                )
+                row.source_id = source.id
+                row.updated_at = max(self.memory.clock(), row.updated_at + 1)
+                self.memory._audit(
+                    db, actor, "photo_transcribed", row.id, row.updated_at
+                )
+                db.flush()
+            return self.view(row)
+
     def save_reading(
         self, actor: Account, identifier: str, value: dict[str, Any]
     ) -> dict[str, Any]:

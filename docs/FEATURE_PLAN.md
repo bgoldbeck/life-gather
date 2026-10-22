@@ -80,6 +80,8 @@ screens or new domain subsystems.
 
 - Let users ask supported questions about supplied photos/documents and save
   evidence-backed candidate details through the shared assistant/review contracts.
+  v0.69.0 lets the [AI assistant](AI_ASSISTANT.md#photos-and-documents) read one
+  attached saved photo or document, answer from it and save its details citing it.
 - Add AI price/currency/date suggestions to receipt intake using exact-money
   services, source quotes and ambiguity handling. This is purchase tracking, not
   a payment allocation or accounting ledger.

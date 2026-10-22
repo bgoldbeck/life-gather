@@ -155,6 +155,31 @@ async def answer(
                     "Review or reject the existing single-item proposal first"
                 )
             note = current_note
+    attached = (
+        {"kind": "photo", "id": body.photo_id}
+        if body.mode == "assistant" and body.photo_id
+        else {"kind": "document", "id": body.document_id}
+        if body.mode == "assistant" and body.document_id
+        else None
+    )
+
+    def attachments(kind: str, identifier: str) -> Any:
+        from lifegather.chat.assistant_attachments import AssistantAttachment
+
+        if kind not in {"photo", "document"}:
+            raise MemoryError("Unsupported attachment")
+        return AssistantAttachment(
+            chat.engine,
+            actor,
+            "photo" if kind == "photo" else "document",
+            identifier,
+            storage,
+            active,
+        )
+
+    if attached:
+        # Refuse a missing, deleted or foreign file before reserving AI usage.
+        attachments(attached["kind"], attached["id"])
     selected_provider = chat.provider_name(actor, vault, body.credential_id)
     if selected_provider == "anthropic":
         if claude_provider is None:
@@ -268,6 +293,8 @@ async def answer(
             active,
             scans,
             body.credential_id,
+            attached,
+            attachments,
         ).run(completion, status)
 
     def save_extraction(operation: Callable[[], dict[str, Any]]) -> dict[str, Any]:

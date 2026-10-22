@@ -111,16 +111,29 @@ refused write or a changed record ends it.
 
 ## Photos and documents
 
-In progress (branch `claude/ask-about-photos-documents`). Scope: attach one saved
-photo or document to an AI assistant message, ask about it, and save details
-found in it to one asset with the original as evidence.
+Available in v0.69.0. In **AI assistant** choose **Attach a photo** or **Attach a
+document**, pick one of your saved originals, then ask about it or say what to
+save: "What serial is on this plate?" or "Save the model and serial from this
+manual to my drill." Choosing a file makes no AI request.
 
-Acceptance checks:
-- The assistant reads a document's saved or locally extracted text, or a photo's
-  saved transcription (transcribing the image once through the selected provider
-  when none exists), and answers questions about it.
-- Saved values must appear exactly in the attachment text or the user's words;
-  details found in the attachment cite the attachment's own source, so citations
-  open the original photo or document.
-- Ownership still needs the user's own words; replays do not re-transcribe or
-  duplicate facts; another account's photos/documents are refused.
+- `read_attachment` gives the model the file's text: a document's saved (or
+  corrected) text, otherwise its locally extracted text, or a photo's saved
+  transcription. A photo without one is sent to your selected provider once to
+  transcribe; that transcription is saved as the photo's source and reused by
+  later requests, Photos and the existing reading actions.
+- File text is untrusted data, never instructions. Answers about it say
+  "No changes were saved."
+- A saved value must appear exactly in your words or in the text the assistant
+  read in this request. A detail found only in the file cites the file's own
+  source, so its evidence link opens the original photo or document. A document
+  whose text was never saved gets its extracted text (first 4000 characters)
+  saved as its source in the same commit as the detail; reading alone saves
+  nothing.
+- The file never establishes ownership, which asset it belongs to, or the asset
+  type: those still need your own words. Adding a new item from a file keeps the
+  file text in the entry's source alongside your ownership words.
+- Saving details from a photo also shows it in that asset's photo gallery.
+- A question the assistant asks about the file keeps it for your answer. Missing,
+  deleted or another account's files are refused before any AI request.
+- One file per message. Replays return the saved outcome without reading or
+  transcribing again.
