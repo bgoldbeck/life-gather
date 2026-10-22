@@ -28,8 +28,10 @@ export function MemoriesPanel({
   csrfToken,
   refreshSession,
   onProposeReceipt,
+  initialSourceId = '',
 }: {
   csrfToken: string
+  initialSourceId?: string
   onProposeReceipt?: (sourceId: string) => void
   refreshSession?: () => Promise<void>
 }) {
@@ -157,6 +159,22 @@ export function MemoriesPanel({
       if (version === sourceGeneration.current) setOpening(false)
     }
   }
+  useEffect(() => {
+    if (!initialSourceId) return
+    const controller = new AbortController()
+    const version = ++sourceGeneration.current
+    chatRequest(`/sources/${encodeURIComponent(initialSourceId)}?offset=0`, {
+      signal: controller.signal,
+    })
+      .then((next) => {
+        if (version === sourceGeneration.current) setSource(next)
+      })
+      .catch((caught: Error) => {
+        if (!controller.signal.aborted && version === sourceGeneration.current)
+          setError(caught.message)
+      })
+    return () => controller.abort()
+  }, [chatRequest, initialSourceId])
   async function save(event: FormEvent) {
     event.preventDefault()
     if (saving || !draft.trim()) return

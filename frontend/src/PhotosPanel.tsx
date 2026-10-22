@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
+import { PhotoAssetLinks } from './PhotoAssetLinks'
 import { isAIProvider, aiProviderLabel } from './aiProviders'
 import { AssetProposalCard } from './AssetProposalCard'
 import { ReceiptProposalCard } from './ReceiptProposalCard'
@@ -25,9 +26,13 @@ type Pending = { conversation: string; body: Record<string, string> }
 export function PhotosPanel({
   csrfToken,
   assetId = '',
+  initialPhotoId = '',
+  onOpenAsset,
 }: {
   csrfToken: string
   assetId?: string
+  initialPhotoId?: string
+  onOpenAsset?: (id: string) => void
 }) {
   const [items, setItems] = useState<Photo[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
@@ -126,6 +131,22 @@ export function PhotosPanel({
       controller.abort()
     }
   }, [request, assetId])
+
+  useEffect(() => {
+    if (!initialPhotoId) return
+    const controller = new AbortController()
+    void request('photos/' + encodeURIComponent(initialPhotoId), {
+      signal: controller.signal,
+    })
+      .then((row: Photo) => {
+        if (!controller.signal.aborted) setSelected(row)
+      })
+      .catch(() => {
+        if (!controller.signal.aborted)
+          setError('Unable to open that photo. It may have been deleted.')
+      })
+    return () => controller.abort()
+  }, [request, initialPhotoId])
 
   const invalidateReads = useCallback(() => {
     ++listGeneration.current
@@ -469,6 +490,14 @@ export function PhotosPanel({
                   : 'Read this photo'}
             </Button>
           </details>
+          {onOpenAsset && (
+            <PhotoAssetLinks
+              key={`${selected.id}:${selected.updated_at}`}
+              photoId={selected.id}
+              revision={selected.updated_at}
+              onOpenAsset={onOpenAsset}
+            />
+          )}
           {selected.source_id && (
             <Button
               disabled={busy || retry || linking || sourceOpening}

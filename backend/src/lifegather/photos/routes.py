@@ -89,6 +89,10 @@ def photo_router() -> APIRouter:
     def photo(request: Request, photo_id: Identifier, current: Read) -> dict[str, Any]:
         return service(request).get(current.user, photo_id)
 
+    @router.get("/{photo_id}/assets")
+    def assets(request: Request, photo_id: Identifier, current: Read) -> dict[str, Any]:
+        return {"items": service(request).assets(current.user, photo_id)}
+
     @router.get("/{photo_id}/preview")
     def preview(request: Request, photo_id: Identifier, current: Read) -> Response:
         raw, _ = service(request).binary(current.user, photo_id)

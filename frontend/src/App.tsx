@@ -45,6 +45,7 @@ import { MailboxesPanel } from './MailboxesPanel'
 import { ScansPanel } from './ScansPanel'
 import { PurchasesPanel } from './PurchasesPanel'
 import { PowerCenter } from './PowerCenter'
+import { GlobalSearch, type SearchResult } from './GlobalSearch'
 import type { Theme } from './appearance'
 import { ToneIcon } from './tones'
 
@@ -162,6 +163,13 @@ export function Workspace({
   const [profileId, setProfileId] = useState('')
   const [receiptSourceId, setReceiptSourceId] = useState('')
   const [scanRunId, setScanRunId] = useState('')
+  // A photo, document or source to open on its page; `visit` remounts the page.
+  const [target, setTarget] = useState({
+    photo: '',
+    document: '',
+    source: '',
+    visit: 0,
+  })
   const [expandAssistant, setExpandAssistant] = useState(0)
   const [contextRevision, setContextRevision] = useState(0)
   const [powerRevision, setPowerRevision] = useState(0)
@@ -199,6 +207,34 @@ export function Workspace({
     [],
   )
   const openAssistant = () => setExpandAssistant((value) => value + 1)
+  const openAsset = (id: string) => {
+    setAssetId(id)
+    setView('Assets')
+  }
+  const openTarget = (page: View, opened: Partial<typeof target>) => {
+    setTarget((previous) => ({
+      photo: '',
+      document: '',
+      source: '',
+      ...opened,
+      visit: previous.visit + 1,
+    }))
+    setView(page)
+  }
+  const openResult = (result: SearchResult) => {
+    if (result.kind === 'asset') openAsset(result.id)
+    else if (result.kind === 'record') {
+      setGraphEntityId(result.id)
+      setView('Graph')
+    } else if (result.kind === 'photo')
+      openTarget('Photos', { photo: result.id })
+    else if (result.kind === 'document')
+      openTarget('Documents', { document: result.id })
+    else if (result.photo_id) openTarget('Photos', { photo: result.photo_id })
+    else if (result.document_id)
+      openTarget('Documents', { document: result.document_id })
+    else openTarget('Memories', { source: result.id })
+  }
   const current = navigation.find((item) => item.name === view)!
 
   return (
@@ -228,6 +264,12 @@ export function Workspace({
                 aria-current={view === name ? 'page' : undefined}
                 onClick={() => {
                   if (name === 'Scans') setScanRunId('')
+                  setTarget((previous) => ({
+                    photo: '',
+                    document: '',
+                    source: '',
+                    visit: previous.visit + 1,
+                  }))
                   setView(name)
                 }}
               >
@@ -255,6 +297,7 @@ export function Workspace({
           <span>
             Your personal space <span className="breadcrumb">/ {view}</span>
           </span>
+          <GlobalSearch onOpen={openResult} refreshSession={refreshSession} />
           <div className="account-actions">
             <BuildInfo build={build} />
             <span>{userName}</span>
@@ -335,11 +378,18 @@ export function Workspace({
                 />
               ) : view === 'Documents' ? (
                 <DocumentsPanel
+                  key={target.visit}
                   csrfToken={csrfToken}
                   refreshSession={refreshSession}
+                  initialDocumentId={target.document}
                 />
               ) : view === 'Photos' ? (
-                <PhotosPanel csrfToken={csrfToken} />
+                <PhotosPanel
+                  key={target.visit}
+                  csrfToken={csrfToken}
+                  initialPhotoId={target.photo}
+                  onOpenAsset={openAsset}
+                />
               ) : view === 'Profiles' ? (
                 <ProfilesPanel
                   key={profileId}
@@ -381,6 +431,8 @@ export function Workspace({
                 />
               ) : view === 'Memories' ? (
                 <MemoriesPanel
+                  key={target.visit}
+                  initialSourceId={target.source}
                   onProposeReceipt={(id) => {
                     setReceiptSourceId(id)
                     openAssistant()

@@ -159,6 +159,26 @@ class PhotoService:
         with Session(self.engine) as db:
             return self.view(self.owned(db, actor, identifier))
 
+    def assets(self, actor: Account, identifier: str) -> tuple[dict[str, str], ...]:
+        """Assets this photo is attached to; merged duplicates appear once."""
+        with Session(self.engine) as db:
+            self.owned(db, actor, identifier)
+            links = db.scalars(
+                select(PhotoAsset.asset_id)
+                .where(
+                    PhotoAsset.user_id == actor.id, PhotoAsset.photo_id == identifier
+                )
+                .order_by(PhotoAsset.recorded_at, PhotoAsset.id)
+                .limit(50)
+            ).all()
+            found: dict[str, dict[str, str]] = {}
+            for asset_id in links:
+                asset = self.memory._entity(
+                    db, actor, canonical_id(db, actor, asset_id)
+                )
+                found.setdefault(asset.id, {"id": asset.id, "name": asset.name})
+            return tuple(found.values())
+
     def binary(
         self, actor: Account, identifier: str, original: bool = False
     ) -> tuple[bytes, str]:

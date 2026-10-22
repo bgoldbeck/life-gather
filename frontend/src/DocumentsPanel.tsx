@@ -241,9 +241,11 @@ function DocumentEditor({
 export function DocumentsPanel({
   csrfToken,
   refreshSession,
+  initialDocumentId = '',
 }: {
   csrfToken: string
   refreshSession?: () => Promise<void>
+  initialDocumentId?: string
 }) {
   const [page, setPage] = useState<Page | null>(null)
   const [selected, setSelected] = useState<Document | null>(null)
@@ -292,6 +294,23 @@ export function DocumentsPanel({
       uploadAbort.current?.abort()
     }
   }, [request])
+  useEffect(() => {
+    if (!initialDocumentId) return
+    const controller = new AbortController()
+    const version = ++selectionVersion.current
+    request('documents/' + encodeURIComponent(initialDocumentId), {
+      signal: controller.signal,
+    })
+      .then((doc) => {
+        if (!controller.signal.aborted && version === selectionVersion.current)
+          setSelected(doc as Document)
+      })
+      .catch(() => {
+        if (!controller.signal.aborted)
+          setError('Unable to open that document. It may have been deleted.')
+      })
+    return () => controller.abort()
+  }, [request, initialDocumentId])
   async function upload(event: FormEvent) {
     event.preventDefault()
     if (busy || !file) return
