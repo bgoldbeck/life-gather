@@ -6,7 +6,7 @@ $testRoot = Join-Path ([IO.Path]::GetTempPath()) ('lifegather helper exit tests 
 New-Item -ItemType Directory -Path $testRoot | Out-Null
 $fixtures = [Collections.Generic.List[string]]::new()
 try {
-    foreach ($name in @('Publish-Container', 'Start-Test-Login')) {
+    foreach ($name in @('Publish-Container', 'Start-Test-Login', 'Publish-And-Start')) {
         $source = Get-Content -LiteralPath (Join-Path $scriptsRoot ($name + '.cmd')) -Raw
         $child = [regex]::new('(?m)^powershell\.exe [^\r\n]+')
         if ($child.Matches($source).Count -ne 1) { throw "Expected one PowerShell child in $name" }

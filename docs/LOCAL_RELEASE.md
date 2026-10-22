@@ -82,6 +82,15 @@ authentication/scopes produce repair instructions before expensive checks. Exist
 valid authentication is reused; no automatic package permissions, visibility or
 token rotation is performed. A denied/failed repair stops the release.
 
+To publish and then immediately try the new image, double-click
+**`scripts/Publish-And-Start.cmd`** (or run
+`powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Publish-And-Start.ps1`).
+It runs `Publish-Container.ps1 -Publish -PublishLatest`, then
+`Start-Test-Login.ps1` (see [TEST_MODE.md](TEST_MODE.md)) against the freshly
+published `latest`. If publishing fails, the preview is not touched. Each script
+keeps its own checks and refusals; this launcher adds none and skips none. It
+recreates only the local `lifegather-preview` container, never TrueNAS.
+
 Check the source only:
 
 ```powershell
@@ -128,6 +137,7 @@ Offline publisher tests run without Docker/network/registry operations:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\tests\Publish-Container.Tests.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\tests\Release-Source.Tests.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\tests\Publish-And-Start.Tests.ps1
 ```
 
 The scripts are covered by mocked release/refusal/authentication cases and real

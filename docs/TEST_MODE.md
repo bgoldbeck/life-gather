@@ -10,6 +10,8 @@ first. This helper uses your connection when you run it, but builds/uploads no i
 The Windows launcher closes automatically on success. On failure it keeps the
 error visible until you press a key. Running it from an existing terminal returns
 to that terminal after success.
+To publish a new image first and then start this preview from it in one step, use
+`scripts/Publish-And-Start.cmd`; see [LOCAL_RELEASE.md](LOCAL_RELEASE.md#commands).
 If container startup fails after recreation, the volume is still retained; correct
 the reported Docker error and rerun. It does not promise a database rollback.
 
