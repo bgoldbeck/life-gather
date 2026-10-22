@@ -186,33 +186,35 @@ export function ReviewPanel({ csrfToken }: { csrfToken: string }) {
         Unfinished item proposals and uncertain identity matches stay here until
         you decide. No AI request is needed to review them.
       </p>
-      <label>
-        Review type
-        <select
-          value={kind}
+      <div className="action-row">
+        <label>
+          Review type
+          <select
+            value={kind}
+            disabled={busy || retry}
+            onChange={(e) => {
+              setKind(e.target.value)
+              setBusy(true)
+              setError('')
+              setSelected(null)
+              setIdentity(null)
+              setSource(null)
+            }}
+          >
+            <option value="all">All pending</option>
+            <option value="proposals">Item proposals</option>
+            <option value="receipts">Multi-item receipts</option>
+            <option value="identities">Identity matches</option>
+          </select>
+        </label>
+        <Button
+          variant="outline"
           disabled={busy || retry}
-          onChange={(e) => {
-            setKind(e.target.value)
-            setBusy(true)
-            setError('')
-            setSelected(null)
-            setIdentity(null)
-            setSource(null)
-          }}
+          onClick={() => void refresh()}
         >
-          <option value="all">All pending</option>
-          <option value="proposals">Item proposals</option>
-          <option value="receipts">Multi-item receipts</option>
-          <option value="identities">Identity matches</option>
-        </select>
-      </label>
-      <Button
-        variant="outline"
-        disabled={busy || retry}
-        onClick={() => void refresh()}
-      >
-        Refresh queue
-      </Button>
+          Refresh queue
+        </Button>
+      </div>
       {busy && <p role="status">Loading review…</p>}
       {error && <p role="alert">{error}</p>}
       {status && <p role="status">{status}</p>}

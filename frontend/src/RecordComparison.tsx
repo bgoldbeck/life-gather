@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import './record-comparison.css'
 import { AssetConsolidation } from './AssetConsolidation'
 import { customDetailLabel } from './profileFields'
+import { FactStatus } from './FactStatus'
 
 type Record = {
   id: string
@@ -468,7 +469,7 @@ export function RecordComparison({
                                   ? 'Unknown'
                                   : (fact.display_value ??
                                     String(fact.value))}{' '}
-                              · {fact.status}
+                              <FactStatus status={fact.status} />
                             </p>
                             <p>
                               World dates: {fact.valid_from ?? 'Unknown start'}{' '}

@@ -11,6 +11,7 @@ import {
   profileFields as fields,
   profileLabel,
 } from './profileFields'
+import { FactStatus } from './FactStatus'
 
 type Request = (path: string, init?: RequestInit) => Promise<unknown>
 type Fact = GraphFact & { superseded_at: number | null }
@@ -197,8 +198,8 @@ function ProfileEditor({
         {page?.facts.map((fact) => (
           <li key={fact.id}>
             <strong>{fact.label ?? profileLabel(fact.predicate)}</strong>:{' '}
-            {String(fact.display_value ?? fact.value ?? 'Unknown')} (
-            {fact.status}){' '}
+            {String(fact.display_value ?? fact.value ?? 'Unknown')}{' '}
+            <FactStatus status={fact.status} />{' '}
             {fact.superseded_at !== null && <span>— superseded</span>}
             <p>
               Valid: {fact.valid_from ?? 'Unknown'} to{' '}

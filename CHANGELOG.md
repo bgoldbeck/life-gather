@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.72.0 — Consistent controls, focus and statuses
+
+- Text boxes, menus, note fields and file pickers look the same on every page:
+  one height, border, corner radius and spacing. Checkboxes sit on one line with
+  their label instead of floating above it.
+- Every button, link, disclosure and field shows the same visible focus ring when
+  reached with the keyboard, in Light, Dark and Forest dark.
+- Error messages appear as a tinted callout; status and loading messages use the
+  muted text color.
+- Stated, inferred and unknown details show as small badges (dashed for inferred),
+  on asset details, profiles, typed asset fields and record comparison.
+- Scans and Purchases sit on the same bordered page card as the other pages.
+  Related buttons and filters (Assets, Review, Purchases) no longer touch, and
+  buttons in stacked forms keep their natural width.
+- On phones the top bar drops the "Your personal space" label and the account
+  name so search has room. Nothing scrolls sideways at 390px.
+- See [docs/UI_CONSISTENCY.md](docs/UI_CONSISTENCY.md). No migration, API or
+  dependency change. Docking is unchanged.
 ## 0.71.0 — Drag-to-dock panels
 
 - Navigation and the assistant now dock by dragging: grab a panel's header and
