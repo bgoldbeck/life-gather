@@ -170,3 +170,72 @@ it('requires an explicit request and reuses its identity after an uncertain resp
   expect(writes[0].body).toEqual(writes[1].body)
   expect(writes[0].headers).toMatchObject({ 'X-CSRF-Token': 'csrf' })
 })
+
+it('imports attached documents without AI and links to Documents', async () => {
+  const user = userEvent.setup()
+  let saved: Record<string, unknown> | null = null
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        saved = JSON.parse(String(init.body))
+        return new Response(JSON.stringify({ id: 'files', state: 'completed' }))
+      }
+      return new Response(
+        JSON.stringify(
+          url.includes('mailboxes')
+            ? {
+                items: [
+                  {
+                    id: 'mailbox',
+                    address: 'synthetic@example.test',
+                    connected: true,
+                  },
+                ],
+              }
+            : url.includes('/scans/files')
+              ? {
+                  id: 'files',
+                  state: 'completed',
+                  handler_key: 'gmail_attachments',
+                  items: [
+                    {
+                      sequence: 1,
+                      source_id: null,
+                      label: 'Synthetic order',
+                      state: 'saved',
+                      reason: '',
+                      metadata: {
+                        attachments_saved: 1,
+                        attachments_skipped: 2,
+                      },
+                    },
+                  ],
+                  next_after: null,
+                }
+              : { items: [] },
+        ),
+      )
+    }),
+  )
+  const navigate = vi.fn()
+  render(<ScansPanel csrfToken="csrf" onNavigate={navigate} />)
+  await screen.findAllByText('synthetic@example.test')
+  await user.click(screen.getByLabelText('Discover purchases with AI'))
+  await user.click(
+    screen.getByLabelText('Import attached documents for review'),
+  )
+  expect(screen.getByLabelText('Discover purchases with AI')).toBeDisabled()
+  expect(screen.queryByLabelText('Discovery model')).toBeNull()
+  await user.click(screen.getByRole('button', { name: /^Start email scan$/ }))
+  await screen.findByText(/1 attachments saved · 2 not imported/)
+  expect(saved).toMatchObject({
+    handler_key: 'gmail_attachments',
+    config: { max_messages: 10 },
+  })
+  expect(JSON.stringify(saved)).not.toContain('credential_id')
+  await user.click(
+    screen.getByRole('button', { name: 'Review imported documents' }),
+  )
+  expect(navigate).toHaveBeenCalledWith('Documents')
+})

@@ -14,6 +14,7 @@ from lifegather.auth.store import Account
 from lifegather.documents.extractor import MAX_BYTES, extract_document
 from lifegather.documents.formats import MIMES, PreviewOptions
 from lifegather.documents.models import Document
+from lifegather.mailboxes.discovery_models import EmailAttachment
 from lifegather.memory.notes import NoteConflict, NoteService
 from lifegather.memory.schemas import SourceInput
 from lifegather.memory.service import MemoryError, MemoryService
@@ -133,7 +134,23 @@ class DocumentService:
 
     def get(self, actor: Account, identifier: str) -> dict[str, Any]:
         with Session(self.engine) as db:
-            return self.view(self.owned(db, actor, identifier))
+            row = self.owned(db, actor, identifier)
+            links = db.scalars(
+                select(EmailAttachment)
+                .where(
+                    EmailAttachment.user_id == actor.id,
+                    EmailAttachment.document_id == row.id,
+                )
+                .order_by(EmailAttachment.recorded_at, EmailAttachment.id)
+                .limit(5)
+            )
+            return {
+                **self.view(row),
+                "email_sources": [
+                    {"source_id": link.source_id, "filename": link.filename}
+                    for link in links
+                ],
+            }
 
     def binary(self, actor: Account, identifier: str) -> bytes:
         with Session(self.engine) as db:

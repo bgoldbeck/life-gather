@@ -30,6 +30,8 @@ type Result = Run & {
       enriched?: number
       review?: number
       reused?: boolean
+      attachments_saved?: number
+      attachments_skipped?: number
     }
   }[]
   next_after: number | null
@@ -43,9 +45,10 @@ export function ScansPanel({
 }: {
   csrfToken: string
   initialRunId?: string
-  onNavigate?: (view: 'Review' | 'Assets') => void
+  onNavigate?: (view: 'Review' | 'Assets' | 'Documents') => void
 }) {
   const [discovery, setDiscovery] = useState(false)
+  const [attachments, setAttachments] = useState(false)
   const [credential, setCredential] = useState('')
   const [model, setModel] = useState('')
   const [mailboxes, setMailboxes] = useState<Mailbox[]>([])
@@ -173,7 +176,11 @@ export function ScansPanel({
     setError('')
     if (!pending.current)
       pending.current = {
-        handler_key: discovery ? 'gmail_discovery' : 'gmail_import',
+        handler_key: attachments
+          ? 'gmail_attachments'
+          : discovery
+            ? 'gmail_discovery'
+            : 'gmail_import',
         request_id: crypto.randomUUID(),
         config: {
           mailbox_id: mailbox,
@@ -186,7 +193,9 @@ export function ScansPanel({
           ),
           query,
           max_messages: limit,
-          ...(discovery ? { credential_id: credential, model } : {}),
+          ...(discovery && !attachments
+            ? { credential_id: credential, model }
+            : {}),
         },
       }
     try {
@@ -288,8 +297,10 @@ export function ScansPanel({
       <p className="text-muted-foreground">
         Import private email text as evidence on request. Enable purchase
         discovery to use your selected AI provider and reconcile inferred
-        inventory. Attachments are omitted. Find saved email evidence and
-        corrections in Memories.
+        inventory. Attachments are omitted unless you import them: supported
+        documents (PDF, Word, Excel, CSV, text; up to 4 MiB, three per email)
+        are saved privately in Documents for text review, with no AI. Find saved
+        email evidence and corrections in Memories.
       </p>
       {error && <p role="alert">{error}</p>}
       <form
@@ -303,12 +314,27 @@ export function ScansPanel({
           <label className="sm:col-span-2">
             <input
               type="checkbox"
+              checked={attachments}
+              onChange={(event) => {
+                setAttachments(event.target.checked)
+                if (event.target.checked) {
+                  setDiscovery(false)
+                  setLimit((value) => Math.min(value, 10))
+                }
+              }}
+            />{' '}
+            Import attached documents for review
+          </label>
+          <label className="sm:col-span-2">
+            <input
+              type="checkbox"
               checked={discovery}
+              disabled={attachments}
               onChange={(event) => setDiscovery(event.target.checked)}
             />{' '}
             Discover purchases with AI
           </label>
-          {discovery && (
+          {discovery && !attachments && (
             <ScanAIOptions
               credential={credential}
               model={model}
@@ -365,7 +391,7 @@ export function ScansPanel({
             <input
               type="number"
               min={1}
-              max={50}
+              max={attachments ? 20 : 50}
               required
               value={limit}
               onChange={(event) => setLimit(Number(event.target.value))}
@@ -470,6 +496,12 @@ export function ScansPanel({
                 item.label
               )}{' '}
               · {item.state} {item.reason}
+              {item.metadata?.attachments_saved !== undefined && (
+                <p>
+                  {item.metadata.attachments_saved} attachments saved ·{' '}
+                  {item.metadata.attachments_skipped ?? 0} not imported
+                </p>
+              )}
               {item.metadata?.created !== undefined && (
                 <p>
                   {item.metadata.created} created ·{' '}
@@ -481,6 +513,11 @@ export function ScansPanel({
               )}
             </div>
           ))}
+          {result.handler_key === 'gmail_attachments' && (
+            <Button variant="outline" onClick={() => onNavigate?.('Documents')}>
+              Review imported documents
+            </Button>
+          )}
           {result.handler_key === 'gmail_discovery' && (
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={() => onNavigate?.('Review')}>

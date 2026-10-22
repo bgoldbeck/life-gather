@@ -742,5 +742,5 @@ def test_upgrade_preserves_originals_and_database_blocks_foreign_members(
     with store.engine.connect() as connection:
         assert (
             connection.scalar(text("SELECT version_num FROM alembic_version"))
-            == "0031_conversation_retention"
+            == "0032_email_attachments"
         )

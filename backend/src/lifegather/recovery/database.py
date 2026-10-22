@@ -34,6 +34,7 @@ SUPPORTED_MIGRATIONS = frozenset(
         "0029_receipt_detail_basis",
         "0030_pgvector",
         "0031_conversation_retention",
+        "0032_email_attachments",
     }
 )
 STORED_PARTS = {

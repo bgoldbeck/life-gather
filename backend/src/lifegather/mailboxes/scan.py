@@ -2,6 +2,7 @@
 
 import re
 import time
+from collections.abc import Callable
 from typing import Any, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -154,41 +155,76 @@ class GmailImportHandler:
             params={"format": "full"},
         )
         check()
-        source = None
-        reason = "No supported text body, or message outside requested dates"
-        metadata: dict[str, str | int | bool] = {}
-        label = "Gmail message"
+        evidence = await self.evidence(
+            context, config, identity, identifier, message, token, check
+        )
+        seen += 1
+        more = bool(pending or page)
+        done = not more or seen >= config["max_messages"]
+        return ScanBatch(
+            [evidence],
+            None if done else {"pending": pending, "page": page, "seen": seen},
+            done and more,
+        )
+
+    @staticmethod
+    def message_parts(
+        config: dict[str, Any],
+        identity: tuple[str, str, bytes],
+        identifier: str,
+        message: dict[str, Any],
+    ) -> tuple[str, str, dict[str, Any]] | None:
+        """Label, provenance header and payload of an in-window message."""
         try:
             timestamp = int(message.get("internalDate", "")) // 1000
         except (ValueError, TypeError):
             timestamp = -1
         payload = message.get("payload")
         if (
-            message.get("id") == identifier
-            and config["from_timestamp"] <= timestamp < config["until_timestamp"]
-            and isinstance(payload, dict)
+            message.get("id") != identifier
+            or not config["from_timestamp"] <= timestamp < config["until_timestamp"]
+            or not isinstance(payload, dict)
         ):
+            return None
+        headers = payload.get("headers", [])
+        selected: dict[str, str] = {}
+        if isinstance(headers, list):
+            for h in headers[:100]:
+                if isinstance(h, dict) and str(h.get("name", "")).lower() in {
+                    "from",
+                    "to",
+                    "subject",
+                    "date",
+                }:
+                    selected[str(h["name"]).lower()] = (
+                        str(h.get("value", ""))[:300]
+                        .replace("\r", " ")
+                        .replace("\n", " ")
+                    )
+        label = selected.get("subject", "Gmail message")[:200]
+        header = f"Mailbox: {identity[0]}\nGmail message: {identifier}\n" + "\n".join(
+            f"{k}: {v}" for k, v in selected.items()
+        )
+        return label, header, payload
+
+    async def evidence(
+        self,
+        context: ScanContext,
+        config: dict[str, Any],
+        identity: tuple[str, str, bytes],
+        identifier: str,
+        message: dict[str, Any],
+        token: str,
+        check: Callable[[], tuple[str, str, bytes]],
+    ) -> ScanEvidence:
+        source = None
+        reason = "No supported text body, or message outside requested dates"
+        metadata: dict[str, str | int | bool] = {}
+        label = "Gmail message"
+        parts = self.message_parts(config, identity, identifier, message)
+        if parts is not None:
+            label, header, payload = parts
             text, omitted = message_text(payload)
-            headers = payload.get("headers", [])
-            selected: dict[str, str] = {}
-            if isinstance(headers, list):
-                for h in headers[:100]:
-                    if isinstance(h, dict) and str(h.get("name", "")).lower() in {
-                        "from",
-                        "to",
-                        "subject",
-                        "date",
-                    }:
-                        selected[str(h["name"]).lower()] = (
-                            str(h.get("value", ""))[:300]
-                            .replace("\r", " ")
-                            .replace("\n", " ")
-                        )
-            label = selected.get("subject", "Gmail message")[:200]
-            header = (
-                f"Mailbox: {identity[0]}\nGmail message: {identifier}\n"
-                + "\n".join(f"{k}: {v}" for k, v in selected.items())
-            )
             if text:
                 available = max(1, 3900 - len(header))
                 truncated = len(text) > available
@@ -211,11 +247,4 @@ class GmailImportHandler:
                 )
                 reason = ""
                 metadata = {"truncated": truncated, "parts_omitted": omitted}
-        seen += 1
-        more = bool(pending or page)
-        done = not more or seen >= config["max_messages"]
-        return ScanBatch(
-            [ScanEvidence(identifier, source, label, reason, metadata)],
-            None if done else {"pending": pending, "page": page, "seen": seen},
-            done and more,
-        )
+        return ScanEvidence(identifier, source, label, reason, metadata)

@@ -1,5 +1,37 @@
 # Private email connections and scans
 
+## Attachment intake (v0.77.0)
+
+Scans → **Import attached documents for review** (or ask the assistant to "save
+the receipt attachments from my email last week") queues a `gmail_attachments`
+scan. It uses the same read-only Gmail connection, past window of at most 31
+days, one-active-scan and 20-runs-per-day rules, with tighter limits: at most 20
+messages per run (10 by default), three attachments per message and 4 MiB per
+file.
+
+- Only files named as a supported document (PDF, DOCX, XLSX, CSV, TXT, MD) are
+  downloaded. Images, other types, oversized files and parts beyond the limits
+  are listed on the saved email text but never fetched.
+- Each file goes through the normal document upload: local text extraction,
+  SHA-256 dedupe, the 200-document/256 MiB quota, and private
+  [file storage](FILE_STORAGE.md). No AI provider sees it and no inventory is
+  created. Its text becomes evidence only after you review and save it in
+  Documents, exactly like an uploaded file.
+- The email header, attachment list and an excerpt of its text are saved as an
+  email source (`gmail-attachments:<mailbox>` namespace), and each document is
+  linked to that source. Documents shows **Open the email this attachment came
+  from**.
+- Replaying a window reuses the same source, document and link. A file already
+  uploaded by hand is linked rather than stored twice. Deleting a document keeps
+  the link history; a later scan stores the file again as a new document.
+- A canceled or failed run can leave a document it already stored without its
+  email link; the next scan of that window adds the link.
+
+The roadmap planned this after the text loop proves reliable; it was requested
+early, so the limits are deliberately conservative. Scheduled attachment scans
+and photo/image attachments are not included yet.
+
+
 ## Request from Chat (v0.43.0)
 
 In Chat, choose **Request an email scan**, explicitly select one connected Gmail
@@ -65,8 +97,8 @@ arrives. No AI requests or assets are created during import. Use Memories → Em
 evidence to inspect/correct the saved text with original history preserved.
 
 Each run covers at most 31 days and 50 messages, with 20 runs per user per day.
-Only supported inline plain/HTML text is imported; attachments and remote resources
-are not fetched. Large responses stop the run safely. Text is capped at 4,000
+Only supported inline plain/HTML text is imported; attachments (except through
+attachment intake above) and remote resources are not fetched. Large responses stop the run safely. Text is capped at 4,000
 characters and marked when truncated or parts are omitted. Original Gmail message
 identity and headers accompany the excerpt. This is not a full mailbox backup.
 

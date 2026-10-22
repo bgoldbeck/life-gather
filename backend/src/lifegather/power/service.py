@@ -344,7 +344,11 @@ class PowerCenter:
                     configured=configured,
                     state=state,
                     reason=reason,
-                    capabilities=["gmail_import", "gmail_discovery"],
+                    capabilities=[
+                        "gmail_import",
+                        "gmail_discovery",
+                        "gmail_attachments",
+                    ],
                     action="Scans" if available else "Settings",
                     last_success=last,
                     last_run_id=success.id if success else None,
@@ -370,9 +374,13 @@ class PowerCenter:
                     configured=False,
                     state="blocked",
                     reason="Connect Gmail separately from sign-in. No scan starts.",
-                    capabilities=["gmail_import", "gmail_discovery"],
+                    capabilities=[
+                        "gmail_import",
+                        "gmail_discovery",
+                        "gmail_attachments",
+                    ],
                     action="Settings",
-                    scope="Requested/scheduled read-only text scans; no attachments.",
+                    scope="Requested/scheduled read-only scans; files on request.",
                 )
             )
         mail_state: State = next(

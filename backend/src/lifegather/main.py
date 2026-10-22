@@ -30,7 +30,9 @@ from lifegather.credentials.middleware import CredentialBodyLimit
 from lifegather.credentials.routes import private_router
 from lifegather.credentials.service import PrivateSettings, VaultError, read_key
 from lifegather.documents.routes import document_router
+from lifegather.documents.service import DocumentService
 from lifegather.legacy_import import import_on_start
+from lifegather.mailboxes.attachments import GmailAttachmentHandler
 from lifegather.mailboxes.discovery import GmailDiscoveryHandler
 from lifegather.mailboxes.provider import GmailProvider
 from lifegather.mailboxes.routes import mailbox_router
@@ -117,6 +119,12 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
                             store.engine,
                             app.state.private_settings,
                             app.state.gmail_provider,
+                        ),
+                        GmailAttachmentHandler(
+                            store.engine,
+                            app.state.private_settings,
+                            app.state.gmail_provider,
+                            DocumentService(store.engine, app.state.object_storage),
                         ),
                         GmailDiscoveryHandler(
                             store.engine,
