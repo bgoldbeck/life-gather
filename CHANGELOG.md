@@ -20,6 +20,7 @@ See [docs/EXTERNAL_BACKGROUND.md](docs/EXTERNAL_BACKGROUND.md).
   recorded as a web account request.
 - No migration. New settings are deployment-local and not stored in recovery
   bundles.
+
 ## 0.80.0 — End-to-end reliability checks
 
 - New browser checks (Playwright, Chromium) walk through sign-in, adding an
