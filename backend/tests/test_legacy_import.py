@@ -173,7 +173,7 @@ def test_070_installation_keeps_its_stored_files_through_the_first_start(
     store = AuthStore(url)
     with Session(store.engine) as db:
         assert db.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0033_account_row_security"
+            "0034_research_findings"
         )
         assert (
             db.scalar(

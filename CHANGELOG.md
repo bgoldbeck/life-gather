@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.83.0 — Save web research findings as evidence
+
+- In a finished Chat web research reply, each cited source offers **Save to
+  <asset>** while an asset is open. Nothing is saved until you press it. The
+  server copies the source's URL, title, page date, excerpts and research time
+  from the stored reply; the browser cannot supply them. See
+  [docs/WEB_RESEARCH.md](docs/WEB_RESEARCH.md#saving-a-source-to-an-asset).
+- Assets show **Saved web research** with the link, page date, research and save
+  times and excerpts. Remove asks first and keeps the removed row as history.
+  Saving is idempotent per request and per asset/page; consolidated records share
+  findings; deleting the conversation keeps them.
+- Findings stay labelled as describing a product model, never ownership, purchase
+  details or parts compatibility, and do not change asset details.
+- Read-only MCP tool `asset_research_findings`.
+- Migration `0034_research_findings` adds the owner-scoped `research_findings`
+  table with a row-level security policy; the cross-account isolation suite
+  covers its routes and identifiers. Operator recovery accepts the new migration.
+  Personal records format 5 includes findings; format 4 archives still restore.
+
 ## 0.82.1 — Release checks run on Windows again
 
 - Fix: the release script's backend verification (`uv run pytest`) failed on

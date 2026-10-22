@@ -24,6 +24,7 @@ from lifegather.chat.context import ContextRead
 from lifegather.chat.organizer import OrganizationAction
 from lifegather.chat.service import SaveText
 from lifegather.documents.service import DocumentPage, DocumentRead
+from lifegather.findings.service import FindingsRead
 from lifegather.maintenance.schemas import (
     MaintenanceChange,
     MaintenanceCreate,
@@ -167,6 +168,7 @@ INPUTS: dict[str, type[BaseModel]] = {
     "asset_change": AssetChange,
     "assets_list": AssetList,
     "asset_purchases": AssetPurchasesRead,
+    "asset_research_findings": FindingsRead,
     "asset_detail": AssetRead,
     "asset_proposal_preview": ProposalPreview,
     "asset_proposal_get": ProposalRead,

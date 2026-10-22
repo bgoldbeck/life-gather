@@ -9,6 +9,7 @@ import { EvidenceBatch } from './EvidenceBatch'
 import { RecordComparison } from './RecordComparison'
 import { AssetActions } from './AssetActions'
 import { AssetPurchases } from './AssetPurchases'
+import { AssetResearchFindings } from './AssetResearchFindings'
 import { FieldHistory } from './FieldHistory'
 import { factLabel } from './profileFields'
 import { ManualAssetForm, type ManualAssetResult } from './ManualAssetForm'
@@ -551,6 +552,11 @@ export function AssetsPanel({
             assetId={detail.asset.id}
             csrfToken={csrfToken}
             onOpen={evidence}
+          />
+          <AssetResearchFindings
+            key={`findings:${detail.asset.id}`}
+            assetId={detail.asset.id}
+            csrfToken={csrfToken}
           />
           <h3>Sourced details and decisions</h3>
           {!detail.consolidation && (

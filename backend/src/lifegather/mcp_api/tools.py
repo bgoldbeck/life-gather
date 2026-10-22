@@ -49,6 +49,7 @@ from lifegather.chat.context import ContextRead, WorkspaceContexts
 from lifegather.chat.organizer import OrganizationAction, WorkspaceOrganizer
 from lifegather.chat.service import SaveText, save_text
 from lifegather.documents.service import DocumentPage, DocumentRead, DocumentService
+from lifegather.findings.service import FindingService, FindingsRead
 from lifegather.maintenance.schemas import (
     MaintenanceChange,
     MaintenanceCreate,
@@ -909,6 +910,19 @@ def build_server(power_factory: Callable[[], PowerCenter] | None = None) -> MCPS
         """Read receipt claims through current physical-item evidence bindings."""
         return read(
             ctx, lambda actor, memory, _: AssetPurchases(memory.engine).get(actor, data)
+        )
+
+    @server.tool(annotations=annotation)
+    def asset_research_findings(data: FindingsRead, ctx: ToolContext) -> dict[str, Any]:
+        """Read web research sources the user saved to an asset, with dates.
+
+        They describe a product model, not ownership, purchase or parts fit.
+        """
+        return read(
+            ctx,
+            lambda actor, memory, _: FindingService(memory).for_asset(
+                actor, data.asset_id
+            ),
         )
 
     @server.tool(annotations=annotation)

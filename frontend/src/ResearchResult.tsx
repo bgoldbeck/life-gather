@@ -1,3 +1,7 @@
+import { useRef, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { FINDING_SAVED, researchedAt } from './researchFindings'
+
 export type ResearchSource = {
   url: string
   title: string
@@ -13,13 +17,108 @@ export type WebResearch = {
   sources: ResearchSource[]
   identity_note: string
 }
+export type SaveTarget = { id: string; name: string }
 
-function researchedAt(value: string) {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
+function SaveFinding({
+  turnId,
+  url,
+  target,
+  csrfToken,
+}: {
+  turnId: string
+  url: string
+  target: SaveTarget
+  csrfToken: string
+}) {
+  const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'error'>(
+    'idle',
+  )
+  const [message, setMessage] = useState('')
+  // One request ID per source and item, so a retry after a lost reply is safe.
+  const requests = useRef(new Map<string, string>())
+  async function save() {
+    if (state === 'saving') return
+    setState('saving')
+    setMessage('')
+    let requestId = requests.current.get(target.id)
+    if (!requestId) {
+      requestId = crypto.randomUUID()
+      requests.current.set(target.id, requestId)
+    }
+    try {
+      const response = await fetch('/api/research-findings', {
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify({
+          request_id: requestId,
+          turn_id: turnId,
+          url,
+          asset_id: target.id,
+        }),
+      })
+      if (!response.ok) {
+        const detail = (await response.json().catch(() => null)) as {
+          detail?: unknown
+        } | null
+        requests.current.delete(target.id)
+        throw new Error(
+          typeof detail?.detail === 'string'
+            ? detail.detail
+            : 'Unable to save this source. Try again.',
+        )
+      }
+      const saved = (await response.json()) as { already_saved: boolean }
+      setState('saved')
+      setMessage(
+        saved.already_saved
+          ? `Already saved to ${target.name}`
+          : `Saved to ${target.name}`,
+      )
+      window.dispatchEvent(
+        new CustomEvent(FINDING_SAVED, { detail: { assetId: target.id } }),
+      )
+    } catch (caught) {
+      setState('error')
+      setMessage((caught as Error).message)
+    }
+  }
+  return (
+    <div className="chat-research-save">
+      {state === 'saved' ? (
+        <p role="status">{message}</p>
+      ) : (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={state === 'saving'}
+          onClick={() => void save()}
+        >
+          {state === 'saving' ? 'Saving…' : `Save to ${target.name}`}
+        </Button>
+      )}
+      {state === 'error' && <p role="alert">{message}</p>}
+    </div>
+  )
 }
 
-export function ResearchResult({ research }: { research: WebResearch }) {
+export function ResearchResult({
+  research,
+  turnId,
+  target,
+  csrfToken,
+}: {
+  research: WebResearch
+  turnId?: string
+  target?: SaveTarget | null
+  csrfToken?: string
+}) {
+  const canSave = !!turnId && csrfToken !== undefined
   return (
     <section className="chat-research" aria-label="Web research sources">
       <p className="chat-label">
@@ -49,9 +148,23 @@ export function ResearchResult({ research }: { research: WebResearch }) {
                   {excerpt}
                 </blockquote>
               ))}
+              {canSave && target && (
+                <SaveFinding
+                  key={target.id}
+                  turnId={turnId}
+                  url={source.url}
+                  target={target}
+                  csrfToken={csrfToken}
+                />
+              )}
             </li>
           ))}
         </ol>
+      )}
+      {canSave && !target && !!research.sources.length && (
+        <p className="chat-research-hint">
+          Open an asset to save a source to it as evidence.
+        </p>
       )}
       <p role="note">{research.identity_note}</p>
     </section>

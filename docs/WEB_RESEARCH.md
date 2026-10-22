@@ -44,8 +44,8 @@ error.
 
 ## What is kept
 
-The reply is stored in the conversation like other Chat replies; no records,
-facts, assets or evidence are written and there is no schema change. It keeps:
+The reply is stored in the conversation like other Chat replies; nothing is
+written to your records unless you save a source (below). The reply keeps:
 
 - `researched_at`: when the request started (UTC).
 - `queries`: the searches the provider reported running.
@@ -60,10 +60,41 @@ facts, assets or evidence are written and there is no schema change. It keeps:
 An answer with no valid web citation is discarded and replaced with a "no cited
 web sources" message. Web pages are treated as untrusted data in the instruction.
 
+## Saving a source to an asset
+
+Version 0.83.0. While an asset is open, each cited source in a finished research
+reply shows **Save to <asset name>**. Nothing is saved until you press it, and only
+that one source is saved. With no asset open, the reply says to open one first.
+
+- The browser sends only which reply, which cited URL and which asset. The server
+  copies the URL, title, page date, excerpts, research time, provider, model and
+  your typed request from the stored reply, so a saved finding always matches
+  what you were shown. A URL that the reply did not cite, a reply that is not a
+  finished web research reply, another account's reply or a record that is not
+  a physical asset is refused.
+- Saving the same page to the same asset again keeps one finding and says it was
+  already saved; a retry of the same request is safe.
+- The asset page lists findings under **Saved web research**, newest first, with
+  the source link, page date (or "Page date not reported"), research and save
+  times, the request and excerpts. Findings saved to either record of a
+  consolidated pair show on both.
+- **Remove** asks for confirmation, hides the finding and keeps the row with its
+  removal time as history. The page can be saved again afterwards.
+- Findings are a copy: deleting the conversation keeps them.
+- Findings describe a product model. They are not ownership, purchase or
+  parts-compatibility facts and do not change the asset's details.
+
+Storage: migration `0034_research_findings` adds the owner-scoped
+`research_findings` table with the same row-level security policy as every other
+account table. HTTP: `POST /api/research-findings`,
+`POST /api/research-findings/remove`, `GET /api/research-findings/assets/{asset_id}`.
+MCP: read-only `asset_research_findings`. Personal records format 5 includes the
+findings; format 4 archives still restore.
+
 ## Not included yet
 
-Gemini research, saving reviewed research findings as evidence on a record,
-fetching and reading full manuals, and research started by the AI assistant.
+Gemini research, fetching and reading full manuals, research started by the AI
+assistant, and turning a finding into a sourced field value on the asset.
 
 Contracts checked 2026-10-22:
 [Claude web search tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool),

@@ -8,6 +8,7 @@ from lifegather.auth.models import Base
 from lifegather.chat import models as chat_models  # noqa: F401
 from lifegather.credentials import models as credential_models  # noqa: F401
 from lifegather.documents import models as document_models  # noqa: F401
+from lifegather.findings import models as finding_models  # noqa: F401
 from lifegather.mailboxes import discovery_models  # noqa: F401
 from lifegather.mailboxes import models as mailbox_models  # noqa: F401
 from lifegather.maintenance import models as maintenance_models  # noqa: F401

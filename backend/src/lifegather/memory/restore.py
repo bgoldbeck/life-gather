@@ -29,7 +29,13 @@ from lifegather.memory.archive import (
     MAX_ORIGINALS,
     original_path,
 )
-from lifegather.memory.export import COLLECTIONS, FORMAT, MAX_BYTES, MAX_RECORDS
+from lifegather.memory.export import (
+    COLLECTIONS,
+    FORMAT,
+    MAX_BYTES,
+    MAX_RECORDS,
+    PREVIOUS_FORMATS,
+)
 from lifegather.memory.models import Alias, Entity, Episode
 from lifegather.memory.service import MemoryError, MemoryService
 from lifegather.photos.service import decode
@@ -80,7 +86,7 @@ class _Manifest(BaseModel):
     model_config = ConfigDict(extra="ignore", strict=True)
 
     format: Literal["lifegather-personal-archive/1"]
-    records_format: Literal["lifegather-records/4"]
+    records_format: Literal["lifegather-records/4", "lifegather-records/5"]
     snapshot_at: str = Field(max_length=64)
     records: _Records
     originals: list[_Original] = Field(max_length=MAX_ORIGINALS)
@@ -140,10 +146,18 @@ def _value(table: Table, name: str, value: Any) -> Any:
 
 
 def _collections(records: Any) -> dict[str, list[dict[str, Any]]]:
-    if not isinstance(records, dict) or records.get("format") != FORMAT:
-        raise RestoreError("Only lifegather-records/4 archives can be restored")
+    if not isinstance(records, dict) or (
+        records.get("format") != FORMAT
+        and records.get("format") not in PREVIOUS_FORMATS
+    ):
+        raise RestoreError("Only lifegather-records/4 and /5 archives can be restored")
     collections = records.get("collections")
-    if not isinstance(collections, dict) or set(collections) != set(TABLES):
+    absent = PREVIOUS_FORMATS.get(records["format"], frozenset())
+    if not isinstance(collections, dict) or absent & set(collections):
+        raise RestoreError("Archive records do not match the supported format")
+    # Collections added after an older format are restored empty.
+    collections = {**{name: [] for name in absent}, **collections}
+    if len(collections) != len(TABLES) or set(collections) != set(TABLES):
         raise RestoreError("Archive records do not match the supported format")
     result: dict[str, list[dict[str, Any]]] = {}
     total = 0
@@ -172,9 +186,10 @@ def _collections(records: Any) -> dict[str, list[dict[str, Any]]]:
             raise RestoreError("Archive records repeat an identifier")
         result[name] = prepared
     counts = records.get("counts")
-    if counts != {name: len(rows) for name, rows in result.items()} or records.get(
-        "total_records"
-    ) != sum(len(rows) for rows in result.values()):
+    listed = {name: len(rows) for name, rows in result.items() if name not in absent}
+    if counts != listed or records.get("total_records") != sum(
+        len(rows) for rows in result.values()
+    ):
         raise RestoreError("Archive record counts do not match")
     return result
 
@@ -249,8 +264,10 @@ def _read(package: ZipFile) -> _Package:
     ):
         raise RestoreError("Archive records do not match the manifest")
     records = _json(records_raw)
-    if not isinstance(records, dict) or records.get("snapshot_at") != (
-        manifest.snapshot_at
+    if (
+        not isinstance(records, dict)
+        or records.get("snapshot_at") != manifest.snapshot_at
+        or records.get("format") != manifest.records_format
     ):
         raise RestoreError("Archive records do not match the manifest")
     rows = _collections(records)

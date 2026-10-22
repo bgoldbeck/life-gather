@@ -13,9 +13,10 @@ backup, including all users and installation secrets.
 
 ## Contents
 
-- `records.json`: the `lifegather-records/4` copy of your source text,
+- `records.json`: the `lifegather-records/5` copy of your source text,
   entities, original/corrected facts, history, distinct purchased units, exact
   monetary claims, maintenance tasks/revisions, saved asset types/fields/revisions,
+  saved web research findings,
   conversations and file metadata/text. Its own exclusions still
   describe this JSON file; original bytes live in the separate archive members.
 - `originals/photos/…` and `originals/documents/…`: your active saved photo and document
@@ -74,7 +75,9 @@ encrypted or oversized members; stored or deflated only), the manifest, the
 records file's size and SHA-256, and each original's path, size, MIME type and
 SHA-256 against its photo/document record. Every active photo and document must
 have exactly one original, and every record must have exactly the
-`lifegather-records/4` fields with the right types. Photos are decoded again and
+`lifegather-records/5` fields with the right types. Archives written before
+v0.83.0 (`lifegather-records/4`) still restore; they simply have no saved web
+research findings. Photos are decoded again and
 must match their recorded type and dimensions.
 
 The restore is all or nothing. One database transaction inserts every record in

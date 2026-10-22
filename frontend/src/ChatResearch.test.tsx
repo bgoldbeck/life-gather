@@ -13,6 +13,11 @@ const record = {
   name: 'Synthetic dishwasher',
 }
 
+const saves: Record<string, unknown>[] = []
+afterEach(() => {
+  saves.length = 0
+})
+
 function harness() {
   const writes: Record<string, unknown>[] = []
   vi.stubGlobal(
@@ -79,6 +84,14 @@ function harness() {
             },
           },
         })
+      }
+      if (path === '/api/research-findings' && init?.method === 'POST') {
+        const body = JSON.parse(String(init.body))
+        saves.push({
+          ...body,
+          csrf: new Headers(init.headers).get('X-CSRF-Token'),
+        })
+        return json({ id: 'finding', already_saved: saves.length > 1 }, 201)
       }
       if (path.includes('/turns')) return json({ items: [], next_cursor: null })
       throw new Error('Unexpected synthetic request: ' + path)
@@ -153,4 +166,62 @@ it('cannot share record details without a selected record', async () => {
       name: 'Open a record to optionally share its saved details',
     }),
   ).toBeDisabled()
+})
+
+it('saves a cited source to the open asset only when asked', async () => {
+  const writes = harness()
+  const announced = vi.fn()
+  window.addEventListener('lifegather:research-finding-saved', announced)
+  render(<ChatPanel csrfToken="csrf" context={record} />)
+  const user = userEvent.setup()
+  await user.selectOptions(await screen.findByLabelText('Action'), 'research')
+  await user.type(screen.getByLabelText('What to look up'), 'DW-100 manual')
+  await user.click(screen.getByRole('button', { name: 'Research on the web' }))
+  const sources = await screen.findByRole('region', {
+    name: 'Web research sources',
+  })
+  const buttons = within(sources).getAllByRole('button', {
+    name: 'Save to Synthetic dishwasher',
+  })
+  expect(buttons).toHaveLength(2)
+  // Nothing is saved until a source's button is pressed.
+  expect(saves).toEqual([])
+  await user.click(buttons[0])
+  expect(
+    await within(sources).findByText('Saved to Synthetic dishwasher'),
+  ).toBeVisible()
+  expect(saves).toHaveLength(1)
+  expect(saves[0]).toMatchObject({
+    turn_id: 'turn-1',
+    url: 'https://manuals.example.com/dw-100.pdf',
+    asset_id: 'asset-1',
+    csrf: 'csrf',
+  })
+  expect(Object.keys(saves[0]).sort()).toEqual(
+    ['asset_id', 'csrf', 'request_id', 'turn_id', 'url'].sort(),
+  )
+  expect(writes).toHaveLength(1)
+  expect(announced).toHaveBeenCalledTimes(1)
+  window.removeEventListener('lifegather:research-finding-saved', announced)
+})
+
+it('asks to open an asset before saving a source', async () => {
+  harness()
+  render(
+    <ChatPanel
+      csrfToken="csrf"
+      context={{ page: 'Profiles', entity_id: 'person-1', version: 'b' }}
+    />,
+  )
+  const user = userEvent.setup()
+  await user.selectOptions(await screen.findByLabelText('Action'), 'research')
+  await user.type(screen.getByLabelText('What to look up'), 'DW-100 manual')
+  await user.click(screen.getByRole('button', { name: 'Research on the web' }))
+  const sources = await screen.findByRole('region', {
+    name: 'Web research sources',
+  })
+  expect(within(sources).queryByRole('button', { name: /^Save to/ })).toBeNull()
+  expect(
+    within(sources).getByText(/Open an asset to save a source/),
+  ).toBeVisible()
 })

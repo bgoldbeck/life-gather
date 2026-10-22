@@ -114,24 +114,28 @@
   width: 100%;
 }
 
-.asset-purchases {
+.asset-purchases,
+.asset-findings {
   min-width: 0;
   margin-top: 1.5rem;
   padding-top: 1rem;
   border-top: 1px solid var(--border);
 }
-.asset-purchases li {
+.asset-purchases li,
+.asset-findings li {
   margin: 1rem 0;
   padding: 1rem;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   min-width: 0;
 }
-.asset-purchases blockquote {
+.asset-purchases blockquote,
+.asset-findings blockquote {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.asset-purchases button {
+.asset-purchases button,
+.asset-findings button {
   margin: 0.3rem 0.5rem 0.3rem 0;
 }
 .consolidation {
@@ -153,4 +157,13 @@
   width: 100%;
   min-width: 0;
   max-width: 100%;
+}
+.asset-findings a {
+  color: var(--primary);
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+}
+.asset-findings-meta {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
 }
