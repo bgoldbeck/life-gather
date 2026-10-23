@@ -32,6 +32,7 @@ def account_router() -> APIRouter:
             store_for(request).engine,
             request.app.state.object_storage,
             email_for(request),
+            backup_retention_days=settings.backup_retention_days,
         )
         try:
             result = service.delete(
@@ -44,7 +45,12 @@ def account_router() -> APIRouter:
         except AccountDeletionError as error:
             raise HTTPException(error.status, str(error)) from None
         response = JSONResponse(
-            {"deleted": True, "rows": result.rows, "files": result.files}
+            {
+                "deleted": True,
+                "rows": result.rows,
+                "files": result.files,
+                "backups_expire_at": result.backups_expire_at,
+            }
         )
         response.delete_cookie(
             SESSION_COOKIE,

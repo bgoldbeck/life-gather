@@ -6,8 +6,10 @@ from dataclasses import dataclass
 from graphlib import CycleError, TopologicalSorter
 
 from sqlalchemy import Engine, or_, select, text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from lifegather.auth.deletion_ledger import DAY_SECONDS, record_deletion
 from lifegather.auth.email_models import EmailCredential
 from lifegather.auth.email_service import EmailAuth, verify_password
 from lifegather.auth.email_validation import email_key
@@ -50,6 +52,8 @@ class AccountDeletionError(ValueError):
 class DeletionResult:
     rows: int
     files: int
+    # When the last installation backup holding the account expires.
+    backups_expire_at: int
 
 
 def deletion_order(db: Session) -> list[str]:
@@ -68,6 +72,18 @@ def deletion_order(db: Session) -> list[str]:
         return list(TopologicalSorter(referenced_by).static_order())
     except CycleError:
         raise AccountDeletionError("Account tables reference each other", 500) from None
+
+
+def delete_account_rows(db: Session, user_id: str) -> int:
+    """Delete every row the account owns, then its users row; returns the count."""
+    rows = 0
+    for table in deletion_order(db):
+        result = db.execute(
+            text(f'DELETE FROM "{table}" WHERE user_id = :owner'), {"owner": user_id}
+        )
+        rows += int(getattr(result, "rowcount", 0) or 0)
+    result = db.execute(text("DELETE FROM users WHERE id = :owner"), {"owner": user_id})
+    return rows + int(getattr(result, "rowcount", 0) or 0)
 
 
 def _stored_keys(db: Session, user_id: str) -> set[str]:
@@ -92,11 +108,17 @@ class AccountDeletion:
     """Framework-independent; HTTP is a thin authenticated adapter."""
 
     def __init__(
-        self, engine: Engine, storage: ObjectStorage | None, email: EmailAuth
+        self,
+        engine: Engine,
+        storage: ObjectStorage | None,
+        email: EmailAuth,
+        *,
+        backup_retention_days: int = 35,
     ) -> None:
         self.engine = engine
         self.storage = storage
         self.email = email
+        self.backup_retention_days = backup_retention_days
 
     def _confirm(
         self, actor: Account, email: str, password: str | None, *, client: str, now: int
@@ -148,24 +170,25 @@ class AccountDeletion:
                     "Try again.",
                     503,
                 ) from None
-            rows = 0
             with Session(self.engine) as db:
                 begin_serialized(db)
                 later = _stored_keys(db, actor.id) - first
-                for table in deletion_order(db):
-                    result = db.execute(
-                        text(f'DELETE FROM "{table}" WHERE user_id = :owner'),
-                        {"owner": actor.id},
-                    )
-                    rows += int(getattr(result, "rowcount", 0) or 0)
-                result = db.execute(
-                    text("DELETE FROM users WHERE id = :owner"), {"owner": actor.id}
-                )
-                rows += int(getattr(result, "rowcount", 0) or 0)
+                rows = delete_account_rows(db, actor.id)
                 db.commit()
             try:
                 removed += self._remove(later)
             except (StorageError, AccountDeletionError):
                 # The rows are gone; never report content or keys in logs.
                 logger.warning("Some files added during account deletion remain")
-        return DeletionResult(rows=rows, files=removed)
+        try:
+            expires = record_deletion(
+                self.engine,
+                actor.id,
+                now=now,
+                retention_days=self.backup_retention_days,
+            )
+        except SQLAlchemyError:
+            # The account is gone; only the backup-expiry reminder is missing.
+            logger.exception("Could not record the account deletion for backups")
+            expires = now + self.backup_retention_days * DAY_SECONDS
+        return DeletionResult(rows=rows, files=removed, backups_expire_at=expires)

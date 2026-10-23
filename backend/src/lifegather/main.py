@@ -17,6 +17,7 @@ from lifegather.assets.routes import asset_router
 from lifegather.assets.type_routes import asset_type_router
 from lifegather.auth.account_routes import account_router
 from lifegather.auth.bot_check import TurnstileCheck
+from lifegather.auth.deletion_ledger import ledger_sweeps
 from lifegather.auth.email_routes import email_router
 from lifegather.auth.email_service import EmailAuth
 from lifegather.auth.email_validation import EmailAuthError
@@ -135,6 +136,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
             if settings.background_mode == "inprocess":
                 tasks.append(asyncio.create_task(app.state.scan_worker.serve()))
             tasks.append(asyncio.create_task(retention_sweeps(store.engine)))
+            tasks.append(asyncio.create_task(ledger_sweeps(store.engine)))
             tasks.append(asyncio.create_task(app.state.operations_monitor.serve()))
             try:
                 async with mcp_server.session_manager.run():
