@@ -56,6 +56,9 @@ check off again; recorded acceptances are kept.
 The bundled text in `backend/src/lifegather/auth/terms_placeholder.md` is a
 **placeholder, not legal advice**. Replace it with terms and a privacy notice
 reviewed for the service you run, either by editing that file before building
-the image or by pointing `LIFEGATHER_TERMS_FILE` at your own file (outside the
-data and static directories). The text is shown as plain text, not rendered
-HTML.
+the image or by pointing `LIFEGATHER_TERMS_FILE` at your own file. The text is shown
+as plain text, not rendered HTML.
+
+Recovery bundles do not carry these four settings: like proxy and storage
+settings they belong to the host that runs a restored installation. Recorded
+acceptances are database rows and are restored with everything else.

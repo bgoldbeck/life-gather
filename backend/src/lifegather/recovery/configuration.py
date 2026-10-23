@@ -43,6 +43,12 @@ LOCAL_FIELDS = {
     # Where original files live is deployment-local, like data_dir: bundles carry
     # the originals themselves and a restore uses its own storage settings.
     *STORAGE_DEFAULTS,
+    # Sign-up protection belongs to the host: Turnstile keys are tied to its
+    # hostname and the terms file is a path on it. Acceptances are in the rows.
+    "turnstile_site_key",
+    "turnstile_secret_key",
+    "terms_version",
+    "terms_file",
 }
 BOOLEAN_FIELDS = {"test_login_enabled", "smtp_implicit_tls"}
 
