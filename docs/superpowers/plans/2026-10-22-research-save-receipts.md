@@ -1,4 +1,4 @@
-# Research-save retry receipts (v0.83.1)
+# Research-save retry receipts (v0.84.1)
 
 Baseline: main b728995, v0.83.0, migration 0034. Review reproduced two faults: changing the asset while reusing a request ID returns the earlier save, and replaying a deduplicated save after removal creates active evidence again.
 
@@ -14,3 +14,5 @@ Acceptance: exact retries have one result; changed inputs fail; removed evidence
 Overlap check: origin/claude/memory-deletion (05fd8f5) currently changes only docs/MEMORIES.md and proposes v0.84.0 without a migration. Preserve it; this patch does not implement memory deletion. Recheck code, format, migration and version consumers before merging.
 
 Review focus: consolidation/reversal, old receiptless archives, missing conversations, concurrent duplicate requests, cross-account foreign keys/RLS, failed transaction rollback and browser lost replies. One active implementation worktree; review main is frozen for the baseline publisher. Review inline under repository's no-agent workflow.
+
+Reconciliation: main advanced to 3a2dfec / v0.84.0 (PR121 Power Center0.83.1 and PR122 memory deletion0.84.0). Preserve both, release this fix as0.84.1, retain migration0035/format6. Re-run source consumers, quality, complete suites and browser journeys on this baseline. Old incomplete test runs were deliberately canceled before build/upload. Original WIP is recoverable in the recorded Git stash and outside-repo patch.
