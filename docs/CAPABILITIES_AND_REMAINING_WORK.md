@@ -88,6 +88,8 @@ Review current source, dependencies and acceptance criteria before each incremen
 - Verify configured SMTP delivery and password-reset mail end to end. Provider
   adapters/Gmail were tested synthetically; actual provider/model access, Gmail
   consent and refresh-token longevity still need installation-specific verification.
+  Testing the assistant with real OpenAI, Claude and Gemini connections is
+  **Deferred by Lisa (2026-10-23)** until she asks for it.
 - Confirm the running installation's version/revision separately from source.
   Updating this checkout does not update TrueNAS, restart an app or prove image publication.
 - Dedicated mobile/camera app, offline/PWA/share-menu and remote/domain/tunnel setup

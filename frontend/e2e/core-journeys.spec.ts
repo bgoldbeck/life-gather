@@ -241,14 +241,16 @@ test('restore the archive into a new installation', async ({ browser }) => {
       .getByRole('button', { name: /synthetic-receipt\.txt/ }),
   ).toBeVisible()
 
-  // A second restore of the same archive is refused rather than duplicating.
+  // A second restore leaves existing records unchanged instead of duplicating.
   await openView(fresh, 'Settings')
   await restore.getByLabel('Personal archive (ZIP)').setInputFiles(archivePath)
   await restore.getByLabel("Add this archive's records to my account").check()
   await restore.getByRole('button', { name: 'Restore archive' }).click()
-  await expect(restore.getByRole('alert')).toContainText(
-    'already has saved records',
+  await expect(restore.getByRole('status')).toContainText(
+    'Nothing new to restore',
   )
+  await expect(restore.getByRole('status')).toContainText('were left unchanged')
+  await expect(restore.getByRole('alert')).toHaveCount(0)
   await context.close()
 })
 

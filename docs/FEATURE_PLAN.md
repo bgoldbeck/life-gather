@@ -70,8 +70,9 @@ mock tests alone do not establish real model quality.
 The [assistant design](superpowers/specs/2026-10-21-ai-asset-assistant-design.md)
 describes this first slice. v0.60.0 delivers its first increment
 ([AI assistant](AI_ASSISTANT.md)), v0.61.0 adds streamed progress status and
-v0.63.0 adds asset type assignment with typed template fields; live-provider
-verification remains.
+v0.63.0 adds asset type assignment with typed template fields. Live-provider
+verification with real OpenAI, Claude and Gemini connections is **Deferred by
+Lisa (2026-10-23)**: do not pick it up until she asks for it.
 
 ## Phase 2: evidence intake and useful recall
 
@@ -105,6 +106,8 @@ screens or new domain subsystems.
   Research does not establish ownership or guarantee parts compatibility.
   v0.67.0 adds [web research](WEB_RESEARCH.md) in Chat for OpenAI and Claude
   connections; v0.83.0 saves a cited source to an asset as evidence on request.
+  v0.87.0 lets the asset assistant recall a bounded selection of those saved
+  findings with dated source citations; global research indexing remains open.
 
 Acceptance: import an original, inspect extracted candidates, save supported facts,
 revisit them later, follow citations to the original and correct a mistake. Replay
@@ -137,7 +140,9 @@ Treat this as a release gate as well as continuing work during Phases 1 and 2.
   v0.86.0 restores a personal archive into an account that already has records,
   adding only missing records and keeping current ones.
 - Verify configured-provider behavior and connection recovery before claiming
-  end-to-end readiness. Address session/account/credential issues when they block
+  end-to-end readiness. **Deferred by Lisa (2026-10-23):** testing with real
+  OpenAI, Claude and Gemini connections waits until she asks for it; do not pick
+  it up as the next task. Address session/account/credential issues when they block
   real tracking. Never use live personal data without the required authorization.
 - Keep exact money, owner boundaries, provenance, migrations and recovery correct
   in every feature; they are not repairs to postpone until this phase.
@@ -205,12 +210,17 @@ for the Phase 3 acceptance gate.
   routing with streamed chat, Cron tick, Secrets Store, private R2 bucket,
   Cloudflare Access on operator routes, and a setup runbook. Staging only until
   the launch gate passes.
+  The test-site package is done (see [Cloudflare test site](CLOUDFLARE_TEST_SITE.md)):
+  Worker and container, Cron tick, R2, Worker secrets, Access in front of the whole
+  test site, and Lisa's setup runbook. A live staging deployment, trusted-proxy
+  handling for real client addresses, and Access only on operator routes (once
+  public) remain.
 - **5.5 Hosted account lifecycle.** Turnstile bot checks on sign-up/password
   forms, terms and privacy acceptance, and verified account deletion across
   database rows, stored files and backup expiry; personal archive remains export.
   Account deletion across database rows and stored files is done in 0.87.0
   (see [account deletion](ACCOUNT_DELETION.md)). Optional Turnstile bot checks
-  and terms-of-use acceptance are done in 0.88.0 (see
+  and terms-of-use acceptance are done in 0.89.0 (see
   [sign-up protection](SIGNUP_PROTECTION.md)); hosted backup-expiry records
   remain.
 - **5.6 Backups and recovery for many users.** Managed Postgres point-in-time
