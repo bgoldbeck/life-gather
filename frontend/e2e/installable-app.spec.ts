@@ -1,3 +1,5 @@
+/// <reference lib="dom" />
+
 import { expect, test } from '@playwright/test'
 
 import { openView, secondURL, signIn } from './support.ts'
