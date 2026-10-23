@@ -1,5 +1,10 @@
 @echo off
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Publish-Container.ps1" -Publish -PublishLatest
+if "%~1"=="" goto menu
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Publish-Container.ps1" %*
+goto result
+:menu
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Container-Helper.ps1"
+:result
 set "result=%ERRORLEVEL%"
 echo.
 if not "%result%"=="0" (

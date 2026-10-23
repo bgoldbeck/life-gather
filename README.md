@@ -76,6 +76,10 @@ To build and publish when your connection is free, use the [local release script
 
 Install Docker Engine with the Compose plugin on Linux, or Docker Desktop with the Linux engine on Windows/macOS. No host Python or Node.js installation is needed for this path.
 
+On Windows, double-click `scripts/Container-Helper.cmd` for setup status, guided
+installs, local image builds and GHCR publishing. Verification runs in Docker;
+already-published commits skip rebuilding. See the [container helper](docs/CONTAINER_HELPER.md).
+
 The standalone test-preview launcher names containers `lifegather-preview-v<version>`
 using the downloaded image's OCI version label and starts that exact inspected
 image ID. Docker's Name column therefore identifies the running version. Existing

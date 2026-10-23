@@ -46,7 +46,8 @@ def docker(*args: str, check: bool = True) -> str:
     )
     if check and result.returncode:
         # Do not include argv: database credentials are passed in environment args.
-        raise RuntimeError(f"Docker {args[0]} failed: {result.stderr.strip()}")
+        detail = result.stderr.strip() or result.stdout.strip()
+        raise RuntimeError(f"Docker {args[0]} failed: {detail}")
     return result.stdout.strip()
 
 
@@ -169,6 +170,62 @@ def run(workers: int, output: Path) -> None:
     image_id = cached_image(image, source)
     if image_id is None:
         raise RuntimeError("Test image input label mismatch; release stopped")
+    checks_image = image + "-checks"
+    checks_id = cached_image(checks_image, source)
+    if checks_id is None:
+        print(
+            "Building the base development dependency image for strict checks...",
+            flush=True,
+        )
+        print(
+            docker(
+                "build",
+                "--load",
+                "--progress=plain",
+                "--platform",
+                "linux/amd64",
+                "--target",
+                "checks",
+                "--build-arg",
+                "TEST_INPUTS=" + source,
+                "-f",
+                str(ROOT / "backend/Dockerfile.tests"),
+                "-t",
+                checks_image,
+                str(ROOT),
+            ),
+            flush=True,
+        )
+        checks_id = cached_image(checks_image, source)
+        if checks_id is None:
+            raise RuntimeError(
+                "Static check image input label mismatch; release stopped"
+            )
+    print(
+        "Running strict backend checks in Linux (backend/ configuration)...", flush=True
+    )
+    for check in (
+        ("ruff", "check", "."),
+        ("ruff", "format", "--check", "."),
+        ("mypy",),
+    ):
+        print(
+            docker(
+                "run",
+                "--rm",
+                "--network",
+                "none",
+                "--env",
+                "RUFF_CACHE_DIR=/tmp/ruff",
+                "--env",
+                "MYPY_CACHE_DIR=/tmp/mypy",
+                "--entrypoint",
+                f"/app/backend/.venv/bin/{check[0]}",
+                checks_id,
+                *check[1:],
+            ),
+            flush=True,
+        )
     collection = json.loads(
         docker("run", "--rm", "--network", "none", image_id, "--collect")
     )

@@ -137,6 +137,31 @@ class BackendRunnerTest(unittest.TestCase):
 
 
 class MissingImageTest(unittest.TestCase):
+    def test_static_checks_fail_before_collection_or_shards(self):
+        import run_backend_tests as runner
+
+        calls = []
+
+        def command(*args, **kwargs):
+            calls.append(args)
+            if "--entrypoint" in args:
+                self.assertIn("/app/backend/.venv/bin/ruff", args)
+                self.assertIn("none", args)
+                raise RuntimeError("synthetic strict check failure")
+            raise AssertionError(
+                "No test collection or shard may follow a failed check"
+            )
+
+        with tempfile.TemporaryDirectory() as directory:
+            with (
+                patch.object(runner, "fingerprint", return_value="fixed"),
+                patch.object(runner, "cached_image", return_value="image-id"),
+                patch.object(runner, "docker", side_effect=command),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "strict check failure"):
+                    runner.run(1, Path(directory))
+        self.assertEqual(len(calls), 1)
+
     def test_progress_uses_each_shards_own_count(self):
         import run_backend_tests as runner
 

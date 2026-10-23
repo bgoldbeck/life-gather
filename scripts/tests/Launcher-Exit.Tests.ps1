@@ -6,14 +6,15 @@ $testRoot = Join-Path ([IO.Path]::GetTempPath()) ('lifegather helper exit tests 
 New-Item -ItemType Directory -Path $testRoot | Out-Null
 $fixtures = [Collections.Generic.List[string]]::new()
 try {
-    foreach ($name in @('Publish-Container', 'Start-Test-Login', 'Publish-And-Start')) {
+    foreach ($name in @('Publish-Container', 'Container-Helper', 'Start-Test-Login', 'Publish-And-Start')) {
         $source = Get-Content -LiteralPath (Join-Path $scriptsRoot ($name + '.cmd')) -Raw
         $child = [regex]::new('(?m)^powershell\.exe [^\r\n]+')
-        if ($child.Matches($source).Count -ne 1) { throw "Expected one PowerShell child in $name" }
+        $expected = if ($name -eq 'Publish-Container') { 2 } else { 1 }
+        if ($child.Matches($source).Count -ne $expected) { throw "Unexpected PowerShell children in $name" }
         foreach ($code in @(0, 7)) {
             $fixture = Join-Path $testRoot ("$name-$code.cmd")
             $fixtures.Add($fixture)
-            $child.Replace($source, "cmd.exe /d /c exit $code", 1) | Set-Content -LiteralPath $fixture -Encoding ASCII
+            $child.Replace($source, "cmd.exe /d /c exit $code") | Set-Content -LiteralPath $fixture -Encoding ASCII
             $process = [Diagnostics.Process]::new()
             $process.StartInfo.FileName = $env:ComSpec
             $process.StartInfo.Arguments = '/d /c ""' + $fixture + '""'
