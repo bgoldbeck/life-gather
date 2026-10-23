@@ -134,6 +134,8 @@ Treat this as a release gate as well as continuing work during Phases 1 and 2.
   several photos/documents at once (rows and stored files) and per-account chat
   conversation retention. v0.84.0 lets users [delete memories](MEMORIES.md#deleting-memories-v0840),
   removing their text while records made from them keep their provenance.
+  v0.86.0 restores a personal archive into an account that already has records,
+  adding only missing records and keeping current ones.
 - Verify configured-provider behavior and connection recovery before claiming
   end-to-end readiness. Address session/account/credential issues when they block
   real tracking. Never use live personal data without the required authorization.

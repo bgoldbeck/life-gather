@@ -1,8 +1,10 @@
-"""Restore one personal archive ZIP into an empty account, all or nothing.
+"""Restore one personal archive ZIP into an account, all or nothing.
 
 The archive is untrusted input: every member, hash, field and type is checked
 before anything is written, and IDs are kept so citations and history still
-point at the same records. Only portable SQLAlchemy Core statements are used.
+point at the same records. Records the account already holds are left exactly as
+they are; only missing records are added. Only portable SQLAlchemy Core
+statements are used.
 """
 
 import hashlib
@@ -17,12 +19,25 @@ from typing import Any, Literal, cast
 from zipfile import ZIP_DEFLATED, ZIP_STORED, BadZipFile, ZipFile, ZipInfo
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
-from sqlalchemy import Boolean, Date, Engine, Integer, String, Table, insert, select
+from sqlalchemy import (
+    Boolean,
+    Date,
+    Engine,
+    Index,
+    Integer,
+    String,
+    Table,
+    UniqueConstraint,
+    insert,
+    select,
+    tuple_,
+)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy.schema import sort_tables
 
 from lifegather.auth.store import Account
+from lifegather.database import account_scope
 from lifegather.documents.formats import MIMES
 from lifegather.memory.archive import (
     MAX_ARCHIVE_BYTES,
@@ -47,6 +62,13 @@ TABLES = {projection.table.name: projection for projection in COLLECTIONS}
 # Parents before children; rows that point at their own table are ordered below.
 ORDER = [table.name for table in sort_tables([p.table for p in COLLECTIONS])]
 ID_BATCH = 500
+# Plain names for the natural-key clash message.
+LABELS = {
+    "asset_types": "asset type",
+    "memory_sources": "source or memory",
+    "documents": "document",
+    "photos": "photo",
+}
 
 
 class RestoreError(ValueError):
@@ -366,12 +388,25 @@ class PersonalRestore:
                 ):
                     raise RestoreError("Archive photo does not match its record")
                 previews[row["id"]] = decoded.preview
+        self._check_foreign(actor, package)
         saved: list[str] = []
         try:
             with self.memory._write() as db:
-                self._check_target(db, actor, package)
-                rows = self._prepare(actor, package, previews)
+                present = self._check_target(db, actor, package)
+                merging = any(present.values()) or self._has_records(db, actor)
+                added = {
+                    name: [row for row in rows if row["id"] not in present[name]]
+                    for name, rows in package.rows.items()
+                }
+                self._check_clashes(db, actor, added)
+                rows = self._prepare(actor, added, package.originals, previews)
+                new_ids = {
+                    row["id"] for name in ("photos", "documents") for row in added[name]
+                }
                 for identifier, data in package.originals.items():
+                    if identifier not in new_ids:
+                        # Never touch the files of a record the account already has.
+                        continue
                     kind = "photos" if identifier in previews else "documents"
                     parts = [("original", data)]
                     if kind == "photos":
@@ -386,10 +421,16 @@ class PersonalRestore:
                             db.execute(insert(TABLES[name].table), rows[name])
                     db.flush()
                 except IntegrityError:
+                    if merging:
+                        raise RestoreConflict(
+                            "Some records in this archive clash with different "
+                            "versions already in your account, so nothing was "
+                            "restored."
+                        ) from None
                     raise RestoreError(
                         "Archive records are inconsistent and were not restored"
                     ) from None
-                self._reindex(db, actor, package)
+                self._reindex(db, actor, added)
                 self.memory._audit(
                     db,
                     actor,
@@ -403,40 +444,125 @@ class PersonalRestore:
         except BaseException:
             delete_quietly(storage, saved)
             raise
-        counts = {name: len(package.rows[name]) for name in TABLES}
+        counts = {name: len(added[name]) for name in TABLES}
+        total = sum(counts.values())
         return {
             "snapshot_at": package.snapshot_at,
             "counts": counts,
-            "total_records": sum(counts.values()),
-            "originals": len(package.originals),
+            "total_records": total,
+            "already_present": sum(len(rows) for rows in package.rows.values()) - total,
+            "originals": sum(1 for key in saved if key.endswith("/original")),
         }
 
     @staticmethod
-    def _check_target(db: Session, actor: Account, package: _Package) -> None:
-        for projection in COLLECTIONS:
-            table = projection.table
-            if db.scalar(
-                select(table.c.id).where(table.c.user_id == actor.id).limit(1)
-            ):
-                raise RestoreConflict(
-                    "This account already has saved records. "
-                    "Restore into a new account with no records."
-                )
+    def _has_records(db: Session, actor: Account) -> bool:
+        return any(
+            db.scalar(
+                select(p.table.c.id).where(p.table.c.user_id == actor.id).limit(1)
+            )
+            for p in COLLECTIONS
+        )
+
+    def _check_foreign(self, actor: Account, package: _Package) -> None:
+        """Refuse archive IDs held by another account in this installation.
+
+        Row security hides other accounts' rows from the acting account, so only
+        this existence check runs in the system context; nothing else is read.
+        """
+        with account_scope(None), Session(self.memory.engine) as db:
+            for name, rows in package.rows.items():
+                table = TABLES[name].table
+                for chunk in _chunks([row["id"] for row in rows]):
+                    if db.scalar(
+                        select(table.c.id)
+                        .where(table.c.id.in_(chunk), table.c.user_id != actor.id)
+                        .limit(1)
+                    ):
+                        raise RestoreConflict(
+                            "Records in this archive belong to another account in "
+                            "this installation, for example the account it was "
+                            "downloaded from."
+                        )
+
+    @staticmethod
+    def _check_target(
+        db: Session, actor: Account, package: _Package
+    ) -> dict[str, set[str]]:
+        """Return the archive IDs this account already holds."""
+        present: dict[str, set[str]] = {}
         for name, rows in package.rows.items():
             table = TABLES[name].table
+            present[name] = set()
             for chunk in _chunks([row["id"] for row in rows]):
-                if db.scalar(select(table.c.id).where(table.c.id.in_(chunk)).limit(1)):
-                    raise RestoreConflict(
-                        "Records in this archive already exist in this installation, "
-                        "for example in the account it was downloaded from."
+                present[name].update(
+                    db.scalars(
+                        select(table.c.id).where(
+                            table.c.user_id == actor.id, table.c.id.in_(chunk)
+                        )
                     )
+                )
+        return present
+
+    @staticmethod
+    def _check_clashes(
+        db: Session, actor: Account, added: dict[str, list[dict[str, Any]]]
+    ) -> None:
+        """Refuse new records that repeat a different saved record's natural key.
+
+        IDs are never rewritten, so two distinct records with the same source,
+        request or starter key cannot both be kept. Partial unique indexes (one
+        current history head) are left to the database and still roll back.
+        """
+        for name, rows in added.items():
+            if not rows:
+                continue
+            table = TABLES[name].table
+            keys = [
+                [c.name for c in item.columns if c.name != "user_id"]
+                for item in (*table.constraints, *table.indexes)
+                if isinstance(item, (UniqueConstraint, Index))
+                and (isinstance(item, UniqueConstraint) or item.unique)
+                and not (
+                    isinstance(item, Index)
+                    and item.dialect_options["postgresql"]["where"] is not None
+                )
+                and "user_id" in item.columns
+                and "id" not in item.columns
+            ]
+            for columns in keys:
+                values = list(
+                    {
+                        tuple(row[c] for c in columns)
+                        for row in rows
+                        if all(row[c] is not None for c in columns)
+                    }
+                )
+                key = tuple_(*(table.c[c] for c in columns))
+                for start in range(0, len(values), ID_BATCH):
+                    if db.scalar(
+                        select(table.c.id)
+                        .where(
+                            table.c.user_id == actor.id,
+                            key.in_(values[start : start + ID_BATCH]),
+                        )
+                        .limit(1)
+                    ):
+                        raise RestoreConflict(
+                            f"A {LABELS.get(name, 'record')} in this archive "
+                            "repeats a different one already in your account, so "
+                            "nothing was restored. Records are never merged or "
+                            "given new IDs."
+                        )
 
     @staticmethod
     def _prepare(
-        actor: Account, package: _Package, previews: dict[str, bytes]
+        actor: Account,
+        added: dict[str, list[dict[str, Any]]],
+        originals: dict[str, bytes],
+        previews: dict[str, bytes],
     ) -> dict[str, list[dict[str, Any]]]:
         result: dict[str, list[dict[str, Any]]] = {}
-        for name, rows in package.rows.items():
+        for name, rows in added.items():
             table = TABLES[name].table
             prepared = []
             for row in _self_ordered(table, rows):
@@ -460,7 +586,7 @@ class PersonalRestore:
                     if active:
                         value["preview_size"] = len(previews[row["id"]])
                 elif name == "documents":
-                    active = row["id"] in package.originals
+                    active = row["id"] in originals
                     value |= {
                         "original": None,
                         "original_key": object_key(
@@ -473,13 +599,30 @@ class PersonalRestore:
             result[name] = prepared
         return result
 
-    def _reindex(self, db: Session, actor: Account, package: _Package) -> None:
-        for row in package.rows[cast(Table, Episode.__table__).name]:
+    def _reindex(
+        self, db: Session, actor: Account, added: dict[str, list[dict[str, Any]]]
+    ) -> None:
+        for row in added[cast(Table, Episode.__table__).name]:
             self.memory._index(db, actor, row["id"], "source", row["text"])
-        aliases: dict[str, list[str]] = {}
-        for row in package.rows[cast(Table, Alias.__table__).name]:
-            aliases.setdefault(row["entity_id"], []).append(row["name"])
-        for row in package.rows[cast(Table, Entity.__table__).name]:
-            names = aliases.get(row["id"], [])
-            body = row["name"] + "".join("\n" + name for name in names)
-            self.memory._index(db, actor, row["id"], "entity", body)
+        # A new alias on an entity the account already had refreshes that entity.
+        entities = {row["id"] for row in added[cast(Table, Entity.__table__).name]}
+        entities |= {
+            row["entity_id"] for row in added[cast(Table, Alias.__table__).name]
+        }
+        for chunk in _chunks(sorted(entities)):
+            names: dict[str, list[str]] = {}
+            for entity_id, alias in db.execute(
+                select(Alias.entity_id, Alias.name)
+                .where(Alias.user_id == actor.id, Alias.entity_id.in_(chunk))
+                .order_by(Alias.recorded_at, Alias.id)
+            ):
+                names.setdefault(entity_id, []).append(alias)
+            for identifier, name in db.execute(
+                select(Entity.id, Entity.name).where(
+                    Entity.user_id == actor.id, Entity.id.in_(chunk)
+                )
+            ):
+                body = name + "".join(
+                    "\n" + alias for alias in names.get(identifier, [])
+                )
+                self.memory._index(db, actor, identifier, "entity", body)

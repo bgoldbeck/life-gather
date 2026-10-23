@@ -1,7 +1,12 @@
 # LifeGather — Product and Engineering Plan
 
-**Status:** v0.85.0 adds reconnect prompts for expired Gmail and AI sign-ins; tracking and evidence-backed recall remain the active priorities.
+**Status:** v0.86.0 restores a backup into an account that already has records; tracking and evidence-backed recall remain the active priorities.
 **Date:** Updated 2026-10-23
+
+v0.86.0 restores a personal archive into an account that already has records:
+records already there stay as they are, missing ones are added back, and clashes
+stop the restore with nothing changed. No migration. See
+[restore plan](docs/superpowers/plans/2026-10-23-restore-into-existing-account.md).
 
 v0.85.0 remembers when Google or an AI provider refuses a saved sign-in and offers
 one-click Reconnect in Power Center, Scans, chat and Settings. Migration 0036. See

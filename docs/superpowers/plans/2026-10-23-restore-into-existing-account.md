@@ -1,6 +1,6 @@
 # Restore an archive into an account that already has records
 
-Status: in progress (branch `claude/restore-into-existing-account`).
+Status: released in v0.86.0.
 
 ## Goal
 
