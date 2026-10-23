@@ -15,6 +15,7 @@
 - `POST /api/memories/delete-many` (1 to 25, all or nothing, idempotent). No MCP
   or model deletion tool. No migration: a content-free `source_deleted` audit
   receipt marks the deletion and travels with exports, archives and restores.
+
 ## 0.83.1 — Compact Power Center
 
 - Power Center is denser so your connections show without scrolling on a
