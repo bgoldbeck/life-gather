@@ -315,3 +315,47 @@ it('lists connections before health and folds each source scope into details', a
     'Scope and supported outcomes',
   )
 })
+
+it('marks only cards that need setup or attention, keeping category color on icons', async () => {
+  const data = snapshot()
+  data.sources.push({
+    ...data.sources[1],
+    id: 'openai',
+    title: 'OpenAI',
+    category: 'ai',
+    configured: false,
+    state: 'blocked',
+    reason: 'Add a connection',
+    action: 'Settings',
+  })
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => Response.json(data)),
+  )
+  render(<PowerCenter userId="alice" onNavigate={vi.fn()} />)
+  const openai = (
+    await screen.findByRole('heading', { name: 'OpenAI' })
+  ).closest('.power-source')!
+  expect(openai).toHaveAttribute('data-attention', 'setup')
+  expect(openai).not.toHaveAttribute('data-tone')
+  expect(openai.querySelector('.tone-tile')).toHaveAttribute('data-tone', 'ai')
+  expect(
+    within(openai as HTMLElement).getByRole('button', {
+      name: 'Open Settings',
+    }),
+  ).toHaveAttribute('data-variant', 'default')
+  for (const name of ['Workspace', 'Synthetic mailbox', 'Bank syncing']) {
+    expect(
+      screen.getByRole('heading', { name }).closest('.power-source'),
+    ).not.toHaveAttribute('data-attention')
+  }
+  const aiAnswers = screen
+    .getByRole('heading', { name: 'AI answers' })
+    .closest('.power-capability')
+  expect(aiAnswers).toHaveAttribute('data-attention', 'setup')
+  expect(
+    screen
+      .getByRole('heading', { name: 'Local evidence' })
+      .closest('.power-capability'),
+  ).not.toHaveAttribute('data-attention')
+})

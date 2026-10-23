@@ -154,6 +154,14 @@
   --tone: var(--tone-ai);
 }
 
+/* Cards that need the person: amber for setup, red for failures. */
+[data-attention='setup'] {
+  --attention: var(--tone-power);
+}
+[data-attention='failed'] {
+  --attention: var(--tone-email);
+}
+
 /* Overview: feature cards, illustration nodes and placeholders take their tone. */
 .feature-icon[data-tone],
 .graph-node[data-tone] {
