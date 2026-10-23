@@ -43,6 +43,8 @@ LOCAL_FIELDS = {
     # Where original files live is deployment-local, like data_dir: bundles carry
     # the originals themselves and a restore uses its own storage settings.
     *STORAGE_DEFAULTS,
+    # The account storage limit is the host's hosting policy, also environment-only.
+    "storage_quota_mb",
     # Sign-up protection belongs to the host: Turnstile keys are tied to its
     # hostname and the terms file is a path on it. Acceptances are in the rows.
     "turnstile_site_key",

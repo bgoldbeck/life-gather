@@ -95,6 +95,13 @@
   outline: 2px solid var(--ring);
   outline-offset: 1px;
 }
+/* Touch screens get finger-sized dock buttons. */
+@media (pointer: coarse) {
+  .dock-edge-buttons button {
+    width: 36px;
+    height: 36px;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .dock-drop-zone {
     transition: none;

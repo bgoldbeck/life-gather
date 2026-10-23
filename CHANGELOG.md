@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.89.0 - Sign-up bot checks and terms of use
+## 0.90.0 - Sign-up bot checks and terms of use
 
 - Optional **Cloudflare Turnstile** on the email **Create account** and
   **Forgot password?** forms. Set `LIFEGATHER_TURNSTILE_SITE_KEY` and
@@ -17,6 +17,39 @@
 - Migration `0037_terms_acceptance` adds `users.terms_version` and
   `users.terms_accepted_at`. No records-format change. See
   [sign-up protection](docs/SIGNUP_PROTECTION.md).
+
+## 0.89.0 - Per-account storage quotas
+
+- Settings has a **File storage** section showing how much space the account's
+  photos (with previews) and documents use, the limit or "No limit", and counts
+  per kind. `GET /api/storage/usage` returns the same figures.
+- New optional setting `LIFEGATHER_STORAGE_QUOTA_MB` caps each account's stored
+  files. The default `0` means no limit, so self-hosted installations behave as
+  before. When set, photo and document uploads, chat attachments and Gmail
+  attachment intake refuse a new file that would pass the limit (nothing is
+  stored), and a personal-archive restore whose files would not fit is refused
+  (HTTP 409) with nothing saved. Duplicates of files already held are never
+  refused, and lowering the limit never removes files.
+- The existing per-kind caps (200 photos / 256 MiB, 200 documents / 256 MiB)
+  are unchanged. No migration and no records-format change. See
+  [storage quotas](docs/STORAGE_QUOTAS.md).
+
+## 0.88.1 - Phone and tablet layout
+
+- Checked every main page at phone (390x844), tablet portrait (820x1180) and
+  tablet landscape (1180x820) sizes in light and dark themes. No page scrolls
+  sideways.
+- Below 1024 px wide the assistant now sits below the page instead of beside it,
+  so portrait tablets no longer squeeze the page into a narrow middle column
+  (Overview cards were clipping words). A saved side position is kept and used
+  again on wider screens.
+- On phones (under 600 px wide) the assistant starts collapsed to a bar at the
+  bottom until it is opened, instead of covering half the screen. Once opened
+  or collapsed, that choice is remembered as before.
+- Dock position and navigation reset buttons are hidden on screens where they
+  have no effect. On touch screens the dock and assistant collapse buttons are
+  finger-sized (36-40 px instead of 22-24 px).
+- Frontend only. No schema change, migration, API or MCP change.
 
 ## 0.88.0 - Recall saved web research in the asset assistant
 

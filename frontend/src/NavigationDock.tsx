@@ -148,7 +148,7 @@ function NavigationLayout({ userId, navigation, children }: Props) {
                 : 'Drag the header to dock navigation on another edge'
             }
           >
-            {!collapsed && (
+            {!collapsed && !compact && (
               <>
                 <DockEdgeButtons
                   panel="navigation"
