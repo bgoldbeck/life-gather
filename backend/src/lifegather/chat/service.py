@@ -5,6 +5,7 @@ import time
 from datetime import UTC, datetime
 from typing import Any, Literal
 from uuid import uuid4
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import Engine, select
@@ -55,9 +56,17 @@ class TurnInput(BaseModel):
     text: str = Field(min_length=1, max_length=4000)
     credential_id: str = Field(default="", max_length=36)
     model: str = Field(default="", max_length=100, pattern=r"^[a-zA-Z0-9._:-]*$")
+    timezone: str = Field(default="", max_length=100)
 
     @model_validator(mode="after")
     def valid_text(self) -> "TurnInput":
+        if self.timezone:
+            if self.mode != "assistant":
+                raise ValueError("Only the AI assistant accepts a request timezone")
+            try:
+                ZoneInfo(self.timezone)
+            except (ValueError, ZoneInfoNotFoundError):
+                raise ValueError("Choose an IANA timezone") from None
         if not self.text.strip():
             raise ValueError("Text cannot be blank")
         if self.mode == "scan_email" and self.scan is None:
@@ -105,6 +114,7 @@ def request_key(conversation_id: str, data: TurnInput) -> str:
         | ({"scan"} if data.scan is None else set())
         | ({"context"} if data.context is None else set())
         | ({"research"} if data.research is None else set())
+        | ({"timezone"} if not data.timezone else set())
     )
     return fingerprint([conversation_id, data.model_dump(exclude=excluded)])
 

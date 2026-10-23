@@ -20,6 +20,7 @@ import { ChatPhotoPicker, type SavedChatPhoto } from './ChatPhotoPicker'
 import { ChatAttachment, type ChatAttachmentValue } from './ChatAttachment'
 import { ChatEmailScan, type EmailScanScope } from './ChatEmailScan'
 import { ConversationDelete } from './ConversationDelete'
+import { ChatMaintenance, type MaintenanceReceipt } from './ChatMaintenance'
 import { ResearchResult, type WebResearch } from './ResearchResult'
 import {
   SavedResearchCitations,
@@ -47,6 +48,8 @@ type Turn = {
     recall_limited?: boolean
     navigation?: { page: string; entity_id: string; name: string }
     choices?: { id: string; name: string }[]
+    maintenance_choices?: { id: string; name: string; asset_id: string }[]
+    maintenance?: MaintenanceReceipt
     context?: WorkspaceContext
     changed_entity_id?: string
     research?: WebResearch
@@ -61,6 +64,7 @@ type ChatBody = {
   text: string
   credential_id: string
   model: string
+  timezone?: string
   photo_id?: string
   document_id?: string
   source_id?: string
@@ -86,6 +90,7 @@ export function ChatPanel({
   onOpenGraph,
   onOpenScan,
   onOpenAsset,
+  onOpenMaintenance,
   onRecordChanged,
   onReconnectKey,
   context,
@@ -99,6 +104,7 @@ export function ChatPanel({
   onOpenGraph?: (id: string) => void
   onOpenScan?: (id: string) => void
   onOpenAsset?: (id: string) => void
+  onOpenMaintenance?: (id: string) => void
   onRecordChanged?: (id: string) => void
   onReconnectKey?: (target: ReconnectTarget) => void
   context?: WorkspaceContext | null
@@ -508,6 +514,9 @@ export function ChatPanel({
       const body: ChatBody = pending.current?.body ?? {
         request_id: crypto.randomUUID(),
         mode,
+        ...(mode === 'assistant'
+          ? { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }
+          : {}),
         ...(sentContext ? { context: sentContext } : {}),
         text: usesScan
           ? 'Scan connected email for original text evidence.'
@@ -586,8 +595,13 @@ export function ChatPanel({
       ) {
         handledNavigation.current.add(turn.request_id)
         if (contextKey(contextNow.current) === contextKey(body.context)) {
-          if (turn.result.navigation)
-            onOpenAsset?.(turn.result.navigation.entity_id)
+          if (turn.result.navigation) {
+            const open =
+              turn.result.navigation.page === 'Profiles'
+                ? (onOpenMaintenance ?? onOpenAsset)
+                : onOpenAsset
+            open?.(turn.result.navigation.entity_id)
+          }
           if (turn.result.changed_entity_id)
             onRecordChanged?.(turn.result.changed_entity_id)
         }
@@ -884,10 +898,15 @@ export function ChatPanel({
                       <Button
                         variant="outline"
                         onClick={() =>
-                          onOpenAsset?.(turn.result.navigation!.entity_id)
+                          (turn.result.navigation!.page === 'Profiles'
+                            ? (onOpenMaintenance ?? onOpenAsset)
+                            : onOpenAsset)?.(turn.result.navigation!.entity_id)
                         }
                       >
                         Open {turn.result.navigation.name}
+                        {turn.result.navigation.page === 'Profiles'
+                          ? ' maintenance'
+                          : ''}
                       </Button>
                     )}
                     {turn.result.choices?.map((item, index) => (
@@ -899,6 +918,22 @@ export function ChatPanel({
                         Open {item.name} (record {index + 1})
                       </Button>
                     ))}
+                    {turn.result.maintenance_choices?.map((item) => (
+                      <Button
+                        key={item.id}
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => {
+                          setText(`Use ${item.name}`)
+                          setMode('assistant')
+                        }}
+                      >
+                        Use {item.name}
+                      </Button>
+                    ))}
+                    {turn.result.maintenance && (
+                      <ChatMaintenance task={turn.result.maintenance} />
+                    )}
                     {turn.result.scan_run_id && (
                       <Button
                         variant="outline"

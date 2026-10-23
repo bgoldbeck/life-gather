@@ -433,6 +433,7 @@ export function Workspace({
                 />
               ) : view === 'Maintenance' ? (
                 <MaintenancePanel
+                  contextRevision={contextRevision}
                   csrfToken={csrfToken}
                   refreshSession={refreshSession}
                   onOpenProfile={(id) => {
@@ -665,6 +666,10 @@ export function Workspace({
             onOpenAsset={(id) => {
               setAssetId(id)
               setView('Assets')
+            }}
+            onOpenMaintenance={(id) => {
+              setProfileId(id)
+              setView('Profiles')
             }}
             onOpenGraph={(id) => {
               setGraphEntityId(id)
