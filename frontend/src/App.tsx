@@ -28,6 +28,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { AuthGate } from './AuthGate'
 import { PrivateSettingsPanel } from './PrivateSettingsPanel'
+import { SharedFiles } from './SharedFiles'
+import { claimShareOnce, readShareRequest } from './shareTarget'
 import { PasswordSettings } from './PasswordSettings'
 import { AccountDeletion } from './AccountDeletion'
 import { StorageUsage } from './StorageUsage'
@@ -172,6 +174,18 @@ export function Workspace({
       ? 'Settings'
       : 'Overview',
   )
+  // Files shared from another Android app arrive as /?share=<id>; the address is
+  // cleaned at once so reloading never asks the service worker for them again.
+  const [share, setShare] = useState(() =>
+    readShareRequest(window.location.search),
+  )
+  useEffect(() => {
+    if (!share) return
+    const url = new URL(window.location.href)
+    url.searchParams.delete('share')
+    url.searchParams.delete('more')
+    window.history.replaceState(window.history.state, '', url)
+  }, [share])
   const [graphEntityId, setGraphEntityId] = useState('')
   const [assetId, setAssetId] = useState('')
   const [profileId, setProfileId] = useState('')
@@ -356,6 +370,22 @@ export function Workspace({
           expandSignal={expandAssistant}
           page={
             <main id="main-content" className="main-content" data-view={view}>
+              {share && (
+                <SharedFiles
+                  share={share}
+                  csrfToken={csrfToken}
+                  refreshSession={refreshSession}
+                  onClose={() => setShare(null)}
+                  onOpenPhotos={() => {
+                    setShare(null)
+                    openTarget('Photos', {})
+                  }}
+                  onOpenDocuments={() => {
+                    setShare(null)
+                    openTarget('Documents', {})
+                  }}
+                />
+              )}
               {view === 'Settings' ? (
                 <>
                   <PowerCenter
@@ -722,6 +752,10 @@ export function Workspace({
 }
 
 export default function App() {
+  useState(() => {
+    const share = readShareRequest(window.location.search)
+    if (share) void claimShareOnce(share.id)
+  })
   return (
     <AuthGate>
       {(
