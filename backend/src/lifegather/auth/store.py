@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import delete, select
+from sqlalchemy import String, delete, literal_column, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -22,6 +22,10 @@ ISSUER = "https://accounts.google.com"
 TEST_ISSUER = "lifegather:test"
 SESSION_SECONDS = 604800
 FLOW_SECONDS = 600
+TERMS_PENDING = "Accept the terms of use to continue"
+# Read with SQL rather than mapped on User, so code that runs against databases
+# not yet upgraded (recovery, legacy import, upgrade tests) is unaffected.
+TERMS_VERSION = literal_column("users.terms_version", String)
 
 
 def digest(value: str) -> str:
@@ -43,6 +47,8 @@ class Account:
 class CurrentSession:
     user: Account
     csrf_token: str
+    # Signed in, but the installation's current terms are not yet accepted.
+    terms_pending: bool = False
 
 
 @dataclass(frozen=True)
@@ -60,8 +66,11 @@ class Flow:
 class AuthStore:
     """Framework-independent identity and opaque session storage."""
 
-    def __init__(self, url: str, *, test_login_enabled: bool = False) -> None:
+    def __init__(
+        self, url: str, *, test_login_enabled: bool = False, terms_version: str = ""
+    ) -> None:
         self.test_login_enabled = test_login_enabled
+        self.terms_version = terms_version
         self.engine = create_database_engine(url)
 
     def migrate(self) -> None:
@@ -217,7 +226,7 @@ class AuthStore:
     def authenticate(self, token: str, *, now: int) -> CurrentSession | None:
         with Session(self.engine) as db:
             row = db.execute(
-                select(User, LoginSession)
+                select(User, LoginSession, TERMS_VERSION)
                 .join(LoginSession, LoginSession.user_id == User.id)
                 .where(
                     LoginSession.token_hash == digest(token),
@@ -227,12 +236,31 @@ class AuthStore:
             ).first()
             if row is None:
                 return None
-            user, session = row
+            user, session, accepted = row
             if user.issuer == TEST_ISSUER and not self.test_login_enabled:
                 return None
             return CurrentSession(
-                Account(user.id, user.email, user.name), session.csrf_token
+                Account(user.id, user.email, user.name),
+                session.csrf_token,
+                terms_pending=bool(self.terms_version)
+                and accepted != self.terms_version,
             )
+
+    def accept_terms(self, user_id: str, version: str, *, now: int) -> None:
+        if not self.terms_version or version != self.terms_version:
+            raise InvalidFlow("These terms are no longer current")
+        with Session(self.engine) as db, db.begin():
+            # Keeps the first acceptance time of a version; a new version replaces.
+            found = db.execute(
+                text(
+                    "UPDATE users SET terms_version = :version, "
+                    "terms_accepted_at = CASE WHEN terms_version = :version "
+                    "THEN terms_accepted_at ELSE :now END WHERE id = :id"
+                ),
+                {"version": version, "now": now, "id": user_id},
+            )
+            if not found.rowcount:  # type: ignore[attr-defined]
+                raise InvalidFlow("Sign in required")
 
     def logout(self, token: str) -> None:
         with Session(self.engine) as db, db.begin():

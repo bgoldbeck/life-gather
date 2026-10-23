@@ -115,7 +115,7 @@
 .dock-collapsed .dock-toolbar {
   border-bottom: 0;
 }
-.dock-grip-icon,
+.dock-grip-handle,
 .dock-rail-icon {
   flex-shrink: 0;
   color: var(--muted-foreground);
