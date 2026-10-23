@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.102.0 - Timeline page with spending and activity charts
+
+- New Timeline page in the navigation. A spending-by-month chart (6, 12 or 24
+  months) adds up only the receipt line totals you confirmed, in their own
+  currency, with one view per currency and no conversion. Superseded or
+  cleared totals, unconfirmed receipts, skipped lines and deleted sources do
+  not count. Totals with no purchase date and bought items with no total are
+  counted and said so, never placed in a month. Order totals on Purchases are
+  not added again, so one purchase is never counted twice. Lists the largest
+  purchases with links to their receipts.
+- An activity-by-month chart counts items bought, assets added, documents and
+  photos saved and maintenance completed, with a legend and a table view.
+  "Coming up" lists open maintenance that is overdue or due within 30 days.
+- Clicking a month opens that month's timeline: purchases, order evidence,
+  maintenance done and due, and assets, documents and photos added, newest
+  first, filterable by kind. Each event says whether its date was stated in a
+  source or is when LifeGather saved it, and opens its record. Saved times use
+  the browser's time zone.
+- New read-only `GET /api/insights/dashboard` and `GET /api/insights/timeline`.
+  Bounded reads; a result that reaches a bound says it is truncated. No
+  migration, records-format or MCP change. See docs/TIMELINE.md.
+
 ## 0.101.0 - Android app for the home network
 
 - New Android app (`android/`, installed once from `LifeGather.apk`). On first

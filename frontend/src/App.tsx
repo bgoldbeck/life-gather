@@ -6,6 +6,7 @@ import {
   BookOpen,
   Boxes,
   Camera,
+  ChartColumn,
   CircleCheck,
   ClipboardCheck,
   FileText,
@@ -52,6 +53,7 @@ import { ScansPanel } from './ScansPanel'
 import { PurchasesPanel } from './PurchasesPanel'
 import { PowerCenter } from './PowerCenter'
 import { OperationsPanel } from './OperationsPanel'
+import { TimelinePanel } from './TimelinePanel'
 import type { ReconnectTarget } from './reconnect'
 import { GlobalSearch, type SearchResult } from './GlobalSearch'
 import type { Theme } from './appearance'
@@ -107,6 +109,12 @@ const navigation = [
     description: 'Your stated tasks, due dates and completion history.',
   },
   { name: 'Overview', icon: LayoutDashboard, tone: 'assets', description: '' },
+  {
+    name: 'Timeline',
+    icon: ChartColumn,
+    tone: 'finance',
+    description: 'Spending, activity and events, month by month.',
+  },
   {
     name: 'Assets',
     icon: Boxes,
@@ -455,6 +463,23 @@ export function Workspace({
                   onNavigate={setView}
                   onReconnectKey={openReconnect}
                   initialRunId={scanRunId}
+                />
+              ) : view === 'Timeline' ? (
+                <TimelinePanel
+                  refreshSession={refreshSession}
+                  onOpen={({ view: page, id }) => {
+                    if (page === 'Assets') openAsset(id)
+                    else if (page === 'Profiles') {
+                      setProfileId(id)
+                      setView('Profiles')
+                    } else if (page === 'Memories')
+                      openTarget('Memories', { source: id })
+                    else if (page === 'Documents')
+                      openTarget('Documents', { document: id })
+                    else if (page === 'Photos')
+                      openTarget('Photos', { photo: id })
+                    else setView(page)
+                  }}
                 />
               ) : view === 'Purchases' ? (
                 <PurchasesPanel

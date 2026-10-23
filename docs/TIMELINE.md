@@ -1,6 +1,6 @@
 # Timeline and dashboards
 
-Status: in progress on branch `claude/timelines-and-dashboards` (2026-10-23).
+Status: delivered in v0.102.0 (2026-10-23).
 Lisa chose optional backlog item "Rich timelines/dashboards" on 2026-10-23,
 including money dashboards.
 
@@ -35,3 +35,18 @@ calendar dates and never shift.
 - Multiple currencies stay separate; undated totals are reported, not bucketed.
 - Bounded queries; a page that hits a bound says it is truncated.
 - UI: light and dark themes, phone width, keyboard access, empty and error states.
+
+## API
+
+- `GET /api/insights/dashboard?months=6|12|24&timezone=<IANA zone>`: month
+  labels, `spending` per currency (`total_minor`, `by_month`, `undated_minor`,
+  `undated_count`, `largest`), `missing_total_count`, `activity` counts per
+  month, `overdue_count`, `upcoming` maintenance and `truncated`.
+- `GET /api/insights/timeline?month=YYYY-MM&kind=<kind>&timezone=<zone>`:
+  `items` with `kind`, `date`, `date_basis` (`stated` or `recorded`), `title`,
+  `detail`, optional amount and a `target` page and id. Kinds: `purchase`,
+  `order`, `maintenance_done`, `maintenance_due`, `asset`, `document`, `photo`.
+
+The logic lives in `lifegather/insights/service.py`; the routes are thin
+authenticated read adapters. No MCP tool yet: the assistant can already read
+receipts, purchases and maintenance through its existing tools.

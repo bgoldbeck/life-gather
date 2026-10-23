@@ -39,6 +39,7 @@ from lifegather.documents.routes import document_router
 from lifegather.erasure.routes import erasure_router
 from lifegather.findings.routes import finding_router
 from lifegather.forwarding import SignedProxyHeaders
+from lifegather.insights.routes import insights_router
 from lifegather.jobs import scan_service, scan_worker
 from lifegather.mailboxes.provider import GmailProvider
 from lifegather.mailboxes.routes import mailbox_router
@@ -188,6 +189,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(restore_router())
     app.include_router(profile_router())
     app.include_router(maintenance_router())
+    app.include_router(insights_router())
     app.include_router(history_router())
     app.include_router(document_router())
     app.include_router(mailbox_router())
