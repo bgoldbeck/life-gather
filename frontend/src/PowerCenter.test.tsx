@@ -283,3 +283,26 @@ it('shows the growth power bar from reported points only', async () => {
     screen.getByRole('heading', { name: 'Synthetic mailbox' }).parentElement,
   ).toHaveTextContent('Unverified')
 })
+
+it('lists connections before health and folds each source scope into details', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => Response.json(snapshot())),
+  )
+  render(<PowerCenter userId="alice" onNavigate={vi.fn()} />)
+  const connections = await screen.findByRole('heading', {
+    name: 'Your connections',
+  })
+  const health = screen.getByRole('heading', {
+    name: 'Health and next actions',
+  })
+  expect(
+    connections.compareDocumentPosition(health) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy()
+  const scope = screen.getByText('Read-only')
+  expect(scope.closest('details')).not.toHaveAttribute('open')
+  expect(scope.closest('details')).toHaveTextContent(
+    'Scope and supported outcomes',
+  )
+})
