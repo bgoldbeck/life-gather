@@ -156,7 +156,7 @@
   }
 }
 
-/* Hero: forest scene behind the heading, with the growth power bar below. */
+/* Hero: forest scene behind the heading, with the power level capsule beside it. */
 .power-hero {
   position: relative;
   isolation: isolate;
@@ -173,7 +173,7 @@
     ),
     var(--card);
 }
-.power-hero > div:not(.power-growth) {
+.power-hero > .power-title {
   max-width: 34rem;
 }
 .power-hero .power-eyebrow {
@@ -210,42 +210,79 @@
     opacity: 1;
   }
 }
+/* Power level capsule above the check button, beside the heading. */
+.power-hero-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  min-width: 0;
+  max-width: 100%;
+}
+/* When the heading fills the row, the capsule and button share the next row,
+   wrapping again on phones. The visible label goes; the meter keeps its name. */
+.power-center:not(.power-compact) {
+  container-type: inline-size;
+}
+@container (max-width: 44rem) {
+  .power-hero-actions {
+    flex: 1 1 100%;
+    flex-flow: row wrap;
+    align-items: center;
+  }
+  .power-hero .power-growth {
+    flex: 1 1 auto;
+  }
+  .power-growth .power-bar {
+    flex: 1 1 3rem;
+    min-width: 3rem;
+  }
+  .power-growth-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+/* Power level capsule: a small pill in the hero row. */
 .power-growth {
-  flex: 1 1 100%;
-  display: grid;
-  gap: 0.6rem;
-  padding: 1rem 1.1rem;
-  border: 1px solid color-mix(in oklab, var(--tone-assets) 30%, var(--border));
-  border-radius: 0.8rem;
+  flex: 0 1 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.25rem 0.8rem 0.25rem 0.25rem;
+  border: 1px solid color-mix(in oklab, var(--tone-assets) 35%, var(--border));
+  border-radius: 999px;
   background: color-mix(in oklab, var(--card) 82%, transparent);
   backdrop-filter: blur(6px);
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
-.power-growth-heading {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+.power-hero .power-growth .tone-tile {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
 }
-.power-growth-heading > div {
-  display: grid;
-  flex: 1;
-}
-.power-growth-heading span {
+.power-growth-label {
   color: var(--muted-foreground);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
-.power-growth-heading strong {
-  font-size: 1.25rem;
+.power-growth strong {
   color: var(--tone-assets);
+  font-weight: 650;
 }
 .power-center .power-growth-points {
   color: var(--foreground);
-  font-size: 1.1rem;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
 .power-bar {
   position: relative;
-  height: 0.8rem;
+  flex: 0 0 5.5rem;
+  height: 0.45rem;
   border-radius: 999px;
   background: color-mix(in oklab, var(--muted) 85%, var(--border));
   overflow: hidden;
@@ -272,32 +309,6 @@
   );
   box-shadow: 0 0 0.9rem
     color-mix(in oklab, var(--tone-assets) 60%, transparent);
-}
-.power-stages {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0.25rem;
-  padding: 0;
-  list-style: none;
-  font-size: 0.75rem;
-  color: var(--muted-foreground);
-}
-.power-stages li {
-  display: grid;
-  border-top: 2px solid var(--border);
-  padding-top: 0.3rem;
-}
-.power-stages li[data-reached] {
-  border-color: color-mix(in oklab, var(--tone-assets) 60%, transparent);
-}
-.power-stages li[data-current] {
-  color: var(--tone-assets);
-  font-weight: 650;
-  border-color: var(--tone-assets);
-}
-.power-stages small {
-  font-size: 0.7rem;
-  opacity: 0.75;
 }
 .power-growth-stale {
   filter: grayscale(0.85);
@@ -337,9 +348,6 @@
   .forest-scene {
     width: 100%;
     opacity: 0.5;
-  }
-  .power-stages small {
-    display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -384,34 +392,6 @@
 }
 .power-center:not(.power-compact) .forest-scene {
   height: 6rem;
-}
-.power-center:not(.power-compact) .power-growth {
-  gap: 0.35rem;
-  padding: 0.55rem 0.8rem;
-}
-.power-center:not(.power-compact) .power-growth-heading .tone-tile {
-  width: 1.9rem;
-  height: 1.9rem;
-}
-.power-center:not(.power-compact) .power-growth-heading > div {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-}
-.power-center:not(.power-compact) .power-growth-heading strong {
-  font-size: 1.05rem;
-}
-.power-center:not(.power-compact) .power-bar {
-  height: 0.55rem;
-}
-.power-center:not(.power-compact) .power-stages {
-  margin: 0;
-}
-.power-center:not(.power-compact) .power-stages li {
-  display: flex;
-  gap: 0.35rem;
-  align-items: baseline;
-  padding-top: 0.2rem;
 }
 .power-center:not(.power-compact) > .power-meta {
   font-size: 0.78rem;
@@ -522,6 +502,6 @@
 .power-source-details summary:hover {
   color: var(--foreground);
 }
-.power-center .power-hero > button {
+.power-center .power-hero-actions > button {
   background: color-mix(in oklab, var(--card) 85%, transparent);
 }
