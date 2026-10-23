@@ -75,6 +75,7 @@ from lifegather.memory.notes import CorrectionInput, NoteHistoryInput, NoteServi
 from lifegather.memory.origins import change_origin
 from lifegather.memory.schemas import FactView
 from lifegather.memory.service import MemoryError, MemoryService
+from lifegather.photos.galleries import GalleryList, GalleryService
 from lifegather.photos.service import (
     PhotoAttach,
     PhotoDetach,
@@ -563,6 +564,14 @@ def build_server(power_factory: Callable[[], PowerCenter] | None = None) -> MCPS
             lambda actor, memory, _: PhotoService(memory.engine).get(
                 actor, data.photo_id
             ),
+        )
+
+    @server.tool(annotations=annotation)
+    def photo_gallery_list(data: GalleryList, ctx: ToolContext) -> dict[str, Any]:
+        """List owned photo galleries, or those holding one photo; no claims."""
+        return read(
+            ctx,
+            lambda actor, memory, _: GalleryService(memory.engine).list(actor, data),
         )
 
     @server.tool(annotations=annotation)

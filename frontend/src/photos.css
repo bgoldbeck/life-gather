@@ -73,3 +73,185 @@
   align-items: center;
   gap: 0.5rem;
 }
+
+.gallery-bar,
+.gallery-header {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  min-width: 0;
+}
+.gallery-bar p,
+.gallery-header p {
+  margin: 0;
+  color: var(--muted-foreground);
+}
+.gallery-bar-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.gallery-bar h3,
+.gallery-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+}
+.gallery-bar h3 svg {
+  color: var(--tone-photos, var(--primary));
+}
+.gallery-chips {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0 0 0.2rem;
+  flex-wrap: wrap;
+  list-style: none;
+}
+.gallery-chips li {
+  min-width: 0;
+  max-width: 100%;
+}
+.gallery-chips button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  max-width: 16rem;
+  padding: 0.35rem 0.85rem 0.35rem 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--foreground);
+  text-align: left;
+  white-space: nowrap;
+}
+.gallery-chips li:first-child button {
+  padding-left: 0.85rem;
+}
+.gallery-chips button:hover:not(:disabled) {
+  background: var(--muted);
+}
+.gallery-chips button[aria-pressed='true'] {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+.gallery-chips button > span:last-child {
+  display: grid;
+  min-width: 0;
+}
+.gallery-chips strong,
+.gallery-chips small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gallery-chips small {
+  color: var(--muted-foreground);
+}
+.gallery-chips img,
+.gallery-cover-empty {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  object-fit: cover;
+  background: var(--muted);
+}
+.gallery-cover-empty {
+  display: grid;
+  place-items: center;
+  color: var(--muted-foreground);
+}
+.gallery-header h3 + p {
+  margin-top: -0.3rem;
+}
+.photos-panel .gallery-header details {
+  margin-block: 0;
+}
+.gallery-header details[open] {
+  padding-bottom: 0.4rem;
+}
+.gallery-form {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+.gallery-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1rem;
+  width: 100%;
+}
+.gallery-fields label {
+  flex: 1 1 12rem;
+  margin-block: 0.4rem;
+}
+.gallery-picker {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.gallery-picker legend {
+  padding-inline: 0.3rem;
+  font-weight: 600;
+}
+.gallery-picker .photo-grid {
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+}
+.gallery-picker .photo-grid img {
+  height: 96px;
+}
+.photos-panel .gallery-picker label.gallery-pick {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.gallery-pick:has(input:checked) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+.gallery-pick input {
+  position: absolute;
+  top: 0.9rem;
+  left: 0.9rem;
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--primary);
+}
+.gallery-pick span {
+  overflow-wrap: anywhere;
+}
+.gallery-add-one {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.5rem;
+}
+.gallery-add-one label {
+  margin-block: 0.4rem 0;
+}
+.photo-galleries {
+  margin-top: 0.8rem;
+}
+.photo-galleries ul button svg {
+  color: var(--muted-foreground);
+}

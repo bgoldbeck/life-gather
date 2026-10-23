@@ -26,6 +26,7 @@ from lifegather.findings.models import ResearchFinding, ResearchSaveReceipt
 from lifegather.findings.service import FindingRemove, FindingSave, FindingService
 from lifegather.main import create_app
 from lifegather.memory.archive import PersonalArchive
+from lifegather.memory.export import GALLERIES
 from lifegather.memory.models import Audit
 from lifegather.memory.restore import PersonalRestore, RestoreError
 from lifegather.memory.schemas import EntityInput, SourceInput
@@ -389,7 +390,7 @@ def test_personal_archive_round_trip_and_format_4_archives(
     saved = save(service, case.alice, research_turn(engine, case.alice), case.primary)
     raw = PersonalArchive(engine, stored(engine)).download(case.alice)
     manifest, records, _ = unpack(raw)
-    assert manifest["records_format"] == "lifegather-records/6"
+    assert manifest["records_format"] == "lifegather-records/7"
     receipts = records["collections"]["research_save_receipts"]
     assert len(receipts) == 1 and receipts[0]["finding_id"] == saved["id"]
     assert "user_id" not in receipts[0]
@@ -412,12 +413,12 @@ def test_personal_archive_round_trip_and_format_4_archives(
     older["collections"] = {
         k: v
         for k, v in records["collections"].items()
-        if k not in {"research_findings", "research_save_receipts"}
+        if k not in {"research_findings", "research_save_receipts", *GALLERIES}
     }
     older["counts"] = {
         k: v
         for k, v in records["counts"].items()
-        if k not in {"research_findings", "research_save_receipts"}
+        if k not in {"research_findings", "research_save_receipts", *GALLERIES}
     }
     older["total_records"] = records["total_records"] - 2
     old_raw = repack(raw, older, dict(manifest, records_format="lifegather-records/4"))
@@ -459,7 +460,9 @@ def test_format_5_receiptless_findings_replay_safely(
     old = dict(records, format="lifegather-records/5")
     for key in ("collections", "counts"):
         old[key] = {
-            k: v for k, v in records[key].items() if k != "research_save_receipts"
+            k: v
+            for k, v in records[key].items()
+            if k not in {"research_save_receipts", *GALLERIES}
         }
     old["total_records"] -= len(records["collections"]["research_save_receipts"])
     store, actor = target(tmp_path)

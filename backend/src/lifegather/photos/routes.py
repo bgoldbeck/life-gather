@@ -12,6 +12,7 @@ from fastapi import (
     Request,
     Response,
 )
+from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
 
 from lifegather.auth.routes import (
@@ -20,6 +21,15 @@ from lifegather.auth.routes import (
     session_for,
 )
 from lifegather.auth.store import CurrentSession
+from lifegather.photos.galleries import (
+    GalleryAdd,
+    GalleryCreate,
+    GalleryDelete,
+    GalleryList,
+    GalleryRemove,
+    GalleryService,
+    GalleryUpdate,
+)
 from lifegather.photos.service import (
     MAX_BYTES,
     PhotoAttach,
@@ -49,11 +59,15 @@ def photo_router() -> APIRouter:
         request: Request,
         current: Read,
         asset_id: Annotated[str, Query(max_length=36)] = "",
+        gallery_id: Annotated[str, Query(max_length=36)] = "",
         cursor: Annotated[str, Query(max_length=36)] = "",
         limit: Annotated[int, Query(ge=1, le=25)] = 25,
     ) -> dict[str, Any]:
         return service(request).list(
-            current.user, PhotoList(asset_id=asset_id, cursor=cursor, limit=limit)
+            current.user,
+            PhotoList(
+                asset_id=asset_id, gallery_id=gallery_id, cursor=cursor, limit=limit
+            ),
         )
 
     @router.post("", status_code=201)
@@ -97,6 +111,14 @@ def photo_router() -> APIRouter:
     @router.get("/{photo_id}/assets")
     def assets(request: Request, photo_id: Identifier, current: Read) -> dict[str, Any]:
         return {"items": service(request).assets(current.user, photo_id)}
+
+    @router.get("/{photo_id}/galleries")
+    def galleries(
+        request: Request, photo_id: Identifier, current: Read
+    ) -> dict[str, Any]:
+        return GalleryService(request.app.state.auth_store.engine).list(
+            current.user, GalleryList(photo_id=photo_id)
+        )
 
     @router.get("/{photo_id}/email-sources")
     def email_sources(
@@ -145,5 +167,86 @@ def photo_router() -> APIRouter:
         request: Request, body: PhotoDeleteMany, current: Write
     ) -> dict[str, Any]:
         return service(request).delete_many(current.user, body)
+
+    return router
+
+
+class GalleryEdit(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    title: str = Field(min_length=1, max_length=80)
+    event_on: str | None = Field(default=None, max_length=10)
+    expected_updated_at: int = Field(ge=0)
+
+
+class GalleryVersion(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    expected_updated_at: int = Field(ge=0)
+
+
+class GalleryPhotos(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    photo_ids: list[str] = Field(min_length=1, max_length=50)
+
+
+class GalleryPhoto(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    photo_id: str = Field(min_length=1, max_length=36)
+
+
+def gallery_router() -> APIRouter:
+    router = APIRouter(prefix="/api/photo-galleries")
+
+    def service(request: Request) -> GalleryService:
+        return GalleryService(request.app.state.auth_store.engine)
+
+    @router.get("")
+    def galleries(request: Request, current: Read) -> dict[str, Any]:
+        return service(request).list(current.user, GalleryList())
+
+    @router.post("", status_code=201)
+    def create(request: Request, body: GalleryCreate, current: Write) -> dict[str, Any]:
+        return service(request).create(current.user, body)
+
+    @router.get("/{gallery_id}")
+    def gallery(
+        request: Request, gallery_id: Identifier, current: Read
+    ) -> dict[str, Any]:
+        return service(request).get(current.user, gallery_id)
+
+    @router.post("/{gallery_id}/update")
+    def update(
+        request: Request, gallery_id: Identifier, body: GalleryEdit, current: Write
+    ) -> dict[str, Any]:
+        return service(request).update(
+            current.user,
+            GalleryUpdate(gallery_id=gallery_id, **body.model_dump()),
+        )
+
+    @router.post("/{gallery_id}/delete")
+    def delete(
+        request: Request, gallery_id: Identifier, body: GalleryVersion, current: Write
+    ) -> dict[str, Any]:
+        return service(request).delete(
+            current.user,
+            GalleryDelete(
+                gallery_id=gallery_id, expected_updated_at=body.expected_updated_at
+            ),
+        )
+
+    @router.post("/{gallery_id}/photos")
+    def add(
+        request: Request, gallery_id: Identifier, body: GalleryPhotos, current: Write
+    ) -> dict[str, Any]:
+        return service(request).add(
+            current.user, GalleryAdd(gallery_id=gallery_id, photo_ids=body.photo_ids)
+        )
+
+    @router.post("/{gallery_id}/photos/remove")
+    def remove(
+        request: Request, gallery_id: Identifier, body: GalleryPhoto, current: Write
+    ) -> dict[str, Any]:
+        return service(request).remove(
+            current.user, GalleryRemove(gallery_id=gallery_id, photo_id=body.photo_id)
+        )
 
     return router

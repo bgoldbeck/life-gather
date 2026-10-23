@@ -37,7 +37,7 @@ def test_empty_export_has_explicit_scope_and_no_account_identity(
     auth, actor, _, _, _ = setup(tmp_path)
     raw = RecordExport(auth.engine).download(actor)
     data = json.loads(raw)
-    assert data["format"] == "lifegather-records/6"
+    assert data["format"] == "lifegather-records/7"
     assert datetime.fromisoformat(data["snapshot_at"]).tzinfo is not None
     assert data["total_records"] == 0
     assert len(data["collections"]) == 31

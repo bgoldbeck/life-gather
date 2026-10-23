@@ -53,3 +53,34 @@ class PhotoAsset(Base):
     photo_id: Mapped[str] = mapped_column(index=True)
     asset_id: Mapped[str] = mapped_column(index=True)
     recorded_at: Mapped[int]
+
+
+class PhotoGallery(Base):
+    """An owner-named group of photos, such as one event. Proves no claims."""
+
+    __tablename__ = "photo_galleries"
+    __table_args__ = (UniqueConstraint("user_id", "id"),)
+    id: Mapped[str] = mapped_column(primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    title: Mapped[str]
+    # Only a date the owner typed; never inferred from photos.
+    event_on: Mapped[str | None]
+    created_at: Mapped[int]
+    updated_at: Mapped[int]
+
+
+class PhotoGalleryPhoto(Base):
+    __tablename__ = "photo_gallery_photos"
+    __table_args__ = (
+        UniqueConstraint("user_id", "gallery_id", "photo_id"),
+        ForeignKeyConstraint(
+            ["user_id", "gallery_id"],
+            ["photo_galleries.user_id", "photo_galleries.id"],
+        ),
+        ForeignKeyConstraint(["user_id", "photo_id"], ["photos.user_id", "photos.id"]),
+    )
+    id: Mapped[str] = mapped_column(primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    gallery_id: Mapped[str] = mapped_column(index=True)
+    photo_id: Mapped[str] = mapped_column(index=True)
+    added_at: Mapped[int]

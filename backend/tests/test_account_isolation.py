@@ -34,6 +34,7 @@ from lifegather.maintenance.service import MaintenanceService
 from lifegather.mcp_api.schemas import INPUTS
 from lifegather.memory.schemas import SourceInput
 from lifegather.memory.service import MemoryError, MemoryService
+from lifegather.photos.galleries import GalleryAdd, GalleryCreate, GalleryService
 from lifegather.scans.models import ScanRun
 from lifegather.scans.registry import (
     ScanBatch,
@@ -79,6 +80,8 @@ ID_TABLES: dict[str, tuple[str, ...]] = {
     "observation_id": ("reconciliation_observations",),
     "order_id": ("reconciliation_purchases",),
     "photo_id": ("photos",),
+    "photo_ids": ("photos",),
+    "gallery_id": ("photo_galleries",),
     "proposal_id": ("asset_proposals", "receipt_proposals"),
     "purchase_id": ("reconciliation_purchases",),
     "receipt_id": ("receipt_proposals",),
@@ -209,6 +212,9 @@ def rich_alice(tmp_path: Path) -> Installation:
             asset_id=case.primary,
         ),
     )
+    galleries = GalleryService(engine)
+    gallery = galleries.create(alice, GalleryCreate(title="Alice mower day"))
+    galleries.add(alice, GalleryAdd(gallery_id=gallery["id"], photo_ids=[case.photo]))
     scans = ScanService(engine, registry())
     run = scans.enqueue(alice, "synthetic", {"count": 1}, "alice-scan")
     # Canceled, so the app's own worker leaves it alone during the test.
