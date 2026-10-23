@@ -155,7 +155,7 @@ document**, pick one of your saved originals, then ask about it or say what to
 save: "What serial is on this plate?" or "Save the model and serial from this
 manual to my drill." Choosing a file makes no AI request.
 
-Since v0.90.0 **Attach a photo** opens your saved photos straight away as small
+Since v0.91.0 **Attach a photo** opens your saved photos straight away as small
 square thumbnails (twelve at a time, **More saved Chat photos** for the rest),
 the chosen photo shows as a thumbnail before you send, and your message in the
 conversation keeps showing which photo or document you attached, also after a

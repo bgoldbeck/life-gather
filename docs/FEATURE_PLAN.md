@@ -124,7 +124,10 @@ Treat this as a release gate as well as continuing work during Phases 1 and 2.
   export/recovery loop with representative synthetic possessions and two accounts.
   v0.80.0 adds [browser end-to-end checks](END_TO_END_CHECKS.md): sign in, add an
   asset, attach a receipt photo and document, search, back up and restore into a
-  second installation, on PostgreSQL.
+  second installation, on PostgreSQL. The [two-account loop](END_TO_END_CHECKS.md)
+  (2026-10-23) runs add, evidence, recall, correction, server restart and
+  backup/restore for two accounts in one installation and found nothing crossing
+  between them.
 - Retain direct correction, safe existing duplicate resolution, history and
   inspectable unknowns. Broaden undo only for operations that support safe reversal.
   v0.73.0 adds [undo](UNDO.md) for review-queue decisions (including dismissals),
@@ -220,8 +223,10 @@ for the Phase 3 acceptance gate.
   forms, terms and privacy acceptance, and verified account deletion across
   database rows, stored files and backup expiry; personal archive remains export.
   Account deletion across database rows and stored files is done in 0.87.0
-  (see [account deletion](ACCOUNT_DELETION.md)); Turnstile, terms acceptance and
-  hosted backup-expiry records remain.
+  (see [account deletion](ACCOUNT_DELETION.md)). Optional Turnstile bot checks
+  and terms-of-use acceptance are done in 0.90.0 (see
+  [sign-up protection](SIGNUP_PROTECTION.md)); hosted backup-expiry records
+  remain.
 - **5.6 Backups and recovery for many users.** Managed Postgres point-in-time
   recovery, protected R2 copies, a timed restore drill with written RPO/RTO, and
   per-user restore from the personal archive.

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 
+import { BotCheck } from './BotCheck'
 import type { EmailLink } from './emailLink'
 
 export function EmailAccess({
@@ -10,8 +11,12 @@ export function EmailAccess({
   csrfToken = '',
   onCompleted,
   onCancel,
+  botSiteKey = null,
+  termsRequired = false,
 }: {
   deliveryEnabled: boolean
+  botSiteKey?: string | null
+  termsRequired?: boolean
   onSignedIn: () => Promise<void>
   link?: EmailLink | null
   csrfToken?: string
@@ -26,6 +31,9 @@ export function EmailAccess({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [botToken, setBotToken] = useState('')
+  const [botRound, setBotRound] = useState(0)
+  const botChecked = !!botSiteKey && !link && mode !== 'login'
   const title = link
     ? link.purpose === 'reset'
       ? 'Choose a new password'
@@ -68,7 +76,7 @@ export function EmailAccess({
       ? { purpose: link.purpose, token: link.token, password: secret }
       : mode === 'login'
         ? { email, password: secret }
-        : { email, name }
+        : { email, name, ...(botChecked ? { bot_token: botToken } : {}) }
     try {
       const response = await fetch(path, {
         method: 'POST',
@@ -101,6 +109,8 @@ export function EmailAccess({
       )
     } finally {
       setBusy(false)
+      // Turnstile tokens are single-use; show a fresh check for the next try.
+      if (botChecked) setBotRound((round) => round + 1)
     }
   }
 
@@ -181,11 +191,24 @@ export function EmailAccess({
           <p>
             We’ll email a verification link. You’ll choose a password after
             verifying your address.
+            {termsRequired &&
+              ' You’ll review and accept the terms of use when you first sign in.'}
           </p>
+        )}
+        {botChecked && botSiteKey && (
+          <BotCheck
+            key={`${mode}-${botRound}`}
+            siteKey={botSiteKey}
+            onToken={setBotToken}
+          />
         )}
         <Button
           type="submit"
-          disabled={busy || (!link && mode !== 'login' && !deliveryEnabled)}
+          disabled={
+            busy ||
+            (!link && mode !== 'login' && !deliveryEnabled) ||
+            (botChecked && !botToken)
+          }
         >
           {busy
             ? 'Please wait…'

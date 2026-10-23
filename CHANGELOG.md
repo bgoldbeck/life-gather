@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.90.0 - Pick saved photos in Chat
+## 0.91.0 - Pick saved photos in Chat
 
 - In **AI assistant**, **Attach a photo** now opens your saved photos straight
   away, without a second **Load** click. Chat shows them as compact square
@@ -14,6 +14,46 @@
   release show no attachment.
 - No migration, dependency or API request change. Browser check at 1366x900 and
   390x844, light and dark: no page scrolls sideways.
+
+## 0.90.2 - Power Center setup cards stand out
+
+- Power Center connection cards and capability rows are now neutral; category
+  color stays on the icon tile only, instead of a colored strip on every card.
+- Cards that need setup get one consistent attention style in every theme: an
+  amber edge and outline, a light amber wash, a solid "Needs setup" pill and a
+  filled action button. Failed items use the same style in red. Ready,
+  unverified, disabled and planned cards stay plain. No backend, API or
+  migration changes.
+
+## 0.90.1 - Power level capsule
+
+- The Power Center's power level is now a small capsule in the heading row
+  instead of a full-width panel with a five-stage ladder. It still shows the
+  current stage, the points (or the confirmed to possible range when the score
+  is incomplete), a small bar and the stale state. The stage thresholds and the
+  next stage are in its hover title and screen reader text. On wide screens it
+  sits above "Check all locally"; when the heading fills the row, the capsule
+  and button share the next row. The heading is about half as tall on laptop
+  screens, so the stat tiles and connections move up. No backend, API or
+  migration change.
+
+## 0.90.0 - Sign-up bot checks and terms of use
+
+- Optional **Cloudflare Turnstile** on the email **Create account** and
+  **Forgot password?** forms. Set `LIFEGATHER_TURNSTILE_SITE_KEY` and
+  `LIFEGATHER_TURNSTILE_SECRET_KEY` together to turn it on; the server verifies
+  each token with Cloudflare before sending any email and refuses the request if
+  the check fails or Cloudflare cannot be reached. Off by default.
+- Optional **terms of use**. Set `LIFEGATHER_TERMS_VERSION` (and optionally
+  `LIFEGATHER_TERMS_FILE`) and every account, new or existing, sees the terms
+  after signing in and must tick "I agree" before using the app. Until then app
+  routes and MCP answer 403; signing out and deleting the account still work.
+  Changing the version asks everyone again. Off by default.
+- The bundled terms text (`backend/src/lifegather/auth/terms_placeholder.md`)
+  is a placeholder, not legal advice; replace it before inviting other people.
+- Migration `0037_terms_acceptance` adds `users.terms_version` and
+  `users.terms_accepted_at`. No records-format change. See
+  [sign-up protection](docs/SIGNUP_PROTECTION.md).
 
 ## 0.89.1 - Remove the dock icon bar
 

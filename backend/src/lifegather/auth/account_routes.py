@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from lifegather.auth.deletion import AccountDeletion, AccountDeletionError
 from lifegather.auth.email_routes import client_id, email_for
-from lifegather.auth.routes import SESSION_COOKIE, require_write_session, store_for
+from lifegather.auth.routes import SESSION_COOKIE, require_signed_in_write, store_for
 from lifegather.auth.store import CurrentSession
 from lifegather.config import Settings
 
@@ -25,7 +25,7 @@ def account_router() -> APIRouter:
     def delete_account(
         data: AccountDeleteInput,
         request: Request,
-        current: Annotated[CurrentSession, Depends(require_write_session)],
+        current: Annotated[CurrentSession, Depends(require_signed_in_write)],
     ) -> JSONResponse:
         settings: Settings = request.app.state.settings
         service = AccountDeletion(
