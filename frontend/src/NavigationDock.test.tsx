@@ -157,10 +157,17 @@ it('uses compact navigation on narrow screens without overwriting desktop positi
   expect(
     screen.queryByRole('separator', { name: 'Resize navigation' }),
   ).not.toBeInTheDocument()
-  expect(dockedEdge('navigation')).toBe('bottom')
+  // Edge and reset choices only apply to wide screens.
+  expect(
+    screen.queryByRole('group', { name: 'Navigation dock position' }),
+  ).not.toBeInTheDocument()
+  expect(
+    screen.queryByRole('button', { name: 'Reset navigation layout' }),
+  ).not.toBeInTheDocument()
   expect(localStorage.getItem('lifegather-navigation-dock:one')).toBe(original)
   vi.stubGlobal('innerWidth', 1200)
   fireEvent(window, new Event('resize'))
+  expect(dockedEdge('navigation')).toBe('bottom')
   expect(
     screen.getByRole('separator', { name: 'Resize navigation' }),
   ).toHaveAttribute('aria-valuenow', '200')
