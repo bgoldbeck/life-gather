@@ -1,7 +1,10 @@
 # Add an asset yourself
 
-Choose **Assets → Add asset**. Enter the name and any known manufacturer, model,
-serial number and notes. Confirm **I currently own this item**, then save.
+Choose **Assets → Add asset**. Enter the name (the only required text field) and
+optionally pick an **Asset type**; General item is the default. Add any known
+manufacturer, model and serial number (a model or serial needs its
+manufacturer). A chosen type shows its own optional fields in a separate
+"<type> details" group below. Confirm **I currently own this item**, then save.
 Missing identifiers, prices and dates remain unknown. No AI provider is required.
 
 LifeGather saves your entered details as original manual evidence. Ownership and

@@ -7,7 +7,6 @@
   background: var(--card);
 }
 .asset-types label,
-.asset-type-fields label,
 .typed-asset label {
   display: flex;
   flex-direction: column;
@@ -18,7 +17,7 @@
   flex-direction: row;
   align-items: center;
 }
-:is(.asset-types, .asset-type-fields, .typed-asset)
+:is(.asset-types, .typed-asset)
   :is(input:not([type='checkbox']), textarea, select) {
   width: 100%;
   max-width: 40rem;
@@ -43,16 +42,4 @@
 }
 .typed-asset dd {
   overflow-wrap: anywhere;
-}
-.manual-asset-fields > .asset-type-fields {
-  grid-column: 1 / -1;
-}
-.asset-type-fields {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
-  gap: 0.75rem;
-}
-.asset-type-fields > p,
-.asset-type-fields > label:first-of-type {
-  grid-column: 1 / -1;
 }

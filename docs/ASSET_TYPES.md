@@ -7,7 +7,7 @@ or types, and inspect definition history. Existing field IDs must be retained;
 retirement preserves definitions and values. Later application seeds never overwrite
 saved customizations. New fields are optional and unknown until supplied.
 
-**Add asset → Choose asset type** selects a form; General item stays available.
+**Add asset → Asset type** selects a form; General item is the default.
 Values entered there are saved as the user's statements, with their original form
 labels and text. Existing duplicate checks and explicit linking apply; a template
 is never a physical identity or an ownership claim. No AI is needed.
