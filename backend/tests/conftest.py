@@ -32,6 +32,7 @@ def isolated_configuration(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setenv("LIFEGATHER_VAULT_KEY_FILE", "")
     monkeypatch.setenv("LIFEGATHER_VAULT_KEYS", "")
     monkeypatch.setenv("LIFEGATHER_TRUSTED_PROXIES", "")
+    monkeypatch.setenv("LIFEGATHER_PROXY_SECRET", "")
     monkeypatch.setenv("LIFEGATHER_MIGRATE_ON_START", "true")
     monkeypatch.setenv("LIFEGATHER_BACKGROUND_MODE", "inprocess")
     monkeypatch.setenv("LIFEGATHER_JOB_TICK_TOKEN", "")

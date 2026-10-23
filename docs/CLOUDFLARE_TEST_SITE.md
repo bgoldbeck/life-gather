@@ -97,8 +97,8 @@ npm install
 npm run init-settings
 ```
 
-This creates `deploy\cloudflare\test-site.env` with a new vault key and tick
-token. Git ignores this file; never commit or share it. Copy the `VAULT_KEYS`
+This creates `deploy\cloudflare\test-site.env` with a new vault key, tick
+token and proxy secret. Git ignores this file; never commit or share it. Copy the `VAULT_KEYS`
 line into your password manager: without it, saved AI keys and Gmail sign-ins on
 the test site cannot be read. It is a new key, separate from your home server's.
 
@@ -203,14 +203,27 @@ Database migrations run automatically on the next start.
   instances, their state and container logs.
 - Neon's dashboard shows database size; R2's shows stored files.
 
+## Visitor addresses
+
+Sign-in limits count attempts per visitor address. The container only ever sees
+the Worker connecting, so the Worker passes Cloudflare's `CF-Connecting-IP` as
+`X-Forwarded-For` together with `PROXY_SECRET` in `X-LifeGather-Proxy-Secret`.
+The app believes the forwarded address only when that secret matches its
+`LIFEGATHER_PROXY_SECRET`, and removes the header before anything else sees it.
+The Worker drops any copy a visitor sends. `LIFEGATHER_TRUSTED_PROXIES` stays
+unset: Cloudflare's internal addresses are not fixed, and trusting every
+address would let anyone who reached the container choose their own.
+
+If you made `test-site.env` before this setting existed, add a line
+`PROXY_SECRET=` followed by 64 random hex characters (for example from
+`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`),
+then run `npm run push-settings` and `npm run deploy`. Until then the Worker
+answers with a "Missing test-site settings: PROXY_SECRET" page.
+
 ## Known limits of the test site
 
 - **Behind Access only.** MCP clients and other programs cannot pass the Access
   sign-in, so private MCP is not available here.
-- **One shared address for sign-in rate limits.** The app sees every visitor as
-  the Worker, so its per-address login throttles count all visitors together.
-  Fine for a few testers behind Access; trusted-proxy handling for the hosted
-  setup is follow-up work before any public use.
 - **Scheduled scans run within 10 minutes** of their time, not to the second.
 - **Settings change on the next container start**, not immediately. A new
   `DATABASE_URL` or `VAULT_KEYS` therefore needs the container asleep first.

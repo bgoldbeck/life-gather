@@ -1,6 +1,6 @@
 # Pick saved photos in Chat
 
-Status: done (v0.91.0) on `claude/chat-saved-photo-picker`.
+Status: done (v0.92.0) on `claude/chat-saved-photo-picker`.
 
 Since v0.69.0 the AI assistant can read one saved photo attached with **Attach a
 photo**, but picking is clumsy: the library only loads after a second click,

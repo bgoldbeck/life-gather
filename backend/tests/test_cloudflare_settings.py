@@ -37,6 +37,7 @@ def test_worker_settings_pass_app_validation(
         "DATABASE_URL": "postgresql://user:pw@db.example/lifegather?sslmode=require",
         "VAULT_KEYS": "test:" + "A" * 43 + "=",
         "JOB_TICK_TOKEN": "0123456789abcdef" * 4,
+        "PROXY_SECRET": "fedcba9876543210" * 4,
         "R2_BUCKET": "lifegather-test-files",
         "R2_ENDPOINT_URL": "https://account.r2.cloudflarestorage.com",
         "R2_ACCESS_KEY_ID": "synthetic-id",
@@ -55,3 +56,4 @@ def test_worker_settings_pass_app_validation(
     assert settings.storage_backend == "s3"
     assert settings.migrate_on_start
     assert settings.trusted_proxy_list == []
+    assert settings.proxy_secret.get_secret_value() == sample["PROXY_SECRET"]

@@ -14,6 +14,7 @@ const complete = {
   DATABASE_URL: "postgresql://user:pw@db.example/lifegather?sslmode=require",
   VAULT_KEYS: "2026-10:a2V5",
   JOB_TICK_TOKEN: "t".repeat(64),
+  PROXY_SECRET: "p".repeat(64),
   R2_BUCKET: "lifegather-test-files",
   R2_ENDPOINT_URL: "https://account.r2.cloudflarestorage.com",
   R2_ACCESS_KEY_ID: "id",
@@ -29,6 +30,7 @@ describe("containerEnv", () => {
     expect(env.LIFEGATHER_GOOGLE_CLIENT_ID).toBe("client");
     expect(env).not.toHaveProperty("LIFEGATHER_SMTP_HOST");
     expect(env).not.toHaveProperty("LIFEGATHER_TRUSTED_PROXIES");
+    expect(env.LIFEGATHER_PROXY_SECRET).toBe(complete.PROXY_SECRET);
   });
 
   it("names every missing required setting without values", () => {
@@ -72,15 +74,17 @@ describe("forwardRequest", () => {
         forwarded: "for=10.0.0.1",
         "x-forwarded-host": "evil.example",
         "cf-access-jwt-assertion": "token",
+        "x-lifegather-proxy-secret": "forged-by-visitor",
         cookie: "session=abc",
       },
     });
-    const forwarded = forwardRequest(original);
+    const forwarded = forwardRequest(original, complete);
     expect(forwarded.headers.get("x-forwarded-for")).toBe("203.0.113.7");
     expect(forwarded.headers.get("x-forwarded-proto")).toBe("https");
     expect(forwarded.headers.has("forwarded")).toBe(false);
     expect(forwarded.headers.has("x-forwarded-host")).toBe(false);
     expect(forwarded.headers.has("cf-access-jwt-assertion")).toBe(false);
+    expect(forwarded.headers.get("x-lifegather-proxy-secret")).toBe(complete.PROXY_SECRET);
     expect(forwarded.headers.get("cookie")).toBe("session=abc");
     expect(forwarded.method).toBe("POST");
     expect(await forwarded.text()).toBe("hello");
@@ -89,8 +93,16 @@ describe("forwardRequest", () => {
   it("sends no client address when Cloudflare gave none", () => {
     const forwarded = forwardRequest(
       new Request("https://site.example/", { headers: { "x-forwarded-for": "1.2.3.4" } }),
+      complete,
     );
     expect(forwarded.headers.has("x-forwarded-for")).toBe(false);
+  });
+
+  it("refuses to forward without the proxy secret", () => {
+    const request = new Request("https://site.example/", {
+      headers: { "x-lifegather-proxy-secret": "forged-by-visitor" },
+    });
+    expect(() => forwardRequest(request, { PROXY_SECRET: " " })).toThrow(ConfigError);
   });
 });
 
