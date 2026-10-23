@@ -239,6 +239,8 @@ def test_disabled_configuration_and_origin_validation() -> None:
             "email_delivery_enabled": False,
             "email_password_enabled": False,
             "user": None,
+            "bot_check_site_key": None,
+            "terms": None,
             "csrf_token": None,
         }
         assert client.get("/auth/google/start").status_code == 503

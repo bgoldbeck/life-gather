@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.90.0 - Sign-up bot checks and terms of use
+
+- Optional **Cloudflare Turnstile** on the email **Create account** and
+  **Forgot password?** forms. Set `LIFEGATHER_TURNSTILE_SITE_KEY` and
+  `LIFEGATHER_TURNSTILE_SECRET_KEY` together to turn it on; the server verifies
+  each token with Cloudflare before sending any email and refuses the request if
+  the check fails or Cloudflare cannot be reached. Off by default.
+- Optional **terms of use**. Set `LIFEGATHER_TERMS_VERSION` (and optionally
+  `LIFEGATHER_TERMS_FILE`) and every account, new or existing, sees the terms
+  after signing in and must tick "I agree" before using the app. Until then app
+  routes and MCP answer 403; signing out and deleting the account still work.
+  Changing the version asks everyone again. Off by default.
+- The bundled terms text (`backend/src/lifegather/auth/terms_placeholder.md`)
+  is a placeholder, not legal advice; replace it before inviting other people.
+- Migration `0037_terms_acceptance` adds `users.terms_version` and
+  `users.terms_accepted_at`. No records-format change. See
+  [sign-up protection](docs/SIGNUP_PROTECTION.md).
+
 ## 0.89.1 - Remove the dock icon bar
 
 - The row of four small dock-position icon buttons (left, right, top, bottom) is

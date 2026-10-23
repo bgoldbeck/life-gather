@@ -6,6 +6,7 @@ import { BuildInfo, type Build } from './BuildInfo'
 import { ClientUpdateNotice } from './ClientUpdate'
 import { clientBuild } from './clientBuild'
 import { useAppearance, type Theme } from './appearance'
+import { TermsGate } from './TermsGate'
 
 type Account = { id: string; name: string; email: string }
 type Session = {
@@ -14,6 +15,8 @@ type Session = {
   test_login_enabled?: boolean
   email_delivery_enabled?: boolean
   email_password_enabled?: boolean
+  bot_check_site_key?: string | null
+  terms?: { version: string; accepted: boolean } | null
   configured: boolean
   user: Account | null
   csrf_token: string | null
@@ -165,6 +168,25 @@ export function AuthGate({
     )
   }
 
+  if (session?.user && session.terms && !session.terms.accepted) {
+    return (
+      <>
+        <ClientUpdateNotice loaded={loadedBuild} current={session.build} />
+        {testBanner}
+        {error && <p role="alert">{error}</p>}
+        <TermsGate
+          version={session.terms.version}
+          email={session.user.email}
+          passwordEnabled={!!session.email_password_enabled}
+          csrfToken={session.csrf_token || ''}
+          refreshSession={refresh}
+          signOut={() => void signOut()}
+          busy={busy}
+        />
+      </>
+    )
+  }
+
   if (session?.user) {
     return (
       <div className="authenticated-shell">
@@ -221,6 +243,8 @@ export function AuthGate({
             <p className="auth-note">
               Your first sign-in creates your account. Email and bank
               connections are separate and are not enabled by signing in.
+              {session.terms &&
+                ' You’ll review and accept the terms of use before you start.'}
             </p>
           </>
         ) : !session.email_delivery_enabled ? (
@@ -232,6 +256,8 @@ export function AuthGate({
           <EmailAccess
             deliveryEnabled={!!session.email_delivery_enabled}
             onSignedIn={refresh}
+            botSiteKey={session.bot_check_site_key ?? null}
+            termsRequired={!!session.terms}
           />
         )}
         <BuildInfo build={loadedBuild} />

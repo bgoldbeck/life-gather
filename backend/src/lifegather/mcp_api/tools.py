@@ -44,7 +44,7 @@ from lifegather.assets.type_schemas import (
     TypeSave,
 )
 from lifegather.assets.types import AssetTypes
-from lifegather.auth.store import Account, AuthStore
+from lifegather.auth.store import TERMS_PENDING, Account, AuthStore
 from lifegather.chat.context import ContextRead, WorkspaceContexts
 from lifegather.chat.organizer import OrganizationAction, WorkspaceOrganizer
 from lifegather.chat.service import SaveText, save_text
@@ -166,6 +166,8 @@ def authority(ctx: ToolContext) -> tuple[Account, MemoryService, ReconciliationS
     current = grant.store.authenticate(grant.token, now=int(time.time()))
     if current is None or current.user.id != grant.user_id:
         raise ToolError("Sign in required")
+    if current.terms_pending:
+        raise ToolError(TERMS_PENDING)
     return (
         current.user,
         MemoryService(grant.store.engine),
