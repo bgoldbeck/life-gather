@@ -492,7 +492,12 @@ class SourceErasure:
                 continue
             # Tables without an id only ever reference other rows.
             for link in links:
-                if link.child == table and plan.erased.get(link.parent):
+                if (
+                    link.child == table
+                    and not link.set_null
+                    and not link.detached
+                    and plan.erased.get(link.parent)
+                ):
                     result = db.execute(
                         text(
                             f'DELETE FROM "{table}" WHERE user_id = :owner '
