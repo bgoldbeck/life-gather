@@ -117,7 +117,7 @@ named `tank`; use your own.
 
 1. In **Datasets**, create a dataset for the build, for example
    `tank/lifegather-build`. Its files are the clone, the log and the registry
-   login, not your records.
+   token, not your records.
 2. Clone the repository into it:
 
    ```sh
@@ -128,21 +128,34 @@ named `tank`; use your own.
    `docker run --rm -v /mnt/tank/lifegather-build:/w -w /w alpine/git clone https://github.com/bgoldbeck/life-gather.git source`.
    Leave the clone on `main` and never edit files in it: a dirty or diverged
    clone stops every run.
-3. Create a GitHub personal access token (classic) with only the
+3. Give the script a registry token. It is the only credential the script
+   uses. Reading the source needs none: the repository is public, and each run
+   fetches it anonymously over HTTPS, ignoring the clone's own remote, Git
+   credential helpers and SSH keys, so it works from cron as root even when
+   you are not signed in.
+
+   Create a GitHub personal access token (classic) with only the
    `write:packages` scope (**GitHub → Settings → Developer settings → Personal
-   access tokens → Tokens (classic)**). Store the GHCR login in the script's own
-   folder, not in root's Docker configuration:
+   access tokens → Tokens (classic)**), with an expiry date you will remember.
+   Fine-grained tokens cannot push to GitHub Container Registry. Save it to a
+   file only root can read:
 
    ```sh
-   cfg=/mnt/tank/lifegather-build/lifegather-autobuild/docker-config
-   mkdir -p "$cfg" && chmod 700 "$cfg"
-   read -rs GHCR_TOKEN   # paste the token, then press Enter
-   printf '%s' "$GHCR_TOKEN" | docker --config "$cfg" login ghcr.io --username bgoldbeck --password-stdin
-   unset GHCR_TOKEN
+   state=/mnt/tank/lifegather-build/lifegather-autobuild
+   mkdir -p "$state" && chmod 700 "$state"
+   (umask 077 && cat > "$state/ghcr-token")   # paste the token, press Enter, then Ctrl-D
    ```
 
-   Docker keeps the token, base64-encoded, in `$cfg/config.json`. Anyone with
-   root on the NAS can read it; revoke it on GitHub if the NAS is compromised.
+   Each run logs in with it before building, into a temporary folder it
+   deletes afterwards, so the token never lands in root's Docker
+   configuration. The script refuses a token file other users can read. A
+   wrong or expired token stops the run before the build, and the cron mail
+   says so. To rotate the token, replace the file. To stop publishing at
+   once, revoke the token on GitHub. Anyone with root on the NAS can read the
+   file.
+
+   An earlier setup that saved a `docker login` in `$state/docker-config` keeps
+   working. The token file takes precedence when both exist.
 4. Run it once by hand and watch the log:
 
    ```sh
@@ -174,10 +187,11 @@ named `tank`; use your own.
 | `LIFEGATHER_TRUENAS_APP` | App to redeploy (`midclt call -j app.redeploy <name>`, the same job as the app's **Redeploy** button). The build already tagged the new image `latest` on the NAS, and the image-only Compose file also uses `pull_policy: always`, so the app is recreated from the new `latest`. The app must use the `latest` tag, not a pinned digest. Volumes and datasets are kept. |
 | `LIFEGATHER_HEALTH_URL` | Polled for three minutes after the redeploy; the run fails if it never answers. |
 | `LIFEGATHER_AUTOBUILD_DIR` | State folder. Default: `lifegather-autobuild` next to the clone. |
+| `LIFEGATHER_GHCR_USER` | GitHub account that owns the token. Default: `bgoldbeck`. |
 
 The state folder holds `auto-publish.log` (rotated at 20 MB),
 `last-published-revision`, `last-failed-revision`, `last-check` (time of the
-last run, quiet or not), the lock file and `docker-config`.
+last run, quiet or not), the lock file and `ghcr-token`.
 
 ### Before turning on redeploys
 
