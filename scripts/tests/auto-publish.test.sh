@@ -23,6 +23,7 @@ case "$*" in
     'inspect --format {{.State.Health.Status}} '*) echo healthy ;;
     'image inspect --format {{.Size}} '*) echo 123 ;;
     'build --quiet --tag '*' -'|'exec --interactive '*) cat >/dev/null ;;
+    *' login ghcr.io '*) cat >"$STUB_LOG.token" ;;
 esac
 SH
 cat >"$root/bin/midclt" <<'SH'
@@ -40,6 +41,9 @@ echo 'COPY --from=ghcr.io/astral-sh/uv:0.13.0 /uv /uvx /bin/' >"$root/seed/Docke
 cp "$source_script" "$root/seed/scripts/auto-publish.sh"
 git -C "$root/seed" add . && git -C "$root/seed" commit --quiet -m one && git -C "$root/seed" push --quiet origin main
 git clone --quiet "$root/origin.git" "$root/nas/source"
+# Like a clone made over SSH or with a credential helper: cron must not use it.
+git -C "$root/nas/source" remote set-url origin git@unreachable.invalid:life-gather.git
+export LIFEGATHER_SOURCE_URL=$root/origin.git
 
 export LIFEGATHER_AUTOBUILD_DIR=$root/nas/state STUB_LOG=$root/calls
 mkdir -p "$LIFEGATHER_AUTOBUILD_DIR/docker-config"
@@ -108,5 +112,24 @@ echo dirty >"$root/nas/source/local.txt"
 if bash "$script" 2>/dev/null; then check 'dirty clone fails' false; fi
 check 'dirty clone: nothing built' "! grep -q '^build' '$STUB_LOG'"
 rm "$root/nas/source/local.txt"
+
+# Token file instead of a saved docker login.
+rm "$LIFEGATHER_AUTOBUILD_DIR/docker-config/config.json"
+fifth=$(commit five)
+reset_calls
+printf 'test-token\n' >"$LIFEGATHER_AUTOBUILD_DIR/ghcr-token"
+chmod 644 "$LIFEGATHER_AUTOBUILD_DIR/ghcr-token"
+if bash "$script" 2>/dev/null; then check 'a readable token file fails' false; fi
+check 'a readable token file stops before building' "! grep -q '^build' '$STUB_LOG'"
+chmod 600 "$LIFEGATHER_AUTOBUILD_DIR/ghcr-token"
+reset_calls
+bash "$script" --force
+check 'logs in with the token file' "grep -q 'login ghcr.io --username bgoldbeck --password-stdin' '$STUB_LOG'"
+check 'passes the token on stdin only' "[[ \$(cat '$STUB_LOG.token') == test-token ]] && ! grep -q test-token '$STUB_LOG' '$LIFEGATHER_AUTOBUILD_DIR/auto-publish.log'"
+check 'pushes with the per-run login' "grep -q -- '--config $LIFEGATHER_AUTOBUILD_DIR/registry\..* push --quiet ghcr.io/bgoldbeck/life-gather:sha-$fifth' '$STUB_LOG'"
+check 'removes the per-run login' "! compgen -G '$LIFEGATHER_AUTOBUILD_DIR/registry.*' >/dev/null"
+reset_calls
+if STUB_FAIL='login ghcr.io' bash "$script" --force 2>/dev/null; then check 'a rejected token fails' false; fi
+check 'a rejected token stops before building' "! grep -q '^build' '$STUB_LOG'"
 
 echo "auto-publish.sh: $pass checks passed."

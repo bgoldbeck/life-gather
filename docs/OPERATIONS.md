@@ -1,6 +1,6 @@
 # Operations: logs, alerts and the Operations page
 
-v0.92.0 adds what the person running an installation needs to see that it is
+v0.93.0 adds what the person running an installation needs to see that it is
 healthy, without reading anyone's records.
 
 ## Logs without private content

@@ -314,6 +314,7 @@ async def answer(
             body.credential_id,
             attached,
             attachments,
+            body.timezone,
         ).run(completion, status)
 
     def save_extraction(operation: Callable[[], dict[str, Any]]) -> dict[str, Any]:

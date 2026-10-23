@@ -12,8 +12,9 @@
 # Options: --force  rebuild even if main is already published or just failed.
 #
 # Settings (environment variables, all optional):
-#   LIFEGATHER_AUTOBUILD_DIR  state, log and registry login (default: a
+#   LIFEGATHER_AUTOBUILD_DIR  state, log and registry token (default: a
 #                             lifegather-autobuild folder next to the clone)
+#   LIFEGATHER_GHCR_USER      GitHub account that owns the token (bgoldbeck)
 #   LIFEGATHER_TRUENAS_APP    TrueNAS app name to redeploy after publishing
 #   LIFEGATHER_HEALTH_URL     URL to poll after redeploying, e.g.
 #                             http://127.0.0.1:8787/health/ready
@@ -50,7 +51,9 @@ main() {
     fi
     date -u '+%Y-%m-%dT%H:%M:%SZ' >"$STATE_DIR/last-check"
 
-    git_cmd fetch --quiet origin refs/heads/main:refs/remotes/origin/main
+    # The repository is public: read it anonymously over HTTPS, whatever the
+    # clone's origin is, so cron never needs Git credentials or an SSH key.
+    git_cmd fetch --quiet "$SOURCE_URL" +refs/heads/main:refs/remotes/origin/main
     local target published failed
     target=$(git_cmd rev-parse --verify 'refs/remotes/origin/main^{commit}')
     published=$(read_state last-published-revision)
@@ -99,6 +102,8 @@ IMAGE=ghcr.io/bgoldbeck/life-gather
 POSTGRES_IMAGE=pgvector/pgvector:pg17
 NODE_IMAGE=node:24-bookworm-slim
 GIT_IMAGE=alpine/git:latest
+SOURCE_URL=${LIFEGATHER_SOURCE_URL:-https://github.com/bgoldbeck/life-gather.git}
+REGISTRY_CONFIG=
 FAILED_REVISION=
 STAGE=Preflight
 
@@ -117,11 +122,13 @@ run() {
 # Prefer the host's git; TrueNAS keeps its base OS read-only, so fall back to a
 # container that sees the clone at the same path.
 git_cmd() {
+    # Never prompt or use a credential helper: a cron job has no one to answer.
+    local options=(-c "safe.directory=$REPO" -c credential.helper=)
     if command -v git >/dev/null 2>&1; then
-        git -c "safe.directory=$REPO" -C "$REPO" "$@"
+        GIT_TERMINAL_PROMPT=0 git "${options[@]}" -C "$REPO" "$@"
     else
-        docker run --rm --volume "$REPO:$REPO" --workdir "$REPO" "$GIT_IMAGE" \
-            -c "safe.directory=$REPO" "$@"
+        docker run --rm --env GIT_TERMINAL_PROMPT=0 --volume "$REPO:$REPO" --workdir "$REPO" \
+            "$GIT_IMAGE" "${options[@]}" "$@"
     fi
 }
 
@@ -142,6 +149,11 @@ on_exit() {
     for name in "${CLEANUP_NETWORKS[@]}"; do
         docker network rm "$name" >/dev/null 2>&1 || log "Remove leftover network $name manually."
     done
+    # The per-run registry login holds the token; remove exactly its files.
+    if [[ -n $REGISTRY_CONFIG && -d $REGISTRY_CONFIG ]]; then
+        rm -f -- "$REGISTRY_CONFIG/config.json"
+        rmdir -- "$REGISTRY_CONFIG" || log "Remove $REGISTRY_CONFIG manually."
+    fi
     if ((status != 0)); then
         [[ -n $FAILED_REVISION ]] && write_state last-failed-revision "$FAILED_REVISION"
         log "Result: FAILED during stage '$STAGE'."
@@ -160,9 +172,22 @@ preflight() {
     done
     [[ $(docker info --format '{{.OSType}}') == linux ]] || fail 'Docker is not running a Linux engine.'
     docker compose version >/dev/null 2>&1 || fail 'docker compose is unavailable.'
-    # Check the registry login now rather than after a long build.
-    grep -q '"ghcr.io"' "$STATE_DIR/docker-config/config.json" 2>/dev/null \
-        || fail "No GHCR login in $STATE_DIR/docker-config. See docs/TRUENAS.md#automatic-rebuilds."
+    # Check the registry token now rather than after a long build. The older
+    # setup, a saved docker login in docker-config, still works.
+    local token=$STATE_DIR/ghcr-token
+    if [[ -f $token ]]; then
+        [[ -s $token ]] || fail "$token is empty."
+        [[ $(stat -c %a -- "$token") == [0-7]00 ]] || fail "$token is readable by other users; run chmod 600 on it."
+        # Log in for this run only, into a private folder that on_exit
+        # removes. The host's own Docker login is never used.
+        REGISTRY_CONFIG=$(mktemp -d -- "$STATE_DIR/registry.XXXXXX")
+        log "> docker login ghcr.io --username ${LIFEGATHER_GHCR_USER:-bgoldbeck} --password-stdin"
+        tr -d '\r\n' <"$token" | docker --config "$REGISTRY_CONFIG" login ghcr.io \
+            --username "${LIFEGATHER_GHCR_USER:-bgoldbeck}" --password-stdin \
+            || fail 'GHCR rejected the token: it needs the write:packages scope and must not be expired.'
+    elif ! grep -q '"ghcr.io"' "$STATE_DIR/docker-config/config.json" 2>/dev/null; then
+        fail "No GHCR token: put one in $token. See docs/TRUENAS.md#automatic-rebuilds."
+    fi
 
     [[ $(git_cmd branch --show-current) == main ]] || fail 'The clone must have main checked out.'
     local dirty
@@ -313,12 +338,11 @@ publish_image() {
     stage 'Registry upload'
     [[ -z $(git_cmd status --porcelain) && $(git_cmd rev-parse HEAD) == "$revision" ]] \
         || fail 'Source changed during the run. Nothing uploaded.'
-    # The login lives only in this folder, never in the host's Docker config.
-    local auth=(--config "$STATE_DIR/docker-config")
+    local auth=(--config "${REGISTRY_CONFIG:-$STATE_DIR/docker-config}")
     run docker "${auth[@]}" push --quiet "$IMAGE:sha-$revision"
     # Recheck GitHub main before moving the shared latest tag.
     local remote_main
-    remote_main=$(git_cmd ls-remote origin refs/heads/main | cut -f1)
+    remote_main=$(git_cmd ls-remote "$SOURCE_URL" refs/heads/main | cut -f1)
     [[ $remote_main == "$revision" ]] || fail 'GitHub main moved; the commit tag was uploaded but latest was not changed.'
     run docker tag "$IMAGE:sha-$revision" "$IMAGE:latest"
     run docker "${auth[@]}" push --quiet "$IMAGE:latest"

@@ -16,6 +16,7 @@ export function WorkspaceAssistant({
   refreshSession?: () => Promise<void>
   initialReceiptSourceId?: string
   onOpenAsset: (id: string) => void
+  onOpenMaintenance?: (id: string) => void
   onOpenGraph: (id: string) => void
   onOpenScan: (id: string) => void
   onReconnectKey?: (target: ReconnectTarget) => void

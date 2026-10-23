@@ -282,63 +282,72 @@ class MaintenanceService:
         return row
 
     def create(self, actor: Account, value: MaintenanceCreate) -> dict[str, str]:
+        with change_origin(method="manual_entry"), self.memory._write() as db:
+            return self.create_in(db, actor, value)
+
+    def create_in(
+        self, db: Session, actor: Account, value: MaintenanceCreate
+    ) -> dict[str, str]:
+        """Use the caller's transaction; the caller owns commit and attribution."""
         data = MaintenanceCreate.model_validate(value)
         signature = fingerprint(["create", data.model_dump(mode="json")])
-        with change_origin(method="manual_entry"), self.memory._write() as db:
-            existing = db.scalar(
-                select(MaintenanceRevision).where(
-                    MaintenanceRevision.user_id == actor.id,
-                    MaintenanceRevision.request_id == data.request_id,
-                )
+        existing = db.scalar(
+            select(MaintenanceRevision).where(
+                MaintenanceRevision.user_id == actor.id,
+                MaintenanceRevision.request_id == data.request_id,
             )
-            if existing:
-                if (
-                    existing.fingerprint != signature
-                    or existing.previous_id is not None
-                ):
-                    raise MemoryError("Maintenance request identity conflict")
-                return self._ack(existing)
-            self._target(db, actor, data.entity_id)
-            identifier = str(uuid4())
-            source = self._source_in(db, actor, data.entity_id, data)
-            task = MaintenanceTask(
-                id=identifier,
-                user_id=actor.id,
-                entity_id=data.entity_id,
-                source_id=source.id,
-                request_id=data.request_id,
-                fingerprint=signature,
-                recorded_at=source.recorded_at,
-            )
-            db.add(task)
-            db.flush()
-            return self._ack(
-                self._save_revision(db, actor, task, data, signature, None, source)
-            )
+        )
+        if existing:
+            if existing.fingerprint != signature or existing.previous_id is not None:
+                raise MemoryError("Maintenance request identity conflict")
+            return self._ack(existing)
+        self._target(db, actor, data.entity_id)
+        identifier = str(uuid4())
+        source = self._source_in(db, actor, data.entity_id, data)
+        task = MaintenanceTask(
+            id=identifier,
+            user_id=actor.id,
+            entity_id=data.entity_id,
+            source_id=source.id,
+            request_id=data.request_id,
+            fingerprint=signature,
+            recorded_at=source.recorded_at,
+        )
+        db.add(task)
+        db.flush()
+        return self._ack(
+            self._save_revision(db, actor, task, data, signature, None, source)
+        )
 
     def revise(self, actor: Account, value: MaintenanceChange) -> dict[str, str]:
+        with change_origin(method="correction"), self.memory._write() as db:
+            return self.revise_in(db, actor, value)
+
+    def revise_in(
+        self, db: Session, actor: Account, value: MaintenanceChange
+    ) -> dict[str, str]:
+        """Use the caller's transaction; the caller owns commit and attribution."""
         data = MaintenanceChange.model_validate(value)
         signature = fingerprint(["revise", data.model_dump(mode="json")])
-        with change_origin(method="correction"), self.memory._write() as db:
-            task = self._task(db, actor, data.task_id)
-            existing = db.scalar(
-                select(MaintenanceRevision).where(
-                    MaintenanceRevision.user_id == actor.id,
-                    MaintenanceRevision.request_id == data.request_id,
-                )
+        task = self._task(db, actor, data.task_id)
+        existing = db.scalar(
+            select(MaintenanceRevision).where(
+                MaintenanceRevision.user_id == actor.id,
+                MaintenanceRevision.request_id == data.request_id,
             )
-            if existing:
-                if existing.task_id != task.id or existing.fingerprint != signature:
-                    raise MemoryError("Maintenance request identity conflict")
-                return self._ack(existing)
-            previous = self._head(db, actor, task)
-            if self._token(db, actor, task, previous) != data.state_token:
-                raise NoteConflict(
-                    "Maintenance task changed. Reload it before editing again."
-                )
-            return self._ack(
-                self._save_revision(db, actor, task, data, signature, previous)
+        )
+        if existing:
+            if existing.task_id != task.id or existing.fingerprint != signature:
+                raise MemoryError("Maintenance request identity conflict")
+            return self._ack(existing)
+        previous = self._head(db, actor, task)
+        if self._token(db, actor, task, previous) != data.state_token:
+            raise NoteConflict(
+                "Maintenance task changed. Reload it before editing again."
             )
+        return self._ack(
+            self._save_revision(db, actor, task, data, signature, previous)
+        )
 
     def get(self, actor: Account, identifier: str) -> dict[str, Any]:
         with Session(self.engine) as db:
