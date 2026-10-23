@@ -262,7 +262,7 @@ anti-goal is updated to reference this phase when 5.4 starts.
 
 Planned 2026-10-23 at the user's request. The user scheduled steps 6.1 to 6.3 the same
 day; 6.1 to 6.3 are done. The user scheduled 6.4 (Android app) on 2026-10-23,
-done in v0.101.0, and wants an iPhone version later (6.5).
+done in v0.101.0, and 6.5 (iPhone app) the same day, done in v0.102.0.
 v0.88.1 checked the web UI at phone and tablet sizes, so the app already works in
 a phone browser.
 
@@ -301,14 +301,14 @@ alike, with no app store review, second codebase or separate release train.
   to the page's existing share flow. Plain Java with no Gradle plugin, so it
   builds from distribution packages. No offline editing or local copy of
   personal records on the phone. Not yet tried on a real phone.
-- **6.5 iPhone app. In progress (scheduled by the user 2026-10-23).** Same idea
+- **6.5 iPhone app. Done in v0.102.0** ([iPhone app](IPHONE_APP.md)). Same idea
   as the Android app, in Swift under `ios/`: server-address screen, `WKWebView`,
   loopback relay on the iPhone's `127.0.0.1:8787` (no server change), camera
-  through the page's file input, and a Share Extension that hands files to the
+  through the page's file input, and a Share extension that hands files to the
   page's existing share flow. Building and installing need the user's Mac,
-  Xcode and Apple developer account (TestFlight), so the source ships with a
-  plain-language guide. Acceptance: address checks and share hand-over have
-  tests that run without a Mac; the Xcode project opens and lists both targets.
+  Xcode and Apple developer account (cable install or TestFlight), so the source
+  ships with a plain-language guide. Not yet compiled in Xcode or tried on a
+  real iPhone.
 
 Requirement: installing and camera/share features need HTTPS on a real address.
 Hosted Cloudflare (Phase 5) provides it. Self-hosted needs the user's chosen
@@ -343,7 +343,7 @@ Keep existing delivered functionality while deferring these extensions.
 | Advanced asset form builder | Existing editable optional text fields first; richer widgets/required-field migrations only for proven needs. |
 | Power Center expansion | Fix actionable reconnect/setup issues; defer elaborate remote probes and diagnostics without a concrete failure to solve. |
 | Account/credential tooling | Maintain privacy/security and repair blocking issues throughout; device UI, linking, email changes and richer rotation tooling are scoped individually. |
-| Mobile/PWA/remote access | 6.1 to 6.4 done (installable app, camera, Android share, Android app in v0.101.0); iPhone app (6.5) later. When revisited, follow the [phone app plan](#phone-app-plan-not-scheduled): installable web app first, native wrapper only if needed. Domain/tunnel setup stays a separate user decision. |
+| Mobile/PWA/remote access | 6.1 to 6.5 done (installable app, camera, Android share, Android app in v0.101.0, iPhone app in v0.102.0). When revisited, follow the [phone app plan](#phone-app-plan-not-scheduled): installable web app first, native wrapper only if needed. Domain/tunnel setup stays a separate user decision. |
 
 ## Execution rules
 

@@ -109,20 +109,6 @@ yet been tried on a real Android phone.
 
 ## iPhone
 
-Not built yet. An iPhone version needs:
-
-- **An Apple developer account** ($99 a year) and a Mac with Xcode to build and
-  sign it. Without the paid account an app installed from Xcode stops working
-  after 7 days.
-- **A way to install it:** TestFlight (up to 90 days per build, invite by email)
-  or App Store review. iPhones can't install an app from a downloaded file.
-- **The same wrapper idea** in Swift: a `WKWebView`, the server-address screen,
-  and the same loopback relay (iOS allows an app to listen on `127.0.0.1` while
-  it is open). Plain-HTTP home addresses need an App Transport Security
-  exception (`NSAllowsLocalNetworking`), and iOS asks once for **Local Network**
-  permission.
-- **Camera** works through the same file input. **Share to LifeGather** needs a
-  separate Share Extension that hands files to the app, because iPhone Safari
-  has no web share target.
-
-Until then, iPhones can use LifeGather in Safari at the server's home address.
+See [iPhone app](IPHONE_APP.md). It works the same way; because iPhones can't
+install an app from a downloaded file, it is built once on a Mac with Xcode and
+an Apple developer account.
