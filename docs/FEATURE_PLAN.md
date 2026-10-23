@@ -263,7 +263,11 @@ Approach: an installable web app (PWA), not a separate native app. The same
 React UI and server serve phones, tablets and desktops, self-hosted and hosted
 alike, with no app store review, second codebase or separate release train.
 
-- **6.1 Install to home screen.** Web app manifest, icons and a minimal service
+- **6.1 Install to home screen (in progress, branch `claude/installable-web-app`).**
+  Acceptance for this step: manifest and icons pass browser installability; the
+  service worker stores only an offline notice page and its icon, never API,
+  auth, file or chat responses; HTML still comes from the network so the version
+  notice keeps working. Web app manifest, icons and a minimal service
   worker that caches only the static app shell. Never cache API responses,
   files, chat streams or anything private; show a clear "can't reach your
   server" screen when offline. Reconcile with [versioning](VERSIONING.md), which
