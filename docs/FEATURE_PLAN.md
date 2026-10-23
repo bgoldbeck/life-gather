@@ -252,6 +252,44 @@ or RLS alone; schedules run with containers asleep; deletion leaves no rows or
 objects; a restore drill succeeds. `AGENTS.md`'s "public SaaS infrastructure"
 anti-goal is updated to reference this phase when 5.4 starts.
 
+## Phone app plan (not scheduled)
+
+Planned 2026-10-23 at the user's request; nothing here is started. The 2026-10-17
+deferral of dedicated phone work still stands until the user schedules it.
+v0.88.1 checked the web UI at phone and tablet sizes, so the app already works in
+a phone browser.
+
+Approach: an installable web app (PWA), not a separate native app. The same
+React UI and server serve phones, tablets and desktops, self-hosted and hosted
+alike, with no app store review, second codebase or separate release train.
+
+- **6.1 Install to home screen.** Web app manifest, icons and a minimal service
+  worker that caches only the static app shell. Never cache API responses,
+  files, chat streams or anything private; show a clear "can't reach your
+  server" screen when offline. Reconcile with [versioning](VERSIONING.md), which
+  currently relies on having no service worker, so new releases still load.
+- **6.2 Camera capture.** Take a photo straight into chat or Photos through the
+  ordinary file input (no custom camera code), with progress, retry and
+  Cancel. Uploads keep the existing limits, quotas and idempotent retries.
+- **6.3 Share to LifeGather.** Android: manifest `share_target`, so a receipt
+  photo or PDF can be shared from another app. iPhone Safari does not support
+  share targets; ordinary upload stays the universal path there.
+- **6.4 Native wrapper (conditional).** Only if a demonstrated need (iPhone share
+  sheet, app store listing, reliable background upload) justifies it: wrap the
+  same web UI with Capacitor rather than writing a separate app. No offline
+  editing or local copy of personal records on the phone.
+
+Requirement: installing and camera/share features need HTTPS on a real address.
+Hosted Cloudflare (Phase 5) provides it. Self-hosted needs the user's chosen
+remote-access path from [remote access](REMOTE_ACCESS.md) (for example a
+Cloudflare Tunnel), which remains a separate user decision; on the home network
+alone the app still works in the browser but cannot be installed as an app.
+
+Acceptance: install on iPhone Safari and Android Chrome against both a self-hosted
+HTTPS address and the hosted test site; sign in, capture, share (Android), sign
+out; confirm no private response is stored by the service worker, two accounts on
+one phone cannot see each other's data, and a new release replaces the cached shell.
+
 ## Conditional and deferred backlog
 
 These are candidates to evaluate, not a queue to execute automatically after Phase 4.
@@ -274,7 +312,7 @@ Keep existing delivered functionality while deferring these extensions.
 | Advanced asset form builder | Existing editable optional text fields first; richer widgets/required-field migrations only for proven needs. |
 | Power Center expansion | Fix actionable reconnect/setup issues; defer elaborate remote probes and diagnostics without a concrete failure to solve. |
 | Account/credential tooling | Maintain privacy/security and repair blocking issues throughout; device UI, linking, email changes and richer rotation tooling are scoped individually. |
-| Mobile/PWA/remote access | Preserve the existing deferral of dedicated camera/mobile apps, offline/share-menu and domain/tunnel setup. |
+| Mobile/PWA/remote access | Still deferred until the user schedules it. When revisited, follow the [phone app plan](#phone-app-plan-not-scheduled): installable web app first, native wrapper only if needed. Domain/tunnel setup stays a separate user decision. |
 
 ## Execution rules
 
