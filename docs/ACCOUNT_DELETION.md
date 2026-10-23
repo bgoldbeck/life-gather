@@ -35,7 +35,7 @@ Signing in again with the same Google account starts a new, empty account.
 
 Only the account's random id and two times are kept, in the `deleted_accounts`
 ledger, until every installation backup made before the deletion has expired;
-then that entry is removed too (0.99.0, see [backup expiry](RESTORE_DRILL.md)).
+then that entry is removed too (0.100.0, see [backup expiry](RESTORE_DRILL.md)).
 Gmail and AI provider grants are deleted locally but not revoked at Google or the
 provider; the person can revoke them in their Google account or provider console.
 

@@ -1,6 +1,6 @@
 # Backup expiry and restore drill (Phase 5.5 / 5.6)
 
-Status: delivered in 0.99.0. A live drill against the hosted database is an
+Status: delivered in 0.100.0. A live drill against the hosted database is an
 operator step (see the end of this page).
 
 ## Backup expiry after account deletion

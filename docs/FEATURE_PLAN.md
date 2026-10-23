@@ -147,7 +147,9 @@ Treat this as a release gate as well as continuing work during Phases 1 and 2.
   conversation retention. v0.84.0 lets users [delete memories](MEMORIES.md#deleting-memories-v0840),
   removing their text while records made from them keep their provenance.
   v0.86.0 restores a personal archive into an account that already has records,
-  adding only missing records and keeping current ones.
+  adding only missing records and keeping current ones. v0.99.0 [erases a
+  source](SOURCE_ERASURE.md) (a Gmail connection or one scan) and everything
+  derived from it.
 - Verify configured-provider behavior and connection recovery before claiming
   end-to-end readiness. **Deferred by Lisa (2026-10-23):** testing with real
   OpenAI, Claude and Gemini connections waits until she asks for it; do not pick
@@ -232,11 +234,11 @@ for the Phase 3 acceptance gate.
   (see [account deletion](ACCOUNT_DELETION.md)). Optional Turnstile bot checks
   and terms-of-use acceptance are done in 0.90.0 (see
   [sign-up protection](SIGNUP_PROTECTION.md)). Backup-expiry records are done
-  in 0.99.0 (see [backup expiry and restore drill](RESTORE_DRILL.md)).
+  in 0.100.0 (see [backup expiry and restore drill](RESTORE_DRILL.md)).
 - **5.6 Backups and recovery for many users.** Managed Postgres point-in-time
   recovery, protected R2 copies, a timed restore drill with written RPO/RTO, and
   per-user restore from the personal archive. The timed drill command and
-  written targets are done in 0.99.0 (see [restore drill](RESTORE_DRILL.md));
+  written targets are done in 0.100.0 (see [restore drill](RESTORE_DRILL.md));
   running it against the hosted database is the operator's step.
 - **5.7 Google verification.** Production OAuth branding, privacy policy and the
   restricted-scope review plus yearly CASA assessment for `gmail.readonly`.

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
+import { SourceErasure } from './SourceErasure'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import { ReconnectButton } from './ReconnectButton'
 import type { ReconnectTarget } from './reconnect'
@@ -570,6 +571,21 @@ export function ScansPanel({
                 Inspect or correct discovered assets
               </Button>
             </div>
+          )}
+          {!['queued', 'running'].includes(result.state) && (
+            <SourceErasure
+              key={result.id}
+              csrfToken={csrfToken}
+              kind="scan"
+              id={result.id}
+              name="this scan"
+              onErased={() => {
+                setSelected('')
+                setResult(null)
+                setAfter(0)
+                setReload((value) => value + 1)
+              }}
+            />
           )}
           {after > 0 && (
             <Button variant="outline" onClick={() => setAfter(0)}>

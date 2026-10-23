@@ -29,6 +29,8 @@ for good; it cannot be undone or restored in the app.
   those separately. Purchase evidence keeps its own exact quotes.
 - Deleting the memory of a photo or document does not delete the file or its
   stored extraction; delete the photo or document on its own page for that.
+- To remove a whole Gmail connection or scan together with the assets, facts
+  and purchases made from it, use [source erasure](SOURCE_ERASURE.md) (v0.99.0).
 - Re-running a scan or saving the same import again does not bring the text back.
   Saving a new note with the same words creates a new memory.
 - `POST /api/memories/delete-many` with `{"memories": [{"source_id"}, ...]}`
