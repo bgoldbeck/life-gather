@@ -11,8 +11,13 @@ from sqlalchemy.orm import Session
 
 from lifegather.auth.store import Account
 from lifegather.credentials.models import Credential
-from lifegather.credentials.service import PrivateSettings
-from lifegather.mailboxes.provider import GMAIL_URL, READ_SCOPE, GmailProvider
+from lifegather.credentials.service import PrivateSettings, ReconnectRequired
+from lifegather.mailboxes.provider import (
+    GMAIL_URL,
+    READ_SCOPE,
+    GmailProvider,
+    MailboxReconnect,
+)
 from lifegather.mailboxes.service import Mailboxes
 from lifegather.mailboxes.text import message_text
 from lifegather.memory.schemas import SourceInput
@@ -89,6 +94,22 @@ class GmailImportHandler:
     async def step(
         self, context: ScanContext, config: dict[str, Any], cursor: dict[str, Any]
     ) -> ScanBatch:
+        try:
+            return await self.gmail_step(context, config, cursor)
+        except MailboxReconnect:
+            identity = context.state.get("identity")
+            if identity is not None:
+                self.vault.record_auth(
+                    context.actor,
+                    identity[1],
+                    "reconnect",
+                    context.state.get("read_at", 0),
+                )
+            raise ReconnectRequired("gmail", config["mailbox_id"], "gmail") from None
+
+    async def gmail_step(
+        self, context: ScanContext, config: dict[str, Any], cursor: dict[str, Any]
+    ) -> ScanBatch:
         def check() -> tuple[str, str, bytes]:
             context.check()
             with Session(self.engine) as db:
@@ -100,9 +121,11 @@ class GmailImportHandler:
         identity = check()
         if "token" not in context.state:
             context.state["identity"] = identity
+            context.state["read_at"] = read_at = int(time.time())
             token = await self.provider.access(
                 self.vault.read_secret(context.actor, identity[1])
             )
+            self.vault.record_auth(context.actor, identity[1], "working", read_at)
             check()
             profile = await self.provider.request(
                 "GET", GMAIL_URL + "/profile", token=token

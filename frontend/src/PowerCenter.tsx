@@ -24,6 +24,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { ForestScene, PowerGrowth } from './PowerGrowth'
+import { ReconnectButton } from './ReconnectButton'
+import type { ReconnectTarget } from './reconnect'
 import { ToneIcon, type Tone } from './tones'
 import './power-center.css'
 
@@ -53,6 +55,7 @@ type Source = {
   last_run_id?: string | null
   freshness: string
   scope: string
+  reconnect?: ReconnectTarget | null
 }
 export type PowerSnapshot = {
   checked_at: number
@@ -70,6 +73,7 @@ export type PowerSnapshot = {
     action: Destination
     state: State
     run_id: string | null
+    reconnect?: ReconnectTarget | null
   }[]
   issues_truncated: boolean
   connected_sources: number
@@ -133,6 +137,8 @@ export function PowerCenter({
   onOpenScan,
   onOpenAssistant,
   refreshSession,
+  csrfToken = '',
+  onReconnectKey,
   compact = false,
   changeSignal = 0,
 }: {
@@ -140,6 +146,8 @@ export function PowerCenter({
   onNavigate: (page: Destination) => void
   onOpenScan?: (id: string) => void
   onOpenAssistant?: () => void
+  csrfToken?: string
+  onReconnectKey?: (target: ReconnectTarget) => void
   refreshSession?: () => Promise<void>
   compact?: boolean
   changeSignal?: number
@@ -488,6 +496,13 @@ export function PowerCenter({
                             )}
                             {source.state !== 'planned' && (
                               <div className="power-actions">
+                                {source.reconnect && (
+                                  <ReconnectButton
+                                    target={source.reconnect}
+                                    csrfToken={csrfToken}
+                                    onReconnectKey={onReconnectKey}
+                                  />
+                                )}
                                 {source.last_run_id && onOpenScan && (
                                   <Button
                                     variant="outline"
@@ -571,6 +586,13 @@ export function PowerCenter({
                             />
                             <p>{issue.reason}</p>
                           </div>
+                          {issue.reconnect && (
+                            <ReconnectButton
+                              target={issue.reconnect}
+                              csrfToken={csrfToken}
+                              onReconnectKey={onReconnectKey}
+                            />
+                          )}
                           <Button
                             variant="outline"
                             onClick={() =>
@@ -685,11 +707,13 @@ export function PowerCenter({
                 Gmail processing observations expire after 24 hours; data is
                 labelled stale after 7 days. Successful work covers only its
                 requested query and date window. A reconnect invalidates earlier
-                grant observations. AI/model reachability cannot be established
-                from saved credentials or aggregate usage, so remains
-                unverified. A cancelled run is not a provider failure. Failed
-                runs from the last 7 days remain available for inspection even
-                after recovery.
+                grant observations. An AI connection shows Ready only after a
+                requested AI request succeeded within the last 24 hours; until
+                then it remains unverified. When Google or an AI provider
+                refuses a saved sign-in as expired or revoked, the connection
+                needs attention and offers Reconnect. A cancelled run is not a
+                provider failure. Failed runs from the last 7 days remain
+                available for inspection even after recovery.
               </p>
               <p>
                 No recurring external probes, folder watcher, automatic model

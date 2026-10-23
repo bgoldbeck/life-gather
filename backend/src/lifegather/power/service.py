@@ -32,6 +32,15 @@ class PowerRead(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
 
+class Reconnect(BaseModel):
+    """Which refused sign-in to renew: a Gmail grant or a saved AI key."""
+
+    kind: Literal["gmail", "ai"]
+    provider: str
+    # Credential IDs stay out of diagnostics; Settings finds the refused key.
+    mailbox_id: str | None = None
+
+
 class Capability(BaseModel):
     id: str
     title: str
@@ -55,6 +64,7 @@ class SourceStatus(BaseModel):
     last_run_id: str | None = None
     freshness: Literal["current", "stale", "unknown"] = "unknown"
     scope: str = ""
+    reconnect: Reconnect | None = None
 
 
 class Issue(BaseModel):
@@ -64,6 +74,7 @@ class Issue(BaseModel):
     action: Destination
     state: State
     run_id: str | None = None
+    reconnect: Reconnect | None = None
 
 
 class PowerSnapshot(BaseModel):
@@ -125,7 +136,14 @@ class PowerCenter:
         # Metadata only. Nonces, ciphertext, secrets and raw scan errors stay private.
         credentials = list(
             db.execute(
-                select(Credential.id, Credential.kind, Credential.provider)
+                select(
+                    Credential.id,
+                    Credential.kind,
+                    Credential.provider,
+                    Credential.label,
+                    Credential.auth_state,
+                    Credential.auth_checked_at,
+                )
                 .where(Credential.user_id == actor.id)
                 .order_by(Credential.id)
                 .limit(101)
@@ -139,7 +157,17 @@ class PowerCenter:
         mail_credentials = {
             c.id for c in credentials if c.kind == "email" and c.provider == "gmail"
         }
+        # Only the provider's last answer to each key; Power Center never probes.
+        refused = {c.id: c for c in credentials if c.auth_state == "reconnect"}
+        accepted = {
+            c.id
+            for c in credentials
+            if c.auth_state == "working"
+            and c.auth_checked_at is not None
+            and 0 <= now - c.auth_checked_at <= OBSERVATION_SECONDS
+        }
         selected = bool(choice and choice.credential_id in ai and choice.model)
+        selected_id = choice.credential_id if choice and selected else None
         ai_reason = (
             "Configure encrypted credential storage in Settings."
             if not self.vault_enabled
@@ -151,6 +179,11 @@ class PowerCenter:
             if requests >= DAILY_REQUESTS
             else "Save a connection and model in Chat to establish your default."
             if not selected
+            else "Your selected AI connection was refused; the key may have expired "
+            "or been revoked. Reconnect it with a new key."
+            if selected_id in refused
+            else "Your selected AI connection answered within the last 24 hours."
+            if selected_id in accepted
             else "Connection and model configured; model availability is unverified. "
             "Use Ask AI for a requested, budgeted check."
         )
@@ -161,6 +194,10 @@ class PowerCenter:
             if not consent
             else "blocked"
             if not ai or requests >= DAILY_REQUESTS or not selected
+            else "failed"
+            if selected_id in refused
+            else "ready"
+            if selected_id in accepted
             else "unknown"
         )
         capabilities = [
@@ -241,20 +278,32 @@ class PowerCenter:
             ("anthropic", "Claude"),
             ("google", "Gemini"),
         ):
-            count = sum(value == provider for value in ai.values())
+            keys = [key for key, value in ai.items() if value == provider]
+            count = len(keys)
+            usable = count and self.vault_enabled and consent
+            bad = next((refused[key] for key in keys if key in refused), None)
+            source_state: State = (
+                ("failed" if bad else "ready" if set(keys) & accepted else "unknown")
+                if usable
+                else "blocked"
+                if not count or not self.vault_enabled
+                else "disabled"
+            )
             sources.append(
                 SourceStatus(
                     id=provider,
                     title=title,
                     category="ai",
                     configured=bool(count),
-                    state="unknown"
-                    if count and self.vault_enabled and consent
-                    else "blocked"
-                    if not count or not self.vault_enabled
-                    else "disabled",
+                    state=source_state,
                     reason=(
-                        f"{count} saved connection(s). Model health is unverified."
+                        f"{title} refused the saved key “{bad.label}”; it may have "
+                        "expired or been revoked. Reconnect it with a new key."
+                        if bad
+                        else f"{count} saved connection(s). A request succeeded "
+                        "within the last 24 hours."
+                        if source_state == "ready"
+                        else f"{count} saved connection(s). Model health is unverified."
                         if count
                         else "Add a connection to enable requested AI processing."
                     )
@@ -262,6 +311,7 @@ class PowerCenter:
                     capabilities=["ai_recall", "photo_reading", "gmail_discovery"],
                     action="Settings",
                     scope="Requested AI work may cost money. Local checks are free.",
+                    reconnect=Reconnect(kind="ai", provider=provider) if bad else None,
                 )
             )
         mailboxes = list(
@@ -334,6 +384,13 @@ class PowerCenter:
                     "failed",
                     "Scan lease expired; inspect worker recovery in Scans.",
                 )
+            revoked = available and mailbox.credential_id in refused
+            if revoked:
+                state, reason = (
+                    "failed",
+                    "Gmail access expired or was revoked. Reconnect Gmail to scan "
+                    "again; saved evidence is kept.",
+                )
             if available:
                 mail_states.append(state)
             sources.append(
@@ -349,7 +406,12 @@ class PowerCenter:
                         "gmail_discovery",
                         "gmail_attachments",
                     ],
-                    action="Scans" if available else "Settings",
+                    action="Scans" if available and not revoked else "Settings",
+                    reconnect=Reconnect(
+                        kind="gmail", provider="gmail", mailbox_id=mailbox.id
+                    )
+                    if revoked
+                    else None,
                     last_success=last,
                     last_run_id=success.id if success else None,
                     freshness="unknown"
@@ -446,12 +508,18 @@ class PowerCenter:
         )
         issues = [
             Issue(
-                id=s.id, title=s.title, reason=s.reason, action=s.action, state=s.state
+                id=s.id,
+                title=s.title,
+                reason=s.reason,
+                action=s.action,
+                state=s.state,
+                reconnect=s.reconnect,
             )
             for s in sources
             if s.configured and s.state != "ready"
         ]
-        if ai_state != "unknown":
+        # A refused selected key is already reported, with Reconnect, by its source.
+        if ai_state not in {"unknown", "ready", "failed"}:
             issues.append(
                 Issue(
                     id="ai_setup",

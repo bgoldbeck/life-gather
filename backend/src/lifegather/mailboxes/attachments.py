@@ -23,7 +23,12 @@ from lifegather.documents.formats import MIMES
 from lifegather.documents.models import Document
 from lifegather.documents.service import DocumentService
 from lifegather.mailboxes.discovery_models import EmailAttachment
-from lifegather.mailboxes.provider import GMAIL_URL, GmailProvider, MailboxFailure
+from lifegather.mailboxes.provider import (
+    GMAIL_URL,
+    GmailProvider,
+    MailboxFailure,
+    MailboxReconnect,
+)
 from lifegather.mailboxes.scan import GmailImportHandler, GmailScanConfig
 from lifegather.mailboxes.text import message_text
 from lifegather.memory.schemas import SourceInput
@@ -177,6 +182,8 @@ class GmailAttachmentHandler(GmailImportHandler):
                     )
                     data = reply.get("data")
                 raw = decode(data, part.size)
+            except MailboxReconnect:
+                raise
             except (MailboxFailure, ValueError):
                 skipped.append((part.filename, "could not be downloaded"))
                 continue

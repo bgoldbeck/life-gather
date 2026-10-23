@@ -1,6 +1,6 @@
 # Reconnect prompts for expired sign-ins
 
-Status: in progress on `claude/reconnect-prompts`.
+Status: released as v0.85.0.
 
 ## Problem
 

@@ -261,3 +261,5 @@ bump, schema migration, source-graph refresh or Docker build. Publishing an imag
 never authorizes restarting the user's running installation.
 
 Research-save reliability: v0.84.1 binds each accepted request to its original input and finding, including duplicates. Exact retries preserve removal state; records format 6 preserves receipts.
+
+Reconnect prompts: v0.85.0 remembers when Google or an AI provider refuses a saved sign-in (Gmail `invalid_grant`/`401`, AI `401`/`403`) and offers one-click Reconnect in Power Center, Scans, chat and Settings. Migration 0036.

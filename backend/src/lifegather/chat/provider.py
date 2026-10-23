@@ -2,6 +2,7 @@
 
 import base64
 import json
+from collections.abc import Awaitable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -11,7 +12,9 @@ from pydantic import BaseModel, ConfigDict, Field
 from lifegather.chat.streaming import DeltaSink, openai_response
 
 if TYPE_CHECKING:
+    from lifegather.auth.store import Account
     from lifegather.chat.research import ResearchCompletion
+    from lifegather.credentials.service import PrivateSettings
 
 
 class SearchPlan(BaseModel):
@@ -45,6 +48,33 @@ class Provider(Protocol):
 
 class ProviderError(ValueError):
     pass
+
+
+class ProviderAuthError(ProviderError):
+    """The provider refused the key (HTTP 401/403): expired, revoked or no access."""
+
+
+REFUSED = {401, 403}
+
+
+async def tracked[T](
+    vault: "PrivateSettings",
+    actor: "Account",
+    credential_id: str,
+    provider: str,
+    read_at: int,
+    call: Awaitable[T],
+) -> T:
+    """Await one provider request and remember whether it accepted the key."""
+    from lifegather.credentials.service import ReconnectRequired
+
+    try:
+        result = await call
+    except ProviderAuthError:
+        vault.record_auth(actor, credential_id, "reconnect", read_at)
+        raise ReconnectRequired("ai", credential_id, provider) from None
+    vault.record_auth(actor, credential_id, "working", read_at)
+    return result
 
 
 class OpenAIProvider:
@@ -145,6 +175,8 @@ class OpenAIProvider:
                         },
                     },
                 ) as response:
+                    if response.status_code in REFUSED:
+                        raise ProviderAuthError("OpenAI refused the saved key")
                     if response.status_code != 200:
                         raise ProviderError(
                             "OpenAI request failed; check access and model"

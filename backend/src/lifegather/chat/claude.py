@@ -7,7 +7,12 @@ from typing import TYPE_CHECKING, Any
 import httpx2
 from pydantic import BaseModel
 
-from lifegather.chat.provider import Completion, ProviderError
+from lifegather.chat.provider import (
+    REFUSED,
+    Completion,
+    ProviderAuthError,
+    ProviderError,
+)
 from lifegather.chat.streaming import DeltaSink, claude_response
 
 if TYPE_CHECKING:
@@ -153,6 +158,8 @@ class ClaudeProvider:
                         },
                     },
                 ) as response:
+                    if response.status_code in REFUSED:
+                        raise ProviderAuthError("Claude refused the saved key")
                     if response.status_code != 200:
                         raise ProviderError(
                             "Claude request failed; check access and model"

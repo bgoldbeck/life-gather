@@ -1,21 +1,34 @@
 import { useEffect, useState } from 'react'
 import { isAIProvider } from './aiProviders'
+import { ReconnectButton } from './ReconnectButton'
+import type { ReconnectTarget } from './reconnect'
 
-type Credential = { id: string; kind: string; provider: string; label: string }
+type Credential = {
+  id: string
+  kind: string
+  provider: string
+  label: string
+  auth_state?: 'working' | 'reconnect' | null
+}
 
 export function ScanAIOptions({
   credential,
   model,
   onCredential,
   onModel,
+  onReconnectKey,
 }: {
   credential: string
   model: string
   onCredential: (value: string) => void
   onModel: (value: string) => void
+  onReconnectKey?: (target: ReconnectTarget) => void
 }) {
   const [entries, setEntries] = useState<Credential[]>([])
   const [message, setMessage] = useState('Loading AI connections…')
+  const refused = entries.find(
+    (item) => item.id === credential && item.auth_state === 'reconnect',
+  )
   useEffect(() => {
     const controller = new AbortController()
     async function load() {
@@ -66,10 +79,28 @@ export function ScanAIOptions({
           {entries.map((item) => (
             <option key={item.id} value={item.id}>
               {item.label} ({item.provider})
+              {item.auth_state === 'reconnect' ? ' · needs reconnect' : ''}
             </option>
           ))}
         </select>
       </label>
+      {refused && (
+        <div role="alert">
+          <p>
+            The provider refused this key; it may have expired or been revoked.
+          </p>
+          <ReconnectButton
+            target={{
+              kind: 'ai',
+              provider: refused.provider,
+              credential_id: refused.id,
+            }}
+            csrfToken=""
+            onReconnectKey={onReconnectKey}
+            variant="outline"
+          />
+        </div>
+      )}
       <label>
         Discovery model
         <input

@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.85.0 - Reconnect prompts for expired sign-ins
+
+- When Google refuses a saved Gmail grant (token refresh `invalid_grant`, or a
+  Gmail `401`), the scan stops with "Gmail access expired or was revoked.
+  Reconnect Gmail to continue." instead of a generic failure. Saved evidence is
+  kept. Other Gmail errors are reported as before.
+- When OpenAI, Claude or Gemini answers `401`/`403` in chat, web research, photo
+  reading, Gmail purchase discovery or receipt suggestions, the reply says the key
+  was refused and offers **Reconnect**.
+- **Reconnect** appears in Power Center (connection cards and next actions),
+  Scans (a banner per expired mailbox, and under a refused discovery key), chat
+  and Settings. For Gmail it starts Google consent in one click; for an AI key it
+  opens that key's Replace form in Settings. Settings marks each key as working,
+  refused, or not validated, and the chat and scan pickers tag refused keys.
+- An AI connection now shows **Ready** in Power Center after a request succeeded
+  within 24 hours, instead of always "Unverified".
+- Migration `0036_credential_auth_state` adds two nullable metadata columns to
+  `credentials` (`auth_state`, `auth_checked_at`). No secret is read for them,
+  Power Center still makes no provider calls, and nothing is retried
+  automatically. `GET /api/credentials` and `GET /api/mailboxes` include the state
+  (`auth_state`, `needs_reconnect`); turn results may include `reconnect`.
+
 ## 0.84.1 - Preserve research-save retry decisions
 
 - Every accepted save, including per-asset/page duplicates, now retains its exact

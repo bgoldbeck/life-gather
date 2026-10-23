@@ -2,6 +2,7 @@
 
 import json
 import re
+import time
 from dataclasses import replace
 from typing import Any, Literal
 
@@ -10,7 +11,7 @@ from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session
 
 from lifegather.auth.store import Account
-from lifegather.chat.provider import Provider
+from lifegather.chat.provider import Provider, tracked
 from lifegather.chat.service import ChatService
 from lifegather.credentials.models import Credential, UserSettings
 from lifegather.credentials.service import PrivateSettings
@@ -193,16 +194,24 @@ class GmailDiscoveryHandler(GmailImportHandler):
             )
             if RELATED.search(item.source.text):
                 check()
+                read_at = int(time.time())
                 secret, day = self.chat.reserve(
                     context.actor, self.vault, config["credential_id"]
                 )
                 check()
-                result = await self.providers[config["ai_provider"]].complete(
-                    secret,
-                    config["model"],
-                    INSTRUCTION,
-                    {"email_text": item.source.text},
-                    EmailExtraction,
+                result = await tracked(
+                    self.vault,
+                    context.actor,
+                    config["credential_id"],
+                    config["ai_provider"],
+                    read_at,
+                    self.providers[config["ai_provider"]].complete(
+                        secret,
+                        config["model"],
+                        INSTRUCTION,
+                        {"email_text": item.source.text},
+                        EmailExtraction,
+                    ),
                 )
                 self.chat.record_usage(
                     context.actor, day, result.input_tokens, result.output_tokens

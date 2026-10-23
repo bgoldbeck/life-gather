@@ -27,6 +27,7 @@ from lifegather.chat.retention import ConversationRetention, Days, RetentionInpu
 from lifegather.chat.runner import answer
 from lifegather.chat.service import ChatService, SaveText, TurnInput
 from lifegather.chat.streaming import DeltaSink, StatusSink
+from lifegather.credentials.service import ReconnectRequired
 from lifegather.documents.service import DocumentService
 from lifegather.maintenance.service import MaintenanceService
 from lifegather.memory.notes import CorrectionInput, NoteService
@@ -351,6 +352,13 @@ def chat_router() -> APIRouter:
             await asyncio.gather(task, return_exceptions=True)
             return chat.finish(
                 current.user, turn_id, {"text": "Request stopped."}, "canceled"
+            )
+        except ReconnectRequired as error:
+            return chat.finish(
+                current.user,
+                turn_id,
+                {"text": str(error), "reconnect": error.view()},
+                "failed",
             )
         except Exception:
             task.cancel()
