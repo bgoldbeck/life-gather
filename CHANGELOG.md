@@ -20,6 +20,28 @@
   bundles; no recovery format change.
 - No schema change or migration; migration head remains 0037.
 
+## 0.90.2 - Power Center setup cards stand out
+
+- Power Center connection cards and capability rows are now neutral; category
+  color stays on the icon tile only, instead of a colored strip on every card.
+- Cards that need setup get one consistent attention style in every theme: an
+  amber edge and outline, a light amber wash, a solid "Needs setup" pill and a
+  filled action button. Failed items use the same style in red. Ready,
+  unverified, disabled and planned cards stay plain. No backend, API or
+  migration changes.
+
+## 0.90.1 - Power level capsule
+
+- The Power Center's power level is now a small capsule in the heading row
+  instead of a full-width panel with a five-stage ladder. It still shows the
+  current stage, the points (or the confirmed to possible range when the score
+  is incomplete), a small bar and the stale state. The stage thresholds and the
+  next stage are in its hover title and screen reader text. On wide screens it
+  sits above "Check all locally"; when the heading fills the row, the capsule
+  and button share the next row. The heading is about half as tall on laptop
+  screens, so the stat tiles and connections move up. No backend, API or
+  migration change.
+
 ## 0.90.0 - Sign-up bot checks and terms of use
 
 - Optional **Cloudflare Turnstile** on the email **Create account** and
