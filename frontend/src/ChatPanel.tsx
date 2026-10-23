@@ -53,6 +53,7 @@ type Turn = {
     saved_research?: SavedResearchCitation[]
     saved_research_limited?: boolean
     reconnect?: ReconnectTarget
+    attached?: { kind: 'photo' | 'document'; id: string; name: string }
   }
 }
 type ChatBody = {
@@ -876,6 +877,25 @@ export function ChatPanel({
                                       : 'Ask AI'}
                   </p>
                   <p className="chat-text">{turn.text}</p>
+                  {turn.result.attached && (
+                    <p className="chat-attached">
+                      {turn.result.attached.kind === 'photo' && (
+                        <img
+                          className="chat-attached-thumb"
+                          alt=""
+                          loading="lazy"
+                          src={`/api/photos/${turn.result.attached.id}/preview`}
+                          onError={(event) =>
+                            (event.currentTarget.hidden = true)
+                          }
+                        />
+                      )}
+                      <span>
+                        Attached {turn.result.attached.kind}:{' '}
+                        {turn.result.attached.name}
+                      </span>
+                    </p>
+                  )}
                   <div className="chat-response">
                     {turn.result.context?.name && (
                       <p>For {turn.result.context.name}</p>

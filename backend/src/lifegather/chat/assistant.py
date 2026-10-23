@@ -247,8 +247,11 @@ class AssistantRunner:
                     item["id"], {"name": item["name"], "version": item.get("version")}
                 )
         self.attachment: AssistantAttachment | None = None
+        # Only a file the user attached to this message is shown on it.
+        self.supplied = False
         if attachment and attachments:
             self.attachment = attachments(attachment["kind"], attachment["id"])
+            self.supplied = True
         elif self.pending and self.pending.get("attachment") and attachments:
             # A question about an attached file keeps that file for the answer.
             ref = self.pending["attachment"]
@@ -1058,6 +1061,22 @@ class AssistantRunner:
         }
 
     async def run(
+        self,
+        completion: Callable[
+            [str, dict[str, Any], type[BaseModel]], Awaitable[dict[str, Any]]
+        ],
+        status: StatusSink | None = None,
+    ) -> dict[str, Any]:
+        result = await self._run(completion, status)
+        if self.supplied and self.attachment is not None:
+            result["attached"] = {
+                "kind": self.attachment.kind,
+                "id": self.attachment.id,
+                "name": self.attachment.name[:200],
+            }
+        return result
+
+    async def _run(
         self,
         completion: Callable[
             [str, dict[str, Any], type[BaseModel]], Awaitable[dict[str, Any]]

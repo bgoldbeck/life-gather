@@ -1,6 +1,6 @@
 """Single source of truth for the application and Python package version."""
 
-__version__ = "0.88.1"
+__version__ = "0.89.0"
 
 
 def build_info(revision: str) -> dict[str, str | None]:

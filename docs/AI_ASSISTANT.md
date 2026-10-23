@@ -155,6 +155,13 @@ document**, pick one of your saved originals, then ask about it or say what to
 save: "What serial is on this plate?" or "Save the model and serial from this
 manual to my drill." Choosing a file makes no AI request.
 
+Since v0.89.0 **Attach a photo** opens your saved photos straight away as small
+square thumbnails (twelve at a time, **More saved Chat photos** for the rest),
+the chosen photo shows as a thumbnail before you send, and your message in the
+conversation keeps showing which photo or document you attached, also after a
+reload. A file carried over to your answer to the assistant's question is not
+shown again on that answer.
+
 - `read_attachment` gives the model the file's text: a document's saved (or
   corrected) text, otherwise its locally extracted text, or a photo's saved
   transcription. A photo without one is sent to your selected provider once to

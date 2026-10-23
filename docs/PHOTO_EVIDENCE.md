@@ -58,7 +58,7 @@ appended library pages deduplicate it. No schema, API or provider-adapter change
 
 ## Saved-photo reading in Chat (v0.40.0)
 
-Choose **Read a saved photo** in Chat, load the private five-item paged library,
+Choose **Read a saved photo** in Chat, load the private twelve-item paged library,
 select one original and explicitly submit **Read selected photo**. This uses the
 selected persistent conversation and existing provider/model, consent and daily
 budget controls. Loading/choosing a thumbnail makes no AI call; submitting sends

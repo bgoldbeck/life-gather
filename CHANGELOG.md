@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.89.0 - Pick saved photos in Chat
+
+- In **AI assistant**, **Attach a photo** now opens your saved photos straight
+  away, without a second **Load** click. Chat shows them as compact square
+  thumbnails, twelve per page, with file names on one line, so several fit on a
+  phone. **Read a saved photo** uses the same thumbnails and page size.
+- The attached photo shows as a thumbnail next to its name before sending.
+- Your message in the conversation shows the photo (thumbnail) or document you
+  attached to it, also after a reload. The reply records it under `attached`
+  (kind, id, name) in the turn's existing result; an answer that only carries the
+  file over from the assistant's question does not. Turns saved before this
+  release show no attachment.
+- No migration, dependency or API request change. Browser check at 1366x900 and
+  390x844, light and dark: no page scrolls sideways.
+
 ## 0.88.1 - Phone and tablet layout
 
 - Checked every main page at phone (390x844), tablet portrait (820x1180) and
