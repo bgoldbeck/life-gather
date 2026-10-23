@@ -244,8 +244,12 @@ class ChatService:
                 if existing.fingerprint != key:
                     raise MemoryError("Request identity conflict; use a new request ID")
                 return self.view(existing), False
-            recovered = replay_maintenance(
-                db, actor, MaintenanceService(self.engine), data.request_id, key
+            recovered = (
+                replay_maintenance(
+                    db, actor, MaintenanceService(self.engine), data.request_id, key
+                )
+                if data.mode == "assistant"
+                else None
             )
             if data.context and recovered is None:
                 WorkspaceContexts(self.engine).read_in(db, actor, data.context)

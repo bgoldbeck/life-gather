@@ -326,6 +326,7 @@ def test_existing_chat_fingerprints_do_not_gain_empty_scan_field(
                         "scan",
                         "context",
                         "research",
+                        "timezone",
                     }
                 ),
             ]
