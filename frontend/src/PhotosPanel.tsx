@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button'
 import { BulkDelete } from './BulkDelete'
 import { PhotoAssetLinks } from './PhotoAssetLinks'
 import { PhotoEmailLinks } from './PhotoEmailLinks'
+import { GalleryBar, GalleryHeader, PhotoGalleryLinks } from './PhotoGalleries'
+import { useGalleries } from './photoGalleries'
 import { isAIProvider, aiProviderLabel } from './aiProviders'
 import { AssetProposalCard } from './AssetProposalCard'
 import { ReceiptProposalCard } from './ReceiptProposalCard'
@@ -71,6 +73,7 @@ export function PhotosPanel({
   const [percent, setPercent] = useState(0)
   const [uploading, setUploading] = useState(false)
   const [uploadUncertain, setUploadUncertain] = useState(false)
+  const [galleryId, setGalleryId] = useState('')
   const mounted = useRef(true)
   useEffect(() => {
     mounted.current = true
@@ -100,16 +103,19 @@ export function PhotosPanel({
     },
     [csrfToken],
   )
+  // Galleries group the whole library; item photo panels stay unchanged.
+  const galleries = useGalleries(request, !assetId)
+  const gallery = galleries.items.find((row) => row.id === galleryId)
   const chatRequest = useCallback(
     (path: string, init?: RequestInit) => request('chat' + path, init),
     [request],
   )
   const load = useCallback(
-    async (next = '') => {
+    async (next = '', inGallery = galleryId) => {
       const generation = ++listGeneration.current
       try {
         const page = await request(
-          `photos?asset_id=${encodeURIComponent(assetId)}&cursor=${next}`,
+          `photos?asset_id=${encodeURIComponent(assetId)}&gallery_id=${encodeURIComponent(inGallery)}&cursor=${next}`,
         )
         if (generation !== listGeneration.current) return
         setItems((current) => (next ? [...current, ...page.items] : page.items))
@@ -118,7 +124,7 @@ export function PhotosPanel({
         if (generation === listGeneration.current) throw caught
       }
     },
-    [request, assetId],
+    [request, assetId, galleryId],
   )
   useEffect(() => {
     let alive = true
@@ -211,7 +217,23 @@ export function PhotosPanel({
         clearSource()
         setFile(null)
         if (uploadInput.current) uploadInput.current.value = ''
-        setStatus('Photo saved privately. No AI request was made.')
+        let message = 'Photo saved privately. No AI request was made.'
+        if (gallery) {
+          try {
+            await request(
+              `photo-galleries/${encodeURIComponent(gallery.id)}/photos`,
+              {
+                method: 'POST',
+                body: JSON.stringify({ photo_ids: [result.photo.id] }),
+              },
+            )
+            message = `Photo saved privately and added to ${gallery.title}. No AI request was made.`
+          } catch {
+            message = `Photo saved privately, but it was not added to ${gallery.title}. Add it from its details.`
+          }
+          await galleries.reload()
+        }
+        setStatus(message)
         await load()
       } else if (result.kind === 'cancelled') setStatus(CANCELLED_MESSAGE)
       else if (result.kind === 'rejected') {
@@ -370,6 +392,7 @@ export function PhotosPanel({
       setReceipt('')
       setDeleteAcknowledged(false)
       await load()
+      await galleries.reload()
       setStatus(
         'Original and preview deleted. Derived text and earlier backups may remain.',
       )
@@ -441,7 +464,8 @@ export function PhotosPanel({
           >
             {uploadUncertain
               ? 'Retry same photo upload'
-              : 'Upload privately' + (assetId ? ' to this item' : '')}
+              : 'Upload privately' +
+                (assetId ? ' to this item' : gallery ? ' to this gallery' : '')}
           </Button>
         </div>
         {file && !busy && !uploadUncertain && (
@@ -470,6 +494,44 @@ export function PhotosPanel({
           />
         </details>
       )}
+      {!assetId && (
+        <GalleryBar
+          galleries={galleries.items}
+          activeId={gallery ? galleryId : ''}
+          request={request}
+          disabled={busy || retry}
+          onSelect={(id) => {
+            setGalleryId(id)
+            setSelected(null)
+            clearSource()
+            setStatus('')
+            void load('', id).catch(() =>
+              setError('Unable to load photos. Reopen this view to retry.'),
+            )
+          }}
+          onChanged={galleries.reload}
+        />
+      )}
+      {galleries.error && <p role="alert">{galleries.error}</p>}
+      {gallery && (
+        <GalleryHeader
+          key={gallery.id}
+          gallery={gallery}
+          request={request}
+          disabled={busy || retry}
+          onChanged={async () => {
+            await galleries.reload()
+            await load()
+          }}
+          onDeleted={async () => {
+            setGalleryId('')
+            setSelected(null)
+            await galleries.reload()
+            await load('', '')
+            setStatus('Gallery deleted. Its photos remain saved.')
+          }}
+        />
+      )}
       {error && <p role="alert">{error}</p>}
       {undo && undo.message === status ? (
         <UndoNotice
@@ -485,7 +547,11 @@ export function PhotosPanel({
         status && <p role="status">{status}</p>
       )}
       {!items.length && (
-        <p className="empty-state">No photos saved here yet.</p>
+        <p className="empty-state">
+          {gallery
+            ? 'No photos in this gallery yet. Use Add photos to choose saved ones.'
+            : 'No photos saved here yet.'}
+        </p>
       )}
       <ul className="photo-grid">
         {items.map((row) => (
@@ -543,6 +609,7 @@ export function PhotosPanel({
             setDeleteAcknowledged(false)
           }
           await load()
+          await galleries.reload()
         }}
       />
       {selected && (
@@ -624,6 +691,19 @@ export function PhotosPanel({
               photoId={selected.id}
               revision={selected.updated_at}
               onOpenAsset={onOpenAsset}
+            />
+          )}
+          {!assetId && (
+            <PhotoGalleryLinks
+              key={selected.id}
+              photoId={selected.id}
+              galleries={galleries.items}
+              request={request}
+              disabled={busy || retry || linking}
+              onChanged={async () => {
+                await galleries.reload()
+                if (gallery) await load()
+              }}
             />
           )}
           <PhotoEmailLinks

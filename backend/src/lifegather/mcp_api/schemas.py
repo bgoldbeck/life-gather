@@ -35,6 +35,7 @@ from lifegather.maintenance.schemas import (
 from lifegather.memory.history import FieldHistoryRead
 from lifegather.memory.library import LibraryPage
 from lifegather.memory.notes import CorrectionInput, NoteHistoryInput
+from lifegather.photos.galleries import GalleryList
 from lifegather.photos.service import PhotoAttach, PhotoDetach, PhotoList, PhotoRead
 from lifegather.power.service import PowerRead
 from lifegather.profiles.service import ProfileRead
@@ -191,6 +192,7 @@ INPUTS: dict[str, type[BaseModel]] = {
 
 INPUTS["photo_list"] = PhotoList
 INPUTS["photo_get"] = PhotoRead
+INPUTS["photo_gallery_list"] = GalleryList
 
 INPUTS["photo_detach"] = PhotoDetach
 INPUTS["photo_attach"] = PhotoAttach

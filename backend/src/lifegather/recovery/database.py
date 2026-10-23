@@ -43,6 +43,7 @@ SUPPORTED_MIGRATIONS = frozenset(
         "0038_operational_events",
         "0039_email_photo_attachments",
         "0040_deleted_accounts",
+        "0041_photo_galleries",
     }
 )
 STORED_PARTS = {

@@ -46,7 +46,7 @@ not guess who made an old change or relabel its confidence.
 
 ## File format
 
-The envelope identifies `format: "lifegather-records/6"`, `application_version`,
+The envelope identifies `format: "lifegather-records/7"`, `application_version`,
 UTC `snapshot_at`, purpose, exclusions, per-collection `counts` and `total_records`.
 `collections` contains arrays with these stable names:
 
@@ -63,6 +63,7 @@ UTC `snapshot_at`, purpose, exclusions, per-collection `counts` and `total_recor
 | `purchase_evidence` | Cross-source purchase claims and revisions |
 | `chat_conversations`, `chat_turns` | Conversations and saved requests/results |
 | `photos`, `photo_assets`, `documents` | Metadata, links and extracted document text; no binary files |
+| `photo_galleries`, `photo_gallery_photos` | Owner-named photo galleries, their typed event dates and which photos each holds (format 7) |
 | `research_save_receipts` | Exact accepted save requests and their finding result, including duplicate and removed saves (format 6) |
 | `research_findings` | Web research sources saved to an asset: URL, title, page date, excerpts, research time, removal time (format 5) |
 

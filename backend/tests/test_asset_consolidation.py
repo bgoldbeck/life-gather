@@ -351,7 +351,7 @@ def test_http_mcp_private_confirmed_replay_and_export(tmp_path: Path) -> None:
             == saved
         )
         exported = json.loads(RecordExport(memory.engine).download(actor))
-        assert exported["format"] == "lifegather-records/6"
+        assert exported["format"] == "lifegather-records/7"
         assert exported["collections"]["asset_consolidations"][0]["id"] == saved["id"]
         assert (
             not rpc(
@@ -744,5 +744,5 @@ def test_upgrade_preserves_originals_and_database_blocks_foreign_members(
     with store.engine.connect() as connection:
         assert (
             connection.scalar(text("SELECT version_num FROM alembic_version"))
-            == "0040_deleted_accounts"
+            == "0041_photo_galleries"
         )

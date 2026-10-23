@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.103.0 - Timeline page with spending and activity charts
+## 0.104.0 - Timeline page with spending and activity charts
 
 - New Timeline page in the navigation. A spending-by-month chart (6, 12 or 24
   months) adds up only the receipt line totals you confirmed, in their own
@@ -21,6 +21,28 @@
 - New read-only `GET /api/insights/dashboard` and `GET /api/insights/timeline`.
   Bounded reads; a result that reaches a bound says it is truncated. No
   migration, records-format or MCP change. See docs/TIMELINE.md.
+## 0.103.0 - Photo galleries
+
+- Group saved photos by event in Photos: a Galleries bar lists All photos and
+  each gallery (cover, event date, photo count); New gallery takes a name and
+  an optional event date you type. LifeGather never guesses a gallery's date
+  or contents. A gallery groups photos only and records no ownership or other
+  facts.
+- An open gallery shows only its photos, with Add photos (pick up to 50 saved
+  photos at once), Edit and Delete gallery. Deleting a gallery keeps every
+  photo. Uploading while a gallery is open adds the new photo to it.
+- Photo details list the galleries holding the photo, with Add to gallery and
+  Remove. Deleting a photo removes it from every gallery. Item photo panels are
+  unchanged.
+- HTTP under `/api/photo-galleries`, `GET /api/photos?gallery_id=` and
+  `GET /api/photos/{id}/galleries`; MCP `photo_gallery_list` (read-only) and a
+  `gallery_id` filter on `photo_list`. Limits: 100 galleries, names up to 80
+  characters.
+- Migration 0041_photo_galleries adds `photo_galleries` and
+  `photo_gallery_photos` with row security. Personal records format 7 includes
+  both; format 4 to 6 archives still restore, with no galleries. Account
+  deletion and source erasure cover them through their foreign keys.
+  See docs/PHOTO_GALLERIES.md.
 ## 0.102.0 - iPhone app for the home network
 
 - New iPhone and iPad app (`ios/`, Swift, iOS 15 or newer), the counterpart of

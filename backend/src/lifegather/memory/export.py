@@ -25,7 +25,12 @@ from lifegather.memory.models import (
     Evidence,
     NoteRevision,
 )
-from lifegather.photos.models import Photo, PhotoAsset
+from lifegather.photos.models import (
+    Photo,
+    PhotoAsset,
+    PhotoGallery,
+    PhotoGalleryPhoto,
+)
 from lifegather.purchases.models import PurchaseEvidence
 from lifegather.reconciliation.models import (
     Binding,
@@ -39,11 +44,14 @@ from lifegather.reconciliation.proposal_models import AssetProposal
 from lifegather.reconciliation.receipt_models import ReceiptDetail, ReceiptProposal
 from lifegather.version import __version__
 
-FORMAT = "lifegather-records/6"
+FORMAT = "lifegather-records/7"
+GALLERIES = frozenset({"photo_galleries", "photo_gallery_photos"})
 # Earlier formats a restore still accepts: the same collections minus newer ones.
 PREVIOUS_FORMATS = {
-    "lifegather-records/4": frozenset({"research_findings", "research_save_receipts"}),
-    "lifegather-records/5": frozenset({"research_save_receipts"}),
+    "lifegather-records/4": frozenset({"research_findings", "research_save_receipts"})
+    | GALLERIES,
+    "lifegather-records/5": frozenset({"research_save_receipts"}) | GALLERIES,
+    "lifegather-records/6": GALLERIES,
 }
 MAX_RECORDS = 10_000
 MAX_BYTES = 16 * 1024 * 1024
@@ -174,6 +182,8 @@ COLLECTIONS = (
         "preview_size source_id created_at updated_at deleted_at",
     ),
     Projection(PhotoAsset, "id photo_id asset_id recorded_at"),
+    Projection(PhotoGallery, "id title event_on created_at updated_at"),
+    Projection(PhotoGalleryPhoto, "id gallery_id photo_id added_at"),
     Projection(
         ResearchFinding,
         "id asset_id request_id turn_id question provider model researched_at url "

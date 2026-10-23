@@ -336,8 +336,8 @@ Keep existing delivered functionality while deferring these extensions.
 | Financial reconciliation | Defer allocations, split/combined payments and refund accounting; exact purchase facts remain in core evidence intake. |
 | Bulk/chained consolidation | Keep existing two-record correction; expand only when representative data makes its limits a real problem. |
 | Shipment/replacement/unit extensions | Keep current safeguards and delivered workflows; add specialized behavior only for demonstrated tracking cases. |
-| Photo event galleries | Defer; fix attachment/evidence navigation where it affects core tracking first. |
-| Rich timelines/dashboards | v0.103.0 (chosen by Lisa 2026-10-23) adds the [Timeline page](TIMELINE.md): spending by month from confirmed receipt line totals, activity by month and a month-by-month event list. Further dashboards (budgets, categories, retailers) only for demonstrated questions. |
+| Photo event galleries | Done in v0.103.0: owner-named galleries with optional typed event dates, multi-photo add, and gallery links in photo details. See [photo galleries](PHOTO_GALLERIES.md). Automatic grouping by photo date or place stays out (previews have no metadata). |
+| Rich timelines/dashboards | v0.104.0 (chosen by Lisa 2026-10-23) adds the [Timeline page](TIMELINE.md): spending by month from confirmed receipt line totals, activity by month and a month-by-month event list. Further dashboards (budgets, categories, retailers) only for demonstrated questions. |
 | Extra connectors | Choose sources actually used, individually: Outlook/iCloud, cloud files, calendar/contacts/photos, local folders/scanners, retailers or devices. No connector catalog milestone. |
 | More AI runtimes | Improve the three current adapters and tool use first; add another runtime only for a demonstrated requirement and supported contract. |
 | Advanced asset form builder | Existing editable optional text fields first; richer widgets/required-field migrations only for proven needs. |
