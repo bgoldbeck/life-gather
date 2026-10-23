@@ -14,12 +14,14 @@ from sqlalchemy.orm import Session
 from lifegather.assets.actions import ActionService
 from lifegather.auth.store import Account
 from lifegather.chat.context import ContextRef, WorkspaceContexts
+from lifegather.chat.maintenance_receipts import replay_maintenance
 from lifegather.chat.models import Conversation, Turn, Usage
 from lifegather.chat.provider_names import SUPPORTED_PROVIDERS
 from lifegather.chat.research import ResearchScope
 from lifegather.credentials.service import PrivateSettings
 from lifegather.database import begin_serialized
 from lifegather.mailboxes.scan import GmailScanConfig
+from lifegather.maintenance.service import MaintenanceService
 from lifegather.memory.notes import NoteService
 from lifegather.memory.origins import change_origin
 from lifegather.memory.schemas import SourceInput, SourceView
@@ -231,8 +233,6 @@ class ChatService:
         with Session(self.engine) as db:
             begin_serialized(db)
             conversation = self.owned(db, actor, conversation_id)
-            if data.context:
-                WorkspaceContexts(self.engine).read_in(db, actor, data.context)
             # Preserve replay fingerprints for turns saved before extraction existed.
             key = request_key(conversation_id, data)
             existing = db.scalar(
@@ -244,7 +244,12 @@ class ChatService:
                 if existing.fingerprint != key:
                     raise MemoryError("Request identity conflict; use a new request ID")
                 return self.view(existing), False
-            if db.scalar(
+            recovered = replay_maintenance(
+                db, actor, MaintenanceService(self.engine), data.request_id, key
+            )
+            if data.context and recovered is None:
+                WorkspaceContexts(self.engine).read_in(db, actor, data.context)
+            if recovered is None and db.scalar(
                 select(Turn.id)
                 .where(
                     Turn.user_id == actor.id,
@@ -262,8 +267,8 @@ class ChatService:
                 mode=data.mode,
                 text=data.text,
                 fingerprint=key,
-                state="pending",
-                result_json="{}",
+                state="complete" if recovered is not None else "pending",
+                result_json=json.dumps(recovered) if recovered is not None else "{}",
                 created_at=time.time_ns() // 1000,
             )
             if conversation.title == "New conversation":
@@ -272,7 +277,7 @@ class ChatService:
             db.flush()
             result = self.view(row)
             db.commit()
-            return result, True
+            return result, recovered is None
 
     def organize(
         self, actor: Account, conversation_id: str, value: TurnInput

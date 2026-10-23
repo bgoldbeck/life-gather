@@ -13,6 +13,10 @@ from sqlalchemy.orm import Session
 
 from lifegather.chat.assistant_dates import stated_date
 from lifegather.chat.context import ContextRead
+from lifegather.chat.maintenance_receipts import (
+    maintenance_request_key,
+    revision_receipt,
+)
 from lifegather.chat.models import Turn
 from lifegather.maintenance.models import MaintenanceRevision
 from lifegather.maintenance.schemas import (
@@ -23,7 +27,7 @@ from lifegather.maintenance.schemas import (
 from lifegather.maintenance.service import MaintenanceService
 from lifegather.memory.notes import NoteConflict
 from lifegather.memory.origins import change_origin
-from lifegather.memory.service import MemoryError, fingerprint
+from lifegather.memory.service import MemoryError
 
 if TYPE_CHECKING:
     from lifegather.chat.assistant import AssistantRunner
@@ -334,8 +338,9 @@ class AssistantMaintenance:
             data: dict[str, Any] = {
                 **fields,
                 "text": runner.evidence,
-                "request_id": "assistant-maintenance:"
-                + fingerprint([runner.request_id]),
+                "request_id": maintenance_request_key(
+                    runner.request_id, row.fingerprint
+                ),
             }
             try:
                 with change_origin(
@@ -377,39 +382,7 @@ class AssistantMaintenance:
             )
             if revision is None:
                 raise MemoryError("Saved maintenance revision is unavailable.")
-            recorded = self.service._revision(db, runner.actor, revision)
-            fields = {key: recorded[key] for key in fields}
-            result = self._receipt(
-                db, target, snapshot["name"], saved, fields, revision.source_id
-            )
+            result = revision_receipt(db, runner.actor, self.service, revision)
+            result["read_trace"] = runner.trace
             runner._commit(db, row, result)
             return result
-
-    def _receipt(
-        self,
-        db: Session,
-        asset_id: str,
-        name: str,
-        saved: dict[str, str],
-        fields: dict[str, Any],
-        source_id: str,
-    ) -> dict[str, Any]:
-        runner = self.runner
-        return {
-            "text": (
-                f"Recorded {fields['title']} for {name} as "
-                f"{fields['state']}, as your statement."
-            ),
-            "provider": runner.provider,
-            "model": runner.model,
-            "changed_entity_id": asset_id,
-            "navigation": {"page": "Profiles", "entity_id": asset_id, "name": name},
-            "sources": [{"id": source_id, "text": runner._source_text(db, source_id)}],
-            "maintenance": {
-                "task_id": saved["id"],
-                "revision_id": saved["revision_id"],
-                **fields,
-            },
-            "assistant": {"operation": "maintenance", "asset_id": asset_id},
-            "read_trace": runner.trace,
-        }

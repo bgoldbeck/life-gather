@@ -578,11 +578,111 @@ def test_retained_task_retry_cites_original_revision_after_chat_reply_is_removed
             )
         )
         db.commit()
-    retried = send()
+    calls = len(case.provider.calls)
+    retried = case.send(conversation, "retained-task", message)["result"]
+    assert len(case.provider.calls) == calls
     assert len(tasks(case, asset)) == 1
     assert retried["maintenance"] == original["maintenance"]
     assert retried["sources"] == original["sources"]
     assert service.get(case.actor, identifier)["revision"]["state"] == "open"
+
+
+def test_retained_revision_retry_needs_no_new_model_decision(case: Case) -> None:
+    asset = case.asset("Synthetic mower", "mower")
+    identifier = seed(case, asset)
+    conversation = case.conversation()
+    message = "Mark my mower oil change complete"
+    original = case.send(
+        conversation,
+        "retained-revision",
+        message,
+        step("search_assets", query="mower"),
+        step("list_maintenance", asset_id=asset),
+        step("read_maintenance", maintenance_task_id=identifier),
+        step(
+            "revise_maintenance",
+            asset_id=asset,
+            maintenance_task_id=identifier,
+            maintenance=write(message, change("state", "completed", "complete")),
+        ),
+    )["result"]
+    service = MaintenanceService(case.engine)
+    observed = service.get(case.actor, identifier)
+    service.revise(
+        case.actor,
+        MaintenanceChange.model_validate(
+            {
+                "task_id": identifier,
+                "state_token": observed["state_token"],
+                "request_id": "later-reopen",
+                "title": "oil change",
+                "state": "open",
+                "due_on": "2026-11-03",
+                "timezone": "America/Los_Angeles",
+                "text": "Reopen this task",
+            }
+        ),
+    )
+    with Session(case.engine) as db:
+        db.execute(
+            delete(Turn).where(
+                Turn.user_id == case.actor.id, Turn.request_id == "retained-revision"
+            )
+        )
+        db.commit()
+    calls = len(case.provider.calls)
+    replay = case.send(conversation, "retained-revision", message)["result"]
+    assert len(case.provider.calls) == calls
+    assert replay["maintenance"] == original["maintenance"]
+    assert replay["sources"] == original["sources"]
+    assert service.get(case.actor, identifier)["revision"]["state"] == "open"
+    with Session(case.engine) as db:
+        db.execute(
+            delete(Turn).where(
+                Turn.user_id == case.actor.id, Turn.request_id == "retained-revision"
+            )
+        )
+        db.commit()
+    changed = case.client.post(
+        f"/api/chat/conversations/{conversation}/turns",
+        headers=case.headers,
+        json={
+            "request_id": "retained-revision",
+            "mode": "assistant",
+            "text": "Cancel my mower oil change",
+            "credential_id": case.credential,
+            "model": "fixture-model",
+        },
+    )
+    assert changed.status_code in {400, 409}
+    assert "identity" in str(changed.json()).lower()
+
+
+def test_exact_task_reply_replays_before_stale_context_validation(case: Case) -> None:
+    from lifegather.chat.context import ContextRead, WorkspaceContexts
+
+    asset = case.asset("Synthetic mower", "mower")
+    observed = WorkspaceContexts(case.engine).read(
+        case.actor, ContextRead(page="Assets", entity_id=asset)
+    )
+    context = {"page": "Assets", "entity_id": asset, "version": observed["version"]}
+    conversation = case.conversation()
+    message = "Add oil change to my mower"
+    original = case.send(
+        conversation,
+        "context-replay",
+        message,
+        step(
+            "create_maintenance",
+            asset_id=asset,
+            maintenance=write(message, change("title", "oil change", "oil change")),
+        ),
+        context=context,
+    )["result"]
+    replay = case.send(conversation, "context-replay", message, context=context)[
+        "result"
+    ]
+    assert replay == original and len(tasks(case, asset)) == 1
 
 
 def test_cancellation_before_maintenance_commit_saves_no_task(case: Case) -> None:
