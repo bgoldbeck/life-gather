@@ -23,6 +23,8 @@ from lifegather.memory.schemas import EntityInput, FactInput, SourceInput
 from lifegather.memory.service import DELETED_TEXT, MemoryError
 from lifegather.search.service import SearchQuery, SearchService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def many(*ids: str) -> MemoryDeleteMany:
     return MemoryDeleteMany(memories=[MemoryDelete(source_id=i) for i in ids])

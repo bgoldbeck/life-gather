@@ -26,6 +26,8 @@ from lifegather.photos.service import PhotoAttach, PhotoDelete, PhotoService
 from lifegather.purchases.schemas import EvidenceSave
 from lifegather.purchases.service import PurchaseEvidenceService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def pair(tmp_path: Path) -> tuple[Any, ...]:
     auth, actor, bob, memory, _ = setup(tmp_path)

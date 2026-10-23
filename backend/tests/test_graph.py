@@ -1,9 +1,12 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from lifegather.auth.store import AuthStore
 from lifegather.main import create_app
 from lifegather.memory.schemas import EntityInput, FactInput, SourceInput
 from lifegather.memory.service import MemoryService
+
+pytestmark = pytest.mark.usefixtures("configured_database")
 
 
 def test_graph_returns_owned_sourced_relationships_and_literal_facts() -> None:

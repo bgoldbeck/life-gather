@@ -10,6 +10,8 @@ from lifegather.chat.organizer import OrganizationAction, WorkspaceOrganizer
 from lifegather.memory.service import MemoryError
 from lifegather.profiles.service import ProfileCreate, ProfileService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def test_domain_change_rolls_back_if_reply_fails_and_concurrent_retry_saves_once(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch

@@ -28,6 +28,8 @@ from lifegather.memory.service import MemoryError
 from lifegather.photos.service import PhotoService
 from lifegather.profiles.service import ProfileChange, ProfileService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 @dataclass
 class Files:

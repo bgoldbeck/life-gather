@@ -91,6 +91,47 @@ installation configuration and vault key.
 
 ## Tests
 
+The Windows publisher now runs the complete backend suite inside Linux, split
+into four bounded shards. Each shard has its own PostgreSQL17 server and private
+network; no test database port is published. This avoids repeated Windows-to-
+Docker database round trips while preserving account and per-test isolation.
+
+Run the same verification directly from the repository root:
+
+```sh
+uv run --project backend --locked python scripts/run_backend_tests.py
+# Lower concurrency on a smaller machine:
+uv run --project backend --locked python scripts/run_backend_tests.py --workers 2
+```
+
+The first run builds the locked test image; later runs reuse dependency layers.
+The runner collects the suite once, assigns every whole file exactly once,
+checks each shard's expected collection count, and refuses success on failures
+or changing input files. It prints elapsed progress every15 seconds. Ignored
+`test-results/backend-*/` contains the input fingerprint, image ID, allocation,
+total/count checks, per-shard logs and JUnit reports. Each log includes the
+slowest25 test phases. Build time is included in the final wall-time report.
+Ctrl+C stops verification and cleans only that run's test containers/networks;
+the publisher must not build/upload after a failed or canceled shard. Abruptly
+killing the terminal/process can prevent cleanup; identify leftovers by the
+`lifegather.test-run` Docker label and exact invocation ID before removing them.
+
+For targeted development tests, a host PostgreSQL server can still be used as
+described below. Keep full verification for release; use a focused test file or
+`-k` selection while working on one behavior. Add `--durations=25` to inspect
+slow setup/call/teardown phases.
+
+Pure schema/date/validation tests do not need PostgreSQL. Environment cleanup
+remains automatic, but app/HTTP modules opt into `configured_database` with
+`pytestmark = pytest.mark.usefixtures("configured_database")`; shared app
+fixtures declare `configured_database: str` explicitly so importing tests inherit
+the dependency. Service-only modules call `database_support.database(path)`
+directly. Mixed HTTP/service modules retain module-level opt-in; the timing
+reports can guide finer fixture splitting without sharing mutable state.
+The migrated template starts lazily on the first actual database request.
+Do not point test configuration at a personal/application database or share
+mutable accounts between tests to improve timing.
+
 The backend tests need PostgreSQL with pgvector. Set
 `LIFEGATHER_TEST_DATABASE_URL` to a server URL whose user may create databases,
 for example a throwaway container:

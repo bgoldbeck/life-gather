@@ -17,6 +17,8 @@ from lifegather.memory.schemas import FactView
 from lifegather.memory.service import MemoryError, MemoryService
 from lifegather.profiles.service import ProfileChange, ProfileCreate, ProfileService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def context(store: AuthStore, actor: Account, entity: str) -> ContextRef:
     snapshot = WorkspaceContexts(store.engine).read(

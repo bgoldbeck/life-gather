@@ -28,6 +28,8 @@ from lifegather.memory.schemas import EntityInput, FactInput, SourceInput
 from lifegather.photos.service import PhotoService
 from lifegather.reconciliation.purchase_details import PurchaseDetails
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def test_empty_export_has_explicit_scope_and_no_account_identity(
     tmp_path: Path,

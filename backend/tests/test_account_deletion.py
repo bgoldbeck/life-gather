@@ -27,6 +27,8 @@ from lifegather.main import create_app
 from lifegather.storage.base import StorageError
 from lifegather.storage.local import LocalStorage
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def remaining(engine: Engine, user_id: str) -> dict[str, int]:
     """Rows still holding the account's id, in owned tables and in users."""

@@ -34,6 +34,8 @@ from lifegather.reconciliation.models import Decision
 from lifegather.reconciliation.schemas import DiscoveryInput
 from lifegather.reconciliation.service import ReconciliationService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def batch(tmp_path: Path) -> tuple[Any, ...]:
     auth, actor, bob, memory, reconcile, receipt, line, target, single = prepared(

@@ -207,19 +207,8 @@ try {
     Push-Location (Join-Path $repoRoot 'backend')
     try {
         Invoke-Checked uv @('sync', '--locked')
-        $testDatabase = 'lifegather-test-db-' + [guid]::NewGuid().ToString('N')
-        Start-TestDatabase $testDatabase $testPassword @('--publish', '127.0.0.1::5432')
-        $published = @(Get-CheckedOutput docker @('port', $testDatabase, '5432/tcp'))[0] -split "`n"
-        $testPort = ($published[0] -split ':')[-1].Trim()
-        if ($testPort -notmatch '^[0-9]+$') { throw 'Unable to find the test database port.' }
-        $env:LIFEGATHER_TEST_DATABASE_URL = "postgresql://postgres:$testPassword@127.0.0.1:$testPort/postgres"
-        try {
-            Invoke-Checked uv @('run', '--locked', 'pytest')
-        } finally {
-            Remove-Item Env:LIFEGATHER_TEST_DATABASE_URL -ErrorAction SilentlyContinue
-            Remove-TestContainer $testDatabase
-            $testDatabase = $null
-        }
+        Write-Host 'Running the full backend suite in four isolated Linux/PostgreSQL shards; elapsed progress and slow-test logs are reported.'
+        Invoke-Checked uv @('run', '--locked', 'python', '../scripts/run_backend_tests.py')
         Invoke-Checked uv @('run', '--locked', 'ruff', 'check', '.')
         Invoke-Checked uv @('run', '--locked', 'ruff', 'format', '--check', '.')
         Invoke-Checked uv @('run', '--locked', 'mypy')

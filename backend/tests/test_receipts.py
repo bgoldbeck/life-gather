@@ -36,6 +36,8 @@ from lifegather.reconciliation.receipts import (
     ReceiptService,
 )
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 TEXT = "Acme Drill Qty: 2\nAcme Saw Qty: 1"
 
 

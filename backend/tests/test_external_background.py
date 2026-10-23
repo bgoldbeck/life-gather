@@ -20,6 +20,8 @@ from lifegather.scans.schedules import ScheduleInput, ScheduleService
 from lifegather.scans.service import ScanService
 from lifegather.scans.worker import ScanWorker
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 TOKEN = "synthetic-tick-token-0123456789abcdef"
 
 

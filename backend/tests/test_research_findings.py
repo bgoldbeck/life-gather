@@ -31,6 +31,8 @@ from lifegather.memory.restore import PersonalRestore, RestoreError
 from lifegather.memory.schemas import EntityInput, SourceInput
 from lifegather.memory.service import MemoryError, MemoryService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 MANUAL = "https://manufacturer.example/mower-manual"
 PARTS = "https://parts.example/filters"
 

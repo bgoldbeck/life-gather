@@ -16,6 +16,8 @@ from lifegather.memory.schemas import EntityInput, FactInput, SourceInput
 from lifegather.memory.service import MemoryError
 from lifegather.profiles.service import ProfileCreate, ProfileService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def test_field_history_keeps_source_origin_and_replacement_separate(
     tmp_path: Path,

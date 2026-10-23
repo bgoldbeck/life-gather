@@ -19,6 +19,8 @@ from lifegather.memory.notes import CorrectionInput, NoteConflict, NoteService
 from lifegather.memory.schemas import EntityInput, FactInput, SourceInput
 from lifegather.memory.service import MemoryError, MemoryService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def setup(tmp_path: Path) -> tuple[Any, ...]:
     auth = AuthStore(database(tmp_path / "notes"))

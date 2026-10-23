@@ -24,6 +24,8 @@ from lifegather.memory.service import MemoryError, MemoryService, fingerprint
 from lifegather.scans.registry import ScanRegistry
 from lifegather.scans.service import ScanService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def test_http_chat_scan_replay_authorization_and_worker(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch

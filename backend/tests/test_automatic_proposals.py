@@ -26,6 +26,8 @@ from lifegather.reconciliation.proposals import (
 )
 from lifegather.reconciliation.service import ReconciliationService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def draft(
     service: ProposalService,

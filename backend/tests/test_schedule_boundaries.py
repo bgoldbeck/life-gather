@@ -25,6 +25,8 @@ from lifegather.scans.schedules import ScheduleInput, ScheduleService
 from lifegather.scans.service import ScanService
 from lifegather.scans.worker import ScanWorker
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def test_weekly_half_hour_quarter_hour_and_invalid_configuration() -> None:
     # Monday 09:00 in Nepal (+05:45).

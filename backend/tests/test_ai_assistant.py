@@ -24,6 +24,8 @@ from lifegather.main import create_app
 from lifegather.memory.schemas import FactView
 from lifegather.profiles.service import ProfileChange, ProfileService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 Script = dict[str, Any] | Callable[[dict[str, Any]], dict[str, Any]]
 
 
@@ -157,7 +159,9 @@ class Case:
 
 
 @pytest.fixture
-def case(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Case]:
+def case(
+    configured_database: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[Case]:
     key = tmp_path / "vault.key"
     generate(key)
     monkeypatch.setenv("LIFEGATHER_VAULT_KEY_FILE", str(key))

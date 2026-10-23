@@ -26,6 +26,8 @@ from lifegather.reconciliation.queue import (
 )
 from lifegather.reconciliation.service import ReconciliationService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def test_persistent_queue_unifies_proposals_and_identity_with_tenant_paging(
     tmp_path: Path,

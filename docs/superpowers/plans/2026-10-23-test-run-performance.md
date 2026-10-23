@@ -16,13 +16,13 @@
 - A failed collection/shard or Ctrl+C must never report release success; cleanup is invocation-scoped.
 
 ## Task1: explicit database setup
-- [ ] Add a failing fixture regression proving pure tests need no PostgreSQL and service fixtures avoid the default database.
-- [ ] Make template initialization demand-driven; separate environment isolation from configured_database; opt API modules/shared app fixtures into the latter.
-- [ ] Verify pure tests without a server and representative HTTP/service/recovery/isolation tests; Ruff/strict typing.
+- [x] Add a failing fixture regression proving pure tests need no PostgreSQL and service fixtures avoid the default database.
+- [x] Make template initialization demand-driven; separate environment isolation from configured_database; opt API modules/shared app fixtures into the latter.
+- [x] Verify pure tests without a server and representative HTTP/service/recovery/isolation tests; Ruff/strict typing.
 
 ## Task2: Linux shard runner and publisher
-- [ ] Write failing offline runner tests for allocation/counts, shard failure and cleanup; publisher gate regression.
-- [ ] Add dedicated test Dockerfile/ignore, collection/shard helper and bounded Docker orchestration. Add elapsed progress, logs/manifest and --durations=25.
-- [ ] Replace host pytest in the publisher; retain host static checks and downstream gates. Document standalone/targeted commands and output locations.
-- [ ] Run full suite once via the new runner, static/offline publisher tests; review final diff sequentially.
+- [x] Write failing offline runner tests for allocation/counts, shard failure and cleanup; publisher gate regression.
+- [x] Add dedicated test Dockerfile/ignore, collection/shard helper and bounded Docker orchestration. Add elapsed progress, logs/manifest and --durations=25.
+- [x] Replace host pytest in the publisher; retain host static checks and downstream gates. Document standalone/targeted commands and output locations.
+- [x] Run full suite once via the new runner, static/offline publisher tests; review final diff sequentially.
 - [ ] Fetch/reconcile latest main, push/update PR, exact-head merge and own branch cleanup; refresh graph/HTML and report measured duration/limitations. No application image rebuild/publication for excluded tooling-only changes.

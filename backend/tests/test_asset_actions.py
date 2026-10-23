@@ -21,6 +21,8 @@ from lifegather.memory.service import MemoryError, MemoryService
 from lifegather.reconciliation.schemas import DiscoveryInput
 from lifegather.reconciliation.service import ReconciliationService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def prepared(tmp_path: Path) -> tuple[Any, ...]:
     auth, alice, bob, memory, original, proposals, proposal = setup(tmp_path)

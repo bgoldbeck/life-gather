@@ -15,6 +15,8 @@ from lifegather.memory.service import MemoryService
 from lifegather.reconciliation.schemas import DiscoveryInput, DiscoveryView
 from lifegather.reconciliation.service import ReconciliationService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def item(
     memory: MemoryService,

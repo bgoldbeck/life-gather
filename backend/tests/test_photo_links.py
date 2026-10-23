@@ -28,6 +28,8 @@ from lifegather.photos.service import (
     PhotoService,
 )
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def test_existing_photo_link_preserves_bytes_evidence_units_and_safe_replay(
     tmp_path: Path,

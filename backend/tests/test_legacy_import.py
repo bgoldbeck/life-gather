@@ -25,6 +25,8 @@ from lifegather.recovery.bundle import RecoveryService
 from lifegather.recovery.database import validate_database
 from lifegather.storage import LocalStorage
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 FIXTURES = Path(__file__).parent / "fixtures"
 PASSPHRASE = b"synthetic legacy passphrase"
 

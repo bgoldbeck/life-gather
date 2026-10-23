@@ -46,6 +46,8 @@ from lifegather.scans.service import ScanService
 from lifegather.scans.worker import ScanWorker
 from lifegather.storage.base import StorageError
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 ORIGIN = "http://127.0.0.1:8787"
 
 # Which of Alice's records an identifier names. A new identifier parameter or

@@ -27,6 +27,8 @@ from lifegather.memory.service import MemoryError
 from lifegather.photos.service import PhotoDelete, PhotoList, PhotoService
 from lifegather.reconciliation.receipts import ReceiptReview, ReceiptService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def receipt_reading() -> dict[str, Any]:
     return {"transcription": TEXT, **extraction().model_dump()}
@@ -55,7 +57,7 @@ class SyntheticVision:
 
 @pytest.fixture
 def photo_chat(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    configured_database: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> Iterator[tuple[Any, ...]]:
     from lifegather.main import create_app
 

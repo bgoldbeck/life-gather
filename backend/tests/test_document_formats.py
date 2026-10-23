@@ -16,6 +16,8 @@ from lifegather.main import create_app
 from lifegather.memory.archive import PersonalArchive
 from lifegather.memory.service import MemoryError, MemoryService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def office(kind: str, *, unsafe: bool = False) -> bytes:
     output = BytesIO()

@@ -20,6 +20,8 @@ from lifegather.auth.routes import SESSION_COOKIE
 from lifegather.config import Settings
 from lifegather.main import create_app
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 ORIGIN = "http://127.0.0.1:8787"
 
 

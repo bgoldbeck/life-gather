@@ -24,6 +24,8 @@ from lifegather.main import create_app
 from lifegather.startup import StartupError, run_startup_tasks, schema_current
 from lifegather.storage.local import LocalStorage
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def encoded(key: bytes) -> str:
     return base64.b64encode(key).decode()

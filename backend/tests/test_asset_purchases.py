@@ -16,6 +16,8 @@ from lifegather.memory.service import MemoryError
 from lifegather.reconciliation.purchase_details import PurchaseDetails
 from lifegather.reconciliation.receipts import ReceiptReview, ReceiptService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def assets(receipt: dict[str, Any], index: int = 0) -> list[str]:
     return [str(value) for value in receipt["result"]["lines"][index]["asset_ids"]]

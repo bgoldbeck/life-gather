@@ -1,5 +1,6 @@
 import json
 
+import pytest
 from fastapi.testclient import TestClient
 
 from lifegather.chat.recall import RecallPlan, RecallTools
@@ -8,6 +9,8 @@ from lifegather.main import create_app
 from lifegather.memory.schemas import EntityInput, FactInput, SourceInput
 from lifegather.memory.service import MemoryService
 from lifegather.profiles.service import ProfileChange, ProfileCreate, ProfileService
+
+pytestmark = pytest.mark.usefixtures("configured_database")
 
 
 def test_recall_preserves_sources_private_ownership_and_distinct_items() -> None:

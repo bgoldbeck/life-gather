@@ -22,6 +22,8 @@ from lifegather.credentials.keygen import generate
 from lifegather.main import create_app
 from lifegather.profiles.service import ProfileCreate, ProfileService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 MANUAL = "https://manuals.example.com/dw-100.pdf"
 SPECS = "https://www.example.com/dw-100/specs"
 

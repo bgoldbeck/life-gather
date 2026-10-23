@@ -1,11 +1,14 @@
 import json
 
+import pytest
 from fastapi.testclient import TestClient
 from test_maintenance import change, plan
 from test_mcp_http import META, rpc, signed_headers
 
 from lifegather.main import create_app
 from lifegather.profiles.service import ProfileCreate, ProfileService
+
+pytestmark = pytest.mark.usefixtures("configured_database")
 
 
 def test_private_maintenance_http_and_mcp_share_source_history_and_owner_guards() -> (
