@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.96.0 - Share to LifeGather on Android
+## 0.98.0 - Share to LifeGather on Android
 
 - On Android, an installed LifeGather appears in the share menu of other apps.
   Share a receipt photo, a PDF manual or another supported file (JPEG, PNG,
@@ -18,6 +18,36 @@
   Documents as before. See docs/INSTALLABLE_APP.md.
 - No migration, API or MCP change (new `POST /share-target` fallback only
   redirects).
+
+## 0.97.0 - Photos from email attachments and scheduled attachment imports
+
+- Gmail attachment imports now also save JPEG, PNG and WebP attachments (up to
+  8 MiB, three files per email) as private photos in Photos, through the normal
+  photo upload: real-image check, metadata-free preview, dedupe, the photo limit
+  and the storage quota. No AI reads them and no item is created or attached.
+  A broken image or full quota is listed as not imported; the run continues.
+- Photos shows **Open the email this photo came from**
+  (`GET /api/photos/{id}/email-sources`). Scan results count saved photos and
+  offer **Review imported photos**.
+- Scheduled scans can now run attachment imports daily or weekly
+  (**Scheduled scan type**), with the 20-message attachment limit.
+- Migration `0039_email_photo_attachments` adds `email_attachments.photo_id`
+  and makes `document_id` optional; each link names exactly one file. Existing
+  links are unchanged.
+- Only tested with simulated Gmail.
+
+## 0.96.0 - Take a photo with the phone camera
+
+- On phones and tablets, Photos and the assistant's photo picker show **Take a
+  photo**. It opens the rear camera through the ordinary file input
+  (`capture="environment"`) and saves the photo straight away with the chosen
+  purpose. Desktop browsers don't show the button.
+- Photo uploads in Photos and Chat now show a progress bar with **Cancel
+  upload**. After a lost response Photos, like Chat, locks the file and offers
+  **Retry same photo upload**; the server keeps one copy per photo, so retries
+  and sending again after Cancel never duplicate it.
+- Frontend only. No migration, API or MCP change; nothing new is cached on the
+  device. See docs/INSTALLABLE_APP.md.
 
 ## 0.95.0 - Install LifeGather to the home screen
 

@@ -98,6 +98,12 @@ def photo_router() -> APIRouter:
     def assets(request: Request, photo_id: Identifier, current: Read) -> dict[str, Any]:
         return {"items": service(request).assets(current.user, photo_id)}
 
+    @router.get("/{photo_id}/email-sources")
+    def email_sources(
+        request: Request, photo_id: Identifier, current: Read
+    ) -> dict[str, Any]:
+        return {"items": service(request).email_sources(current.user, photo_id)}
+
     @router.get("/{photo_id}/preview")
     def preview(request: Request, photo_id: Identifier, current: Read) -> Response:
         raw, _ = service(request).binary(current.user, photo_id)

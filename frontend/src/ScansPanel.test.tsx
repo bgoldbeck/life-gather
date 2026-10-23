@@ -206,7 +206,8 @@ it('imports attached documents without AI and links to Documents', async () => {
                       state: 'saved',
                       reason: '',
                       metadata: {
-                        attachments_saved: 1,
+                        attachments_saved: 2,
+                        photos_saved: 1,
                         attachments_skipped: 2,
                       },
                     },
@@ -223,12 +224,12 @@ it('imports attached documents without AI and links to Documents', async () => {
   await screen.findAllByText('synthetic@example.test')
   await user.click(screen.getByLabelText('Discover purchases with AI'))
   await user.click(
-    screen.getByLabelText('Import attached documents for review'),
+    screen.getByLabelText('Import attached documents and photos for review'),
   )
   expect(screen.getByLabelText('Discover purchases with AI')).toBeDisabled()
   expect(screen.queryByLabelText('Discovery model')).toBeNull()
   await user.click(screen.getByRole('button', { name: /^Start email scan$/ }))
-  await screen.findByText(/1 attachments saved · 2 not imported/)
+  await screen.findByText(/2 attachments saved \(1 photo\) · 2 not imported/)
   expect(saved).toMatchObject({
     handler_key: 'gmail_attachments',
     config: { max_messages: 10 },
@@ -238,4 +239,8 @@ it('imports attached documents without AI and links to Documents', async () => {
     screen.getByRole('button', { name: 'Review imported documents' }),
   )
   expect(navigate).toHaveBeenCalledWith('Documents')
+  await user.click(
+    screen.getByRole('button', { name: 'Review imported photos' }),
+  )
+  expect(navigate).toHaveBeenCalledWith('Photos')
 })

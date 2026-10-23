@@ -99,7 +99,9 @@ screens or new domain subsystems.
   existing text discovery or evidence scan. v0.77.0 adds bounded attachment
   intake ([EMAIL_SCANS.md](EMAIL_SCANS.md#attachment-intake-v0770)), requested
   ahead of this gate, so limits stay conservative (supported documents only,
-  4 MiB, three per email, 20 emails, reviewed in Documents).
+  4 MiB, three per email, 20 emails, reviewed in Documents). v0.97.0 adds
+  JPEG/PNG/WebP photo attachments (8 MiB, saved in Photos) and scheduled
+  attachment imports.
 - Improve retrieval and source/photo navigation where representative user tasks
   reveal friction. Add OCR/formats only for demonstrated intake gaps; common
   documents already have local extraction and reviewed originals.
@@ -254,8 +256,8 @@ anti-goal is updated to reference this phase when 5.4 starts.
 
 ## Phone app plan (not scheduled)
 
-Planned 2026-10-23 at the user's request. The user scheduled step 6.1 the same
-day; 6.2 to 6.4 are not started.
+Planned 2026-10-23 at the user's request. The user scheduled steps 6.1 to 6.3 the same
+day; 6.1 and 6.2 are done, 6.4 is not started.
 v0.88.1 checked the web UI at phone and tablet sizes, so the app already works in
 a phone browser.
 
@@ -269,13 +271,16 @@ alike, with no app store review, second codebase or separate release train.
   API, sign-in, file or chat responses, so new releases load as described in
   [versioning](VERSIONING.md). Installing needs HTTPS (see below). Not yet
   checked on a real iPhone or Android phone.
-- **6.2 Camera capture.** Take a photo straight into chat or Photos through the
-  ordinary file input (no custom camera code), with progress, retry and
-  Cancel. Uploads keep the existing limits, quotas and idempotent retries.
-- **6.3 Share to LifeGather.** Android: manifest `share_target`, so a receipt
+- **6.2 Camera capture. Done in v0.96.0** ([camera](INSTALLABLE_APP.md#taking-photos-with-the-camera)).
+  On touch screens Chat and Photos show a "Take a photo" button: the ordinary
+  file input with `capture="environment"`, so no custom camera code. The photo
+  is saved straight away with a progress bar and Cancel; a lost response or a
+  Cancel can resend the same photo, which the server stores once. Uploads keep
+  the existing limits and quotas. Not yet checked on a real phone.
+- **6.3 Share to LifeGather. Done in v0.98.0.** Android: manifest `share_target`, so a receipt
   photo or PDF can be shared from another app. iPhone Safari does not support
   share targets; ordinary upload stays the universal path there.
-  Delivered in v0.96.0: the service worker holds shared files in memory only
+  Delivered in v0.98.0: the service worker holds shared files in memory only
   (never Cache Storage or IndexedDB) until the signed-in page claims them once;
   the page saves each through the existing Photos or Documents upload, so CSRF,
   size limits and storage quotas still apply. Without a running worker the

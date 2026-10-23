@@ -23,7 +23,7 @@ HANDLERS = {
     "import_evidence": "gmail_import",
     "import_attachments": "gmail_attachments",
 }
-# Attachment downloads are slower and fill document storage; keep them smaller.
+# Attachment downloads are slower and fill file storage; keep them smaller.
 MAX_MESSAGES = {"gmail_attachments": 10}
 
 
@@ -189,10 +189,12 @@ class AssistantScans:
         elif handler == "gmail_attachments":
             text = (
                 f"Started an attachment import of {scope}. Supported documents "
-                "(PDF, Word, Excel, CSV, text; up to 4 MiB, three per email) are "
-                "saved privately in Documents with a link to their email. No AI "
-                "reads them; review each document's text before it becomes "
-                "evidence. Other files are listed but not downloaded."
+                "(PDF, Word, Excel, CSV, text; up to 4 MiB) and photos (JPEG, "
+                "PNG, WebP; up to 8 MiB), three per email, are saved privately "
+                "in Documents and Photos with a link to their email. No AI "
+                "reads them and no item is created; review each document's text "
+                "before it becomes evidence. Other files are listed but not "
+                "downloaded."
             )
         else:
             text = (
