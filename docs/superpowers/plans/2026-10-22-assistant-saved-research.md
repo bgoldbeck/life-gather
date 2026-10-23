@@ -90,3 +90,5 @@ unchanged. Run focused regressions RED/GREEN, then the final full Linux suite an
 frontend/browser checks on the combined baseline. A fresh read-only integration
 review covers this new scope and upstream compatibility, not a repeat of the
 already-verified original review fixes.
+
+Final baseline reconciliation: account deletion merged as v0.87.0 at683762f. Preserve the account router, service, Settings controls and regression tests unchanged. This release is v0.88.0 with migration0036 and records format6. The full Linux suite runs against frozenbc400 source; affected account-deletion, research, search, version and browser/frontend checks validate the new combined source.

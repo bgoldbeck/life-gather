@@ -28,6 +28,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { AuthGate } from './AuthGate'
 import { PrivateSettingsPanel } from './PrivateSettingsPanel'
 import { PasswordSettings } from './PasswordSettings'
+import { AccountDeletion } from './AccountDeletion'
 import { ChatDock } from './ChatDock'
 import { NavigationDock } from './NavigationDock'
 import { WorkspaceAssistant } from './WorkspaceAssistant'
@@ -133,6 +134,7 @@ type View = (typeof navigation)[number]['name']
 export function Workspace({
   userId = '',
   userName,
+  userEmail = '',
   onSignOut,
   signingOut = false,
   csrfToken = '',
@@ -144,6 +146,7 @@ export function Workspace({
 }: {
   userId?: string
   userName?: string
+  userEmail?: string
   onSignOut?: () => void
   signingOut?: boolean
   csrfToken?: string
@@ -360,6 +363,12 @@ export function Workspace({
                   <PasswordSettings
                     configured={passwordEnabled}
                     deliveryEnabled={deliveryEnabled}
+                    csrfToken={csrfToken}
+                    refreshSession={refreshSession}
+                  />
+                  <AccountDeletion
+                    email={userEmail}
+                    passwordEnabled={passwordEnabled}
                     csrfToken={csrfToken}
                     refreshSession={refreshSession}
                   />
@@ -695,6 +704,7 @@ export default function App() {
           key={user.id}
           userId={user.id}
           userName={user.name || user.email}
+          userEmail={user.email}
           onSignOut={signOut}
           signingOut={busy}
           passwordEnabled={passwordEnabled}

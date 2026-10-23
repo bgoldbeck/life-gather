@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.87.0 - Recall saved web research in the asset assistant
+## 0.88.0 - Recall saved web research in the asset assistant
 
 - Ask the AI assistant about an asset's saved manual or web research in a later
   conversation. It can select the read-only `read_asset_research` tool over the
@@ -22,6 +22,20 @@
   remain in force. No migration, records-format or dependency change; migration
   head remains 0036 and records format 6. Synthetic providers verify contracts;
   live provider answer quality has not been checked.
+
+## 0.87.0 - Delete your account
+
+- Settings has a **Delete account** section. After typing the account email,
+  ticking the acknowledgement and (for password accounts) giving the current
+  password, the account is permanently deleted: every record, history entry,
+  conversation, scan, schedule, saved Gmail and AI sign-in, password, Google
+  link and session, plus every stored document and photo file. Other accounts
+  are unchanged. See [account deletion](docs/ACCOUNT_DELETION.md).
+- `POST /api/account/delete` removes stored files first and refuses with nothing
+  else changed if file storage fails; then one transaction deletes the account's
+  rows from every `user_id` table in foreign-key order read from the catalog.
+- No migration and no records-format change. Nothing about a deleted account is
+  kept; installation backups made earlier still hold it until they expire.
 
 ## 0.86.0 - Restore a backup into an account that already has records
 

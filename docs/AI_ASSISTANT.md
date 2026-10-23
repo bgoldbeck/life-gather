@@ -32,7 +32,7 @@ contacts a provider.
   the pending question. Another account's records are never readable.
 - One write per request, at most 6 model replies and 8 reads, bounded context.
 
-## Saved web research (v0.87.0)
+## Saved web research (v0.88.0)
 
 Ask, for example, "What filter did I save research about for my mower?" Select
 the asset or name it in your request. The model can choose
