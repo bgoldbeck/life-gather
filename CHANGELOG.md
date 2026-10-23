@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.85.0 - Recall saved web research in the asset assistant
+
+- Ask the AI assistant about an asset's saved manual or web research in a later
+  conversation. It can select the read-only `read_asset_research` tool over the
+  existing private findings service; no fresh search or page download occurs.
+- Replies show host-supplied source links, page/research/save dates, bounded
+  excerpts and an asset button. Prior generated answer excerpts stay labeled
+  separately from source excerpts. Finding IDs never enter the memory reader.
+- At most five active findings across a request, with explicit selection limits
+  and duplicate-read suppression. Current physical identity groups and account
+  isolation apply; removed findings are excluded from subsequent reads.
+- Research never authorizes writes or supplies values for asset profile edits.
+  Existing external-AI consent, cancellation, replay, read and context limits
+  remain in force. No migration, records-format or dependency change; migration
+  head remains 0035 and records format 6. Synthetic providers verify contracts;
+  live provider answer quality has not been checked.
+
 ## 0.84.1 - Preserve research-save retry decisions
 
 - Every accepted save, including per-asset/page duplicates, now retains its exact

@@ -21,6 +21,10 @@ import { ChatAttachment, type ChatAttachmentValue } from './ChatAttachment'
 import { ChatEmailScan, type EmailScanScope } from './ChatEmailScan'
 import { ConversationDelete } from './ConversationDelete'
 import { ResearchResult, type WebResearch } from './ResearchResult'
+import {
+  SavedResearchCitations,
+  type SavedResearchCitation,
+} from './SavedResearchCitations'
 
 type Source = { id: string; text: string }
 type Turn = {
@@ -44,6 +48,8 @@ type Turn = {
     context?: WorkspaceContext
     changed_entity_id?: string
     research?: WebResearch
+    saved_research?: SavedResearchCitation[]
+    saved_research_limited?: boolean
   }
 }
 type ChatBody = {
@@ -941,6 +947,13 @@ export function ChatPanel({
                           ),
                         )}
                       </div>
+                    )}
+                    {turn.result.saved_research && (
+                      <SavedResearchCitations
+                        items={turn.result.saved_research}
+                        limited={turn.result.saved_research_limited}
+                        onOpenAsset={onOpenAsset}
+                      />
                     )}
                     {turn.result.recall_limited && (
                       <p>

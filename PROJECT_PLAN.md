@@ -1,7 +1,12 @@
 # LifeGather — Product and Engineering Plan
 
-**Status:** v0.84.1 hardens research-save retries and evidence acknowledgments; tracking and evidence-backed recall remain the active priorities.
+**Status:** v0.85.0 adds dated saved-research recall to the AI asset assistant; tracking and evidence-backed recall remain the active priorities.
 **Date:** Updated 2026-10-22
+
+v0.85.0 lets the asset assistant read a bounded selection of saved web findings,
+with inspectable source links, dated excerpts and ownership/compatibility
+safeguards. No migration or dependency change. See
+[recall plan](docs/superpowers/plans/2026-10-22-assistant-saved-research.md).
 
 v0.84.1 hardens saved web research retries with durable owner-scoped receipts,
 removed-result acknowledgments and records format 6. Migration 0035; formats 4/5
