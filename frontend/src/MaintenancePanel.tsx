@@ -17,6 +17,7 @@ type Props = {
   refreshSession?: () => Promise<void>
   onOpenProfile?: (id: string) => void
   onOpenGraph?: (id: string) => void
+  contextRevision?: number
 }
 type Page = { items: MaintenanceTask[]; next_cursor: string | null }
 type Filter = 'open' | 'completed' | 'canceled' | 'all'
@@ -42,6 +43,7 @@ function MaintenancePage({
   refreshSession,
   onOpenProfile,
   onOpenGraph,
+  contextRevision = 0,
 }: Props) {
   const request = useCallback(
     async (path: string, init?: RequestInit): Promise<unknown> => {
@@ -115,7 +117,7 @@ function MaintenancePage({
           setLoading(false)
       })
     return () => controller.abort()
-  }, [request, listPath, reload])
+  }, [request, listPath, reload, contextRevision])
   useEffect(
     () => () => {
       listRead.current?.abort()

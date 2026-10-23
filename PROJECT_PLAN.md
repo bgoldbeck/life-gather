@@ -1,7 +1,13 @@
 # LifeGather — Product and Engineering Plan
 
-**Status:** v0.90.0 adds optional sign-up bot checks and terms-of-use acceptance; tracking and evidence-backed recall remain the active priorities.
+**Status:** v0.92.0 adds sourced maintenance creation and corrections through the AI assistant; tracking and evidence-backed recall remain the active priorities.
 **Date:** Updated 2026-10-23
+
+v0.92.0 extends the assistant over existing maintenance tasks: one asset/task write,
+original statements/history, grounded dates, safe retries and inspectable receipts.
+No maintenance migration or dependency; current head is0037. See
+[maintenance](docs/MAINTENANCE.md#maintenance-through-chat-v0920).
+
 
 v0.90.0 adds two optional sign-up protections for hosted installations (Phase
 5.5), both off by default: a Cloudflare Turnstile check on the email sign-up and

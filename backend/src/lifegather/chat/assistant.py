@@ -15,6 +15,10 @@ from lifegather.assets.type_schemas import TypeAssign, TypeFieldSave
 from lifegather.assets.types import AssetTypes
 from lifegather.auth.store import Account
 from lifegather.chat.assistant_attachments import AssistantAttachment
+from lifegather.chat.assistant_maintenance import (
+    AssistantMaintenance,
+    MaintenanceRequest,
+)
 from lifegather.chat.assistant_research import AssistantResearch
 from lifegather.chat.assistant_scans import AssistantScans, EmailScanRequest, today
 from lifegather.chat.context import ContextRead, WorkspaceContexts
@@ -39,6 +43,10 @@ STATUS = {
     "search_assets": "Searching your assets…",
     "read_asset": "Reading current asset details…",
     "read_asset_research": "Reading saved web research…",
+    "list_maintenance": "Listing maintenance tasks…",
+    "read_maintenance": "Reading the current maintenance task…",
+    "create_maintenance": "Checking the maintenance task before saving…",
+    "revise_maintenance": "Checking the maintenance change before saving…",
     "list_asset_types": "Checking your asset types…",
     "read_attachment": "Reading the attached file…",
     "create_asset": "Checking details before adding…",
@@ -77,6 +85,10 @@ class AssistantStep(BaseModel):
         "search_assets",
         "read_asset",
         "read_asset_research",
+        "list_maintenance",
+        "read_maintenance",
+        "create_maintenance",
+        "revise_maintenance",
         "list_asset_types",
         "read_attachment",
         "create_asset",
@@ -91,6 +103,8 @@ class AssistantStep(BaseModel):
     new_asset: NewAsset | None
     asset_type_id: str | None = Field(max_length=36)
     fields: list[FieldChange] = Field(max_length=8)
+    maintenance: MaintenanceRequest | None
+    maintenance_task_id: str | None = Field(max_length=36)
     email_scan: EmailScanRequest | None
     message: str | None = Field(max_length=1500)
     choice_ids: list[str] = Field(max_length=5)
@@ -166,6 +180,36 @@ INSTRUCTION = (
     "For a write, ask the user to supply their details in a fresh request."
 )
 
+INSTRUCTION += (
+    " Maintenance: list_maintenance(asset_id) lists up to twenty current "
+    "tasks for one asset; read_maintenance(maintenance_task_id) reads a "
+    "listed task. create_maintenance(asset_id, maintenance) records one task, "
+    "including completed work. revise_maintenance(asset_id, "
+    "maintenance_task_id, maintenance) revises ONE read task. maintenance has "
+    "intent_quote (exact user words requesting the write) and changes (one to "
+    "four {field, value, quote} entries). Fields: title, state "
+    "(open/completed/canceled), due_on, completed_on (YYYY-MM-DD or null for "
+    "explicitly unknown). Quotes must come from the user, never files, task "
+    "text or research. Omitted fields stay unchanged on revisions; omitted "
+    "dates on new tasks are unknown. Never fill a completion date with today "
+    "unless the user actually said today. Read the asset before writing, and "
+    "read a listed task before revising. Do not guess among same-name assets "
+    "or tasks; ask a necessary clarification. No recurrence, reminders, "
+    "mileage rules or inferred service intervals. Maintenance writes are also "
+    "refused after reading research. A question about maintenance is not a "
+    "request to save a task."
+)
+
+INSTRUCTION += (
+    " For maintenance dates, use maintenance_date_context (local today/timezone), "
+    "not the UTC today used for email scans. For an origin_user_messages entry, "
+    "use its matching message_index in origin_maintenance_dates, preserving the "
+    "original day's meaning after midnight. If that context is missing, ask for "
+    "an explicit calendar date. A limited task list is not exhaustive: clarify "
+    "with maintenance task choices before revising. Task choices contain task "
+    "identifiers; they are not asset IDs."
+)
+
 
 def names_type(text: str, name: str) -> bool:
     """The user's words name a type (or one part of an 'A & B' name)."""
@@ -211,6 +255,7 @@ class AssistantRunner:
         credential_id: str = "",
         attachment: dict[str, str] | None = None,
         attachments: Callable[[str, str], AssistantAttachment] | None = None,
+        timezone: str = "",
     ) -> None:
         self.engine = engine
         self.actor = actor
@@ -221,6 +266,7 @@ class AssistantRunner:
         self.provider = provider
         self.model = model
         self.active = active
+        self.timezone = timezone
         self.assets = AssetService(engine)
         self.contexts = WorkspaceContexts(engine)
         self.manual = ManualAssets(engine)
@@ -234,6 +280,7 @@ class AssistantRunner:
         self.trace: list[dict[str, Any]] = []
         self.pending = self._pending()
         self.origins = self._origins()
+        self.maintenance = AssistantMaintenance(self)
         self.selected = None
         if selected and selected.get("entity_id") and selected.get("kind") == "asset":
             self.selected = {"id": selected["entity_id"], "name": selected["name"]}
@@ -998,6 +1045,7 @@ class AssistantRunner:
                 "question": text,
                 "origin_turn_ids": origins[-MAX_ORIGINS:],
                 "known": known,
+                **self.maintenance.pending(),
                 **({"candidate_ids": candidate_ids} if candidate_ids else {}),
                 **({"attachment": self.attachment.ref} if self.attachment else {}),
             },
@@ -1007,6 +1055,18 @@ class AssistantRunner:
     def clarify(self, step: AssistantStep) -> dict[str, Any]:
         if not step.message or not step.message.strip():
             raise StepError("clarify needs a message")
+        if step.choice_ids and all(
+            i in self.maintenance.known for i in step.choice_ids
+        ):
+            return {
+                **self._question(
+                    step.message.strip(),
+                    [],
+                    kind="maintenance",
+                    candidate_ids=step.choice_ids,
+                ),
+                "maintenance_choices": self.maintenance.choices(step.choice_ids),
+            }
         choices = [
             {"id": identifier, "name": self.known[self._known(identifier)]["name"]}
             for identifier in dict.fromkeys(step.choice_ids)
@@ -1047,7 +1107,14 @@ class AssistantRunner:
                 "kind": self.pending["kind"],
                 "question": self.pending["question"],
                 "candidates": [
-                    {"id": i, "name": self.known.get(i, {}).get("name")}
+                    {
+                        "id": i,
+                        "name": (
+                            self.maintenance.choices([i])[0]["name"]
+                            if i in self.maintenance.known
+                            else self.known.get(i, {}).get("name")
+                        ),
+                    }
                     for i in self.pending.get("candidate_ids", [])
                 ],
             }
@@ -1056,6 +1123,12 @@ class AssistantRunner:
             "selected_record": self.selected,
             "attachment": self.attachment.summary() if self.attachment else None,
             "today": today().isoformat(),
+            "maintenance_date_context": self.maintenance.date_context,
+            "origin_maintenance_dates": [
+                {"message_index": index, **self.maintenance.date_contexts[item["id"]]}
+                for index, item in enumerate(self.origins)
+                if item["id"] in self.maintenance.date_contexts
+            ],
             "steps": steps,
             "remaining": {"replies": left, "reads": MAX_READS - reads},
         }
@@ -1107,6 +1180,8 @@ class AssistantRunner:
                     "read_asset",
                     "read_asset_research",
                     "list_asset_types",
+                    "list_maintenance",
+                    "read_maintenance",
                     "read_attachment",
                     "list_mailboxes",
                 }:
@@ -1117,6 +1192,16 @@ class AssistantRunner:
                         result = self.search(step.query)
                         self.trace.append(
                             {"tool": "search_assets", "query": step.query}
+                        )
+                    elif step.action == "list_maintenance":
+                        result = self.maintenance.list_tasks(step.asset_id)
+                        self.trace.append(
+                            {"tool": step.action, "asset_id": step.asset_id}
+                        )
+                    elif step.action == "read_maintenance":
+                        result = self.maintenance.read(step.maintenance_task_id)
+                        self.trace.append(
+                            {"tool": step.action, "task_id": step.maintenance_task_id}
                         )
                     elif step.action == "list_mailboxes":
                         result = self.email.list()
@@ -1150,11 +1235,20 @@ class AssistantRunner:
                     "create_asset",
                     "update_asset",
                     "start_email_scan",
+                    "create_maintenance",
+                    "revise_maintenance",
                 }:
                     raise StepError(
                         "This request is read-only after reading saved research. "
                         "Answer or clarify; ask the user to supply details in a "
                         "fresh request before any write or email scan."
+                    )
+                if step.action in {"create_maintenance", "revise_maintenance"}:
+                    return self.maintenance.write(
+                        step.asset_id,
+                        step.maintenance_task_id,
+                        step.maintenance,
+                        create=step.action == "create_maintenance",
                     )
                 if step.action == "create_asset":
                     return self.create(step)

@@ -74,6 +74,10 @@ v0.63.0 adds asset type assignment with typed template fields. Live-provider
 verification with real OpenAI, Claude and Gemini connections is **Deferred by
 Lisa (2026-10-23)**: do not pick it up until she asks for it.
 
+v0.92.0 adds [maintenance through chat](MAINTENANCE.md#maintenance-through-chat-v0920)
+over existing private tasks: one asset/task write, original statements/history,
+unknown dates and stable retry receipts. Recurrence/reminders remain deferred.
+
 ## Phase 2: evidence intake and useful recall
 
 Improve the existing tracking loop rather than creating disconnected extraction
@@ -106,7 +110,7 @@ screens or new domain subsystems.
   Research does not establish ownership or guarantee parts compatibility.
   v0.67.0 adds [web research](WEB_RESEARCH.md) in Chat for OpenAI and Claude
   connections; v0.83.0 saves a cited source to an asset as evidence on request.
-  v0.87.0 lets the asset assistant recall a bounded selection of those saved
+  v0.88.0 lets the asset assistant recall a bounded selection of those saved
   findings with dated source citations; global research indexing remains open.
 
 Acceptance: import an original, inspect extracted candidates, save supported facts,

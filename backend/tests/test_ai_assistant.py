@@ -36,6 +36,8 @@ def step(action: str, **values: Any) -> dict[str, Any]:
         "asset_type_id": None,
         "fields": [],
         "email_scan": None,
+        "maintenance": None,
+        "maintenance_task_id": None,
         "message": None,
         "choice_ids": [],
     }
@@ -595,7 +597,8 @@ def test_step_schema_is_strict_for_all_provider_adapters() -> None:
                 yield from objects(child)
 
     found = list(objects(schema))
-    assert len(found) == 4
+    assert len(found) == 6
+    assert {"MaintenanceRequest", "MaintenanceField"} <= set(schema["$defs"])
     for node in found:
         assert node["additionalProperties"] is False
         assert sorted(node["required"]) == sorted(node["properties"])
