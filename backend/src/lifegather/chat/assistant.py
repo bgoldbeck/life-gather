@@ -160,7 +160,10 @@ INSTRUCTION = (
     "date and distinguish page dates from research dates. Web findings describe "
     "a product model, never establish ownership or purchase details and do not "
     "guarantee parts compatibility. A limited selection is not exhaustive; "
-    "already_read means refer to the earlier tool result, not that no findings exist."
+    "already_read means refer to the earlier tool result, not that no findings exist. "
+    "After reading saved research this whole request is read-only: you may read, "
+    "answer or clarify, but cannot create/update assets or start an email scan. "
+    "For a write, ask the user to supply their details in a fresh request."
 )
 
 
@@ -995,6 +998,7 @@ class AssistantRunner:
                 **({"candidate_ids": candidate_ids} if candidate_ids else {}),
                 **({"attachment": self.attachment.ref} if self.attachment else {}),
             },
+            **self.research.receipt(),
         }
 
     def clarify(self, step: AssistantStep) -> dict[str, Any]:
@@ -1025,6 +1029,7 @@ class AssistantRunner:
             "provider": self.provider,
             "model": self.model,
             "read_trace": self.trace,
+            **self.research.receipt(),
         }
 
     # Loop -------------------------------------------------------------------
@@ -1122,6 +1127,16 @@ class AssistantRunner:
                         )
                     steps.append({"action": step.action, "result": result})
                     continue
+                if self.research.read_assets and step.action in {
+                    "create_asset",
+                    "update_asset",
+                    "start_email_scan",
+                }:
+                    raise StepError(
+                        "This request is read-only after reading saved research. "
+                        "Answer or clarify; ask the user to supply details in a "
+                        "fresh request before any write or email scan."
+                    )
                 if step.action == "create_asset":
                     return self.create(step)
                 if step.action == "update_asset":

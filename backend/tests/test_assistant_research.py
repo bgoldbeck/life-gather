@@ -1,10 +1,11 @@
 # ruff: noqa: F811
 """Saved web research is read-only model context, with host-owned citations."""
 
+import json
 from typing import Any
 
 import pytest
-from test_ai_assistant import Case, case, field, step  # noqa: F401
+from test_ai_assistant import Case, case, field, new_asset, step  # noqa: F401
 from test_research_findings import MANUAL, research_result, research_turn, save
 
 from lifegather.assets.consolidation import (
@@ -182,7 +183,7 @@ def test_research_cannot_supply_values_for_profile_writes(case: Case) -> None:
     )
 
     def answer(payload: dict[str, Any]) -> dict[str, Any]:
-        assert "exactly" in payload["steps"][-1]["error"]
+        assert "read-only" in payload["steps"][-1]["error"]
         return step(
             "answer", message="The research cannot establish this unit's filter."
         )
@@ -240,3 +241,97 @@ def test_recall_follows_current_consolidation_and_reversal(case: Case) -> None:
     )
     assert recall(primary, "empty")["saved_research"] == []
     assert recall(secondary, "separated")["saved_research"][0]["id"] == saved["id"]
+
+
+@pytest.mark.parametrize("action", ["update_asset", "create_asset", "start_email_scan"])
+def test_reading_research_makes_the_turn_read_only_even_when_values_are_in_request(
+    case: Case,
+    action: str,
+) -> None:
+    asset = case.asset("Synthetic mower", "mower")
+    save(findings(case), case.actor, research_turn(case.engine, case.actor), asset)
+
+    def refused(payload: dict[str, Any]) -> dict[str, Any]:
+        assert "read-only" in payload["steps"][-1]["error"]
+        return step(
+            "answer", message="The saved research describes AB-12 [Research 1]."
+        )
+
+    reply = case.send(
+        case.conversation(),
+        "question-no-write",
+        "Does my mower research recommend AB-12? I own a synthetic bench.",
+        step("search_assets", query="mower"),
+        step("read_asset_research", asset_id=asset),
+        step(
+            action,
+            asset_id=asset,
+            fields=[field("specification", "AB-12")],
+            new_asset=new_asset("synthetic bench", "I own a synthetic bench"),
+        ),
+        refused,
+    )["result"]
+    assert case.current(asset) == {}
+    assert not reply.get("changed_entity_id") and not reply.get("scan_run_id")
+    assert len(reply["saved_research"]) == 1
+
+
+@pytest.mark.parametrize("finish", ["clarify", "limit"])
+def test_citations_survive_clarification_and_step_limit(
+    case: Case, finish: str
+) -> None:
+    asset = case.asset("Synthetic mower", "mower")
+    saved = save(
+        findings(case), case.actor, research_turn(case.engine, case.actor), asset
+    )
+    ending = (
+        [step("clarify", message="The manual lists AB-12 [Research 1]. Which unit?")]
+        if finish == "clarify"
+        else [step("read_asset_research", asset_id=asset)] * 5
+    )
+    reply = case.send(
+        case.conversation(),
+        "citations",
+        "What research was saved for this mower?",
+        step("read_asset_research", asset_id=asset),
+        *ending,
+        context={"page": "Assets", "entity_id": asset},
+    )["result"]
+    assert reply["saved_research"][0]["id"] == saved["id"]
+    assert reply["saved_research"][0]["excerpt_kind"] == "source"
+    assert not reply.get("sources")
+
+
+def test_long_multibyte_findings_leave_room_for_a_model_answer(case: Case) -> None:
+    asset = case.asset("Synthetic mower", "mower")
+    result = research_result()
+    urls = [f"https://manufacturer.example/{i}/" + "x" * 1800 for i in range(5)]
+    result["research"]["sources"] = [
+        {
+            "url": url,
+            "title": "文" * 200,
+            "published": None,
+            "excerpt_kind": "source",
+            "excerpts": ["文" * 300] * 3,
+        }
+        for url in urls
+    ]
+    turn = research_turn(case.engine, case.actor, result=result)
+    for i, url in enumerate(urls):
+        save(findings(case), case.actor, turn, asset, url=url, request_id=f"save-{i}")
+
+    def answer(payload: dict[str, Any]) -> dict[str, Any]:
+        assert len(json.dumps(payload, ensure_ascii=False).encode()) <= 24000
+        read = payload["steps"][-1]["result"]
+        assert 0 < len(read["items"]) < 5 and read["limited"] is True
+        return step("answer", message="I inspected a limited selection [Research 1].")
+
+    reply = case.send(
+        case.conversation(),
+        "multibyte",
+        "Read the saved research for this mower.",
+        step("read_asset_research", asset_id=asset),
+        answer,
+        context={"page": "Assets", "entity_id": asset},
+    )["result"]
+    assert reply["saved_research_limited"] is True

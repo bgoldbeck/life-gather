@@ -52,3 +52,12 @@
 ## Scope limits
 
 This adds asset-specific recall, not global research indexing, automatic research, full manual downloads, research-based profile writes or provider quality validation. The five most recently saved findings are a bounded selection, not exhaustive search. No personal data or real provider is needed for acceptance tests.
+
+## Review refinements
+
+The host enforces read-only turns after a successful research read, including
+asset creation/updates and email scan enqueue. Clarification and limit replies
+keep inspected citations. An 8,000-byte UTF-8 budget for the citation list may
+reduce the five-finding selection, leaving room for ordinary requests and other
+tool results within the existing 24,000-byte runner limit. Six regression cases
+reproduce these review findings before the single fix pass.

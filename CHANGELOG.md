@@ -9,9 +9,12 @@
   excerpts and an asset button. Prior generated answer excerpts stay labeled
   separately from source excerpts. Finding IDs never enter the memory reader.
 - At most five active findings across a request, with explicit selection limits
-  and duplicate-read suppression. Current physical identity groups and account
+  and duplicate-read suppression, within an 8,000-byte citation budget. Current
+  physical identity groups and account
   isolation apply; removed findings are excluded from subsequent reads.
 - Research never authorizes writes or supplies values for asset profile edits.
+  The host makes turns that read saved research read-only, including email scans;
+  provide details in a fresh request to perform a write.
   Existing external-AI consent, cancellation, replay, read and context limits
   remain in force. No migration, records-format or dependency change; migration
   head remains 0035 and records format 6. Synthetic providers verify contracts;

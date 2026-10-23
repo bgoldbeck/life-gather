@@ -42,7 +42,9 @@ provider. This reads your saved findings without starting research or visiting
 the web.
 
 The tool reads at most five findings across the request, newest saved first for
-each asset it reads. Removed findings are excluded, and consolidated records use
+each asset it reads, within an 8,000-byte UTF-8 citation budget. Long URLs and
+multilingual excerpts can reduce the selection further. Removed findings are
+excluded, and consolidated records use
 their current physical identity group. Repeated reads reuse earlier context.
 An explicit selection notice means more findings may exist; use the asset's
 **Saved web research** panel to inspect the larger list. Empty results mean no
@@ -57,8 +59,10 @@ Use the asset panel to see current saved findings. The model is instructed to
 cite `[Research N]`, state uncertainty and explain when excerpts are insufficient.
 
 Research describes a product model and never establishes ownership, purchase
-details or parts compatibility. Research text cannot supply values or authorize
-profile writes; the existing user-word and supplied-file checks still apply.
+details or parts compatibility. After a successful research read, the whole turn
+is read-only: asset writes and email scan enqueue are refused by the host. Supply
+details in a fresh request for a write; the existing user-word and supplied-file
+checks still apply. Research text cannot supply values or authorize writes.
 Reading full manuals, saving researched values and global research search remain
 outside this increment. Tests use synthetic providers; live answer quality is
 unverified. No new schema, dependency, permission or automatic action.

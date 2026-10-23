@@ -1,5 +1,6 @@
 """Bounded saved research context; never evidence or authorization for a write."""
 
+import json
 from typing import Any
 
 from lifegather.auth.store import Account
@@ -8,6 +9,8 @@ from lifegather.findings.service import FindingService
 from lifegather.memory.service import MemoryService
 
 MAX_RESEARCH_FINDINGS = 5
+# Reserve space in the runner's 24 KB budget for the request and other reads.
+MAX_RESEARCH_BYTES = 8000
 
 
 class AssistantResearch:
@@ -17,6 +20,7 @@ class AssistantResearch:
         self.citations: dict[str, dict[str, Any]] = {}
         self.read_assets: set[str] = set()
         self.limited = False
+        self.context_bytes = 2
 
     def read(self, asset_id: str, name: str) -> dict[str, Any]:
         result: dict[str, Any] = {
@@ -49,7 +53,12 @@ class AssistantResearch:
                 "excerpt_kind": row["excerpt_kind"],
                 "excerpts": [text[:300] for text in row["excerpts"][:3]],
             }
+            cost = len(json.dumps(item, ensure_ascii=False).encode()) + 2
+            if self.context_bytes + cost > MAX_RESEARCH_BYTES:
+                self.limited = True
+                break
             self.citations[item["id"]] = item
+            self.context_bytes += cost
             items.append(item)
         return result | {"items": items, "limited": self.limited}
 
