@@ -48,9 +48,30 @@ an old edit. Ordinary failed saves keep the draft and exact retry identity. A st
 list cursor requires refreshing the list.
 
 The first increment creates no automatic reminders, repeating schedules, mileage
-triggers, background jobs or external notifications. The built-in assistant does
-not plan or mutate maintenance through a model tool. Direct entry works without
-an AI provider.
+triggers, background jobs or external notifications. The built-in assistant can operate the same tasks as described below. Direct
+entry works without an AI provider.
+
+## Maintenance through chat (v0.90.0)
+
+In Chat choose **AI assistant** and a configured provider/model. Select or name an
+existing asset and ask to add a task, log completed work, or complete, cancel,
+reopen or correct an existing task. The assistant reads the current asset/task,
+asks about ambiguity and saves at most one task change in a request. The task,
+source/revision/audit and completed chat receipt share one transaction.
+
+The receipt reports the saved status and dates and links to the original source
+and **Profiles** maintenance editor. A missing date remains unknown; revisions
+preserve untouched fields. Browser timezone and original message day anchor
+relative dates, including pending answers after midnight. Exact retries retain
+the originally acknowledged revision/source even when chat retention removed
+the reply or a later correction changed the current task.
+
+Only the user's own request and grounded field quotes authorize a write. Research
+reads make the whole turn read-only. Current task/asset versions and owner checks
+still apply; same-name tasks and limited lists need an explicit task choice.
+Existing manual/MCP operations, exports/recovery and historical sources are
+unchanged. The assistant does not expand into place tasks, recurrence, reminders,
+mileage triggers or inferred intervals. Live model testing remains deferred.
 
 ## Identity and private storage
 

@@ -32,6 +32,36 @@ contacts a provider.
   the pending question. Another account's records are never readable.
 - One write per request, at most 6 model replies and 8 reads, bounded context.
 
+## Maintenance tasks (v0.90.0)
+
+Use an existing asset, then ask: "Add oil change to my mower", "Log completed
+blade replacement on my mower", or "Mark my mower oil change complete". The
+assistant can list/read tasks, create a plan or record completed work directly,
+and revise one task to complete, cancel, reopen or correct supplied fields.
+It asks if more than one asset/task fits. When task choices appear, **Use ...**
+fills a draft with the explicit choice; send it to continue. A limited list is
+not exhaustive and requires an explicit choice before changing a task.
+
+Only user-stated task fields authorize writes. File/manual/research text cannot
+supply task instructions or establish completion. Dates left out of new tasks
+stay unknown, including the completion date. Revisions preserve omitted fields;
+reopening or canceling clears completion in the new revision while keeping history.
+An explicit date may be YYYY-MM-DD or an unambiguous English month/day/year.
+"Today", "yesterday" and "tomorrow" use the browser timezone and the original
+message's day, even after a clarification crosses midnight. Missing timezone,
+ambiguous numeric formats or incomplete dates require clarification.
+
+The task and saved reply commit together. **Saved maintenance task** shows the
+recorded outcome, source and dates; **Open ... maintenance** opens Profiles.
+A replay acknowledges the original revision; it never changes a later correction.
+A task/asset changed since it was read refuses the stale write. Old chat receipts
+remain historical snapshots. Existing provider consent and request limits apply;
+research-reading turns stay read-only for maintenance too.
+
+One asset and one write per request. Place tasks use the direct UI/MCP. No new
+reminders, recurrence, mileage rules or automatically recommended intervals.
+See [maintenance](MAINTENANCE.md) for direct editing and history.
+
 ## Saved web research (v0.88.0)
 
 Ask, for example, "What filter did I save research about for my mower?" Select

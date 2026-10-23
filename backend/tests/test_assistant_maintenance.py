@@ -534,7 +534,7 @@ def test_retained_task_retry_cites_original_revision_after_chat_reply_is_removed
     message = "Log completed oil change on my mower"
 
     def send() -> dict[str, Any]:
-        return case.send(
+        result: dict[str, Any] = case.send(
             conversation,
             "retained-task",
             message,
@@ -550,6 +550,7 @@ def test_retained_task_retry_cites_original_revision_after_chat_reply_is_removed
                 ),
             ),
         )["result"]
+        return result
 
     original = send()
     identifier = original["maintenance"]["task_id"]

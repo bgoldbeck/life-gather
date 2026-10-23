@@ -22,18 +22,18 @@
 ### Task 1: atomic maintenance adapter
 **Files:** maintenance/service.py; chat/assistant_maintenance.py (new); chat/assistant.py; tests/test_assistant_maintenance.py (new); tests/test_ai_assistant.py fixture schema.
 **Interfaces:** create_in(db, actor, MaintenanceCreate) and revise_in(db, actor, MaintenanceChange) return existing acknowledgment. AssistantMaintenance.list(asset_id), read(task_id), write(asset_id, MaintenanceRequest) share runner authorization, stable host request identity, state tokens and atomic receipt.
-- [ ] Write failing scripted-provider tests for create/completed log, revision preservation, owner/known-ID boundaries, same-name ambiguity, pending/stale observations, injection/research refusal, cancellation/receipt rollback and exact replay.
-- [ ] Run pytest tests/test_assistant_maintenance.py; confirm unsupported tool/schema failures before implementation.
-- [ ] Extract transaction-sharing methods without changing public direct-service behavior; implement bounded maintenance tools, host-owned task observations, quoted user intent/value/date validation, and committed-revision receipts.
-- [ ] Run new tests plus existing maintenance/assistant/research regressions; run Ruff/strict mypy from backend; commit green task.
+- [x] Write failing scripted-provider tests for create/completed log, revision preservation, owner/known-ID boundaries, same-name ambiguity, pending/stale observations, injection/research refusal, cancellation/receipt rollback and exact replay.
+- [x] Run pytest tests/test_assistant_maintenance.py; confirm unsupported tool/schema failures before implementation.
+- [x] Extract transaction-sharing methods without changing public direct-service behavior; implement bounded maintenance tools, host-owned task observations, quoted user intent/value/date validation, and committed-revision receipts.
+- [x] Run new tests plus existing maintenance/assistant/research regressions; run Ruff/strict mypy from backend; commit green task.
 
 ### Task 2: date context and saved-result UI
 **Files:** chat/service.py; chat/runner.py; frontend/src/ChatPanel.tsx; frontend/src/ChatAssistant.test.tsx; backend date/request-key regressions.
 **Interfaces:** optional TurnInput.timezone (validated IANA) and request creation timestamp provide stable local today. Missing timezone retains old fingerprints. A saved task receipt supplies existing navigation/sources/changed_entity_id plus a typed maintenance summary.
-- [ ] Add failing tests for browser timezone transport, missing/invalid zones, relative dates at local midnight, explicit dates and unknown dates, and replay fingerprint compatibility.
-- [ ] Implement optional context transport and host date interpretation; preserve pending user/date origins across midnight, or ask when the original relative date cannot be established safely.
-- [ ] Render a host-owned task/date/status summary and existing source/asset navigation; assert refresh notification and exact request retry behavior.
-- [ ] Run all frontend tests/lint/types/format/build, backend focused regressions and existing eight browser journeys; commit green task.
+- [x] Add failing tests for browser timezone transport, missing/invalid zones, relative dates at local midnight, explicit dates and unknown dates, and replay fingerprint compatibility.
+- [x] Implement optional context transport and host date interpretation; preserve pending user/date origins across midnight, or ask when the original relative date cannot be established safely.
+- [x] Render a host-owned task/date/status summary and existing source/asset navigation; assert refresh notification and exact request retry behavior.
+- [x] Run all frontend tests/lint/types/format/build, backend focused regressions and existing eight browser journeys; commit green task.
 
 ### Task 3: verification, documentation and release
 **Files:** maintenance and assistant docs; roadmap/changelog/version source; local ignored evidence.
