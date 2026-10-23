@@ -105,6 +105,8 @@ screens or new domain subsystems.
   Research does not establish ownership or guarantee parts compatibility.
   v0.67.0 adds [web research](WEB_RESEARCH.md) in Chat for OpenAI and Claude
   connections; v0.83.0 saves a cited source to an asset as evidence on request.
+  v0.87.0 lets the asset assistant recall a bounded selection of those saved
+  findings with dated source citations; global research indexing remains open.
 
 Acceptance: import an original, inspect extracted candidates, save supported facts,
 revisit them later, follow citations to the original and correct a mistake. Replay

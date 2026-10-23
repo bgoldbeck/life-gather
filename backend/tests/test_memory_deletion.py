@@ -21,6 +21,7 @@ from lifegather.memory.notes import CorrectionInput, NoteService
 from lifegather.memory.restore import PersonalRestore
 from lifegather.memory.schemas import EntityInput, FactInput, SourceInput
 from lifegather.memory.service import DELETED_TEXT, MemoryError
+from lifegather.search.service import SearchQuery, SearchService
 
 
 def many(*ids: str) -> MemoryDeleteMany:
@@ -181,6 +182,12 @@ def test_deleted_memory_stays_deleted_after_archive_restore(tmp_path: Path) -> N
 
     assert not MemoryService(target.engine).search(actor, "deleted")
     assert not MemoryService(target.engine).search(actor, "garage")
+    assert (
+        SearchService(target.engine).find(actor, SearchQuery(q="deleted memory"))[
+            "items"
+        ]
+        == []
+    )
 
 
 def test_delete_http_requires_write_session_and_reports_deleted() -> None:

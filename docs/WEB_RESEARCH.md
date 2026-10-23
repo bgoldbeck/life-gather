@@ -97,6 +97,16 @@ receipts with row-level security. HTTP: `POST /api/research-findings`,
 MCP: read-only `asset_research_findings`. Personal records format 6 includes the
 findings and save receipts; formats 4 and 5 archives still restore.
 
+## Recall saved findings in Chat
+
+Version 0.87.0. The **AI assistant** can select a read-only tool to answer later
+questions about an asset's saved research. Replies show dated saved excerpts,
+source links and asset navigation; generated answer excerpts remain labeled.
+The selection is bounded to five active findings across a request and may be
+incomplete. Existing external-AI permission applies. See
+[assistant recall](AI_ASSISTANT.md#saved-web-research-v0870) for privacy, history
+and evidence restrictions. This reads saved findings and does not run research.
+
 ## Not included yet
 
 Gemini research, fetching and reading full manuals, research started by the AI

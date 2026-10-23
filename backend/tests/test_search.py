@@ -9,19 +9,48 @@ from test_asset_consolidation import prepared
 from test_documents import synthetic_pdf
 from test_mcp_http import signed_headers
 from test_photos import image_bytes, reading
+from test_reconciliation import setup
 
 from lifegather.chat.service import SaveText, save_text
 from lifegather.documents.service import DocumentService
 from lifegather.main import create_app
+from lifegather.memory.deletion import MemoryDelete, MemoryDeleteMany, MemoryDeletion
 from lifegather.memory.notes import CorrectionInput, NoteService
 from lifegather.memory.schemas import EntityInput, SourceInput
-from lifegather.memory.service import MemoryError, MemoryService
+from lifegather.memory.service import DELETED_TEXT, MemoryError, MemoryService
 from lifegather.photos.service import PhotoAttach, PhotoDelete, PhotoService
 from lifegather.search.service import SearchQuery, SearchService
 
 
 def kinds(result: dict[str, Any]) -> list[tuple[str, str]]:
     return [(item["kind"], item["title"]) for item in result["items"]]
+
+
+def test_global_search_excludes_deleted_markers_but_keeps_active_literal_notes(
+    tmp_path: Path,
+) -> None:
+    auth, actor, other, memory, _ = setup(tmp_path)
+    removed = save_text(
+        memory, actor, SaveText(text="Synthetic scratch memory", request_id="remove")
+    )
+    active = save_text(
+        memory,
+        actor,
+        SaveText(
+            text=DELETED_TEXT + " Synthetic troubleshooting note", request_id="keep"
+        ),
+    )
+    MemoryDeletion(auth.engine).delete_many(
+        actor, MemoryDeleteMany(memories=[MemoryDelete(source_id=removed.id)])
+    )
+    search = SearchService(auth.engine)
+    for query in ("deleted", "deleted memory", "saved text"):
+        ids = {item["id"] for item in search.find(actor, SearchQuery(q=query))["items"]}
+        assert removed.id not in ids
+        assert active.id in ids
+        assert search.find(other, SearchQuery(q=query))["items"] == []
+    # Existing evidence links can still explain that the source was deleted.
+    assert memory.get_source(actor, removed.id).text == DELETED_TEXT
 
 
 def test_search_spans_records_photos_documents_and_sources(tmp_path: Path) -> None:
