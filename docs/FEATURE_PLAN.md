@@ -132,7 +132,8 @@ Treat this as a release gate as well as continuing work during Phases 1 and 2.
   committed product work, not optional dashboard polish.
   v0.76.0 adds [selective deletion and retention](SELECTIVE_DELETION.md): delete
   several photos/documents at once (rows and stored files) and per-account chat
-  conversation retention.
+  conversation retention. v0.84.0 lets users [delete memories](MEMORIES.md#deleting-memories-v0840),
+  removing their text while records made from them keep their provenance.
 - Verify configured-provider behavior and connection recovery before claiming
   end-to-end readiness. Address session/account/credential issues when they block
   real tracking. Never use live personal data without the required authorization.

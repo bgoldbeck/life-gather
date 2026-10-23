@@ -66,7 +66,8 @@ transcriptions remain marked AI-generated/unverified; PDF text is marked reviewe
 rather than an original user statement. Note corrections retain their original
 file links. If an original was deleted, its derived source/history remains visible
 with an explicit deletion notice and no download/preview. File deletion retains
-its existing backup/recovery-page limits; this release adds no deletion mechanism.
+its existing backup/recovery-page limits. Memories themselves can be deleted
+since v0.84.0 (above).
 
 HTTP: GET /api/memories lists the library; POST /api/memories captures SaveText.
 Writes require current session, origin, CSRF and the existing 32 KiB body limit.

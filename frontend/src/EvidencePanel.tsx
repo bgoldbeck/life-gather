@@ -5,6 +5,7 @@ import { ChatRequestError } from './chatRequest'
 export type EvidenceSource = {
   id: string
   text: string
+  deleted?: boolean
   photo?: { id: string; deleted_at: number | null } | null
   document?: {
     id: string
@@ -160,6 +161,12 @@ export function EvidencePanel({
           Close evidence
         </Button>
       </div>
+      {source.deleted && (
+        <p role="status">
+          You deleted this memory. Its saved text was removed; records made from
+          it remain.
+        </p>
+      )}
       {source.photo ? (
         <div>
           <p>
