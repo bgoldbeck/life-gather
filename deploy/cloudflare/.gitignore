@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars*
+# Filled-in settings and secrets for the test site; only the example is tracked.
+*.env
+!test-site.env.example

@@ -271,6 +271,11 @@ $26/month per instance, so measure real memory use before picking `standard-1`.
 
 ## Inconsistencies with existing documents
 
+- Update 2026-10-23: the Step D test-site package is in `deploy/cloudflare/`
+  ([Cloudflare test site](CLOUDFLARE_TEST_SITE.md)). It keeps secrets as Worker
+  secrets rather than Secrets Store (fewer setup steps for one Worker), puts the
+  whole test site behind Access, and resolves the `AGENTS.md` anti-goal line below.
+
 - `AGENTS.md` lists "public SaaS infrastructure" among the anti-goals "unless a
   later task specifically requests and justifies them". The hosted option was
   requested on 2026-10-22 and is now Phase 5 of the feature plan. Proposed

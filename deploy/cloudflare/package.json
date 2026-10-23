@@ -1,0 +1,23 @@
+{
+  "name": "lifegather-cloudflare",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit && vitest run",
+    "test": "vitest run",
+    "init-settings": "node scripts/init-settings.mjs",
+    "deploy": "wrangler deploy",
+    "push-settings": "wrangler secret bulk test-site.env",
+    "logs": "wrangler tail",
+    "dry-run": "wrangler deploy --dry-run --outdir dist --containers-rollout=none"
+  },
+  "dependencies": {
+    "@cloudflare/containers": "0.3.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261023.1",
+    "typescript": "5.9.3",
+    "vitest": "5.0.5",
+    "wrangler": "4.152.0"
+  }
+}
