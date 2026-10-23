@@ -66,9 +66,44 @@
 .memory-kind {
   font-weight: 600;
 }
+.memory-explainer {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.memory-explainer summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.memory-explainer p {
+  margin-block: 0.6rem 0;
+  max-width: 70ch;
+}
+.memory-actions {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: end;
+}
+.memory-delete-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: end;
+  max-width: 22rem;
+}
+.memory-list .memory-delete-confirm p {
+  margin: 0;
+  white-space: normal;
+}
 @media (max-width: 600px) {
   .memory-list li {
     flex-direction: column;
+  }
+  .memory-actions,
+  .memory-delete-confirm {
+    justify-items: start;
+    justify-content: start;
   }
   .memory-search {
     align-items: stretch;

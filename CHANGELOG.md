@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.84.0 — Delete memories, and what memories are
+
+- Each memory on **Memories** has **Delete**, with a confirmation. Deleting
+  removes the memory's saved text for good: it leaves the list, search, global
+  search and Ask AI recall, and short quotes from it in fact evidence are cleared.
+  Deleting a saved note deletes every version (the original and its corrections).
+  See [docs/MEMORIES.md](docs/MEMORIES.md#deleting-memories-v0840).
+- Assets, facts, purchases and proposals saved from a deleted memory stay; opening
+  their evidence says the memory was deleted. The memory of a photo or document
+  can be deleted without deleting the file. Re-scans don't bring the text back.
+- **What are memories?** on the Memories page explains in plain words what a
+  memory is and how the assistant uses them.
+- `POST /api/memories/delete-many` (1 to 25, all or nothing, idempotent). No MCP
+  or model deletion tool. No migration: a content-free `source_deleted` audit
+  receipt marks the deletion and travels with exports, archives and restores.
+
+## 0.83.1 — Compact Power Center
+
+- Power Center is denser so your connections show without scrolling on a
+  typical laptop screen (checked at 1366x768 and 1440x900 with the assistant
+  docked), following `.references/lifegather-standard-dark-theme.png`.
+- The hero is one short row (icon, title, Check all locally) with a slimmer
+  power bar; stat tiles put the icon beside the value.
+- **Your connections** now comes right after the stat tiles, with its filters
+  beside the heading. Each card's scope and supported outcomes fold into
+  **Scope and supported outcomes**. Health and next actions follow the
+  connections. No data, API or migration changes.
+
 ## 0.83.0 — Save web research findings as evidence
 
 - In a finished Chat web research reply, each cited source offers **Save to

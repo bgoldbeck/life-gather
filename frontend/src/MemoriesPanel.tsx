@@ -52,6 +52,8 @@ export function MemoriesPanel({
   const [saving, setSaving] = useState(false)
   const [retry, setRetry] = useState(false)
   const [status, setStatus] = useState('')
+  const [confirming, setConfirming] = useState('')
+  const [deleting, setDeleting] = useState(false)
   const pending = useRef<{ text: string; request_id: string } | null>(null)
   const generation = useRef(0)
   const sourceGeneration = useRef(0)
@@ -209,6 +211,33 @@ export function MemoriesPanel({
       setSaving(false)
     }
   }
+  async function remove(id: string) {
+    if (deleting) return
+    setDeleting(true)
+    setError('')
+    setStatus('')
+    try {
+      await request('memories/delete-many', {
+        method: 'POST',
+        body: JSON.stringify({ memories: [{ source_id: id }] }),
+      })
+      setConfirming('')
+      setItems((current) => current.filter((item) => item.id !== id))
+      if (source?.id === id) {
+        sourceGeneration.current++
+        sourceAbort.current?.abort()
+        setSource(null)
+      }
+      setStatus(
+        'Memory deleted. Its saved text is gone; records made from it remain.',
+      )
+      refresh()
+    } catch {
+      setError('Unable to delete this memory. Nothing was deleted. Try again.')
+    } finally {
+      setDeleting(false)
+    }
+  }
   function searchNow(event: FormEvent) {
     event.preventDefault()
     setSearch(query)
@@ -218,10 +247,36 @@ export function MemoriesPanel({
     <section className="memories-panel" aria-label="Memories library">
       <h1>Memories</h1>
       <p>
-        Browse saved evidence without finding an old conversation. These are
-        source statements, not independently verified facts. Unsaved chat
-        messages are not included.
+        Everything LifeGather has saved as evidence, in the original words.
+        Unsaved chat messages are not included.
       </p>
+      <details className="memory-explainer">
+        <summary>What are memories?</summary>
+        <p>
+          A memory is something you or a source told LifeGather, kept word for
+          word: a note you saved, text read from a photo, reviewed document
+          text, an email found by a scan, or the record kept when you add or
+          change an asset. A memory is what a source said, not a checked fact.
+        </p>
+        <p>
+          <strong>How the assistant uses them.</strong> When you ask a question
+          in Chat with Ask AI, LifeGather searches your memories for matching
+          words and the AI answers only from those, with a button to open each
+          one it cites. When the AI assistant saves details about an asset, it
+          links each detail to the memory it came from, so you can always see
+          where it came from. Memory text goes to an AI provider only if you
+          turned on external AI access; saving and searching stay on your
+          server.
+        </p>
+        <p>
+          <strong>Fixing or removing one.</strong> Open a note and choose
+          Correct note to save a new version; the old one stays in its history.
+          Delete removes a memory&apos;s text for good, including every version
+          of a note. Assets, facts and purchases already saved from it stay and
+          show that their memory was deleted. Deleting the memory of a photo or
+          document does not delete the file itself.
+        </p>
+      </details>
       <details className="memory-capture">
         <summary>Save a memory</summary>
         <form onSubmit={(event) => void save(event)}>
@@ -316,13 +371,52 @@ export function MemoriesPanel({
                 Recorded {new Date(item.recorded_at / 1000).toLocaleString()}
               </small>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => void open(item.id)}
-              aria-label={`Open evidence: ${item.text.slice(0, 60)}`}
-            >
-              Open evidence
-            </Button>
+            <div className="memory-actions">
+              <Button
+                variant="outline"
+                onClick={() => void open(item.id)}
+                aria-label={`Open evidence: ${item.text.slice(0, 60)}`}
+              >
+                Open evidence
+              </Button>
+              {confirming === item.id ? (
+                <div
+                  className="memory-delete-confirm"
+                  role="group"
+                  aria-label="Confirm memory deletion"
+                >
+                  <p>
+                    Delete this memory for good? Its text cannot be recovered.
+                  </p>
+                  <Button
+                    variant="destructive"
+                    disabled={deleting}
+                    onClick={() => void remove(item.id)}
+                  >
+                    {deleting ? 'Deleting…' : 'Delete permanently'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    disabled={deleting}
+                    onClick={() => setConfirming('')}
+                  >
+                    Keep memory
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  disabled={deleting}
+                  onClick={() => {
+                    setStatus('')
+                    setConfirming(item.id)
+                  }}
+                  aria-label={`Delete memory: ${item.text.slice(0, 60)}`}
+                >
+                  Delete
+                </Button>
+              )}
+            </div>
           </li>
         ))}
       </ul>

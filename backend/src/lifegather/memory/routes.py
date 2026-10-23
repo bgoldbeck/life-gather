@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from lifegather.auth.routes import require_session, require_write_session
 from lifegather.auth.store import CurrentSession
 from lifegather.chat.service import SaveText, save_text
+from lifegather.memory.deletion import MemoryDeleteMany, MemoryDeletion
 from lifegather.memory.library import LibraryPage, MemoryLibrary
 from lifegather.memory.service import MemoryError, MemoryService
 
@@ -49,6 +50,16 @@ def library_router() -> APIRouter:
             MemoryService(request.app.state.auth_store.engine), current.user, body
         )
         return source.model_dump(mode="json")
+
+    @router.post("/delete-many")
+    def delete_many(
+        request: Request,
+        body: MemoryDeleteMany,
+        current: Annotated[CurrentSession, Depends(require_write_session)],
+    ) -> dict[str, Any]:
+        return MemoryDeletion(request.app.state.auth_store.engine).delete_many(
+            current.user, body
+        )
 
     return router
 

@@ -10,7 +10,7 @@ from lifegather.auth.store import Account
 from lifegather.memory.models import Episode, NoteRevision
 from lifegather.memory.notes import NoteService
 from lifegather.memory.search_index import matches_words, query_words, search_index
-from lifegather.memory.service import MemoryError, MemoryService
+from lifegather.memory.service import MemoryError, MemoryService, deleted_source
 
 
 class LibraryPage(BaseModel):
@@ -48,7 +48,7 @@ class MemoryLibrary:
             .outerjoin(
                 root, and_(root.user_id == actor.id, root.id == revision.root_source_id)
             )
-            .where(Episode.user_id == actor.id)
+            .where(Episode.user_id == actor.id, ~deleted_source(actor.id, Episode.id))
         )
         categories = {
             "notes": "chat-memory",

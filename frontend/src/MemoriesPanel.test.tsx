@@ -165,3 +165,60 @@ it('ignores an old page that arrives after a new search', async () => {
     expect(screen.queryByText('Obsolete page')).not.toBeInTheDocument(),
   )
 })
+
+it('explains memories and deletes one only after confirmation', async () => {
+  const user = userEvent.setup()
+  let deleted = false
+  const fetcher = vi.fn(async (url: string, _init?: RequestInit) => {
+    if (url.includes('delete-many')) {
+      deleted = true
+      return new Response(JSON.stringify({ deleted_count: 1 }))
+    }
+    return new Response(
+      JSON.stringify({ items: deleted ? [] : [item], next_cursor: null }),
+    )
+  })
+  vi.stubGlobal('fetch', fetcher)
+  render(<MemoriesPanel csrfToken="csrf" />)
+  await user.click(screen.getByText('What are memories?'))
+  expect(screen.getByText(/How the assistant uses them/)).toBeVisible()
+  await user.click(
+    await screen.findByRole('button', { name: /Delete memory:/ }),
+  )
+  await user.click(screen.getByRole('button', { name: 'Keep memory' }))
+  expect(fetcher.mock.calls.some(([url]) => url.includes('delete'))).toBe(false)
+  await user.click(screen.getByRole('button', { name: /Delete memory:/ }))
+  await user.click(screen.getByRole('button', { name: 'Delete permanently' }))
+  expect(await screen.findByText(/Memory deleted/)).toBeVisible()
+  const call = fetcher.mock.calls.find(([url]) => url.includes('delete-many'))!
+  const init = call[1]!
+  expect(init.method).toBe('POST')
+  expect(JSON.parse(String(init.body))).toEqual({
+    memories: [{ source_id: 'source' }],
+  })
+  expect((init.headers as Record<string, string>)['X-CSRF-Token']).toBe('csrf')
+  await waitFor(() =>
+    expect(screen.queryByText(/Original <script>/)).toBeNull(),
+  )
+})
+
+it('keeps the memory when deletion fails', async () => {
+  const user = userEvent.setup()
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) =>
+      url.includes('delete-many')
+        ? new Response('{}', { status: 500 })
+        : new Response(JSON.stringify({ items: [item], next_cursor: null })),
+    ),
+  )
+  render(<MemoriesPanel csrfToken="csrf" />)
+  await user.click(
+    await screen.findByRole('button', { name: /Delete memory:/ }),
+  )
+  await user.click(screen.getByRole('button', { name: 'Delete permanently' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Nothing was deleted',
+  )
+  expect(screen.getByText(/Original <script>/)).toBeVisible()
+})

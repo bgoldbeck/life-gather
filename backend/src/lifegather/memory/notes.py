@@ -89,7 +89,7 @@ class NoteService:
     def describe(self, actor: Account, source_id: str) -> dict[str, Any] | None:
         with Session(self.engine) as db:
             source = self.memory._source(db, actor, source_id)
-            if not self.is_note(source):
+            if not self.is_note(source) or self.memory.is_deleted(db, actor, source_id):
                 return None
             root = self._root(db, actor, source)
             head = self._head(db, actor, root)
@@ -128,6 +128,8 @@ class NoteService:
             previous = self.memory._source(db, actor, data.source_id)
             if not self.is_note(previous):
                 raise MemoryError("Only saved text notes can be corrected here")
+            if self.memory.is_deleted(db, actor, previous.id):
+                raise MemoryError("This memory was deleted")
             existing = db.scalar(
                 select(NoteRevision).where(
                     NoteRevision.user_id == actor.id,

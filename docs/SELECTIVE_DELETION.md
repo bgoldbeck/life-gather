@@ -20,6 +20,7 @@ to 50 items, confirm that the originals cannot be recovered, then choose
   briefly unreachable, the next app start retries the removal.
 - Reviewed text saved to memory, facts and their correction history remain, as do
   receipts or proposals that cite the item (they now show the original as deleted).
+  To remove that saved text too, [delete the memory](MEMORIES.md#deleting-memories-v0840).
 - Repeating a request for items already deleted succeeds without new receipts.
 
 ## Conversation retention
