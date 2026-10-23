@@ -55,6 +55,28 @@ class Settings(BaseSettings):
     s3_region: str = ""
     s3_access_key_id: str = ""
     s3_secret_access_key: SecretStr = SecretStr("")
+    # Comma-separated account emails that may open the Operations page.
+    operator_emails: str = ""
+    # Optional HTTPS URL that receives a JSON alert for new installation errors.
+    alert_webhook_url: str = ""
+
+    @property
+    def operator_email_set(self) -> frozenset[str]:
+        return frozenset(
+            part.strip().casefold()
+            for part in self.operator_emails.split(",")
+            if part.strip()
+        )
+
+    @field_validator("alert_webhook_url")
+    @classmethod
+    def https_webhook(cls, value: str) -> str:
+        value = value.strip()
+        if value:
+            url = urlsplit(value)
+            if url.scheme != "https" or not url.hostname or url.username:
+                raise ValueError("The alert webhook must be an HTTPS URL")
+        return value
 
     @property
     def trusted_proxy_list(self) -> list[str]:

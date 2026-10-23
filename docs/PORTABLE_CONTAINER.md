@@ -85,3 +85,10 @@ still follow `LIFEGATHER_PUBLIC_URL`, which must be the public HTTPS origin.
 Platforms that stop idle containers also stop the in-process scan loop. Set
 `LIFEGATHER_BACKGROUND_MODE=external` and tick from a scheduler; see
 [background scans from an outside scheduler](EXTERNAL_BACKGROUND.md).
+
+## Logs, alerts and the Operations page
+
+Logs are JSON lines on standard error with no private content. Set
+`LIFEGATHER_OPERATOR_EMAILS` to your sign-in email to get the Operations page,
+and `LIFEGATHER_ALERT_WEBHOOK_URL` (or SMTP) for error alerts; see
+[operations](OPERATIONS.md).

@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.89.0 - Operations: logs, alerts and the Operations page
+
+- Backend logs are now one JSON line per record. API requests log the route
+  template (never the real path or query string), status, duration and a
+  request ID; exceptions log only their type and code location, never their
+  message. Every response has an `X-Request-ID` header, and unexpected errors
+  return a fixed 500 naming that ID.
+- Error-level log records become counted operational events (fixed message plus
+  route, scan type or error type). Each kind alerts at most once an hour to
+  `LIFEGATHER_ALERT_WEBHOOK_URL` (HTTPS JSON POST) and, with SMTP, to the
+  operator emails. Stuck scans (expired leases, over 30 minutes queued) and
+  schedules over an hour late raise an alert from a 5-minute check and after
+  every tick.
+- `LIFEGATHER_OPERATOR_EMAILS` lists the accounts that see a new Operations
+  page: background job counts, stuck jobs, failures by scan type, recent
+  problems and stored file use (installation total and the largest accounts by
+  pseudonym). Counts only; other accounts get 404 from `/api/operator/overview`.
+  See docs/OPERATIONS.md.
+- Migration `0037_operational_events` adds the system table; the per-account
+  database role has no access to it. Both new settings are deployment-local and
+  are not carried by recovery bundles. No MCP change.
+
 ## 0.88.1 - Phone and tablet layout
 
 - Checked every main page at phone (390x844), tablet portrait (820x1180) and

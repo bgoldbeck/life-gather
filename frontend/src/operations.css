@@ -1,0 +1,61 @@
+/* Operations: installation-wide counts for whoever runs LifeGather. */
+.operations-panel h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 1.25rem 0 0.5rem;
+}
+.operations-panel h3 {
+  margin: 1rem 0 0.25rem;
+  font-size: 0.95rem;
+}
+.operations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+.operations-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+.operations-stat span,
+.operations-checked,
+.operations-note {
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+}
+.operations-stat strong {
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+.operations-list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+.operations-error {
+  color: var(--destructive);
+}
+.operations-table-wrap {
+  overflow-x: auto;
+}
+.operations-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.operations-table :is(th, td) {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+.operations-table th {
+  color: var(--muted-foreground);
+  font-weight: 600;
+}

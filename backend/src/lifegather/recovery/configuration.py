@@ -43,6 +43,9 @@ LOCAL_FIELDS = {
     # Where original files live is deployment-local, like data_dir: bundles carry
     # the originals themselves and a restore uses its own storage settings.
     *STORAGE_DEFAULTS,
+    # Who operates this host and where its alerts go belong to the host too.
+    "operator_emails",
+    "alert_webhook_url",
 }
 BOOLEAN_FIELDS = {"test_login_enabled", "smtp_implicit_tls"}
 
@@ -92,6 +95,8 @@ def validate_configuration(path: Path, root: Path, has_key: bool) -> dict[str, A
             "vault_keys": "",
             "trusted_proxies": "",
             "migrate_on_start": True,
+            "operator_emails": "",
+            "alert_webhook_url": "",
             **STORAGE_DEFAULTS,
         }
         # Every model field is supplied, so the operator's ambient settings cannot

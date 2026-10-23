@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from sqlalchemy import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
+from lifegather.auth.mail import smtp_sender
 from lifegather.auth.store import AuthStore
 from lifegather.chat.claude import ClaudeProvider
 from lifegather.chat.google import GeminiProvider
@@ -26,6 +27,8 @@ from lifegather.mailboxes.attachments import GmailAttachmentHandler
 from lifegather.mailboxes.discovery import GmailDiscoveryHandler
 from lifegather.mailboxes.provider import GmailProvider
 from lifegather.mailboxes.scan import GmailImportHandler
+from lifegather.operations.logs import configure_logging
+from lifegather.operations.monitor import OperationsMonitor
 from lifegather.scans.registry import ScanRegistry
 from lifegather.scans.schedules import ScheduleService
 from lifegather.scans.service import ScanService
@@ -85,6 +88,7 @@ def main(argv: list[str] | None = None) -> int:
         help=f"time limit for starting work (default {DEFAULT_TICK_SECONDS})",
     )
     seconds = parser.parse_args(argv).seconds
+    configure_logging()
     store: AuthStore | None = None
     try:
         settings = Settings()
@@ -113,6 +117,9 @@ def main(argv: list[str] | None = None) -> int:
             },
         )
         report = asyncio.run(scan_worker(scans).tick(seconds))
+        monitor = OperationsMonitor(store.engine, settings, smtp_sender(settings))
+        monitor.check_jobs()
+        monitor.flush()
     except (
         ValidationError,
         DatabaseConfigurationError,

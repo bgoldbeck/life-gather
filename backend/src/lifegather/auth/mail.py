@@ -3,11 +3,28 @@
 import smtplib
 import ssl
 from email.message import EmailMessage
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
+
+if TYPE_CHECKING:
+    from lifegather.config import Settings
 
 
 class MailSender(Protocol):
     def send(self, recipient: str, subject: str, body: str) -> None: ...
+
+
+def smtp_sender(settings: "Settings") -> "SmtpSender | None":
+    """The installation's SMTP sender, or None when mail is not configured."""
+    if not settings.mail_enabled:
+        return None
+    return SmtpSender(
+        settings.smtp_host,
+        settings.smtp_port,
+        settings.smtp_username,
+        settings.smtp_password.get_secret_value(),
+        settings.smtp_sender,
+        settings.smtp_implicit_tls,
+    )
 
 
 class SmtpSender:
