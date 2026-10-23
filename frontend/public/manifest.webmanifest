@@ -1,0 +1,31 @@
+{
+  "id": "/",
+  "name": "LifeGather",
+  "short_name": "LifeGather",
+  "description": "A private home for your memories and the evidence behind them.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#16412c",
+  "theme_color": "#234e3c",
+  "icons": [
+    {
+      "src": "/icons/lifegather-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/lifegather-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/lifegather-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

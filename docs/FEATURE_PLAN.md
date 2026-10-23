@@ -254,8 +254,8 @@ anti-goal is updated to reference this phase when 5.4 starts.
 
 ## Phone app plan (not scheduled)
 
-Planned 2026-10-23 at the user's request; nothing here is started. The 2026-10-17
-deferral of dedicated phone work still stands until the user schedules it.
+Planned 2026-10-23 at the user's request. The user scheduled step 6.1 the same
+day; 6.2 to 6.4 are not started.
 v0.88.1 checked the web UI at phone and tablet sizes, so the app already works in
 a phone browser.
 
@@ -263,11 +263,12 @@ Approach: an installable web app (PWA), not a separate native app. The same
 React UI and server serve phones, tablets and desktops, self-hosted and hosted
 alike, with no app store review, second codebase or separate release train.
 
-- **6.1 Install to home screen.** Web app manifest, icons and a minimal service
-  worker that caches only the static app shell. Never cache API responses,
-  files, chat streams or anything private; show a clear "can't reach your
-  server" screen when offline. Reconcile with [versioning](VERSIONING.md), which
-  currently relies on having no service worker, so new releases still load.
+- **6.1 Install to home screen. Done in v0.95.0** ([installable app](INSTALLABLE_APP.md)).
+  Web app manifest, icons and a service worker that stores only an offline
+  "can't reach your server" page and its icon; it never caches the app's HTML,
+  API, sign-in, file or chat responses, so new releases load as described in
+  [versioning](VERSIONING.md). Installing needs HTTPS (see below). Not yet
+  checked on a real iPhone or Android phone.
 - **6.2 Camera capture.** Take a photo straight into chat or Photos through the
   ordinary file input (no custom camera code), with progress, retry and
   Cancel. Uploads keep the existing limits, quotas and idempotent retries.
@@ -312,7 +313,7 @@ Keep existing delivered functionality while deferring these extensions.
 | Advanced asset form builder | Existing editable optional text fields first; richer widgets/required-field migrations only for proven needs. |
 | Power Center expansion | Fix actionable reconnect/setup issues; defer elaborate remote probes and diagnostics without a concrete failure to solve. |
 | Account/credential tooling | Maintain privacy/security and repair blocking issues throughout; device UI, linking, email changes and richer rotation tooling are scoped individually. |
-| Mobile/PWA/remote access | Still deferred until the user schedules it. When revisited, follow the [phone app plan](#phone-app-plan-not-scheduled): installable web app first, native wrapper only if needed. Domain/tunnel setup stays a separate user decision. |
+| Mobile/PWA/remote access | Home screen install (6.1) done in v0.95.0. The rest waits until the user schedules it. When revisited, follow the [phone app plan](#phone-app-plan-not-scheduled): installable web app first, native wrapper only if needed. Domain/tunnel setup stays a separate user decision. |
 
 ## Execution rules
 

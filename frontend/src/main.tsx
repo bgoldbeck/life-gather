@@ -6,9 +6,12 @@ import App from './App.tsx'
 import './appearance.css'
 import './layout.css'
 import './consistency.css'
+import { registerServiceWorker } from './pwa'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
   </StrictMode>,
 )
+
+void registerServiceWorker()

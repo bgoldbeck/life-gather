@@ -51,8 +51,15 @@ Startup HTML and non-hashed static resources use `no-cache, must-revalidate`,
 including conditional 304 responses and missing files. Successful hashed assets
 under `/assets/` use one-year immutable caching. HTTP APIs keep `no-store`.
 Pre-v0.58.1 tabs need a reload once to acquire the fix; these headers cannot update
-JavaScript already executing in memory. No service worker, live-redeploy mechanism
-or browser-storage clearing is introduced.
+JavaScript already executing in memory. No live-redeploy mechanism or
+browser-storage clearing is introduced.
+
+Since v0.95.0 a service worker makes the app installable
+([installable app](INSTALLABLE_APP.md)). It never answers with stored HTML or
+code: pages and assets come from the server under the headers above, and it
+only falls back to a stored offline notice when the server can't be reached. It
+is registered with `updateViaCache: 'none'`, so a new `sw.js` is picked up on the
+next visit without waiting for HTTP caches.
 
 The v0.58.1 verification passed 644 backend tests, strict mypy/Ruff/format and
 package builds; 307 frontend tests, lint/types/format and production build.
