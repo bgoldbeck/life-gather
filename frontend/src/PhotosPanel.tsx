@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { BulkDelete } from './BulkDelete'
 import { PhotoAssetLinks } from './PhotoAssetLinks'
@@ -9,6 +9,12 @@ import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
 import { ChatRequestError } from './chatRequest'
 import { ExistingPhotoLink } from './ExistingPhotoLink'
 import { UndoNotice, type UndoAction } from './UndoNotice'
+import {
+  CameraCaptureButton,
+  CANCELLED_MESSAGE,
+  PhotoUploadProgress,
+} from './PhotoCapture'
+import { PHOTO_ACCEPT, photoFileProblem, sendPhoto } from './photoUpload'
 import './photos.css'
 
 type Photo = {
@@ -60,6 +66,18 @@ export function PhotosPanel({
   const [retry, setRetry] = useState(false)
   const pending = useRef<Pending | null>(null)
   const uploadInput = useRef<HTMLInputElement>(null)
+  const uploadController = useRef<AbortController | null>(null)
+  const [percent, setPercent] = useState(0)
+  const [uploading, setUploading] = useState(false)
+  const [uploadUncertain, setUploadUncertain] = useState(false)
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      uploadController.current?.abort()
+    }
+  }, [])
   const request = useCallback(
     async (path: string, init?: RequestInit) => {
       const response = await fetch('/api/' + path, {
@@ -157,37 +175,55 @@ export function PhotosPanel({
   }, [])
   useEffect(() => invalidateReads, [invalidateReads])
 
-  async function upload(event: FormEvent) {
-    event.preventDefault()
-    if (!file || busy || retry || linking) return
-    if (file.size > 8 * 1024 * 1024) {
-      setError('Choose a photo no larger than 8 MiB.')
+  async function upload(chosen = file) {
+    if (!chosen || busy || retry || linking) return
+    const problem = photoFileProblem(chosen)
+    if (problem) {
+      setError(problem)
+      setStatus('')
       return
     }
+    const controller = new AbortController()
+    uploadController.current = controller
     setBusy(true)
+    setUploading(true)
+    setPercent(0)
     setError('')
     setStatus('')
+    const result = await sendPhoto<Photo>({
+      url: `/api/photos?purpose=${purpose}&asset_id=${encodeURIComponent(assetId)}`,
+      file: chosen,
+      csrfToken,
+      signal: controller.signal,
+      onProgress: (value) => mounted.current && setPercent(value),
+    })
+    if (!mounted.current) return
+    uploadController.current = null
+    setUploading(false)
     try {
-      const row = await request(
-        `photos?purpose=${purpose}&asset_id=${encodeURIComponent(assetId)}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/octet-stream',
-            'X-File-Name': encodeURIComponent(file.name),
-          },
-          body: file,
-        },
-      )
-      setSelected(row)
-      setDeleteAcknowledged(false)
-      setProposal('')
-      setReceipt('')
-      clearSource()
-      setFile(null)
-      if (uploadInput.current) uploadInput.current.value = ''
-      await load()
-      setStatus('Photo saved privately. No AI request was made.')
+      if (result.kind === 'saved') {
+        setUploadUncertain(false)
+        setSelected(result.photo)
+        setDeleteAcknowledged(false)
+        setProposal('')
+        setReceipt('')
+        clearSource()
+        setFile(null)
+        if (uploadInput.current) uploadInput.current.value = ''
+        setStatus('Photo saved privately. No AI request was made.')
+        await load()
+      } else if (result.kind === 'cancelled') setStatus(CANCELLED_MESSAGE)
+      else if (result.kind === 'rejected') {
+        setUploadUncertain(false)
+        setError(
+          'Photo was not accepted. Check the file, storage limit and session, then try again.',
+        )
+      } else {
+        setUploadUncertain(true)
+        setError(
+          'Upload outcome is unknown. Retry the same photo safely; it is never saved twice.',
+        )
+      }
     } catch (caught) {
       setError((caught as Error).message)
     } finally {
@@ -352,22 +388,32 @@ export function PhotosPanel({
         Save receipt and nameplate photos. A general attachment alone supports
         no ownership claim.
       </p>
-      <form onSubmit={(event) => void upload(event)} className="photo-upload">
+      <form
+        onSubmit={(event) => {
+          event.preventDefault()
+          void upload()
+        }}
+        className="photo-upload"
+      >
         <label>
           Photo file
           <input
             ref={uploadInput}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
-            disabled={busy || retry || linking}
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            accept={PHOTO_ACCEPT}
+            disabled={busy || retry || linking || uploadUncertain}
+            onChange={(e) => {
+              setFile(e.target.files?.[0] ?? null)
+              setError('')
+              setStatus('')
+            }}
           />
         </label>
         <label>
           Photo purpose
           <select
             value={purpose}
-            disabled={busy || retry || linking}
+            disabled={busy || retry || linking || uploadUncertain}
             onChange={(e) => setPurpose(e.target.value)}
           >
             <option value="photo">General photo</option>
@@ -379,9 +425,33 @@ export function PhotosPanel({
           JPEG, PNG or WebP · 8 MiB · 20 megapixels. Original retained
           privately; preview has metadata removed.
         </p>
-        <Button disabled={!file || busy || retry || linking}>
-          Upload privately{assetId ? ' to this item' : ''}
-        </Button>
+        <div className="photo-upload-actions">
+          <CameraCaptureButton
+            label={'Take a photo' + (assetId ? ' of this item' : '')}
+            disabled={busy || retry || linking || uploadUncertain}
+            onCapture={(captured) => {
+              setFile(captured)
+              void upload(captured)
+            }}
+          />
+          <Button
+            variant={uploadUncertain ? 'default' : 'outline'}
+            disabled={!file || busy || retry || linking}
+          >
+            {uploadUncertain
+              ? 'Retry same photo upload'
+              : 'Upload privately' + (assetId ? ' to this item' : '')}
+          </Button>
+        </div>
+        {file && !busy && !uploadUncertain && (
+          <p>Photo ready to upload: {file.name}</p>
+        )}
+        {uploading && (
+          <PhotoUploadProgress
+            percent={percent}
+            onCancel={() => uploadController.current?.abort()}
+          />
+        )}
       </form>
       {assetId && (
         <details>

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.96.0 - Take a photo with the phone camera
+
+- On phones and tablets, Photos and the assistant's photo picker show **Take a
+  photo**. It opens the rear camera through the ordinary file input
+  (`capture="environment"`) and saves the photo straight away with the chosen
+  purpose. Desktop browsers don't show the button.
+- Photo uploads in Photos and Chat now show a progress bar with **Cancel
+  upload**. After a lost response Photos, like Chat, locks the file and offers
+  **Retry same photo upload**; the server keeps one copy per photo, so retries
+  and sending again after Cancel never duplicate it.
+- Frontend only. No migration, API or MCP change; nothing new is cached on the
+  device. See docs/INSTALLABLE_APP.md.
+
 ## 0.95.0 - Install LifeGather to the home screen
 
 - LifeGather can now be installed as an app on phones, tablets and computers

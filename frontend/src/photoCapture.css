@@ -1,0 +1,56 @@
+/* Camera button: a label wrapping a visually hidden file input. :root raises
+   these rules above the panels' label and input rules (photos.css, chat.css)
+   and the button's display utility. */
+:root label.camera-capture {
+  position: relative;
+  display: inline-flex;
+  justify-self: start;
+  margin: 0;
+  cursor: pointer;
+}
+:root label.camera-capture:focus-within {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+:root .camera-capture > input.camera-capture-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  opacity: 0;
+}
+/* Desktop browsers ignore `capture`, so the button would only repeat the
+   file picker there. */
+@media (hover: hover) and (pointer: fine) {
+  :root label.camera-capture {
+    display: none;
+  }
+}
+.photo-upload-progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+}
+.photo-upload-progress progress {
+  flex: 1 1 8rem;
+  min-width: 0;
+  height: 0.6rem;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--muted);
+}
+.photo-upload-progress progress::-webkit-progress-bar {
+  background: var(--muted);
+}
+.photo-upload-progress progress::-webkit-progress-value {
+  background: var(--primary);
+}
+.photo-upload-progress progress::-moz-progress-bar {
+  background: var(--primary);
+}
