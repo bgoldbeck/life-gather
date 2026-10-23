@@ -305,6 +305,8 @@ with urllib.request.urlopen(base + '/auth/session') as r:
         'test_login_enabled': False,
         'email_password_enabled': False,
         'email_delivery_enabled': False,
+        'bot_check_site_key': None,
+        'terms': None,
         'user': None,
         'csrf_token': None,
     }

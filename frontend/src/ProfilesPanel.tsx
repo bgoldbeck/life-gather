@@ -366,6 +366,7 @@ function ProfileEditor({
       </form>
       <MaintenancePanel
         entityId={id}
+        contextRevision={contextRevision}
         csrfToken={csrfToken}
         refreshSession={refreshSession}
         onOpenGraph={onOpenGraph}

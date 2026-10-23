@@ -5,6 +5,104 @@ import { ChatPanel } from './ChatPanel'
 
 afterEach(() => vi.unstubAllGlobals())
 
+it('shows committed maintenance dates, refreshes the record and opens its maintenance view', async () => {
+  const fetcher = mockServer({
+    id: 'maintenance-turn',
+    request_id: 'maintenance-request',
+    mode: 'assistant',
+    state: 'complete',
+    text: 'Log completed oil change on my mower',
+    result: {
+      text: 'Recorded oil change for Synthetic mower as completed, as your statement.',
+      changed_entity_id: 'mower',
+      navigation: {
+        page: 'Profiles',
+        entity_id: 'mower',
+        name: 'Synthetic mower',
+      },
+      maintenance: {
+        task_id: 'task-1',
+        revision_id: 'revision-1',
+        title: 'oil change',
+        state: 'completed',
+        due_on: null,
+        completed_on: null,
+        timezone: 'America/Los_Angeles',
+      },
+    },
+  })
+  const open = vi.fn(),
+    changed = vi.fn(),
+    asset = vi.fn()
+  render(
+    <ChatPanel
+      csrfToken="csrf"
+      onOpenMaintenance={open}
+      onRecordChanged={changed}
+      onOpenAsset={asset}
+    />,
+  )
+  await screen.findByText('A place for the details')
+  await userEvent.selectOptions(screen.getByLabelText('Action'), 'assistant')
+  await userEvent.type(
+    screen.getByLabelText('Message your assistant'),
+    'Log completed oil change on my mower',
+  )
+  await userEvent.click(screen.getByRole('button', { name: 'Send' }))
+  expect(await screen.findByText('Saved maintenance task')).toBeInTheDocument()
+  expect(screen.getByText('Completion date: Unknown')).toBeInTheDocument()
+  expect(screen.getByText('Due date: Unknown')).toBeInTheDocument()
+  expect(changed).toHaveBeenCalledWith('mower')
+  expect(open).toHaveBeenCalledWith('mower')
+  expect(asset).not.toHaveBeenCalled()
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Open Synthetic mower maintenance' }),
+  )
+  expect(open).toHaveBeenCalledTimes(2)
+  const call = fetcher.mock.calls.find(([url]) => url.endsWith('/stream'))!
+  expect(JSON.parse(call[1]!.body as string).timezone).toBe(
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+  )
+})
+
+it('puts an explicit task choice in the draft without treating a task ID as an asset', async () => {
+  mockServer({
+    id: 'maintenance-question',
+    request_id: 'question',
+    mode: 'assistant',
+    state: 'complete',
+    text: 'Mark my mower oil change complete',
+    result: {
+      text: 'Which oil change? No changes were saved.',
+      maintenance_choices: [
+        {
+          id: 'abcd1234-1',
+          name: 'oil change (task abcd1234)',
+          asset_id: 'mower',
+        },
+      ],
+    },
+  })
+  const asset = vi.fn()
+  render(<ChatPanel csrfToken="csrf" onOpenAsset={asset} />)
+  await screen.findByText('A place for the details')
+  await userEvent.selectOptions(screen.getByLabelText('Action'), 'assistant')
+  await userEvent.type(
+    screen.getByLabelText('Message your assistant'),
+    'Mark my mower oil change complete',
+  )
+  await userEvent.click(screen.getByRole('button', { name: 'Send' }))
+  await userEvent.click(
+    await screen.findByRole('button', {
+      name: 'Use oil change (task abcd1234)',
+    }),
+  )
+  expect(screen.getByLabelText('Message your assistant')).toHaveValue(
+    'Use oil change (task abcd1234)',
+  )
+  expect(asset).not.toHaveBeenCalled()
+})
+
 it('opens saved research on its asset without treating finding IDs as memory sources', async () => {
   const fetcher = mockServer({
     id: 'recall-turn',

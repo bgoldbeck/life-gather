@@ -5,6 +5,46 @@ import { MaintenancePanel } from './MaintenancePanel'
 
 afterEach(() => vi.unstubAllGlobals())
 
+it('refreshes after a chat write without discarding an open edit draft', async () => {
+  const user = userEvent.setup()
+  const { fetcher } = fixture()
+  const view = render(
+    <MaintenancePanel
+      entityId="vehicle"
+      csrfToken="csrf"
+      contextRevision={0}
+    />,
+  )
+  await createTask(user)
+  await user.click(
+    await screen.findByRole('button', { name: 'Edit Replace cabin filter' }),
+  )
+  await user.type(
+    await screen.findByLabelText('Source statement'),
+    'Unsaved correction',
+  )
+  const before = fetcher.mock.calls.filter(([url]) =>
+    url.startsWith('/api/maintenance?'),
+  ).length
+  view.rerender(
+    <MaintenancePanel
+      entityId="vehicle"
+      csrfToken="csrf"
+      contextRevision={1}
+    />,
+  )
+  await waitFor(() =>
+    expect(
+      fetcher.mock.calls.filter(([url]) => url.startsWith('/api/maintenance?'))
+        .length,
+    ).toBeGreaterThan(before),
+  )
+  expect(screen.getByLabelText('Source statement')).toHaveValue(
+    'Unsaved correction',
+  )
+  expect(screen.getByLabelText('Maintenance state filter')).toHaveValue('all')
+})
+
 function fixture() {
   const revisions: Record<string, unknown>[] = []
   let current: Record<string, unknown> | null = null

@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.92.0 - Maintenance through chat
+
+- Ask the AI assistant to add one maintenance task, log explicitly completed
+  work, or complete, cancel, reopen or correct one existing task on an asset.
+  It lists/reads existing private tasks and asks when the asset, task or date
+  is ambiguous; the normal direct maintenance editor remains available.
+- Task/source/history and the saved chat result commit together. Exact retries
+  acknowledge the originally saved revision and evidence, including after chat
+  retention, without duplicating a task or rewinding later corrections.
+- Dates omitted from new tasks remain unknown; omitted revision fields remain
+  unchanged. Calendar dates are checked against user words. Relative dates use
+  the browser timezone and original request day, preserved across clarification
+  and midnight; missing context or ambiguous date formats require clarification.
+- Host-written task status/date receipts link to maintenance in Profiles and the
+  saved evidence. Explicit task-choice buttons fill a draft rather than opening
+  a task ID as an asset. Changed lists refresh without dropping edit drafts.
+- Research-reading turns cannot write maintenance. Owner boundaries, observed
+  task/asset versions, cancellation, bounded reads and explicit user authorization
+  apply. No inferred intervals, recurrence, reminders, mileage rules or new schema,
+  dependency, records format or MCP operation; head0037 / format6 remain.
+- Synthetic provider/UI tests cover contracts. Live provider testing remains
+  deferred by Lisa; this does not establish real model quality.
+
 ## 0.91.0 - Real visitor addresses behind the Cloudflare test site
 
 - Sign-in rate limits on the Cloudflare test site now count each visitor's own
