@@ -70,8 +70,9 @@ mock tests alone do not establish real model quality.
 The [assistant design](superpowers/specs/2026-10-21-ai-asset-assistant-design.md)
 describes this first slice. v0.60.0 delivers its first increment
 ([AI assistant](AI_ASSISTANT.md)), v0.61.0 adds streamed progress status and
-v0.63.0 adds asset type assignment with typed template fields; live-provider
-verification remains.
+v0.63.0 adds asset type assignment with typed template fields. Live-provider
+verification with real OpenAI, Claude and Gemini connections is **Deferred by
+Lisa (2026-10-23)**: do not pick it up until she asks for it.
 
 ## Phase 2: evidence intake and useful recall
 
@@ -139,7 +140,9 @@ Treat this as a release gate as well as continuing work during Phases 1 and 2.
   v0.86.0 restores a personal archive into an account that already has records,
   adding only missing records and keeping current ones.
 - Verify configured-provider behavior and connection recovery before claiming
-  end-to-end readiness. Address session/account/credential issues when they block
+  end-to-end readiness. **Deferred by Lisa (2026-10-23):** testing with real
+  OpenAI, Claude and Gemini connections waits until she asks for it; do not pick
+  it up as the next task. Address session/account/credential issues when they block
   real tracking. Never use live personal data without the required authorization.
 - Keep exact money, owner boundaries, provenance, migrations and recovery correct
   in every feature; they are not repairs to postpone until this phase.
