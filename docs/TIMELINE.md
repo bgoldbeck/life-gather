@@ -1,6 +1,6 @@
 # Timeline and dashboards
 
-Status: delivered in v0.102.0 (2026-10-23).
+Status: delivered in v0.103.0 (2026-10-23).
 Lisa chose optional backlog item "Rich timelines/dashboards" on 2026-10-23,
 including money dashboards.
 
