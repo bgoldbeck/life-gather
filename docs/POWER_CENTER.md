@@ -63,12 +63,21 @@ minute when visible. Snapshots expire after five minutes; requests time out afte
 Failures preserve original observations and checked times; expired snapshots show
 stale labels. There is no background external probe.
 
-AI/model availability remains unverified: aggregate usage does not identify which
-credential/model succeeded. Google revocation is undetectable locally until
-requested processing records failure. Raw provider errors, secrets, nonces and
-ciphertext never appear in diagnostics. Credentials are not decrypted; no provider
-endpoint is called. Paid/remote probes, richer live-model diagnostics and scanner
-integrations require later scope.
+Each saved credential remembers only the provider's last answer to it
+(v0.85.0, migration `0036_credential_auth_state`). A requested AI request that
+succeeds marks that key working; an AI connection shows **Ready** while a request
+succeeded within 24 hours, and stays unverified otherwise. A `401`/`403` from
+OpenAI, Claude or Gemini, a Gmail token refresh answered `invalid_grant`, or a
+Gmail `401` marks the connection as needing a reconnect. Power Center then shows
+it as needing attention with **Reconnect**: Gmail opens Google read-only consent in
+one click; an AI key opens its Replace form in Settings (paste a new key). Saving
+a new key or completing Gmail consent clears the prompt. Google revocation is
+still only noticed when requested processing runs; there is no probe.
+
+Raw provider errors, secrets, credential IDs, nonces and ciphertext never appear
+in diagnostics. Credentials are not decrypted; no provider endpoint is called.
+Paid/remote probes, richer live-model diagnostics and scanner integrations require
+later scope.
 
 ## Connection changes and privacy
 

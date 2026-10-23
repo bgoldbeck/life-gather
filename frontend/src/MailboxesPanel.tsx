@@ -5,6 +5,7 @@ type Mailbox = {
   id: string
   address: string
   connected: boolean
+  needs_reconnect?: boolean
   revision: number
 }
 type Page = {
@@ -168,10 +169,23 @@ export function MailboxesPanel({
           <li key={mailbox.id}>
             <strong>{mailbox.address}</strong> ·{' '}
             <span>
-              {mailbox.connected
-                ? 'Connected for read-only access'
-                : 'Disconnected'}
+              {mailbox.needs_reconnect
+                ? 'Access expired or was revoked. Reconnect to scan again.'
+                : mailbox.connected
+                  ? 'Connected for read-only access'
+                  : 'Disconnected'}
             </span>
+            {mailbox.needs_reconnect && (
+              <Button
+                disabled={
+                  busy || !page?.oauth_configured || !page.vault_configured
+                }
+                onClick={() => void connect()}
+                aria-label={'Reconnect ' + mailbox.address}
+              >
+                Reconnect
+              </Button>
+            )}
             {mailbox.connected && (
               <Button
                 variant="outline"

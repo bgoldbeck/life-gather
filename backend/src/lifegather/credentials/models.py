@@ -31,7 +31,13 @@ class UserSettings(Base):
 
 class Credential(Base):
     __tablename__ = "credentials"
-    __table_args__ = (Index("uq_credentials_user_id_id", "user_id", "id", unique=True),)
+    __table_args__ = (
+        Index("uq_credentials_user_id_id", "user_id", "id", unique=True),
+        CheckConstraint(
+            "auth_state IS NULL OR auth_state IN ('working', 'reconnect')",
+            name="ck_credentials_auth_state",
+        ),
+    )
     id: Mapped[str] = mapped_column(String, primary_key=True)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     kind: Mapped[str]
@@ -41,3 +47,7 @@ class Credential(Base):
     ciphertext: Mapped[bytes] = mapped_column(LargeBinary)
     created_at: Mapped[int]
     updated_at: Mapped[int]
+    # Last provider answer to this secret: accepted ("working") or refused as
+    # expired/revoked ("reconnect"). NULL is unverified, e.g. a fresh key.
+    auth_state: Mapped[str | None] = mapped_column(default=None)
+    auth_checked_at: Mapped[int | None] = mapped_column(default=None)

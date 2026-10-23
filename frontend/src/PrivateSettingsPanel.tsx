@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
+import type { ReconnectTarget } from './reconnect'
 import { RecordExportPanel } from './RecordExportPanel'
 import { RecordRestorePanel } from './RecordRestorePanel'
 
@@ -8,6 +9,7 @@ type Entry = {
   kind: 'ai' | 'email' | 'bank'
   provider: string
   label: string
+  auth_state?: 'working' | 'reconnect' | null
 }
 type Preferences = { allow_external_ai: boolean; vault_configured: boolean }
 type Page = { items: Entry[]; next_cursor: string | null }
@@ -16,10 +18,13 @@ export function PrivateSettingsPanel({
   csrfToken,
   refreshSession,
   onChanged,
+  reconnect,
 }: {
   csrfToken: string
   refreshSession?: () => Promise<void>
   onChanged?: () => void
+  /** An AI key to renew: its Replace form opens once credentials load. */
+  reconnect?: ReconnectTarget | null
 }) {
   const [preferences, setPreferences] = useState<Preferences | null>(null)
   const [items, setItems] = useState<Entry[]>([])
@@ -32,6 +37,8 @@ export function PrivateSettingsPanel({
   const [provider, setProvider] = useState('')
   const [label, setLabel] = useState('')
   const [secret, setSecret] = useState('')
+  const form = useRef<HTMLFormElement>(null)
+  const [handled, setHandled] = useState<ReconnectTarget | null>(null)
 
   const request = useCallback(
     async (path: string, init?: RequestInit) => {
@@ -85,6 +92,29 @@ export function PrivateSettingsPanel({
     },
     [request],
   )
+
+  // Open the requested key's Replace form once the list has it, once per request.
+  const requested =
+    reconnect?.kind === 'ai' && reconnect !== handled
+      ? (items.find((item) => item.id === reconnect.credential_id) ??
+        items.find(
+          (item) =>
+            item.kind === 'ai' &&
+            item.provider === reconnect.provider &&
+            item.auth_state === 'reconnect',
+        ))
+      : undefined
+  if (reconnect && requested) {
+    setHandled(reconnect)
+    setEditing(requested)
+    setSecret('')
+    setNotice(
+      `Paste a new key for “${requested.label}” to reconnect it. Create one in your provider's console first.`,
+    )
+  }
+  useEffect(() => {
+    if (handled) form.current?.scrollIntoView?.({ block: 'center' })
+  }, [handled])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -245,7 +275,7 @@ export function PrivateSettingsPanel({
                 credentials can be saved.
               </p>
             )}
-            <form onSubmit={(event) => void save(event)}>
+            <form ref={form} onSubmit={(event) => void save(event)}>
               <fieldset disabled={busy || !preferences.vault_configured}>
                 <legend>
                   {editing
@@ -341,7 +371,16 @@ export function PrivateSettingsPanel({
                     <div>
                       <strong>{entry.label}</strong>
                       <p>
-                        {entry.provider} · {entry.kind} · Not validated
+                        {entry.provider} · {entry.kind} ·{' '}
+                        {entry.auth_state === 'reconnect' ? (
+                          <strong>
+                            Refused by the provider; expired or revoked
+                          </strong>
+                        ) : entry.auth_state === 'working' ? (
+                          'Working at its last use'
+                        ) : (
+                          'Not validated'
+                        )}
                       </p>
                     </div>
                     <Button
@@ -352,9 +391,11 @@ export function PrivateSettingsPanel({
                         setSecret('')
                         setNotice('')
                       }}
-                      aria-label={`Replace ${entry.label}`}
+                      aria-label={`${entry.auth_state === 'reconnect' ? 'Reconnect' : 'Replace'} ${entry.label}`}
                     >
-                      Replace
+                      {entry.auth_state === 'reconnect'
+                        ? 'Reconnect'
+                        : 'Replace'}
                     </Button>
                     <Button
                       variant="outline"

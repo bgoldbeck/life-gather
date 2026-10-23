@@ -1,4 +1,5 @@
 import json
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -8,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from lifegather.auth.store import Account
 from lifegather.chat.context import WorkspaceContexts
-from lifegather.chat.provider import Answer, Completion, Provider
+from lifegather.chat.provider import Answer, Completion, Provider, tracked
 from lifegather.chat.recall import RecallPlan, RecallTools
 from lifegather.chat.research import run_research
 from lifegather.chat.service import ChatService, SaveText, TurnInput, save_text
@@ -205,6 +206,7 @@ async def answer(
         nonlocal secret
         if chat.provider_name(actor, vault, body.credential_id) != selected_provider:
             raise MemoryError("Selected AI connection changed")
+        read_at = int(time.time())
         secret = vault.read_secret(actor, body.credential_id)
         result: Completion
         streaming = getattr(provider, "stream_complete", None)
@@ -221,12 +223,22 @@ async def answer(
                     raise MemoryError("AI connection or permission changed")
                 await preview.append(text)
 
-            result = await streaming(
-                secret, body.model, instruction, payload, schema, delta
+            result = await tracked(
+                vault,
+                actor,
+                body.credential_id,
+                selected_provider,
+                read_at,
+                streaming(secret, body.model, instruction, payload, schema, delta),
             )
         else:
-            result = await provider.complete(
-                secret, body.model, instruction, payload, schema
+            result = await tracked(
+                vault,
+                actor,
+                body.credential_id,
+                selected_provider,
+                read_at,
+                provider.complete(secret, body.model, instruction, payload, schema),
             )
         chat.record_usage(actor, day, result.input_tokens, result.output_tokens)
         active()
@@ -256,13 +268,20 @@ async def answer(
                 raise MemoryError("Selected AI connection changed")
             return vault.read_secret(actor, body.credential_id)
 
-        researched = await run_research(
-            provider,  # type: ignore[arg-type]
-            body.model,
-            body.text,
-            record,
-            recheck,
-            lambda inputs, outputs: chat.record_usage(actor, day, inputs, outputs),
+        researched = await tracked(
+            vault,
+            actor,
+            body.credential_id,
+            selected_provider,
+            int(time.time()),
+            run_research(
+                provider,  # type: ignore[arg-type]
+                body.model,
+                body.text,
+                record,
+                recheck,
+                lambda inputs, outputs: chat.record_usage(actor, day, inputs, outputs),
+            ),
         )
         active()
         return {"provider": selected_provider, "model": body.model, **researched}

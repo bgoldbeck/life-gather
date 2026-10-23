@@ -8,7 +8,12 @@ from typing import Any
 import httpx2
 from pydantic import BaseModel
 
-from lifegather.chat.provider import Completion, ProviderError
+from lifegather.chat.provider import (
+    REFUSED,
+    Completion,
+    ProviderAuthError,
+    ProviderError,
+)
 from lifegather.chat.streaming import DeltaSink, events
 
 
@@ -151,6 +156,8 @@ class GeminiProvider:
                         **({"stream": True} if emit else {}),
                     },
                 ) as response:
+                    if response.status_code in REFUSED:
+                        raise ProviderAuthError("Gemini refused the saved key")
                     if response.status_code != 200:
                         raise ProviderError(
                             "Gemini request failed; check access and model"

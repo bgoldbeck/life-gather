@@ -105,7 +105,7 @@ screens or new domain subsystems.
   Research does not establish ownership or guarantee parts compatibility.
   v0.67.0 adds [web research](WEB_RESEARCH.md) in Chat for OpenAI and Claude
   connections; v0.83.0 saves a cited source to an asset as evidence on request.
-  v0.85.0 lets the asset assistant recall a bounded selection of those saved
+  v0.86.0 lets the asset assistant recall a bounded selection of those saved
   findings with dated source citations; global research indexing remains open.
 
 Acceptance: import an original, inspect extracted candidates, save supported facts,
@@ -263,3 +263,5 @@ bump, schema migration, source-graph refresh or Docker build. Publishing an imag
 never authorizes restarting the user's running installation.
 
 Research-save reliability: v0.84.1 binds each accepted request to its original input and finding, including duplicates. Exact retries preserve removal state; records format 6 preserves receipts.
+
+Reconnect prompts: v0.85.0 remembers when Google or an AI provider refuses a saved sign-in (Gmail `invalid_grant`/`401`, AI `401`/`403`) and offers one-click Reconnect in Power Center, Scans, chat and Settings. Migration 0036.

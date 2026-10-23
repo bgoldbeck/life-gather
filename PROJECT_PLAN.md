@@ -1,12 +1,16 @@
 # LifeGather — Product and Engineering Plan
 
-**Status:** v0.85.0 adds dated saved-research recall to the AI asset assistant; tracking and evidence-backed recall remain the active priorities.
-**Date:** Updated 2026-10-22
+**Status:** v0.86.0 adds dated saved-research recall to the AI asset assistant; tracking and evidence-backed recall remain the active priorities.
+**Date:** Updated 2026-10-23
 
-v0.85.0 lets the asset assistant read a bounded selection of saved web findings,
+v0.86.0 lets the asset assistant read a bounded selection of saved web findings,
 with inspectable source links, dated excerpts and ownership/compatibility
-safeguards. No migration or dependency change. See
+safeguards. No new migration or dependency; current head is 0036. See
 [recall plan](docs/superpowers/plans/2026-10-22-assistant-saved-research.md).
+
+v0.85.0 remembers when Google or an AI provider refuses a saved sign-in and offers
+one-click Reconnect in Power Center, Scans, chat and Settings. Migration 0036. See
+[reconnect plan](docs/superpowers/plans/2026-10-23-reconnect-prompts.md).
 
 v0.84.1 hardens saved web research retries with durable owner-scoped receipts,
 removed-result acknowledgments and records format 6. Migration 0035; formats 4/5

@@ -2,6 +2,7 @@
 
 import base64
 import hashlib
+import json
 import re
 from typing import Any
 from urllib.parse import urlencode
@@ -21,6 +22,36 @@ ATTACHMENT_RESPONSE_LIMIT = 6 * 1024 * 1024
 
 class MailboxFailure(ValueError):
     pass
+
+
+class MailboxReconnect(MailboxFailure):
+    """Google refused the saved grant: it expired or was revoked."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "Gmail access expired or was revoked. Reconnect Gmail to continue."
+        )
+
+
+async def refused_grant(response: httpx2.Response, token_request: bool) -> bool:
+    """True when Google says the refresh grant or access token is no longer valid.
+
+    Only the bounded error code is read; nothing from the body is kept or shown.
+    """
+    if not token_request:
+        return response.status_code == 401
+    if response.status_code not in {400, 401}:
+        return False
+    body = bytearray()
+    async for chunk in response.aiter_bytes():
+        if len(body) + len(chunk) > 4096:
+            return False
+        body.extend(chunk)
+    try:
+        value = json.loads(body)
+    except ValueError:
+        return False
+    return isinstance(value, dict) and value.get("error") == "invalid_grant"
 
 
 class GmailGrant(BaseModel):
@@ -114,18 +145,20 @@ class GmailProvider:
                     headers={"Authorization": "Bearer " + token} if token else {},
                 ) as response:
                     if response.status_code != 200:
+                        if await refused_grant(response, url == TOKEN_URL):
+                            raise MailboxReconnect()
                         raise ValueError("Mailbox request failed")
                     data = bytearray()
                     async for chunk in response.aiter_bytes():
                         if len(data) + len(chunk) > limit:
                             raise ValueError("Mailbox response too large")
                         data.extend(chunk)
-                    import json
-
                     value = json.loads(data)
                     if not isinstance(value, dict):
                         raise ValueError("Invalid mailbox response")
                     return value
+        except MailboxReconnect:
+            raise
         except (httpx2.HTTPError, ValueError, TypeError):
             raise MailboxFailure(
                 "Mailbox request failed. Reconnect and try again."

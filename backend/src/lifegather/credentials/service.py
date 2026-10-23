@@ -28,6 +28,31 @@ if TYPE_CHECKING:
 KEY_ID = re.compile(r"^[A-Za-z0-9._-]{1,32}$")
 
 
+AUTH_RECHECK_SECONDS = 3600
+
+
+class ReconnectRequired(Exception):
+    """A provider refused a saved credential as expired or revoked.
+
+    The message is fixed, safe text: it never carries provider response content.
+    """
+
+    def __init__(
+        self, kind: Literal["ai", "gmail"], identifier: str, provider: str
+    ) -> None:
+        self.kind, self.identifier, self.provider = kind, identifier, provider
+        super().__init__(
+            "Gmail access expired or was revoked. Reconnect Gmail to continue."
+            if kind == "gmail"
+            else "The AI provider refused the saved key; it may have expired or "
+            "been revoked. Reconnect it with a new key in Settings."
+        )
+
+    def view(self) -> dict[str, str]:
+        key = "mailbox_id" if self.kind == "gmail" else "credential_id"
+        return {"kind": self.kind, key: self.identifier, "provider": self.provider}
+
+
 class VaultError(ValueError):
     def __init__(self, message: str, status: int = 404) -> None:
         super().__init__(message)
@@ -50,6 +75,8 @@ class CredentialMetadata:
     label: str
     created_at: int
     updated_at: int
+    auth_state: str | None = None
+    auth_checked_at: int | None = None
 
 
 class CredentialPage(TypedDict):
@@ -241,7 +268,14 @@ class PrivateSettings:
     @staticmethod
     def _metadata(row: Credential) -> CredentialMetadata:
         return CredentialMetadata(
-            row.id, row.kind, row.provider, row.label, row.created_at, row.updated_at
+            row.id,
+            row.kind,
+            row.provider,
+            row.label,
+            row.created_at,
+            row.updated_at,
+            row.auth_state,
+            row.auth_checked_at,
         )
 
     @staticmethod
@@ -339,7 +373,43 @@ class PrivateSettings:
             self._check_key(db)
             self._encrypt(actor, row, secret)
             row.updated_at = int(time.time())
+            # A new secret has not been tried yet.
+            row.auth_state = row.auth_checked_at = None
             return self._metadata(row)
+
+    def record_auth(
+        self,
+        actor: Account,
+        credential_id: str,
+        state: Literal["working", "reconnect"],
+        read_at: int,
+        now: int | None = None,
+    ) -> None:
+        """Record the provider's latest answer to an owned credential.
+
+        `read_at` is when the caller read the secret it sent. A credential
+        replaced or removed since then is left alone: the answer was about the
+        old secret. Repeated successes are written at most hourly.
+        """
+        now = int(time.time()) if now is None else now
+        with Session(self.engine) as db, db.begin():
+            row = db.scalar(
+                select(Credential)
+                .where(Credential.user_id == actor.id, Credential.id == credential_id)
+                .limit(1)
+            )
+            if (
+                row is None
+                or row.updated_at > read_at
+                or (
+                    state == "working"
+                    and row.auth_state == "working"
+                    and row.auth_checked_at is not None
+                    and 0 <= now - row.auth_checked_at < AUTH_RECHECK_SECONDS
+                )
+            ):
+                return
+            row.auth_state, row.auth_checked_at = state, now
 
     def read_secret(self, actor: Account, credential_id: str) -> str:
         """Internal integration use only; deliberately absent from HTTP/MCP tools."""

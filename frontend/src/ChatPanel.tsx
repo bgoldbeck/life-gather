@@ -25,6 +25,8 @@ import {
   SavedResearchCitations,
   type SavedResearchCitation,
 } from './SavedResearchCitations'
+import { ReconnectButton } from './ReconnectButton'
+import { isReconnectTarget, type ReconnectTarget } from './reconnect'
 
 type Source = { id: string; text: string }
 type Turn = {
@@ -50,6 +52,7 @@ type Turn = {
     research?: WebResearch
     saved_research?: SavedResearchCitation[]
     saved_research_limited?: boolean
+    reconnect?: ReconnectTarget
   }
 }
 type ChatBody = {
@@ -68,7 +71,13 @@ type ChatBody = {
 
 type Conversation = { id: string; title: string }
 type Page<T> = { items: T[]; next_cursor: string | null }
-type Credential = { id: string; kind: string; provider: string; label: string }
+type Credential = {
+  id: string
+  kind: string
+  provider: string
+  label: string
+  auth_state?: 'working' | 'reconnect' | null
+}
 
 export function ChatPanel({
   csrfToken,
@@ -78,6 +87,7 @@ export function ChatPanel({
   onOpenScan,
   onOpenAsset,
   onRecordChanged,
+  onReconnectKey,
   context,
   contextLoading = false,
   compact = false,
@@ -90,6 +100,7 @@ export function ChatPanel({
   onOpenScan?: (id: string) => void
   onOpenAsset?: (id: string) => void
   onRecordChanged?: (id: string) => void
+  onReconnectKey?: (target: ReconnectTarget) => void
   context?: WorkspaceContext | null
   contextLoading?: boolean
   compact?: boolean
@@ -912,6 +923,15 @@ export function ChatPanel({
                     {turn.state === 'failed' && (
                       <p role="status">Request failed</p>
                     )}
+                    {turn.state === 'failed' &&
+                      isReconnectTarget(turn.result.reconnect) && (
+                        <ReconnectButton
+                          target={turn.result.reconnect}
+                          csrfToken={csrfToken}
+                          onReconnectKey={onReconnectKey}
+                          variant="outline"
+                        />
+                      )}
                     {turn.result.research && (
                       <ResearchResult
                         research={turn.result.research}
@@ -1181,6 +1201,9 @@ export function ChatPanel({
                       {credentials.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.label} · {aiProviderLabel(c.provider)}
+                          {c.auth_state === 'reconnect'
+                            ? ' · needs reconnect'
+                            : ''}
                         </option>
                       ))}
                     </select>

@@ -61,3 +61,12 @@ keep inspected citations. An 8,000-byte UTF-8 budget for the citation list may
 reduce the five-finding selection, leaving room for ordinary requests and other
 tool results within the existing 24,000-byte runner limit. Six regression cases
 reproduce these review findings before the single fix pass.
+
+## Upstream reconciliation
+
+PR125 merged reconnect prompts while this feature was being verified. Reconciled
+onto fb84617d1e6e79798e2b93b79f5e3f4dafc8bbda (v0.85.0 / migration0036).
+This feature is therefore v0.86.0, with no additional migration. Preserve the
+Reconnect button, credential state labels, provider refusal handling and source
+citations together. Re-run the full suite and browser checks on this combined
+baseline; prior pre-merge test evidence does not cover the new baseline.

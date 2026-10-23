@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 import httpx2
 from pydantic import BaseModel, ConfigDict, StrictBool
 
-from lifegather.chat.provider import ProviderError
+from lifegather.chat.provider import REFUSED, ProviderAuthError, ProviderError
 from lifegather.memory.service import MemoryError
 
 MAX_SEARCHES = 3
@@ -132,6 +132,8 @@ async def post(
         transport=transport,
     ) as client:
         async with client.stream("POST", url, headers=headers, json=body) as response:
+            if response.status_code in REFUSED:
+                raise ProviderAuthError(name + " refused the saved key")
             if response.status_code != 200:
                 raise ProviderError(
                     name + " research failed; check access, model and web search"

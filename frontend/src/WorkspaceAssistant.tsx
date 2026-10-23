@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ChatPanel } from './ChatPanel'
 import type { WorkspaceContext } from './workspaceContext'
+import type { ReconnectTarget } from './reconnect'
 
 export function WorkspaceAssistant({
   page,
@@ -17,6 +18,7 @@ export function WorkspaceAssistant({
   onOpenAsset: (id: string) => void
   onOpenGraph: (id: string) => void
   onOpenScan: (id: string) => void
+  onReconnectKey?: (target: ReconnectTarget) => void
   onRecordChanged: (id: string) => void
 }) {
   const [attempt, setAttempt] = useState(0)
