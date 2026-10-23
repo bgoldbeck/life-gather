@@ -23,6 +23,16 @@
 - Synthetic provider/UI tests cover contracts. Live provider testing remains
   deferred by Lisa; this does not establish real model quality.
 
+## 0.90.2 - Power Center setup cards stand out
+
+- Power Center connection cards and capability rows are now neutral; category
+  color stays on the icon tile only, instead of a colored strip on every card.
+- Cards that need setup get one consistent attention style in every theme: an
+  amber edge and outline, a light amber wash, a solid "Needs setup" pill and a
+  filled action button. Failed items use the same style in red. Ready,
+  unverified, disabled and planned cards stay plain. No backend, API or
+  migration changes.
+
 ## 0.90.1 - Power level capsule
 
 - The Power Center's power level is now a small capsule in the heading row
