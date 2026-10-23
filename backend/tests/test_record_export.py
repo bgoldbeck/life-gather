@@ -40,7 +40,7 @@ def test_empty_export_has_explicit_scope_and_no_account_identity(
     assert data["format"] == "lifegather-records/7"
     assert datetime.fromisoformat(data["snapshot_at"]).tzinfo is not None
     assert data["total_records"] == 0
-    assert len(data["collections"]) == 31
+    assert len(data["collections"]) == 33
     assert all(not rows for rows in data["collections"].values())
     assert data["counts"] == {name: 0 for name in data["collections"]}
     assert "not a restorable backup" in data["purpose"]
