@@ -15,9 +15,9 @@ or NAS that runs LifeGather, and the file `LifeGather.apk`.
    is `http://` + the NAS's IP address + `:8787`. (The Windows test preview
    started by `Publish-And-Start` only listens on the PC itself, so phones can't
    reach it; use the TrueNAS install.)
-2. **Get the file onto the phone.** Download `LifeGather.apk` on the phone (for
-   example from the LifeGather thread in the Claude app), or copy it over from
-   the computer.
+2. **Get the file onto the phone.** On the phone, open
+   <https://github.com/bgoldbeck/life-gather/raw/main/android/release/LifeGather.apk>
+   to download `LifeGather.apk`, or copy it over from the computer.
 3. **Open the file.** Tap the download in the notification or in the **Files**
    app. Android asks whether to allow installs from that app (for example
    Chrome or Files): tap **Settings**, turn on **Allow from this source**, and go
