@@ -52,6 +52,41 @@ it('restores a chosen archive only after confirmation and shows counts', async (
   expect(button).toBeDisabled()
 })
 
+it('reports records already in the account and an archive with nothing new', async () => {
+  const reply = (total: number, present: number, originals: number) =>
+    new Response(
+      JSON.stringify({
+        snapshot_at: '2026-10-22T08:00:00+00:00',
+        counts: {},
+        total_records: total,
+        already_present: present,
+        originals,
+      }),
+      { headers: { 'Content-Type': 'application/json' } },
+    )
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(reply(12, 300, 1))
+    .mockResolvedValueOnce(reply(0, 312, 0))
+  vi.stubGlobal('fetch', fetcher)
+  const user = userEvent.setup()
+  render(<RecordRestorePanel csrfToken="csrf-private" />)
+  for (const expected of [
+    /Restored 12 records and 1 original files.*300 records were already in your account and were left unchanged/,
+    /Nothing new to restore.*312 records were already in your account/,
+  ]) {
+    await user.upload(
+      screen.getByLabelText('Personal archive (ZIP)'),
+      archive(),
+    )
+    await user.click(
+      screen.getByLabelText("Add this archive's records to my account"),
+    )
+    await user.click(screen.getByRole('button', { name: 'Restore archive' }))
+    expect(await screen.findByRole('status')).toHaveTextContent(expected)
+  }
+})
+
 it('explains a refused restore and keeps the chosen file', async () => {
   vi.stubGlobal(
     'fetch',
@@ -60,7 +95,7 @@ it('explains a refused restore and keeps the chosen file', async () => {
         new Response(
           JSON.stringify({
             detail:
-              'This account already has saved records. Restore into a new account with no records.',
+              'Records in this archive belong to another account in this installation.',
           }),
           { status: 409, headers: { 'Content-Type': 'application/json' } },
         ),
@@ -74,7 +109,7 @@ it('explains a refused restore and keeps the chosen file', async () => {
   )
   await user.click(screen.getByRole('button', { name: 'Restore archive' }))
   expect(await screen.findByRole('alert')).toHaveTextContent(
-    'This account already has saved records.',
+    'Records in this archive belong to another account',
   )
   await waitFor(() =>
     expect(

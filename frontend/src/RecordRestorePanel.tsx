@@ -6,6 +6,7 @@ const MAX_ARCHIVE_BYTES = 64 * 1024 * 1024
 type RestoreResult = {
   snapshot_at: string
   total_records: number
+  already_present?: number
   originals: number
 }
 
@@ -103,10 +104,13 @@ export function RecordRestorePanel({
         their original IDs and dates.
       </p>
       <p>
-        Restore works only into an account with no saved records, and only when
-        those records are not already in this installation. Every file and hash
-        is checked first; if anything does not match, nothing is restored.
-        Settings, credentials and scan schedules are not part of the archive.
+        Your account does not need to be empty. Records you already have stay
+        exactly as they are, even if you changed them after the backup; only
+        records missing from your account are added back. Restore stops with
+        nothing changed if the archive belongs to another account here, or if a
+        record clashes with a different one you already have. Every file and
+        hash is checked first. Settings, credentials and scan schedules are not
+        part of the archive.
       </p>
       <label className="consent-label">
         Personal archive (ZIP)
@@ -141,9 +145,13 @@ export function RecordRestorePanel({
       {busy && <p role="status">Checking and restoring your archive…</p>}
       {result && (
         <p role="status">
-          Restored {result.total_records.toLocaleString()} records and{' '}
-          {result.originals.toLocaleString()} original files from the archive
-          made {new Date(result.snapshot_at).toLocaleString()}.
+          {result.total_records
+            ? `Restored ${result.total_records.toLocaleString()} records and ${result.originals.toLocaleString()} original files`
+            : 'Nothing new to restore'}{' '}
+          from the archive made {new Date(result.snapshot_at).toLocaleString()}.
+          {result.already_present
+            ? ` ${result.already_present.toLocaleString()} records were already in your account and were left unchanged.`
+            : ''}
         </p>
       )}
       {error && <p role="alert">{error}</p>}

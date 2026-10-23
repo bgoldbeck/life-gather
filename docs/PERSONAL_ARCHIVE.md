@@ -90,23 +90,45 @@ rolls back and the stored files are removed. The search index is rebuilt for the
 restored sources and entities, and one `personal_archive_restored` audit entry
 records the archive's snapshot time.
 
-Restore is refused (HTTP 409) when:
+### Restoring into an account that already has records (v0.86.0)
 
-- the account already has saved records (so the same archive cannot be restored
-  twice or mixed into existing data), or
-- any record in the archive already exists in this installation, for example
-  because the account it was downloaded from still holds it. IDs are never
-  rewritten.
+The account does not have to be empty. Use this to bring back records lost or
+removed after the backup was made, or to add a backup to an account you have
+already started using.
+
+- Records whose ID the account already holds are **left exactly as they are**,
+  even if they changed after the archive was made. Later corrections, renamed
+  asset types, deleted memory text and deleted photos or documents are never
+  overwritten, and their stored files are not touched.
+- Records the account does not have are added with their original IDs, history
+  and originals. Search is refreshed for added sources, added entities and
+  entities that gained an alias.
+- Restoring the same archive again adds nothing. The result reports how many
+  records were added and how many were already present.
+- Records the account no longer has at all (for example chat conversations
+  removed by retention) come back. Delete them again if they are not wanted.
+
+Restore is refused (HTTP 409) with nothing saved when:
+
+- any record in the archive belongs to **another account** in this installation,
+  for example because the account it was downloaded from still holds it. IDs are
+  never rewritten.
+- a record the account does not have repeats a **different record already in the
+  account** on its natural key: the same source or memory, the same request, the
+  same starter asset type saved separately, or a second current version of the
+  same history. Two distinct records are never merged, so this needs an empty
+  account (or removing the clashing record) instead.
 
 Starter asset types that the archive saved under the original account appear once
-in the new account. Settings, credentials, connectors and scan schedules are not
+in the account. Settings, credentials, connectors and scan schedules are not
 in the archive and must be set up again. Deleted photos/documents return as
 history without their files, as in the archive. Limits match the download: 64 MiB,
 1,000 originals and 10,000 records.
 
 The authenticated, CSRF-protected `POST /api/import/archive` takes the ZIP as the
 request body with `Content-Type: application/zip` and returns the snapshot time,
-per-collection counts, total records and number of originals. Errors: 413 over the
+per-collection counts of added records, `total_records` added, `already_present`
+(records the account already held) and the number of originals saved. Errors: 413 over the
 limits, 415 wrong content type, 422 invalid or modified archive, 409 as above, 429
 while another restore runs. There is no MCP or model tool for restore; the model
 never receives the archive. No schema change or migration.
