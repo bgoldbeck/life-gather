@@ -17,14 +17,16 @@ from lifegather.assets.identity import canonical_id, member_ids
 from lifegather.auth.store import Account
 from lifegather.chat.models import Turn
 from lifegather.chat.research import IDENTITY_NOTE, web_url
-from lifegather.findings.models import ResearchFinding
+from lifegather.findings.models import ResearchFinding, ResearchSaveReceipt
 from lifegather.memory.service import MemoryError, MemoryService
 
 MAX_FINDINGS = 100
 
 
 class FindingSave(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
+    model_config = ConfigDict(
+        extra="forbid", strict=True, revalidate_instances="always"
+    )
     request_id: str = Field(min_length=1, max_length=100)
     turn_id: str = Field(min_length=1, max_length=36)
     url: str = Field(min_length=1, max_length=2048)
@@ -84,6 +86,30 @@ class FindingService:
     def save(self, actor: Account, value: FindingSave) -> dict[str, Any]:
         data = FindingSave.model_validate(value)
         with self.memory._write() as db:
+            receipt = db.scalar(
+                select(ResearchSaveReceipt).where(
+                    ResearchSaveReceipt.user_id == actor.id,
+                    ResearchSaveReceipt.request_id == data.request_id,
+                )
+            )
+            if receipt is not None:
+                if (receipt.turn_id, receipt.url, receipt.asset_id) != (
+                    data.turn_id,
+                    data.url,
+                    data.asset_id,
+                ):
+                    raise MemoryError("Request ID was already used for another save")
+                original = db.scalar(
+                    select(ResearchFinding).where(
+                        ResearchFinding.user_id == actor.id,
+                        ResearchFinding.id == receipt.finding_id,
+                    )
+                )
+                if original is None:
+                    raise MemoryError("Finding not found")
+                return view(original) | {"already_saved": True}
+            # Pre-receipt findings retained their first request ID, but only the
+            # canonical asset. Bind the first compatible replay conservatively.
             replay = db.scalar(
                 select(ResearchFinding).where(
                     ResearchFinding.user_id == actor.id,
@@ -93,6 +119,12 @@ class FindingService:
             if replay is not None:
                 if (replay.turn_id, replay.url) != (data.turn_id, data.url):
                     raise MemoryError("Request ID was already used for another save")
+                asset = self.memory._entity(db, actor, data.asset_id)
+                if asset.kind != "asset" or canonical_id(
+                    db, actor, asset.id
+                ) != canonical_id(db, actor, replay.asset_id):
+                    raise MemoryError("Request ID was already used for another save")
+                self._receipt(db, actor, data, replay)
                 return view(replay) | {"already_saved": True}
             turn = db.scalar(
                 select(Turn).where(Turn.user_id == actor.id, Turn.id == data.turn_id)
@@ -113,6 +145,7 @@ class FindingService:
                 )
             )
             if existing is not None:
+                self._receipt(db, actor, data, existing)
                 return view(existing) | {"already_saved": True}
             research = result["research"]
             excerpts = [
@@ -145,7 +178,25 @@ class FindingService:
             db.add(row)
             self.memory._audit(db, actor, "research_finding_saved", row.id, now)
             db.flush()
+            self._receipt(db, actor, data, row)
             return view(row) | {"already_saved": False}
+
+    def _receipt(
+        self, db: Session, actor: Account, data: FindingSave, row: ResearchFinding
+    ) -> None:
+        db.add(
+            ResearchSaveReceipt(
+                id=str(uuid4()),
+                user_id=actor.id,
+                request_id=data.request_id,
+                asset_id=data.asset_id,
+                turn_id=data.turn_id,
+                url=data.url,
+                finding_id=row.id,
+                recorded_at=self.memory.clock(),
+            )
+        )
+        db.flush()
 
     def remove(self, actor: Account, value: FindingRemove) -> dict[str, Any]:
         data = FindingRemove.model_validate(value)

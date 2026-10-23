@@ -1,7 +1,11 @@
 # LifeGather — Product and Engineering Plan
 
-**Status:** v0.60.0 adds the first AI asset assistant slice ([AI assistant](docs/AI_ASSISTANT.md)), v0.61.0 streams its progress and v0.62.0 lets it start Gmail scans; Phase 1 hardening and evidence intake follow
-**Date:** Updated 2026-10-21
+**Status:** v0.84.1 hardens research-save retries and evidence acknowledgments; tracking and evidence-backed recall remain the active priorities.
+**Date:** Updated 2026-10-22
+
+v0.84.1 hardens saved web research retries with durable owner-scoped receipts,
+removed-result acknowledgments and records format 6. Migration 0035; formats 4/5
+remain restorable. See [retry plan](docs/superpowers/plans/2026-10-22-research-save-receipts.md).
 
 **Active priorities:** [tracking-first feature plan](docs/FEATURE_PLAN.md).
 User decision, 2026-10-21: make tracking and evidence-backed recall dependable

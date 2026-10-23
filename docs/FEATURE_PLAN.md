@@ -259,3 +259,5 @@ Follow repository verification, migration, versioning, source-graph and authoriz
 feature-release requirements. A documentation-only plan revision needs no version
 bump, schema migration, source-graph refresh or Docker build. Publishing an image
 never authorizes restarting the user's running installation.
+
+Research-save reliability: v0.84.1 binds each accepted request to its original input and finding, including duplicates. Exact retries preserve removal state; records format 6 preserves receipts.

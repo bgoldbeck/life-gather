@@ -37,6 +37,10 @@ for good; it cannot be undone or restored in the app.
   model deletion tool is added, and no migration: the deletion is recorded by the
   audit receipt, which exports and restores with the records.
 
+If the deletion reply is interrupted, the app cannot confirm the outcome. Use
+**Refresh memories** to check the current list, or explicitly retry; repeated
+deletion of the same source is safe.
+
 ## Browsing
 
 Memories lists source episodes already saved in the authenticated user's workspace.

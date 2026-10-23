@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.84.1 - Preserve research-save retry decisions
+
+- Every accepted save, including per-asset/page duplicates, now retains its exact
+  request and original result. A changed target cannot reuse a request ID; retries
+  after removal or conversation deletion never create replacement evidence.
+- Removed save acknowledgments explain the result and offer an explicit **Save
+  again** action with a fresh request ID. JSON downloads accept the current format
+  and format 5, which the previous browser incorrectly rejected.
+- An interrupted memory-deletion reply now reports uncertainty and points to
+  **Refresh memories**, rather than incorrectly claiming nothing was deleted.
+- Migration `0035_research_save_receipts` adds owner-bound receipts with row-level
+  security. Personal records format 6 includes them; formats 4 and 5 still restore.
+  Old findings retain a conservative first-request compatibility path. Previously
+  unstored duplicate request IDs cannot be reconstructed. No dependency or
+  provider-access change.
+
 ## 0.84.0 — Delete memories, and what memories are
 
 - Each memory on **Memories** has **Delete**, with a confirmation. Deleting

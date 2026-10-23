@@ -30,9 +30,9 @@ function SaveFinding({
   target: SaveTarget
   csrfToken: string
 }) {
-  const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'error'>(
-    'idle',
-  )
+  const [state, setState] = useState<
+    'idle' | 'saving' | 'saved' | 'removed' | 'error'
+  >('idle')
   const [message, setMessage] = useState('')
   // One request ID per source and item, so a retry after a lost reply is safe.
   const requests = useRef(new Map<string, string>())
@@ -65,14 +65,22 @@ function SaveFinding({
         const detail = (await response.json().catch(() => null)) as {
           detail?: unknown
         } | null
-        requests.current.delete(target.id)
         throw new Error(
           typeof detail?.detail === 'string'
             ? detail.detail
             : 'Unable to save this source. Try again.',
         )
       }
-      const saved = (await response.json()) as { already_saved: boolean }
+      const saved = (await response.json()) as {
+        already_saved: boolean
+        removed_at: number | null
+      }
+      if (saved.removed_at != null) {
+        requests.current.delete(target.id)
+        setState('removed')
+        setMessage('Previously saved finding was removed.')
+        return
+      }
       setState('saved')
       setMessage(
         saved.already_saved
@@ -99,10 +107,15 @@ function SaveFinding({
           disabled={state === 'saving'}
           onClick={() => void save()}
         >
-          {state === 'saving' ? 'Saving…' : `Save to ${target.name}`}
+          {state === 'saving'
+            ? 'Saving…'
+            : state === 'removed'
+              ? `Save again to ${target.name}`
+              : `Save to ${target.name}`}
         </Button>
       )}
       {state === 'error' && <p role="alert">{message}</p>}
+      {state === 'removed' && <p role="status">{message}</p>}
     </div>
   )
 }

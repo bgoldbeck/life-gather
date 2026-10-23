@@ -233,7 +233,9 @@ export function MemoriesPanel({
       )
       refresh()
     } catch {
-      setError('Unable to delete this memory. Nothing was deleted. Try again.')
+      setError(
+        'Unable to confirm deletion. Refresh memories to check, or try again.',
+      )
     } finally {
       setDeleting(false)
     }

@@ -90,7 +90,7 @@ def test_personal_json_zip_and_snapshot_keep_only_own_exact_task_history(
     assert service.get(alice, created["id"])["revision"] == current["revision"]
     raw = RecordExport(store.engine).download(alice)
     exported = json.loads(raw)
-    assert exported["format"] == "lifegather-records/5"
+    assert exported["format"] == "lifegather-records/6"
     assert b"Remove this synthetic transcript" not in raw
     collections = exported["collections"]
     assert len(collections["maintenance_tasks"]) == 1
@@ -112,7 +112,7 @@ def test_personal_json_zip_and_snapshot_keep_only_own_exact_task_history(
     ) as archive:
         records = archive.read("records.json")
         manifest = json.loads(archive.read("manifest.json"))
-        assert manifest["records_format"] == "lifegather-records/5"
+        assert manifest["records_format"] == "lifegather-records/6"
         assert manifest["records"]["sha256"] == hashlib.sha256(records).hexdigest()
         assert json.loads(records)["collections"] == collections
     copied = tmp_path / "copied.jsonl"

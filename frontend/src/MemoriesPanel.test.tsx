@@ -218,7 +218,35 @@ it('keeps the memory when deletion fails', async () => {
   )
   await user.click(screen.getByRole('button', { name: 'Delete permanently' }))
   expect(await screen.findByRole('alert')).toHaveTextContent(
-    'Nothing was deleted',
+    'Unable to confirm deletion. Refresh memories to check, or try again.',
   )
   expect(screen.getByText(/Original <script>/)).toBeVisible()
+})
+
+it('does not claim nothing changed when the deletion reply is lost', async () => {
+  const user = userEvent.setup()
+  let deleted = false
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      if (url.includes('delete-many')) {
+        deleted = true
+        throw new TypeError('Reply lost after commit')
+      }
+      return Response.json({ items: deleted ? [] : [item], next_cursor: null })
+    }),
+  )
+  render(<MemoriesPanel csrfToken="csrf" />)
+  await user.click(
+    await screen.findByRole('button', { name: /Delete memory:/ }),
+  )
+  await user.click(screen.getByRole('button', { name: 'Delete permanently' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Unable to confirm deletion. Refresh memories to check, or try again.',
+  )
+  await user.click(screen.getByRole('button', { name: 'Refresh memories' }))
+  await waitFor(() =>
+    expect(screen.queryByText(/Original <script>/)).toBeNull(),
+  )
+  expect(screen.queryByRole('alert')).toBeNull()
 })

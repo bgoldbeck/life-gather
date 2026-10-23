@@ -73,7 +73,12 @@ that one source is saved. With no asset open, the reply says to open one first.
   finished web research reply, another account's reply or a record that is not
   a physical asset is refused.
 - Saving the same page to the same asset again keeps one finding and says it was
-  already saved; a retry of the same request is safe.
+  already saved. Version 0.84.1 keeps a receipt for every accepted request,
+  including duplicate saves. Reusing a request ID with a different reply, URL or
+  original asset is refused. Exact retries return the original finding even
+  after consolidation changes or conversation deletion. If that finding was
+  removed, the UI says so and offers **Save again** as a new explicit action;
+  a retry never revives removed evidence.
 - The asset page lists findings under **Saved web research**, newest first, with
   the source link, page date (or "Page date not reported"), research and save
   times, the request and excerpts. Findings saved to either record of a
@@ -86,10 +91,11 @@ that one source is saved. With no asset open, the reply says to open one first.
 
 Storage: migration `0034_research_findings` adds the owner-scoped
 `research_findings` table with the same row-level security policy as every other
-account table. HTTP: `POST /api/research-findings`,
+account table. Migration `0035_research_save_receipts` adds owner-bound request
+receipts with row-level security. HTTP: `POST /api/research-findings`,
 `POST /api/research-findings/remove`, `GET /api/research-findings/assets/{asset_id}`.
-MCP: read-only `asset_research_findings`. Personal records format 5 includes the
-findings; format 4 archives still restore.
+MCP: read-only `asset_research_findings`. Personal records format 6 includes the
+findings and save receipts; formats 4 and 5 archives still restore.
 
 ## Not included yet
 
@@ -101,3 +107,9 @@ Contracts checked 2026-10-22:
 [OpenAI web search](https://developers.openai.com/api/docs/guides/tools-web-search).
 Verification uses mock HTTP transports and synthetic providers; no live API key or
 paid search was used.
+
+Legacy limit: before v0.84.1, only a finding's first request ID was stored. Its
+first replay must still name the same current physical identity; it then gains
+an exact receipt. Historical duplicate request IDs and the original target
+before consolidation cannot be reconstructed. Receiptless format 5 archives
+retain this limit; formats 4 and 5 remain accepted for restore.

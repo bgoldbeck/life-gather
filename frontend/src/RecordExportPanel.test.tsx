@@ -211,6 +211,8 @@ it.each([
   'lifegather-records/2',
   'lifegather-records/3',
   'lifegather-records/4',
+  'lifegather-records/5',
+  'lifegather-records/6',
 ])(
   'downloads supported format %s only after an explicit private request',
   async (format) => {
