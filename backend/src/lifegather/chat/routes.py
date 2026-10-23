@@ -124,6 +124,7 @@ def chat_router() -> APIRouter:
             "recorded_at": original.recorded_at,
             "event_date": original.event_date,
             "source_type": original.source_type,
+            "deleted": service(request).memory.source_deleted(current.user, source_id),
             "photo": PhotoService(service(request).engine).source_photo(
                 current.user, source_id
             ),

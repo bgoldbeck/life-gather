@@ -1,5 +1,44 @@
 # Memories library
 
+## What memories are
+
+A memory is a piece of evidence saved in its original words: a note you saved,
+text read from a photo, reviewed document text, email evidence from a scan, or the
+record LifeGather keeps when you add or change an asset. A memory says what a
+source said; it is not a checked fact. Facts, assets and purchases point back to
+the memories they came from so every detail can be traced.
+
+The assistant uses memories in two ways. **Ask AI** searches them by keyword and
+answers only from the matches, with a button for each memory it cites. The
+**AI assistant** links each detail it saves to the memory it came from. Memory
+text is sent to an AI provider only when you enabled external AI access and chose
+an AI mode; saving and searching stay on your server.
+
+## Deleting memories (v0.84.0)
+
+Each memory in the list has **Delete**. Confirming removes the memory's saved text
+for good; it cannot be undone or restored in the app.
+
+- The text is replaced by a short deletion notice, the memory leaves this list,
+  search, global search and Ask AI recall, and short quotes from it in fact
+  evidence are cleared. A content-free `source_deleted` audit receipt is written.
+- Deleting a saved note deletes every version of it (the original and all
+  corrections), so an older version cannot reappear.
+- Assets, facts, purchases, receipts and proposals already saved from the memory
+  stay, and opening their evidence says the memory was deleted. Change or delete
+  those separately. Purchase evidence keeps its own exact quotes.
+- Deleting the memory of a photo or document does not delete the file or its
+  stored extraction; delete the photo or document on its own page for that.
+- Re-running a scan or saving the same import again does not bring the text back.
+  Saving a new note with the same words creates a new memory.
+- `POST /api/memories/delete-many` with `{"memories": [{"source_id"}, ...]}`
+  (1 to 25 unique items, all or nothing) needs the private session and CSRF.
+  Repeating it for deleted memories succeeds without new receipts. No MCP or
+  model deletion tool is added, and no migration: the deletion is recorded by the
+  audit receipt, which exports and restores with the records.
+
+## Browsing
+
 Memories lists source episodes already saved in the authenticated user's workspace.
 It is independent of conversation history: unsaved chat messages are not added to
 this library. Save a memory preserves up to 4,000 original characters using the
@@ -27,7 +66,8 @@ transcriptions remain marked AI-generated/unverified; PDF text is marked reviewe
 rather than an original user statement. Note corrections retain their original
 file links. If an original was deleted, its derived source/history remains visible
 with an explicit deletion notice and no download/preview. File deletion retains
-its existing backup/recovery-page limits; this release adds no deletion mechanism.
+its existing backup/recovery-page limits. Memories themselves can be deleted
+since v0.84.0 (above).
 
 HTTP: GET /api/memories lists the library; POST /api/memories captures SaveText.
 Writes require current session, origin, CSRF and the existing 32 KiB body limit.

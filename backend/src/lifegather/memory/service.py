@@ -8,7 +8,7 @@ from datetime import date
 from typing import Any, Literal
 from uuid import uuid4
 
-from sqlalchemy import Engine, Select, and_, or_, select
+from sqlalchemy import ColumnElement, Engine, Select, and_, delete, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -42,6 +42,23 @@ from lifegather.memory.search_index import (
 
 class MemoryError(ValueError):
     """A bounded domain failure; no raw source data is included in the message."""
+
+
+DELETED_TEXT = "[You deleted this memory. Its saved text was removed.]"
+SOURCE_DELETED = "source_deleted"
+
+
+def deleted_source(user_id: Any, source_id: Any) -> ColumnElement[bool]:
+    """True where the owner deleted the source; the audit receipt is the marker."""
+    return (
+        select(Audit.id)
+        .where(
+            Audit.user_id == user_id,
+            Audit.target_id == source_id,
+            Audit.operation == SOURCE_DELETED,
+        )
+        .exists()
+    )
 
 
 def normalized(value: str) -> str:
@@ -129,9 +146,23 @@ class MemoryService:
         )
 
     @staticmethod
+    def is_deleted(db: Session, actor: Account, source_id: str) -> bool:
+        return bool(db.scalar(select(deleted_source(actor.id, source_id))))
+
+    @classmethod
     def _index(
-        db: Session, actor: Account, identifier: str, kind: str, body: str
+        cls, db: Session, actor: Account, identifier: str, kind: str, body: str
     ) -> None:
+        if kind == "source" and cls.is_deleted(db, actor, identifier):
+            # A deleted memory never returns to search, even through a re-ingest.
+            db.execute(
+                delete(search_index).where(
+                    search_index.c.user_id == actor.id,
+                    search_index.c.record_id == identifier,
+                    search_index.c.kind == "source",
+                )
+            )
+            return
         index_record(db, actor.id, identifier, kind, body)
 
     def ingest(self, actor: Account, value: SourceInput) -> SourceView:
@@ -189,6 +220,10 @@ class MemoryService:
     def get_source(self, actor: Account, identifier: str) -> SourceView:
         with Session(self.engine) as db:
             return SourceView.model_validate(self._source(db, actor, identifier))
+
+    def source_deleted(self, actor: Account, identifier: str) -> bool:
+        with Session(self.engine) as db:
+            return self.is_deleted(db, actor, identifier)
 
     def create_entity(self, actor: Account, value: EntityInput) -> EntityView:
         data = EntityInput.model_validate(value)
