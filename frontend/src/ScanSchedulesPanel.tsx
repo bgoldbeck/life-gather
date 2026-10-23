@@ -26,8 +26,20 @@ type Schedule = {
     model?: string
   }
 }
+type Kind = 'gmail_import' | 'gmail_attachments' | 'gmail_discovery'
+const kinds: { key: Kind; label: string; limit: number }[] = [
+  { key: 'gmail_import', label: 'Email text as evidence', limit: 50 },
+  {
+    key: 'gmail_attachments',
+    label: 'Attached documents and photos',
+    limit: 20,
+  },
+  { key: 'gmail_discovery', label: 'Purchase discovery with AI', limit: 50 },
+]
+const limitFor = (kind: string) =>
+  kinds.find((item) => item.key === kind)?.limit ?? 50
 type Draft = {
-  discovery: boolean
+  kind: Kind
   credential_id: string
   model: string
   label: string
@@ -41,7 +53,7 @@ type Draft = {
   max_messages: number
 }
 const initial = (): Draft => ({
-  discovery: false,
+  kind: 'gmail_import',
   credential_id: '',
   model: '',
   label: '',
@@ -141,12 +153,12 @@ export function ScanSchedulesPanel({
     if (!pending.current) {
       const data = {
         label: draft.label,
-        handler_key: draft.discovery ? 'gmail_discovery' : 'gmail_import',
+        handler_key: draft.kind,
         config: {
           mailbox_id: selectedMailbox,
           query: draft.query,
           max_messages: draft.max_messages,
-          ...(draft.discovery
+          ...(draft.kind === 'gmail_discovery'
             ? { credential_id: draft.credential_id, model: draft.model }
             : {}),
         },
@@ -247,7 +259,9 @@ export function ScanSchedulesPanel({
     if (busy || retry) return
     setEditing(item)
     setDraft({
-      discovery: item.handler_key === 'gmail_discovery',
+      kind:
+        kinds.find((kind) => kind.key === item.handler_key)?.key ??
+        'gmail_import',
       credential_id: item.scope.credential_id ?? '',
       model: item.scope.model ?? '',
       label: item.label,
@@ -297,16 +311,38 @@ export function ScanSchedulesPanel({
           className="grid gap-3 sm:grid-cols-2"
         >
           <label className="sm:col-span-2">
-            <input
-              type="checkbox"
-              checked={draft.discovery}
-              onChange={(event) =>
-                setDraft({ ...draft, discovery: event.target.checked })
-              }
-            />{' '}
-            Schedule purchase discovery with AI
+            Scheduled scan type
+            <select
+              value={draft.kind}
+              onChange={(event) => {
+                const kind = event.target.value as Kind
+                setDraft({
+                  ...draft,
+                  kind,
+                  max_messages: Math.min(
+                    draft.max_messages,
+                    kind === 'gmail_attachments' ? 10 : limitFor(kind),
+                  ),
+                })
+              }}
+              className="block w-full rounded border bg-background p-2"
+            >
+              {kinds.map((kind) => (
+                <option key={kind.key} value={kind.key}>
+                  {kind.label}
+                </option>
+              ))}
+            </select>
           </label>
-          {draft.discovery && (
+          {draft.kind === 'gmail_attachments' && (
+            <p className="text-sm text-muted-foreground sm:col-span-2">
+              Saves attached PDF, Word, Excel, CSV and text files (up to 4 MiB)
+              to Documents and JPEG, PNG and WebP photos (up to 8 MiB) to
+              Photos, three per email and at most 20 emails per run. No AI reads
+              them and no item is created. Your storage limit applies.
+            </p>
+          )}
+          {draft.kind === 'gmail_discovery' && (
             <ScanAIOptions
               credential={draft.credential_id}
               model={draft.model}
@@ -444,7 +480,7 @@ export function ScanSchedulesPanel({
             <input
               type="number"
               min={1}
-              max={50}
+              max={limitFor(draft.kind)}
               required
               value={draft.max_messages}
               onChange={(event) =>
@@ -505,6 +541,10 @@ export function ScanSchedulesPanel({
         {items.map((item) => (
           <li key={item.id} className="space-y-2 rounded border p-3">
             <h4 className="font-semibold">{item.label}</h4>
+            <p className="text-sm text-muted-foreground">
+              {kinds.find((kind) => kind.key === item.handler_key)?.label ??
+                item.handler_key}
+            </p>
             <p>
               {item.cadence === 'weekly'
                 ? 'Every ' + weekdays[item.weekday]

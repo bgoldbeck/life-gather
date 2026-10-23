@@ -34,6 +34,12 @@ loads, the service worker activates and controls the page, and after loading
 Assets and Settings while signed in its cache still holds only the offline
 notice page and its icon (see [installable app](INSTALLABLE_APP.md)).
 
+`frontend/e2e/phone-camera.spec.ts` checks phone camera capture on an emulated
+Pixel 7 (touch screen): **Take a photo** in Photos uses the rear-camera file
+input, shows progress and **Cancel upload**, and sending the same photo again
+saves it once; the assistant's **Review a receipt photo** picker takes and
+selects a photo the same way. A desktop browser does not show the button.
+
 `frontend/e2e/two-account-loop.spec.ts` runs the Phase 3 loop for **two accounts
 in one installation**, each in its own browser context, and checks at every step
 that nothing crosses between them:

@@ -1,35 +1,51 @@
 # Private email connections and scans
 
-## Attachment intake (v0.77.0)
+## Attachment intake (v0.77.0, photos and schedules v0.97.0)
 
-Scans → **Import attached documents for review** (or ask the assistant to "save
-the receipt attachments from my email last week") queues a `gmail_attachments`
-scan. It uses the same read-only Gmail connection, past window of at most 31
-days, one-active-scan and 20-runs-per-day rules, with tighter limits: at most 20
-messages per run (10 by default), three attachments per message and 4 MiB per
-file.
+Scans → **Import attached documents and photos for review** (or ask the
+assistant to "save the receipt attachments from my email last week") queues a
+`gmail_attachments` scan. It uses the same read-only Gmail connection, past
+window of at most 31 days, one-active-scan and 20-runs-per-day rules, with
+tighter limits: at most 20 messages per run (10 by default) and three
+attachments per message.
 
-- Only files named as a supported document (PDF, DOCX, XLSX, CSV, TXT, MD) are
-  downloaded. Images, other types, oversized files and parts beyond the limits
-  are listed on the saved email text but never fetched.
-- Each file goes through the normal document upload: local text extraction,
-  SHA-256 dedupe, the 200-document/256 MiB quota, and private
-  [file storage](FILE_STORAGE.md). No AI provider sees it and no inventory is
-  created. Its text becomes evidence only after you review and save it in
-  Documents, exactly like an uploaded file.
+- Only files named as a supported document (PDF, DOCX, XLSX, CSV, TXT, MD; up
+  to 4 MiB) or photo (JPG/JPEG, PNG, WebP; up to 8 MiB, the photo upload limit)
+  are downloaded. Other types, oversized files and parts beyond the limits are
+  listed on the saved email text but never fetched.
+- Each document goes through the normal document upload: local text
+  extraction, SHA-256 dedupe, the 200-document/256 MiB limit, the per-account
+  [storage quota](STORAGE_QUOTAS.md) and private [file storage](FILE_STORAGE.md).
+  Its text becomes evidence only after you review and save it in Documents,
+  exactly like an uploaded file.
+- Each photo goes through the normal photo upload: the file must really be a
+  single-frame JPEG, PNG or WebP under 20 megapixels, the preview is rebuilt
+  without EXIF/GPS metadata, identical files are stored once, and the
+  200-photo/256 MiB limit and storage quota apply. It is saved in Photos,
+  attached to no item; attach it, read it with AI or delete it there like any
+  other photo.
+- No AI provider sees an attachment and no inventory is created.
+- A file that fails these checks (for example a broken image or a full quota)
+  is listed as not imported with the reason; the rest of the run continues.
 - The email header, attachment list and an excerpt of its text are saved as an
-  email source (`gmail-attachments:<mailbox>` namespace), and each document is
-  linked to that source. Documents shows **Open the email this attachment came
-  from**.
-- Replaying a window reuses the same source, document and link. A file already
-  uploaded by hand is linked rather than stored twice. Deleting a document keeps
-  the link history; a later scan stores the file again as a new document.
-- A canceled or failed run can leave a document it already stored without its
-  email link; the next scan of that window adds the link.
+  email source (`gmail-attachments:<mailbox>` namespace), and each document or
+  photo is linked to that source (migration `0039_email_photo_attachments` lets
+  a link point at a photo). Documents shows **Open the email this attachment
+  came from** and Photos shows **Open the email this photo came from**.
+- Replaying a window reuses the same source, file and link. A file already
+  uploaded by hand is linked rather than stored twice. Deleting a document or
+  photo keeps the link history; a later scan stores the file again.
+- A canceled or failed run can leave a file it already stored without its email
+  link; the next scan of that window adds the link.
 
-The roadmap planned this after the text loop proves reliable; it was requested
-early, so the limits are deliberately conservative. Scheduled attachment scans
-and photo/image attachments are not included yet.
+**Scheduled attachment imports.** Scans → Scheduled scans → **Scheduled scan
+type: Attached documents and photos** runs the same import daily or weekly over
+the lookback window, with the same 20-message cap (10 by default) and the usual
+[schedule rules](#dailyweekly-schedules-v0360). Scheduled runs never start on
+email arrival.
+
+The roadmap planned attachments after the text loop proves reliable; they were
+requested early, so the limits are deliberately conservative.
 
 
 ## Request from Chat (v0.43.0)

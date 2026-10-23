@@ -1,6 +1,6 @@
 # Backup expiry and restore drill (Phase 5.5 / 5.6)
 
-Status: delivered in 0.96.0. A live drill against the hosted database is an
+Status: delivered in 0.98.0. A live drill against the hosted database is an
 operator step (see the end of this page).
 
 ## Backup expiry after account deletion
@@ -11,7 +11,7 @@ account until the operator's retention removes them. `LIFEGATHER_BACKUP_RETENTIO
 (default 35, 1 to 3650) states that retention period.
 
 When an account is deleted, LifeGather writes one entry to the
-`deleted_accounts` table (migration `0039_deleted_accounts`):
+`deleted_accounts` table (migration `0040_deleted_accounts`):
 
 | Column | Meaning |
 | --- | --- |

@@ -1,7 +1,7 @@
 """Deleted account ids, kept only until installation backups holding them expire.
 
 A system table: it has no owner column, and the per-account database role has
-no access to it (migration 0039). An entry holds the deleted account's random
+no access to it (migration 0040). An entry holds the deleted account's random
 id and two times, never an email, name or content. It lets the operator know
 when the last backup copy is gone, and lets a restore of an older backup erase
 accounts that were deleted after that backup was made.

@@ -7,8 +7,8 @@ and jobs gets no access, so only the trusted system context reads or writes it.
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0039_deleted_accounts"
-down_revision = "0038_operational_events"
+revision = "0040_deleted_accounts"
+down_revision = "0039_email_photo_attachments"
 branch_labels = None
 depends_on = None
 

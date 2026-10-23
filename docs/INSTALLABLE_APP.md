@@ -34,6 +34,27 @@ HTML is never served from the service worker, the worker file itself is always
 checked against the server, and the existing "new version" notice still offers
 an ordinary reload. A new worker replaces the previous one's stored files.
 
+## Taking photos with the camera
+
+Since v0.96.0, on a phone or tablet, **Photos** and the assistant's photo picker
+(**Attach a photo**, **Read a saved photo** or **Review a receipt photo**) show a
+**Take a photo** button. It opens the phone's rear camera; the photo is saved to
+your private Photos as soon as you confirm it, using the photo purpose chosen
+above the button. A progress bar shows the upload with **Cancel upload**.
+
+- If the connection drops and the outcome is unknown, **Retry same photo
+  upload** sends the same photo again. The server keeps one copy per photo, so a
+  retry, or sending again after Cancel, never makes a duplicate.
+- The usual limits apply: JPEG, PNG or WebP up to 8 MiB and 20 megapixels, and
+  your storage allowance. iPhone camera photos arrive as JPEG.
+- Nothing is sent to an AI provider until you ask the assistant to read the
+  photo, and nothing is kept on the phone beyond what the camera app itself
+  saves.
+
+The button is the browser's ordinary file input, so it works in a phone browser
+too, installed or not, and does not need HTTPS. Desktop browsers do not show it,
+since they would only open the same file picker as **Photo file**.
+
 ## Self-hosted: getting an HTTPS address
 
 On the home network LifeGather is usually opened as `http://<nas-address>:8787`.
