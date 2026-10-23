@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     storage_dir: Path | None = None
     # Account-wide stored-file limit in MiB; 0 means no limit (self-hosting).
     storage_quota_mb: int = Field(default=0, ge=0, le=16 * 1024 * 1024)
+    # Days the operator keeps installation backups; deleted accounts remain in
+    # backups made before their deletion for at most this long.
+    backup_retention_days: int = Field(default=35, ge=1, le=3650)
     s3_bucket: str = ""
     s3_prefix: str = ""
     s3_endpoint_url: str = ""

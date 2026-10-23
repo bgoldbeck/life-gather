@@ -5,19 +5,24 @@ import json
 import os
 import secrets
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager, suppress
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, BinaryIO, Final, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import Engine, text
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
+from lifegather.auth.deletion import AccountDeletionError, delete_account_rows
+from lifegather.auth.deletion_ledger import DeletedAccount, LedgerEntry
 from lifegather.config import Settings
 from lifegather.credentials.service import read_keyring
-from lifegather.database import create_database_engine
+from lifegather.database import account_scope, begin_serialized, create_database_engine
 from lifegather.installation_config import MAX_CONFIGURATION_BYTES, unique_object
 from lifegather.legacy_import import LegacyImportError, check_legacy, import_legacy
 from lifegather.memory.backup import SnapshotError, operator_snapshot, restore_snapshot
@@ -83,6 +88,49 @@ class BundleInfo:
     created_at: int
     database_bytes: int
     database: DatabaseSummary
+    # Accounts deleted after the bundle was made, erased again while restoring.
+    erased_accounts: int = 0
+
+
+@dataclass(frozen=True)
+class DrillReport:
+    """One timed restore; recovery point is the bundle's age when the drill began."""
+
+    bundle: BundleInfo
+    started_at: int
+    recovery_point_seconds: int
+    recovery_time_seconds: float
+    rpo_target_seconds: int
+    rto_target_seconds: int
+    # The bundle is older than the installation's backup retention period.
+    past_retention: bool
+    passed: bool
+
+
+def _erase_deleted(engine: Engine, entries: Sequence[LedgerEntry]) -> int:
+    """Delete accounts the live installation has deleted since the backup."""
+    erased = 0
+    for entry in entries:
+        # Act for the account, as live deletion does, so row security agrees.
+        with account_scope(entry.account_id), Session(engine) as db:
+            begin_serialized(db)
+            present = db.scalar(
+                text("SELECT count(*) FROM users WHERE id = :owner"),
+                {"owner": entry.account_id},
+            )
+            if present:
+                delete_account_rows(db, entry.account_id)
+                erased += 1
+            db.commit()
+    if entries:
+        with account_scope(None), Session(engine) as db:
+            db.execute(
+                insert(DeletedAccount)
+                .values([entry.model_dump() for entry in entries])
+                .on_conflict_do_nothing(index_elements=["account_id"])
+            )
+            db.commit()
+    return erased
 
 
 @dataclass(frozen=True)
@@ -322,17 +370,73 @@ class RecoveryService:
             raise RecoveryError("Unable to verify the recovery bundle") from None
 
     def restore(
-        self, bundle: Path, destination: Path, password: bytes, database_url: str
+        self,
+        bundle: Path,
+        destination: Path,
+        password: bytes,
+        database_url: str,
+        *,
+        deleted_accounts: Sequence[LedgerEntry] = (),
     ) -> BundleInfo:
         try:
-            return self._restore(bundle, destination, password, database_url)
+            return self._restore(
+                bundle, destination, password, database_url, deleted_accounts
+            )
         except RecoveryError:
             raise
+        except AccountDeletionError as error:
+            raise RecoveryError(str(error)) from None
         except (OSError, ValueError, SnapshotError, SQLAlchemyError):
             raise RecoveryError("Unable to restore the installation") from None
 
+    def drill(
+        self,
+        bundle: Path,
+        password: bytes,
+        database_url: str,
+        *,
+        rpo_target_seconds: int,
+        rto_target_seconds: int,
+        retention_days: int,
+        deleted_accounts: Sequence[LedgerEntry] = (),
+        clock: Callable[[], float] = time.monotonic,
+        now: Callable[[], int] = lambda: time.time_ns() // 1000,
+    ) -> DrillReport:
+        """Restore into a throwaway directory and the given empty database, timed.
+
+        The restored directory is removed afterwards; the database is left for
+        the operator to inspect and drop.
+        """
+        started_at = now()
+        began = clock()
+        with self._staging() as scratch:
+            info = self.restore(
+                bundle,
+                scratch / "restored",
+                password,
+                database_url,
+                deleted_accounts=deleted_accounts,
+            )
+        elapsed = clock() - began
+        point = max(0, (started_at - info.created_at) // 1_000_000)
+        return DrillReport(
+            bundle=info,
+            started_at=started_at // 1_000_000,
+            recovery_point_seconds=point,
+            recovery_time_seconds=round(elapsed, 3),
+            rpo_target_seconds=rpo_target_seconds,
+            rto_target_seconds=rto_target_seconds,
+            past_retention=point > retention_days * 86_400,
+            passed=point <= rpo_target_seconds and elapsed <= rto_target_seconds,
+        )
+
     def _restore(
-        self, bundle: Path, destination: Path, password: bytes, database_url: str
+        self,
+        bundle: Path,
+        destination: Path,
+        password: bytes,
+        database_url: str,
+        deleted_accounts: Sequence[LedgerEntry],
     ) -> BundleInfo:
         target = self._destination(destination)
         engine = create_database_engine(database_url)
@@ -366,6 +470,7 @@ class RecoveryService:
                                 restore_snapshot(source, engine)
                             except SnapshotError as error:
                                 raise RecoveryError(str(error)) from None
+                    erased = _erase_deleted(engine, deleted_accounts)
                     validate_database(engine, verified.key)
                     if verified.key is not None:
                         secret_directory = target / "secrets"
@@ -377,7 +482,7 @@ class RecoveryService:
                     config_path = target / "installation.json"
                     _write_bytes(config_path, configuration)
                     created_files.append(config_path)
-                    return verified.info()
+                    return replace(verified.info(), erased_accounts=erased)
                 except BaseException:
                     for path in reversed(created_files):
                         with suppress(OSError):

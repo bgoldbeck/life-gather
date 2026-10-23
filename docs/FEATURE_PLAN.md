@@ -229,11 +229,13 @@ for the Phase 3 acceptance gate.
   Account deletion across database rows and stored files is done in 0.87.0
   (see [account deletion](ACCOUNT_DELETION.md)). Optional Turnstile bot checks
   and terms-of-use acceptance are done in 0.90.0 (see
-  [sign-up protection](SIGNUP_PROTECTION.md)); hosted backup-expiry records
-  remain.
+  [sign-up protection](SIGNUP_PROTECTION.md)). Backup-expiry records are done
+  in 0.96.0 (see [backup expiry and restore drill](RESTORE_DRILL.md)).
 - **5.6 Backups and recovery for many users.** Managed Postgres point-in-time
   recovery, protected R2 copies, a timed restore drill with written RPO/RTO, and
-  per-user restore from the personal archive.
+  per-user restore from the personal archive. The timed drill command and
+  written targets are done in 0.96.0 (see [restore drill](RESTORE_DRILL.md));
+  running it against the hosted database is the operator's step.
 - **5.7 Google verification.** Production OAuth branding, privacy policy and the
   restricted-scope review plus yearly CASA assessment for `gmail.readonly`.
   Until approved, hosted Gmail scanning is limited to allowlisted test users.

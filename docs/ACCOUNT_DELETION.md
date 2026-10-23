@@ -33,7 +33,9 @@ same origin, CSRF token):
 The response reports `rows` and `files` removed and clears the session cookie.
 Signing in again with the same Google account starts a new, empty account.
 
-Nothing about the account is kept: there is no deletion log and no migration.
+Only the account's random id and two times are kept, in the `deleted_accounts`
+ledger, until every installation backup made before the deletion has expired;
+then that entry is removed too (0.96.0, see [backup expiry](RESTORE_DRILL.md)).
 Gmail and AI provider grants are deleted locally but not revoked at Google or the
 provider; the person can revoke them in their Google account or provider console.
 
@@ -44,7 +46,9 @@ provider; the person can revoke them in their Google account or provider console
 - No MCP tool or assistant action can delete an account.
 - Installation backups (recovery bundles, PostgreSQL or bucket snapshots) made
   before the deletion still contain the account until the operator's retention
-  removes them. Hosted operation must document that retention period.
+  removes them. `LIFEGATHER_BACKUP_RETENTION_DAYS` states that period, the
+  response's `backups_expire_at` says when the last copy is gone, and restores
+  can erase deleted accounts again. See [backup expiry](RESTORE_DRILL.md).
 
 ## Tests
 

@@ -55,6 +55,8 @@ LOCAL_FIELDS = {
     # Who operates this host and where its alerts go belong to the host too.
     "operator_emails",
     "alert_webhook_url",
+    # How long the host keeps installation backups is its own policy.
+    "backup_retention_days",
 }
 BOOLEAN_FIELDS = {"test_login_enabled", "smtp_implicit_tls"}
 

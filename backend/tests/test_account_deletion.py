@@ -19,6 +19,7 @@ from test_account_isolation import (
 from test_documents import synthetic_pdf
 
 from lifegather.auth.deletion import deletion_order
+from lifegather.auth.deletion_ledger import ledger_entries
 from lifegather.auth.email_service import EmailAuth
 from lifegather.auth.routes import SESSION_COOKIE
 from lifegather.auth.store import AuthStore
@@ -113,6 +114,12 @@ def test_deleting_an_account_removes_every_row_and_file(case: Any) -> None:
         assert response.status_code == 200, response.text
         body = response.json()
         assert body["deleted"] is True and body["rows"] > 20 and body["files"] >= 2
+        # Backups made before now hold the account until their retention ends.
+        expected = int(time.time()) + 35 * 86_400
+        assert expected - 60 <= body["backups_expire_at"] <= expected
+        [entry] = ledger_entries(engine)
+        assert entry.account_id == alice
+        assert entry.backups_expire_at == body["backups_expire_at"]
         assert SESSION_COOKIE in response.headers["set-cookie"]
         assert remaining(engine, alice) == {}
         assert stored(root, alice) == []

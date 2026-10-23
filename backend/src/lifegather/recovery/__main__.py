@@ -9,10 +9,17 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
-from pydantic import SecretStr
+from pydantic import Field, SecretStr, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from lifegather.auth.deletion_ledger import (
+    LedgerEntry,
+    ledger_entries,
+    read_ledger,
+    write_ledger,
+)
 from lifegather.config import Settings
+from lifegather.database import create_database_engine
 from lifegather.recovery.bundle import RecoveryService
 from lifegather.recovery.envelope import RecoveryError
 
@@ -31,6 +38,7 @@ class _RecoveryStorage(BaseSettings):
     static_dir: Path | None = None
     # Restore target: an empty PostgreSQL database, never a command argument.
     database_url: SecretStr = SecretStr("")
+    backup_retention_days: int = Field(default=35, ge=1, le=3650)
 
 
 def _verification_settings() -> Settings:
@@ -78,6 +86,52 @@ def _password(path: Path | None, *, confirm: bool) -> bytes:
     return value
 
 
+def _export_deletions(output: Path) -> int:
+    engine = create_database_engine(Settings().database())
+    try:
+        entries = ledger_entries(engine)
+    finally:
+        engine.dispose()
+    target = output.parent.resolve() / output.name
+    if target.exists() or target.is_symlink():
+        raise RecoveryError("Choose a new file for the deleted-account list")
+    write_ledger(target, entries)
+    print(json.dumps({"operation": "export-deletions", "accounts": len(entries)}))
+    return 0
+
+
+def _drill(
+    service: RecoveryService,
+    args: argparse.Namespace,
+    password: bytes,
+    target: str,
+    deleted: list[LedgerEntry],
+    storage: _RecoveryStorage,
+) -> int:
+    if not (0 < args.rpo_hours <= 24 * 3650 and 0 < args.rto_minutes <= 60 * 24 * 30):
+        raise RecoveryError("Choose positive RPO and RTO targets")
+    report = service.drill(
+        args.bundle,
+        password,
+        target,
+        rpo_target_seconds=round(args.rpo_hours * 3600),
+        rto_target_seconds=round(args.rto_minutes * 60),
+        retention_days=storage.backup_retention_days,
+        deleted_accounts=deleted,
+    )
+    raw = json.dumps({"operation": "drill", **asdict(report)}, sort_keys=True)
+    if args.report is not None:
+        report_path = args.report.parent.resolve() / args.report.name
+        if report_path.exists() or report_path.is_symlink():
+            raise RecoveryError("Choose a new file for the drill report")
+        with report_path.open("x", encoding="utf-8") as output:
+            output.write(raw + "\n")
+    print(raw)
+    if not report.passed:
+        print("Restore drill missed its RPO or RTO target", file=sys.stderr)
+    return 0 if report.passed else 1
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(
         prog="python -m lifegather.recovery",
@@ -105,7 +159,30 @@ def parser() -> argparse.ArgumentParser:
     )
     restore.add_argument("bundle", type=Path)
     restore.add_argument("destination", type=Path)
-    for command in (backup, verify, restore):
+    drill = commands.add_parser(
+        "drill",
+        help="Time a full restore into a throwaway directory and empty database",
+        allow_abbrev=False,
+    )
+    drill.add_argument("bundle", type=Path)
+    drill.add_argument("--rpo-hours", type=float, default=24.0)
+    drill.add_argument("--rto-minutes", type=float, default=60.0)
+    drill.add_argument(
+        "--report", type=Path, help="Also write the JSON report to this new file"
+    )
+    for command in (restore, drill):
+        command.add_argument(
+            "--deleted-accounts",
+            type=Path,
+            help="Erase accounts listed by export-deletions from the restored copy",
+        )
+    export = commands.add_parser(
+        "export-deletions",
+        help="Write the live installation's deleted-account ids to a new file",
+        allow_abbrev=False,
+    )
+    export.add_argument("output", type=Path)
+    for command in (backup, verify, restore, drill):
         command.add_argument(
             "--staging-dir",
             type=Path,
@@ -125,6 +202,14 @@ def parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
+        if args.command == "export-deletions":
+            return _export_deletions(args.output)
+        deleted: list[LedgerEntry] = []
+        if getattr(args, "deleted_accounts", None) is not None:
+            try:
+                deleted = read_ledger(args.deleted_accounts)
+            except ValidationError:
+                raise RecoveryError("Invalid deleted-accounts file") from None
         if args.command == "backup":
             overrides: dict[str, Any] = {}
             if args.data_dir is not None:
@@ -142,12 +227,21 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "verify":
             info = service.verify(args.bundle, password)
         else:
-            target = _RecoveryStorage().database_url.get_secret_value()
+            storage = _RecoveryStorage()
+            target = storage.database_url.get_secret_value()
             if not target:
                 raise RecoveryError(
                     "Set LIFEGATHER_DATABASE_URL to the new, empty PostgreSQL database"
                 )
-            info = service.restore(args.bundle, args.destination, password, target)
+            if args.command == "drill":
+                return _drill(service, args, password, target, deleted, storage)
+            info = service.restore(
+                args.bundle,
+                args.destination,
+                password,
+                target,
+                deleted_accounts=deleted,
+            )
         summary = {"operation": args.command, **asdict(info)}
         if args.command == "restore":
             summary["configuration_file"] = str(

@@ -101,6 +101,12 @@ and build revision remain properties of the running image. Keep configuration an
 key outside the data/static directories, as required by existing settings checks.
 Preserve the original installation until a separate recovery check succeeds.
 
+To keep accounts deleted after the bundle was made from coming back, export
+the live deleted-account list first and pass it to the restore with
+`--deleted-accounts`. `python -m lifegather.recovery drill` runs the same restore
+timed against written RPO/RTO targets. See
+[backup expiry and restore drill](RESTORE_DRILL.md).
+
 ## Storage and format limits
 
 Temporary plaintext is necessary for snapshot and authenticated verification.

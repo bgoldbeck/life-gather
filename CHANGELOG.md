@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.96.0 - Backup expiry after account deletion, and a timed restore drill
+
+- Deleting an account now records only its random id, when it was deleted and
+  when the last installation backup holding it expires
+  (`LIFEGATHER_BACKUP_RETENTION_DAYS`, default 35). `POST /api/account/delete`
+  returns `backups_expire_at`. An hourly sweep removes the entry once that time
+  passes. The per-account database role cannot read the table.
+- `python -m lifegather.recovery export-deletions FILE` writes that list;
+  `restore --deleted-accounts FILE` erases those accounts from a restored older
+  backup so deleted accounts stay deleted.
+- `python -m lifegather.recovery drill BUNDLE` times a full restore into a
+  throwaway directory and an empty database, reports the recovery point and
+  recovery time against written targets (24 hours / 60 minutes by default) and
+  exits 1 when a target is missed. See docs/RESTORE_DRILL.md.
+- Migration `0039_deleted_accounts` (new system table). Recovery bundles support
+  it; the backup retention setting is host-local and is not stored in bundles.
+
 ## 0.95.0 - Install LifeGather to the home screen
 
 - LifeGather can now be installed as an app on phones, tablets and computers
