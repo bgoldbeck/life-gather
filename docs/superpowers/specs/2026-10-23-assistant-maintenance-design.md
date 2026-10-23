@@ -1,6 +1,6 @@
 # Maintenance through the built-in assistant
 
-Date: 2026-10-23. Status: proposed design, awaiting user review.
+Date: 2026-10-23. Status: approved by user; implementation underway.
 Baseline: GitHub main b6d3b6a, application0.88.0, migration0036_credential_auth_state, records format6. Open PR128 changes phone/tablet docks; PR130 adds the Cloudflare staging package. Storage-quota and signup-protection plans are on separate branches. No maintenance-assistant overlap found. Real-provider testing is explicitly deferred by Lisa.
 
 ## Intent and approach
