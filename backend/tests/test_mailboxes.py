@@ -21,6 +21,8 @@ from lifegather.memory.backup import operator_snapshot
 from lifegather.memory.notes import NoteConflict
 from lifegather.memory.service import MemoryError
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def provider(transport: httpx2.AsyncBaseTransport | None = None) -> GmailProvider:
     return GmailProvider(

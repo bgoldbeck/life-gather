@@ -20,6 +20,8 @@ from lifegather.storage.local import LocalStorage
 from lifegather.storage.quota import account_limit, account_usage
 from lifegather.storage.settings import storage_from_settings
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def limited(storage: LocalStorage, limit: int) -> LocalStorage:
     return LocalStorage(storage.root, limit)

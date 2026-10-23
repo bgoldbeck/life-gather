@@ -21,6 +21,8 @@ from lifegather.memory.service import DELETED_TEXT, MemoryError, MemoryService
 from lifegather.photos.service import PhotoAttach, PhotoDelete, PhotoService
 from lifegather.search.service import SearchQuery, SearchService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def kinds(result: dict[str, Any]) -> list[tuple[str, str]]:
     return [(item["kind"], item["title"]) for item in result["items"]]

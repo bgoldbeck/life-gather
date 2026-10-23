@@ -1,5 +1,6 @@
 import time
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from test_email_auth import PASSWORD, Mailbox
@@ -7,6 +8,8 @@ from test_email_auth import PASSWORD, Mailbox
 from lifegather.auth.email_models import EmailChallenge
 from lifegather.auth.store import SESSION_SECONDS
 from lifegather.main import create_app
+
+pytestmark = pytest.mark.usefixtures("configured_database")
 
 ORIGIN = {"Origin": "http://127.0.0.1:8787"}
 

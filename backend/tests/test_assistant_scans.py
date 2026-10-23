@@ -21,6 +21,8 @@ from lifegather.main import create_app
 from lifegather.scans.models import ScanRun
 from lifegather.scans.worker import ScanWorker
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 TODAY = datetime.now(UTC).date()
 START = TODAY - timedelta(days=10)
 END = TODAY - timedelta(days=3)
@@ -56,7 +58,9 @@ class ScanCase(Case):
 
 
 @pytest.fixture
-def case(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[ScanCase]:
+def case(
+    configured_database: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[ScanCase]:
     async def idle(self: ScanWorker) -> None:
         import asyncio
 

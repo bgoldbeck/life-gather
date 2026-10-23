@@ -13,6 +13,8 @@ from lifegather.auth.email_service import EmailAuth
 from lifegather.auth.store import AuthStore
 from lifegather.main import create_app
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 PASSWORD = "a private local testing passphrase!"
 
 

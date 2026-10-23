@@ -16,6 +16,8 @@ from lifegather.memory.service import MemoryError
 from lifegather.reconciliation.models import Observation
 from lifegather.reconciliation.schemas import DiscoveryInput
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def fields(**changes: object) -> ManualAssetFields:
     return ManualAssetFields.model_validate(

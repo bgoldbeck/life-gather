@@ -30,6 +30,8 @@ from lifegather.storage import (
 )
 from lifegather.storage.originals import move_inline_originals
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 class MissingKey(Exception):
     def __init__(self) -> None:

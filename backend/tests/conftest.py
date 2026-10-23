@@ -7,7 +7,7 @@ import pytest
 
 @pytest.fixture(scope="session", autouse=True)
 def postgresql_server() -> Iterator[None]:
-    database_support.start()
+    # database() starts the template only when a test actually needs it.
     yield
     database_support.finish()
 
@@ -23,8 +23,10 @@ def isolated_configuration(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setenv("LIFEGATHER_TEST_LOGIN_ENABLED", "false")
     monkeypatch.setenv("LIFEGATHER_BUILD_REVISION", "")
     monkeypatch.setenv("LIFEGATHER_DATA_DIR", str(tmp_path / "data"))
+    # Valid but deliberately unreachable: API tests opt into configured_database;
+    # service tests allocate their own database explicitly. Never use host data.
     monkeypatch.setenv(
-        "LIFEGATHER_DATABASE_URL", database_support.database(tmp_path / "data")
+        "LIFEGATHER_DATABASE_URL", "postgresql://unused@127.0.0.1:1/unconfigured"
     )
     monkeypatch.setenv("LIFEGATHER_GOOGLE_CLIENT_ID", "")
     monkeypatch.setenv("LIFEGATHER_GOOGLE_CLIENT_SECRET", "")
@@ -40,6 +42,16 @@ def isolated_configuration(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
 
     for name in ("SMTP_HOST", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_SENDER"):
         monkeypatch.setenv("LIFEGATHER_" + name, "")
+
+
+@pytest.fixture
+def configured_database(
+    isolated_configuration: None, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> str:
+    """An explicit, isolated default database for app/HTTP tests."""
+    value = database_support.database(tmp_path / "data")
+    monkeypatch.setenv("LIFEGATHER_DATABASE_URL", value)
+    return value
 
 
 @pytest.fixture

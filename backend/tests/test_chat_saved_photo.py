@@ -15,6 +15,8 @@ from lifegather.credentials.keygen import generate
 from lifegather.main import create_app
 from lifegather.reconciliation.service import ReconciliationService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def test_saved_photo_read_stays_in_selected_conversation_and_reuses_reading(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch

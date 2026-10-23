@@ -8,6 +8,8 @@ import pytest
 from lifegather.chat.google import GeminiProvider
 from lifegather.chat.provider import Answer, ProviderError, SearchPlan
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def interaction(text: str) -> dict[str, Any]:
     return {

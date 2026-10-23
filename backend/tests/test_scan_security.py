@@ -12,6 +12,8 @@ from lifegather.scans.registry import ScanContext
 from lifegather.scans.service import LeaseLost, ScanCanceled, ScanService
 from lifegather.scans.worker import ScanWorker
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def test_cancel_keeps_saved_evidence_and_snapshot_resumes(tmp_path: Path) -> None:
     auth, actor, _, memory, _ = setup(tmp_path)

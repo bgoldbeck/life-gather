@@ -16,6 +16,8 @@ from lifegather.memory.notes import CorrectionInput, NoteService
 from lifegather.reconciliation.purchase_details import PurchaseDetails
 from lifegather.reconciliation.receipts import ReceiptReview, ReceiptService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 PLAN = RecallPlan(
     query="unmatchableword", entity_names=["Drill"], include_connections=False
 )

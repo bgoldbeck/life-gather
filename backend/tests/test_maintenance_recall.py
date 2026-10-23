@@ -11,6 +11,8 @@ from lifegather.maintenance.service import MaintenanceService
 from lifegather.memory.schemas import SourceInput
 from lifegather.memory.service import MemoryService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def test_source_http_mcp_and_fake_provider_share_current_typed_evidence() -> None:
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM

@@ -8,6 +8,8 @@ from pydantic import SecretStr
 from lifegather.config import Settings
 from lifegather.main import create_app
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 SECRET = "s3cret-" + "x" * 32
 BASE = "http://127.0.0.1:8787"
 PEER = ("10.0.0.5", 50000)

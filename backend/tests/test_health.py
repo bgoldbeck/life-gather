@@ -1,6 +1,9 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from lifegather.main import create_app
+
+pytestmark = pytest.mark.usefixtures("configured_database")
 
 
 def test_health_returns_ok() -> None:

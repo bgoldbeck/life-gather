@@ -5,6 +5,8 @@ import pytest
 from lifegather.config import Settings
 from lifegather.main import create_app
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def test_environment_configures_application_name(
     monkeypatch: pytest.MonkeyPatch,

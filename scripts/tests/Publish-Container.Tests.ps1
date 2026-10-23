@@ -75,7 +75,14 @@ function global:git {
         default { throw 'Unexpected git command' }
     }
 }
-function global:uv { $global:LifeGatherReleaseTest.Checks++; $global:LASTEXITCODE = 0 }
+function global:uv {
+    $global:LifeGatherReleaseTest.Checks++
+    $global:LASTEXITCODE = 0
+    if ($args -contains '../scripts/run_backend_tests.py') {
+        $global:LifeGatherReleaseTest.BackendRuns++
+        if ($global:LifeGatherReleaseTest.BackendFailure) { $global:LASTEXITCODE = 1 }
+    }
+}
 function global:npm { $global:LifeGatherReleaseTest.Checks++; $global:LASTEXITCODE = 0 }
 function global:Read-Host {
     param([string]$Prompt)
@@ -173,7 +180,7 @@ function Test-Release {
         [bool]$FetchFailure = $false, [bool]$MoveAgain = $false,
         [bool]$NoAuth = $false, [int]$ExpectedUpdates = 0, [int]$ExpectedAuthRepairs = 0,
         [bool]$AuthRepairFailure = $false, [bool]$DirtyAfterFetch = $false,
-        [bool]$ContainerBuilder = $false
+        [bool]$ContainerBuilder = $false, [bool]$BackendFailure = $false
     )
     $queue = New-Object 'System.Collections.Generic.Queue[string]'
     foreach ($answer in $Answers) { $queue.Enqueue($answer) }
@@ -185,6 +192,7 @@ function Test-Release {
         Fetches = 0; Updates = 0; MoveAgain = $MoveAgain; NoAuth = $NoAuth; AuthRepairs = 0
         AuthRepairFailure = $AuthRepairFailure; DirtyAfterFetch = $DirtyAfterFetch
         ContainerBuilder = $ContainerBuilder; ImageLoaded = $false; Databases = 0
+        BackendFailure = $BackendFailure; BackendRuns = 0
     }
     $failed = $false
     $captured = New-Object System.Text.StringBuilder
@@ -200,15 +208,16 @@ function Test-Release {
         $global:LifeGatherReleaseTest.Pushes -ne $ExpectedPushes) {
         throw "FAIL: $Name (failure=$failed builds=$($global:LifeGatherReleaseTest.Builds) pushes=$($global:LifeGatherReleaseTest.Pushes))"
     }
+    if (-not $ExpectFailure -and $global:LifeGatherReleaseTest.BackendRuns -ne 1) { throw 'Must run Linux backend verification exactly once' }
     if ($output -match 'synthetic-token') { throw 'Registry token leaked in logs' }
-    if (-not $ExpectFailure -and $global:LifeGatherReleaseTest.Databases -ne (1 + $ExpectedBuilds)) {
+    if (-not $ExpectFailure -and $global:LifeGatherReleaseTest.Databases -ne $ExpectedBuilds) {
         throw "FAIL: $Name must test against temporary PostgreSQL databases"
     }
     if ($global:LifeGatherReleaseTest.Updates -ne $ExpectedUpdates -or
         $global:LifeGatherReleaseTest.AuthRepairs -ne $ExpectedAuthRepairs) {
         throw "FAIL: $Name unexpected source update or authentication repair"
     }
-    if ($ExpectFailure -and $ExpectedBuilds -eq 0 -and $global:LifeGatherReleaseTest.Checks -ne 0) {
+    if ($ExpectFailure -and -not $BackendFailure -and $ExpectedBuilds -eq 0 -and $global:LifeGatherReleaseTest.Checks -ne 0) {
         throw 'Preflight refusal must happen before backend/frontend checks'
     }
     if ($ExpectedMessage -and -not $output.Contains($ExpectedMessage)) {
@@ -240,6 +249,7 @@ try {
     if ($launcher -notmatch '-Publish -PublishLatest' -or $launcher -notmatch '%~dp0Publish-Container.ps1' -or $launcher -notmatch 'exit /b %result%') {
         throw 'Launcher must preserve the guarded publisher flags and exit code'
     }
+    Test-Release 'failed Linux shard cannot build or publish' -Flags @{ Publish = $true; PublishLatest = $true } -BackendFailure $true -ExpectFailure $true -ExpectedMessage 'Release stopped'
     Test-Release 'dirty checkout stops early' -Dirty $true -ExpectFailure $true
     Test-Release 'check-only never builds' -Flags @{ CheckOnly = $true }
     Test-Release 'build-only never pushes' -ExpectedBuilds 1

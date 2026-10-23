@@ -5,6 +5,8 @@ from fastapi.testclient import TestClient
 
 from lifegather.main import create_app
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 @pytest.mark.parametrize("data_subdirectory", [".", "private"])
 def test_rejects_private_data_inside_static_directory(

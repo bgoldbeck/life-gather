@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+import pytest
 from database_support import database
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
@@ -21,6 +22,8 @@ from lifegather.mailboxes.service import Mailboxes
 from lifegather.main import create_app
 from lifegather.power.service import DATA_SECONDS, OBSERVATION_SECONDS, PowerCenter
 from lifegather.scans.models import ScanRun, ScanSchedule
+
+pytestmark = pytest.mark.usefixtures("configured_database")
 
 NOW = 1_792_500_000
 

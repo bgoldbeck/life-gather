@@ -1,5 +1,18 @@
 # Changelog
 
+## Developer tooling - Faster backend release verification
+
+- The Windows publisher runs the full backend suite in four Linux shards, each
+  with its own private PostgreSQL17 server. Whole-file allocation and exact
+  collection counts preserve coverage; failures/cancellation stop the release.
+- Test images are keyed and checked by their input fingerprint and reused when
+  unchanged. Progress prints every15 seconds; ignored per-shard logs include
+  the slowest25 test phases and JUnit reports.
+- Pure tests and service-only modules no longer create an unused default
+  database. API modules/shared app fixtures explicitly request an isolated
+  default database; migrated templates start on first use.
+- No application source, dependency, version, schema or runtime-image change.
+
 ## 0.93.0 - Pick saved photos in Chat
 
 - In **AI assistant**, **Attach a photo** now opens your saved photos straight

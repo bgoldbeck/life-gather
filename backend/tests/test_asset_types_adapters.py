@@ -1,9 +1,12 @@
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 from test_mcp_http import rpc, signed_headers
 
 from lifegather.main import create_app
+
+pytestmark = pytest.mark.usefixtures("configured_database")
 
 
 def test_http_and_mcp_share_complete_private_typed_asset_workflow() -> None:

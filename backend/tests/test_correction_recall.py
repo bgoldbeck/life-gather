@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from fastapi.testclient import TestClient
 from test_asset_actions import change
@@ -25,6 +26,8 @@ from lifegather.main import create_app
 from lifegather.memory.schemas import EntityInput, SourceInput
 from lifegather.memory.service import MemoryService
 from lifegather.reconciliation.service import ReconciliationService
+
+pytestmark = pytest.mark.usefixtures("configured_database")
 
 
 def plan(name: str) -> RecallPlan:

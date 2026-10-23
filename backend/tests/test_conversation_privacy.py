@@ -30,6 +30,8 @@ from lifegather.memory.service import MemoryError, MemoryService
 from lifegather.photos.service import PhotoService
 from lifegather.scans.models import ScanRun
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def completed(
     chat: ChatService, actor: Account, conversation: str, key: str

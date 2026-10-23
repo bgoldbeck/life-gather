@@ -22,6 +22,8 @@ from lifegather.reconciliation.printed_values import (
 )
 from lifegather.reconciliation.purchase_details import DetailSave, PurchaseDetails
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 ITEM = "Acme Drill Qty: 2"
 LINE = ITEM + "   $349.00"
 RECEIPT = (
