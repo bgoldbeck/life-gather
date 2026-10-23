@@ -82,6 +82,10 @@ upload buttons in Photos and Documents there.
 
 ## Self-hosted: getting an HTTPS address
 
+On Android there is a simpler option: the [Android app](ANDROID_APP.md) opens a
+self-hosted server at its plain `http://` home-network address, with camera and
+sharing, and needs no HTTPS.
+
 On the home network LifeGather is usually opened as `http://<nas-address>:8787`.
 That works in any browser, but phones will not install it, because browsers
 only allow installable apps on HTTPS. To install it you need an HTTPS address

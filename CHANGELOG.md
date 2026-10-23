@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.101.0 - Android app for the home network
+
+- New Android app (`android/`, installed once from `LifeGather.apk`). On first
+  launch it asks for the server's home-network address such as
+  `http://192.168.1.20:8787`, checks `/health`, and opens LifeGather. No HTTPS
+  address or tunnel is needed. The app relays its connections through the
+  phone's own `127.0.0.1:8787`, so the server sees its default public URL and
+  its sign-in, origin and CSRF checks are unchanged; the relay listens on the
+  phone's loopback interface only.
+- "Take a photo" opens the phone's camera app. "Share to LifeGather" from other
+  apps hands files to the existing share flow: the page claims them once from
+  the app (`window.LifeGatherAndroid`) and saves them through the normal Photos
+  or Documents upload, with the same limits and quotas.
+- Not in the app yet: Google sign-in (use email and password), connecting
+  Gmail, and downloads. Not yet tried on a real phone. Builds from
+  Debian/Ubuntu packages with `android/build.sh`. See docs/ANDROID_APP.md,
+  which also lists what an iPhone version needs.
+- No server, migration, records-format or MCP change.
 ## 0.100.0 - Backup expiry after account deletion, and a timed restore drill
 
 - Deleting an account now records only its random id, when it was deleted and

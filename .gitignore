@@ -46,3 +46,8 @@ graphify-out/
 !backend/tests/fixtures/*.sqlite3
 !backend/tests/fixtures/*/auth.sqlite3
 !backend/tests/fixtures/*.key
+
+# Android app build output and signing keys
+/android/build/
+*.jks
+*.keystore

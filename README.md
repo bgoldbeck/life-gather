@@ -72,7 +72,7 @@ For TrueNAS or an installation without a local source build, use the published i
 
 For a private test copy on Cloudflare (Container, Neon PostgreSQL, R2, Access), follow the [Cloudflare test site](docs/CLOUDFLARE_TEST_SITE.md) steps. Self-hosting does not need it.
 
-To put LifeGather on a phone or computer home screen as an app, open it over HTTPS and use the browser's install option. See [installable app](docs/INSTALLABLE_APP.md), including how to give a self-hosted server an HTTPS address.
+To put LifeGather on a phone or computer home screen as an app, open it over HTTPS and use the browser's install option. See [installable app](docs/INSTALLABLE_APP.md), including how to give a self-hosted server an HTTPS address. Without HTTPS, Android phones on the home Wi-Fi can use the [Android app](docs/ANDROID_APP.md).
 
 To build and publish when your connection is free, use the [local release script and instructions](docs/LOCAL_RELEASE.md). It asks separately before building and uploading, reports local image sizes, and never pushes or merges source code.
 
