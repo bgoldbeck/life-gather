@@ -13,7 +13,7 @@ from sqlalchemy import Engine, func, select, text
 from sqlalchemy.orm import Session
 from stored_files import files
 from test_email_discovery import harness
-from test_gmail_attachments import RECEIPT, encoded, message
+from test_gmail_attachments import PHOTO, RECEIPT, encoded, message
 from test_mailboxes import provider
 from test_mcp_http import signed_headers
 from test_reconciliation import setup
@@ -41,6 +41,8 @@ from lifegather.memory.notes import NoteConflict
 from lifegather.memory.restore import PersonalRestore
 from lifegather.memory.schemas import EntityInput, FactInput, SourceInput
 from lifegather.memory.service import MemoryService
+from lifegather.photos.models import Photo
+from lifegather.photos.service import PhotoService
 from lifegather.scans.models import ScanRun, ScanRunItem
 from lifegather.scans.registry import ScanRegistry
 from lifegather.scans.schedules import ScheduleInput, ScheduleService
@@ -351,6 +353,8 @@ def test_attachment_documents_from_the_scan_are_erased_with_their_files(
             data = {"emailAddress": "owner@example.test"}
         elif path.endswith("messages"):
             data = {"messages": [{"id": "abc123"}]}
+        elif path.endswith("/attachments/att-photo"):
+            data = {"size": len(PHOTO), "data": encoded(PHOTO)}
         elif "/attachments/" in path:
             data = {"size": len(RECEIPT), "data": encoded(RECEIPT)}
         else:
@@ -361,8 +365,9 @@ def test_attachment_documents_from_the_scan_are_erased_with_their_files(
     documents = DocumentService(engine, storage)
     if uploaded_first:
         documents.upload(actor, RECEIPT, "my-receipt.txt")
+    photos = PhotoService(engine, storage)
     handler = GmailAttachmentHandler(
-        engine, vault, provider(httpx2.MockTransport(respond)), documents
+        engine, vault, provider(httpx2.MockTransport(respond)), documents, photos
     )
     scans = ScanService(engine, ScanRegistry([handler]))
     scope = {
@@ -375,15 +380,20 @@ def test_attachment_documents_from_the_scan_are_erased_with_their_files(
     asyncio.run(ScanWorker(scans).run_once())
     with Session(engine) as db:
         (key,) = db.scalars(select(Document.original_key))
-    assert key and storage.exists(key)
+        picture = db.execute(select(Photo.original_key, Photo.preview_key)).one()
+    photo_keys = [k for k in picture if k]
+    assert key and storage.exists(key) and photo_keys
     result = erase(SourceErasure(engine, storage), actor, "mailbox", mailbox["id"])
     assert result["counts"]["documents"] == int(not uploaded_first)
-    assert result["files"] == int(not uploaded_first)
+    assert result["counts"]["photos"] == 1
+    assert result["files"] == int(not uploaded_first) + len(photo_keys)
     with Session(engine) as db:
         remaining = db.scalar(select(func.count()).select_from(Document))
+        pictures = db.scalar(select(func.count()).select_from(Photo))
         links = db.scalar(text("SELECT count(*) FROM email_attachments"))
-    assert remaining == int(uploaded_first) and links == 0
+    assert remaining == int(uploaded_first) and pictures == 0 and links == 0
     assert storage.exists(key) is uploaded_first
+    assert not any(storage.exists(k) for k in photo_keys)
     engine.dispose()
 
 

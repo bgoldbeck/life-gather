@@ -70,6 +70,48 @@ it('uploads privately into an existing gallery without automatically using AI', 
   ).toBeDisabled()
 })
 
+it('takes a camera photo into Photos and retries the same photo after a lost response', async () => {
+  const user = userEvent.setup()
+  const posts: RequestInit[] = []
+  let saved = false
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.startsWith('/api/photos?') && init?.method === 'POST') {
+        posts.push(init)
+        if (posts.length === 1) throw new Error('Synthetic lost response')
+        saved = true
+        return new Response(JSON.stringify(photo))
+      }
+      if (url.startsWith('/api/photos?'))
+        return new Response(
+          JSON.stringify({ items: saved ? [photo] : [], next_cursor: null }),
+        )
+      return new Response(JSON.stringify({ allow_external_ai: false }))
+    }),
+  )
+  render(<PhotosPanel csrfToken="csrf" />)
+  await screen.findByText('No photos saved here yet.')
+  await user.selectOptions(screen.getByLabelText('Photo purpose'), 'receipt')
+  const camera = screen.getByLabelText('Take a photo')
+  expect(camera).toHaveAttribute('capture', 'environment')
+  const original = new File(['synthetic'], 'image.jpg', { type: 'image/jpeg' })
+  await user.upload(camera, original)
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    /outcome is unknown/,
+  )
+  expect(screen.getByLabelText('Photo file')).toBeDisabled()
+  expect(screen.getByLabelText('Take a photo')).toBeDisabled()
+  await user.click(
+    screen.getByRole('button', { name: 'Retry same photo upload' }),
+  )
+  await screen.findByText('Photo saved privately. No AI request was made.')
+  expect(posts).toHaveLength(2)
+  expect(posts[1].body).toBe(original)
+  expect(posts[1].body).toBe(posts[0].body)
+  expect(screen.getByLabelText('Photo file')).toBeEnabled()
+})
+
 it('requires a deliberate selected connection and preserves the same AI request after connection loss', async () => {
   const user = userEvent.setup()
   const turnBodies: string[] = []
@@ -235,4 +277,37 @@ it('displays an existing multi-item photo receipt returned by photo reading and 
   expect(
     screen.queryByRole('region', { name: 'Existing photo receipt' }),
   ).not.toBeInTheDocument()
+})
+
+it('opens the saved email a photo attachment came from', async () => {
+  const user = userEvent.setup()
+  const urls: string[] = []
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      urls.push(url)
+      let result: unknown = { items: [photo], next_cursor: null }
+      if (url === '/api/photos/photo/email-sources')
+        result = {
+          items: [{ source_id: 'email-source', filename: 'plate.jpg' }],
+        }
+      else if (url === '/api/chat/sources/email-source')
+        result = {
+          id: 'email-source',
+          text: 'Subject: Synthetic order\n\nAttachment: plate.jpg',
+        }
+      else if (url === '/api/settings') result = { allow_external_ai: false }
+      else if (url.startsWith('/api/credentials')) result = { items: [] }
+      return new Response(JSON.stringify(result))
+    }),
+  )
+  render(<PhotosPanel csrfToken="csrf" />)
+  await user.click(await screen.findByRole('button', { name: /plate\.jpg/ }))
+  await user.click(
+    await screen.findByRole('button', {
+      name: 'Open the email this photo came from',
+    }),
+  )
+  expect(await screen.findByText(/Attachment: plate\.jpg/)).toBeVisible()
+  expect(urls).toContain('/api/chat/sources/email-source')
 })

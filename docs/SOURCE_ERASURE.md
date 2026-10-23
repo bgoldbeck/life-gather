@@ -1,6 +1,6 @@
 # Source erasure
 
-Since v0.96.0 you can erase one source and everything LifeGather made from it.
+Since v0.98.0 you can erase one source and everything LifeGather made from it.
 A source is a Gmail connection or one finished scan. Erasure is permanent: it
 cannot be undone or restored in the app.
 

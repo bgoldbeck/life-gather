@@ -442,7 +442,7 @@ class PowerCenter:
                         "gmail_attachments",
                     ],
                     action="Settings",
-                    scope="Requested/scheduled read-only scans; files on request.",
+                    scope="Requested/scheduled read-only scans and attachment imports.",
                 )
             )
         mail_state: State = next(
