@@ -266,7 +266,7 @@ it('automatic checks remain local and refresh on configuration changes', async (
   ).toBeVisible()
 })
 
-it('shows the growth power bar from reported points only', async () => {
+it('shows the power level capsule from reported points only', async () => {
   vi.stubGlobal(
     'fetch',
     vi.fn(async () => Response.json(snapshot())),
@@ -279,6 +279,15 @@ it('shows the growth power bar from reported points only', async () => {
     '55 confirmed points, up to 65 if unverified dependencies work; stage Growing',
   )
   expect(screen.getByText('55–65 pts')).toBeVisible()
+  const capsule = meter.parentElement as HTMLElement
+  expect(within(capsule).getByText('Growing')).toBeVisible()
+  expect(
+    within(capsule).getByText('Next stage: Thriving at 70 points.'),
+  ).toBeInTheDocument()
+  expect(capsule).toHaveAttribute(
+    'title',
+    expect.stringContaining('Seedling 0+, Sapling 20+, Growing 40+'),
+  )
   expect(
     screen.getByRole('heading', { name: 'Synthetic mailbox' }).parentElement,
   ).toHaveTextContent('Unverified')

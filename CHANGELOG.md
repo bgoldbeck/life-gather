@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.90.1 - Power level capsule
+
+- The Power Center's power level is now a small capsule in the heading row
+  instead of a full-width panel with a five-stage ladder. It still shows the
+  current stage, the points (or the confirmed to possible range when the score
+  is incomplete), a small bar and the stale state. The stage thresholds and the
+  next stage are in its hover title and screen reader text. On wide screens it
+  sits above "Check all locally"; when the heading fills the row, the capsule
+  and button share the next row. The heading is about half as tall on laptop
+  screens, so the stat tiles and connections move up. No backend, API or
+  migration change.
+
 ## 0.90.0 - Sign-up bot checks and terms of use
 
 - Optional **Cloudflare Turnstile** on the email **Create account** and
