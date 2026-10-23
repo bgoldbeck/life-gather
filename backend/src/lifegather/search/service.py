@@ -16,7 +16,7 @@ from lifegather.assets.identity import secondary_ids
 from lifegather.auth.store import Account
 from lifegather.documents.models import Document
 from lifegather.memory.models import Entity, Episode, NoteRevision
-from lifegather.memory.service import MemoryError
+from lifegather.memory.service import MemoryError, deleted_source
 from lifegather.photos.models import Photo
 
 MAX_WORDS = 8
@@ -159,6 +159,7 @@ class SearchService:
                 select(Episode.id, Episode.text)
                 .where(
                     Episode.user_id == actor.id,
+                    ~deleted_source(actor.id, Episode.id),
                     ~superseded,
                     all_words(Episode.text, terms),
                 )

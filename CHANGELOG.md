@@ -5,6 +5,9 @@
 - Ask the AI assistant about an asset's saved manual or web research in a later
   conversation. It can select the read-only `read_asset_research` tool over the
   existing private findings service; no fresh search or page download occurs.
+- Global source searches now exclude deleted memories even when a query matches
+  their content-free deletion notice. Active notes with the same literal words
+  remain searchable, including after archive restore.
 - Replies show host-supplied source links, page/research/save dates, bounded
   excerpts and an asset button. Prior generated answer excerpts stay labeled
   separately from source excerpts. Finding IDs never enter the memory reader.
