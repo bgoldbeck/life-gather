@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.86.1 - Phone and tablet layout
+## 0.88.1 - Phone and tablet layout
 
 - Checked every main page at phone (390x844), tablet portrait (820x1180) and
   tablet landscape (1180x820) sizes in light and dark themes. No page scrolls
@@ -16,6 +16,43 @@
   have no effect. On touch screens the dock and assistant collapse buttons are
   finger-sized (36-40 px instead of 22-24 px).
 - Frontend only. No schema change, migration, API or MCP change.
+
+## 0.88.0 - Recall saved web research in the asset assistant
+
+- Ask the AI assistant about an asset's saved manual or web research in a later
+  conversation. It can select the read-only `read_asset_research` tool over the
+  existing private findings service; no fresh search or page download occurs.
+- Global source searches now exclude deleted memories even when a query matches
+  their content-free deletion notice. Active notes with the same literal words
+  remain searchable, including after archive restore.
+- Replies show host-supplied source links, page/research/save dates, bounded
+  excerpts and an asset button. Prior generated answer excerpts stay labeled
+  separately from source excerpts. Finding IDs never enter the memory reader.
+- At most five active findings across a request, with explicit selection limits
+  and duplicate-read suppression, within an 8,000-byte citation budget. Current
+  physical identity groups and account
+  isolation apply; removed findings are excluded from subsequent reads.
+- Research never authorizes writes or supplies values for asset profile edits.
+  The host makes turns that read saved research read-only, including email scans;
+  provide details in a fresh request to perform a write.
+  Existing external-AI consent, cancellation, replay, read and context limits
+  remain in force. No migration, records-format or dependency change; migration
+  head remains 0036 and records format 6. Synthetic providers verify contracts;
+  live provider answer quality has not been checked.
+
+## 0.87.0 - Delete your account
+
+- Settings has a **Delete account** section. After typing the account email,
+  ticking the acknowledgement and (for password accounts) giving the current
+  password, the account is permanently deleted: every record, history entry,
+  conversation, scan, schedule, saved Gmail and AI sign-in, password, Google
+  link and session, plus every stored document and photo file. Other accounts
+  are unchanged. See [account deletion](docs/ACCOUNT_DELETION.md).
+- `POST /api/account/delete` removes stored files first and refuses with nothing
+  else changed if file storage fails; then one transaction deletes the account's
+  rows from every `user_id` table in foreign-key order read from the catalog.
+- No migration and no records-format change. Nothing about a deleted account is
+  kept; installation backups made earlier still hold it until they expire.
 
 ## 0.86.0 - Restore a backup into an account that already has records
 

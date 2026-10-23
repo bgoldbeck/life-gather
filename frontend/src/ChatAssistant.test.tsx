@@ -5,6 +5,52 @@ import { ChatPanel } from './ChatPanel'
 
 afterEach(() => vi.unstubAllGlobals())
 
+it('opens saved research on its asset without treating finding IDs as memory sources', async () => {
+  const fetcher = mockServer({
+    id: 'recall-turn',
+    request_id: 'recall',
+    mode: 'assistant',
+    state: 'complete',
+    text: 'What filter is in the saved manual?',
+    result: {
+      text: 'The saved manual lists AB-12 [Research 1]. No changes were saved.',
+      saved_research: [
+        {
+          id: 'finding-1',
+          citation: 1,
+          asset_id: 'mower',
+          asset_name: 'Garage mower',
+          title: 'Synthetic manual',
+          url: 'https://manufacturer.example/manual',
+          published: null,
+          researched_at: '2026-10-22T09:00:00Z',
+          recorded_at: 1792660000000000,
+          excerpt_kind: 'source',
+          excerpts: ['AB-12'],
+        },
+      ],
+    },
+  })
+  const open = vi.fn()
+  render(<ChatPanel csrfToken="csrf" onOpenAsset={open} />)
+  await screen.findByText('A place for the details')
+  await userEvent.selectOptions(screen.getByLabelText('Action'), 'assistant')
+  await userEvent.type(
+    screen.getByLabelText('Message your assistant'),
+    'What filter is in the saved manual?',
+  )
+  await userEvent.click(screen.getByRole('button', { name: 'Send' }))
+  await userEvent.click(
+    await screen.findByRole('button', {
+      name: 'Open Garage mower saved research',
+    }),
+  )
+  expect(open).toHaveBeenCalledWith('mower')
+  expect(
+    fetcher.mock.calls.some(([url]) => url.includes('/sources/finding-1')),
+  ).toBe(false)
+})
+
 function sse(...events: unknown[]) {
   return events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join('')
 }
