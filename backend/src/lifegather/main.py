@@ -58,6 +58,7 @@ from lifegather.scans.schedule_routes import schedule_router
 from lifegather.scans.tick_routes import tick_router
 from lifegather.search.routes import search_router
 from lifegather.startup import StartupError, run_startup_tasks, schema_current
+from lifegather.storage.routes import storage_router
 from lifegather.storage.settings import storage_from_settings
 from lifegather.version import __version__, build_info
 
@@ -181,6 +182,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(purchase_router())
     app.include_router(power_router())
     app.include_router(search_router())
+    app.include_router(storage_router())
     app.include_router(tick_router(settings))
     app.add_middleware(CredentialBodyLimit)
     if settings.trusted_proxy_list:

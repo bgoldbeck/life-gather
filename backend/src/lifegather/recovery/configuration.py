@@ -43,6 +43,8 @@ LOCAL_FIELDS = {
     # Where original files live is deployment-local, like data_dir: bundles carry
     # the originals themselves and a restore uses its own storage settings.
     *STORAGE_DEFAULTS,
+    # The account storage limit is the host's hosting policy, also environment-only.
+    "storage_quota_mb",
 }
 BOOLEAN_FIELDS = {"test_login_enabled", "smtp_implicit_tls"}
 

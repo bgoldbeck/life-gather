@@ -39,6 +39,9 @@ boto3). The published image does not include it yet, so the S3 setting fails at
 startup with a clear message until an image built with the extra is used. Storage
 settings are environment-only and are not part of the installation JSON.
 
+An optional account-wide limit, `LIFEGATHER_STORAGE_QUOTA_MB` (default `0`, no
+limit), works with either backend; see [storage quotas](STORAGE_QUOTAS.md).
+
 ## Existing installations
 
 Migration `0028_object_storage` adds the key columns and keeps the old byte
