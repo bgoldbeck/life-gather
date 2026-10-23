@@ -301,7 +301,14 @@ alike, with no app store review, second codebase or separate release train.
   to the page's existing share flow. Plain Java with no Gradle plugin, so it
   builds from distribution packages. No offline editing or local copy of
   personal records on the phone. Not yet tried on a real phone.
-- **6.5 iPhone app (later).** Not built yet; see [Android app](ANDROID_APP.md#iphone).
+- **6.5 iPhone app. In progress (scheduled by the user 2026-10-23).** Same idea
+  as the Android app, in Swift under `ios/`: server-address screen, `WKWebView`,
+  loopback relay on the iPhone's `127.0.0.1:8787` (no server change), camera
+  through the page's file input, and a Share Extension that hands files to the
+  page's existing share flow. Building and installing need the user's Mac,
+  Xcode and Apple developer account (TestFlight), so the source ships with a
+  plain-language guide. Acceptance: address checks and share hand-over have
+  tests that run without a Mac; the Xcode project opens and lists both targets.
 
 Requirement: installing and camera/share features need HTTPS on a real address.
 Hosted Cloudflare (Phase 5) provides it. Self-hosted needs the user's chosen
