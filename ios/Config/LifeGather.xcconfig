@@ -1,0 +1,17 @@
+// Settings shared by the LifeGather app and its Share extension.
+// See docs/IPHONE_APP.md for the steps on a Mac.
+
+// The app's identity on Apple's side. If Xcode says this ID is already taken,
+// change it once to something only you use, such as com.yourname.lifegather.
+LIFEGATHER_BUNDLE_ID = io.github.bgoldbeck.lifegather
+
+// Follows backend/src/lifegather/version.py (ios/check.sh compares them).
+MARKETING_VERSION = 0.102.0
+// Each upload to TestFlight needs a higher build number; Xcode can raise it
+// for you when uploading ("Manage Version and Build Number").
+CURRENT_PROJECT_VERSION = 1
+
+IPHONEOS_DEPLOYMENT_TARGET = 15.0
+SWIFT_VERSION = 5.0
+TARGETED_DEVICE_FAMILY = 1,2
+CODE_SIGN_STYLE = Automatic

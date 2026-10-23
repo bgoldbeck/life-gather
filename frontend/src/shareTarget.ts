@@ -1,6 +1,6 @@
-// Helpers for Android's "Share to LifeGather"; see SharedFiles.tsx. Files come
-// from the installed web app's service worker, or from the Android app
-// (android/), which opens /?share=<id> and hands the files over itself.
+// Helpers for "Share to LifeGather"; see SharedFiles.tsx. Files come from the
+// installed web app's service worker, or from the Android app (android/) or
+// iPhone app (ios/), which open /?share=<id> and hand the files over themselves.
 
 const MAX_BYTES = 8 * 1024 * 1024
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -91,6 +91,49 @@ export async function claimAndroidFiles(
   return files
 }
 
+// The iPhone app's bridge (ios/LifeGather/MainViewController.swift): one
+// {action: 'list'} claims a share's file list once, then {action: 'file'}
+// returns each file once as base64.
+export type IOSBridge = { postMessage(message: unknown): Promise<unknown> }
+type IOSEntry = { name?: unknown; type?: unknown }
+
+export function iosBridge(): IOSBridge | undefined {
+  const handler = (
+    window as {
+      webkit?: { messageHandlers?: { lifegatherShare?: Partial<IOSBridge> } }
+    }
+  ).webkit?.messageHandlers?.lifegatherShare
+  return typeof handler?.postMessage === 'function'
+    ? (handler as IOSBridge)
+    : undefined
+}
+
+function fromBase64(data: string) {
+  const text = atob(data)
+  const bytes = new Uint8Array(text.length)
+  for (let index = 0; index < text.length; index++)
+    bytes[index] = text.charCodeAt(index)
+  return bytes
+}
+
+export async function claimIOSFiles(
+  id: string,
+  bridge: IOSBridge,
+): Promise<File[]> {
+  const entries = await bridge.postMessage({ action: 'list', id })
+  if (!Array.isArray(entries)) return []
+  const files: File[] = []
+  for (const [index, entry] of (entries as IOSEntry[]).slice(0, 10).entries()) {
+    const data = await bridge.postMessage({ action: 'file', id, index })
+    if (typeof data !== 'string') continue
+    const name =
+      typeof entry?.name === 'string' && entry.name ? entry.name : 'Shared file'
+    const type = typeof entry?.type === 'string' ? entry.type : ''
+    files.push(new File([fromBase64(data)], name, { type }))
+  }
+  return files
+}
+
 const claims = new Map<string, Promise<File[]>>()
 
 // Claims a share as soon as the page loads, before sign-in finishes: the browser
@@ -100,9 +143,14 @@ export function claimShareOnce(id: string): Promise<File[]> {
   if (!/^[0-9a-f]{32}$/.test(id)) return Promise.resolve([])
   let claim = claims.get(id)
   if (!claim) {
-    const bridge = androidBridge()
+    const android = androidBridge()
+    const ios = iosBridge()
     claim = (
-      bridge ? claimAndroidFiles(id, bridge) : claimSharedFiles(id)
+      android
+        ? claimAndroidFiles(id, android)
+        : ios
+          ? claimIOSFiles(id, ios)
+          : claimSharedFiles(id)
     ).catch(() => [])
     claims.set(id, claim)
   }
