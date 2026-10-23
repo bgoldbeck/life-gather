@@ -125,3 +125,31 @@ def test_serves_installable_app_files_without_long_caching(
         offline = client.get("/offline.html")
         assert offline.status_code == 200
         assert "Can't reach your LifeGather server" in offline.text
+
+
+def test_share_target_without_worker_stores_nothing_and_asks_to_share_again(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    public = Path(__file__).resolve().parents[2] / "frontend" / "public"
+    static_dir = tmp_path / "static"
+    shutil.copytree(public, static_dir)
+    (static_dir / "index.html").write_text("LifeGather", encoding="utf-8")
+    data_dir = tmp_path / "data"
+    monkeypatch.setenv("LIFEGATHER_STATIC_DIR", str(static_dir))
+    monkeypatch.setenv("LIFEGATHER_DATA_DIR", str(data_dir))
+    with TestClient(create_app()) as client:
+        share = json.loads(client.get("/manifest.webmanifest").text)["share_target"]
+        assert share["action"] == "/share-target"
+        assert share["method"] == "POST"
+        assert share["enctype"] == "multipart/form-data"
+        accepted = share["params"]["files"][0]["accept"]
+        assert {"image/jpeg", "application/pdf"} <= set(accepted)
+        before = sorted(path.name for path in data_dir.rglob("*"))
+        response = client.post(
+            "/share-target",
+            files={"files": ("receipt.jpg", b"\xff\xd8shared", "image/jpeg")},
+            follow_redirects=False,
+        )
+        assert response.status_code == 303
+        assert response.headers["location"] == "/?share=unavailable"
+        assert sorted(path.name for path in data_dir.rglob("*")) == before

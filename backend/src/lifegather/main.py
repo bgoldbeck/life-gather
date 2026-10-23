@@ -6,7 +6,7 @@ from urllib.parse import urlsplit
 
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from mcp.server.transport_security import TransportSecuritySettings
 from sqlalchemy.exc import SQLAlchemyError
@@ -280,6 +280,16 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     @app.get("/api/version")
     def version_info() -> dict[str, str | None]:
         return build_info(settings.build_revision)
+
+    @app.post("/share-target", include_in_schema=False)
+    def share_target_fallback() -> RedirectResponse:
+        """Answer an Android share that the app's service worker did not receive.
+
+        The worker normally keeps shared files in the browser until the signed-in
+        page saves them. Without it, the body is never read or stored; the app
+        opens and asks the person to share again.
+        """
+        return RedirectResponse("/?share=unavailable", status_code=303)
 
     @app.get("/health")
     async def health() -> dict[str, str]:

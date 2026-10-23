@@ -70,22 +70,28 @@ function loadWorker() {
       (listeners[type] = listener),
     skipWaiting: vi.fn(),
     clients: { claim: vi.fn() },
+    crypto: globalThis.crypto,
   }
   const fetch = vi.fn()
-  const globals = { self, caches, fetch, URL, Response: { error: () => null } }
+  const Response = {
+    error: () => null,
+    redirect: (url: string, status: number) => ({ url, status }),
+  }
+  const globals = { self, caches, fetch, URL, Response }
   new Function(...Object.keys(globals), workerSource)(...Object.values(globals))
   return { listeners, stored, caches, fetch, offline }
 }
 
 function fetchEvent(
   url: string,
-  init: { method?: string; mode?: string } = {},
+  init: { method?: string; mode?: string; form?: FormData } = {},
 ) {
   const respondWith = vi.fn()
   const request = {
     url,
     method: init.method ?? 'GET',
     mode: init.mode ?? 'navigate',
+    formData: async () => init.form ?? new FormData(),
   }
   return { event: { request, respondWith }, respondWith }
 }
@@ -155,5 +161,67 @@ describe('service worker', () => {
     worker.listeners.fetch(event)
     await expect(respondWith.mock.calls[0][0]).resolves.toBe(worker.offline)
     expect(worker.caches.match).toHaveBeenCalledWith('/offline.html')
+  })
+})
+
+describe('share target', () => {
+  type Redirect = { url: string; status: number }
+  async function share(worker: ReturnType<typeof loadWorker>, files: File[]) {
+    const form = new FormData()
+    form.append('title', 'not a file')
+    for (const file of files) form.append('files', file)
+    const { event, respondWith } = fetchEvent(
+      'https://life.example/share-target',
+      { method: 'POST', form },
+    )
+    worker.listeners.fetch(event)
+    return (await respondWith.mock.calls[0][0]) as Redirect
+  }
+  function claim(worker: ReturnType<typeof loadWorker>, id: string) {
+    const postMessage = vi.fn()
+    worker.listeners.message({
+      data: { type: 'lifegather-share-claim', id },
+      ports: [{ postMessage }],
+    })
+    return postMessage.mock.calls[0][0] as { files: File[] }
+  }
+  const receipt = () =>
+    new File(['synthetic'], 'Synthetic receipt.jpg', { type: 'image/jpeg' })
+
+  it('keeps shared files in memory and hands them over exactly once', async () => {
+    const worker = loadWorker()
+    const redirect = await share(worker, [receipt()])
+    expect(redirect.status).toBe(303)
+    const id = new URL(redirect.url).searchParams.get('share')!
+    expect(id).toMatch(/^[0-9a-f]{32}$/)
+    expect(claim(worker, 'f'.repeat(32)).files).toEqual([])
+    const first = claim(worker, id).files
+    expect(first.map((file) => file.name)).toEqual(['Synthetic receipt.jpg'])
+    expect(claim(worker, id).files).toEqual([])
+    // Nothing shared is ever written to the browser's storage.
+    expect(worker.caches.open).not.toHaveBeenCalled()
+  })
+
+  it('reports an empty share and keeps only the first ten files', async () => {
+    const worker = loadWorker()
+    expect((await share(worker, [])).url).toBe(
+      'https://life.example/?share=empty',
+    )
+    const many = Array.from({ length: 12 }, receipt)
+    const redirect = new URL((await share(loadWorker(), many)).url)
+    expect(redirect.searchParams.get('more')).toBe('1')
+  })
+
+  it('ignores shares posted to other sites and stray messages', () => {
+    const worker = loadWorker()
+    const { event, respondWith } = fetchEvent(
+      'https://elsewhere.example/share-target',
+      { method: 'POST' },
+    )
+    worker.listeners.fetch(event)
+    expect(respondWith).not.toHaveBeenCalled()
+    expect(() =>
+      worker.listeners.message({ data: { type: 'other' }, ports: [] }),
+    ).not.toThrow()
   })
 })

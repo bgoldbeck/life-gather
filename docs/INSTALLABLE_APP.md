@@ -55,6 +55,31 @@ The button is the browser's ordinary file input, so it works in a phone browser
 too, installed or not, and does not need HTTPS. Desktop browsers do not show it,
 since they would only open the same file picker as **Photo file**.
 
+## Sharing files into LifeGather (Android)
+
+Since v0.98.0 an installed LifeGather on Android appears in the share menu of
+other apps (Photos, Files, Gmail, a scanner app and so on). Share a receipt
+photo or a manual and LifeGather opens with a **Shared to LifeGather** card:
+
+- Photos (JPEG, PNG, WebP) go to **Photos**; choose Photo, Receipt or Nameplate
+  for each. Documents (PDF, DOCX, XLSX, TXT, MD, CSV) go to **Documents**.
+- Nothing is saved until you press **Save**. **Discard** drops the files.
+- Up to 10 files per share, each up to 8 MiB, counted against your account's
+  storage limit like any other upload. Saving makes no AI request.
+
+How the files travel: Android posts them to the app's service worker, which
+keeps them in memory (never in the browser's cache or IndexedDB) for at most
+five minutes and hands them to the open LifeGather page once. The page then
+uploads them with your normal signed-in session. If you are signed out, sign in
+with email and password on the card that opens and the files are still there;
+after a Google sign-in, share them again. If the service worker is not running
+(for example right after clearing site data), LifeGather opens with "share the
+files again" and nothing is stored.
+
+LifeGather must be installed (see above) before Android lists it as a share
+target. **iPhone and iPad** do not support sharing into web apps; use the
+upload buttons in Photos and Documents there.
+
 ## Self-hosted: getting an HTTPS address
 
 On the home network LifeGather is usually opened as `http://<nas-address>:8787`.
