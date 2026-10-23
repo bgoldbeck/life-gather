@@ -16,6 +16,7 @@ from lifegather.memory.service import MemoryError, MemoryService, fingerprint
 PageName = Literal[
     "Power Center",
     "Overview",
+    "Timeline",
     "Assets",
     "Profiles",
     "Maintenance",
