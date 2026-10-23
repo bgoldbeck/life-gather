@@ -5,8 +5,10 @@ import { SharedFiles } from './SharedFiles'
 import {
   androidBridge,
   claimAndroidFiles,
+  claimIOSFiles,
   claimSharedFiles,
   fileKind,
+  iosBridge,
   readShareRequest,
 } from './shareTarget'
 
@@ -210,4 +212,48 @@ it('uses the Android bridge only inside the Android app', () => {
   expect(androidBridge()).toBeUndefined()
   vi.stubGlobal('LifeGatherAndroid', { sharedFiles: () => '[]' })
   expect(androidBridge()).toBeDefined()
+})
+
+it('takes shared files from the iPhone app, one claim then each file once', async () => {
+  const replies: Record<string, unknown> = {
+    list: [
+      { name: 'Synthetic receipt.jpg', type: 'image/jpeg', size: 23 },
+      { name: '', type: 7, size: 3 },
+      { name: 'Taken already.pdf', type: 'application/pdf', size: 4 },
+    ],
+  }
+  const postMessage = vi.fn(
+    async (message: { action: string; index?: number }) =>
+      message.action === 'list'
+        ? replies.list
+        : [btoa('synthetic receipt image'), btoa('abc'), null][
+            message.index ?? -1
+          ],
+  )
+  const files = await claimIOSFiles(ID, {
+    postMessage: postMessage as (message: unknown) => Promise<unknown>,
+  })
+  expect(postMessage.mock.calls.map(([message]) => message)).toEqual([
+    { action: 'list', id: ID },
+    { action: 'file', id: ID, index: 0 },
+    { action: 'file', id: ID, index: 1 },
+    { action: 'file', id: ID, index: 2 },
+  ])
+  expect(files.map((file) => [file.name, file.type, file.size])).toEqual([
+    ['Synthetic receipt.jpg', 'image/jpeg', 23],
+    ['Shared file', '', 3],
+  ])
+  expect(await files[0].text()).toBe('synthetic receipt image')
+  expect(fileKind(files[0])).toBe('photo')
+  await expect(
+    claimIOSFiles(ID, { postMessage: async () => null }),
+  ).resolves.toEqual([])
+})
+
+it('uses the iPhone bridge only inside the iPhone app', () => {
+  expect(iosBridge()).toBeUndefined()
+  vi.stubGlobal('webkit', {
+    messageHandlers: { lifegatherShare: { postMessage: async () => [] } },
+  })
+  expect(iosBridge()).toBeDefined()
 })

@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.102.0 - iPhone app for the home network
+
+- New iPhone and iPad app (`ios/`, Swift, iOS 15 or newer), the counterpart of
+  the Android app. It asks for the server's home-network address, checks
+  `/health`, and opens LifeGather through a relay on the iPhone's own
+  `127.0.0.1:8787` (loopback only), so the server's default public URL and its
+  sign-in, origin and CSRF checks are unchanged. HTTPS addresses open directly.
+- "Take a photo" uses the iPhone camera through the page's file input. A Share
+  extension keeps up to 10 shared photos or files (other image types become
+  JPEG) in the app's private App Group folder for an hour; opening the app hands
+  them to the existing share flow. The page claims them once through
+  `window.webkit.messageHandlers.lifegatherShare` and saves them through the
+  normal Photos or Documents upload, with the same limits and quotas.
+- Building and installing need a Mac with Xcode and an Apple Developer Program
+  membership; docs/IPHONE_APP.md has the steps (cable install or TestFlight).
+  `ios/check.sh` runs the address and share-folder checks with any Swift
+  toolchain. The app has not yet been compiled in Xcode or tried on an iPhone.
+- Not in the app: Google sign-in, connecting Gmail, downloads.
+- No server, migration, records-format or MCP change.
+
 ## 0.101.0 - Android app for the home network
 
 - New Android app (`android/`, installed once from `LifeGather.apk`). On first

@@ -78,13 +78,14 @@ files again" and nothing is stored.
 
 LifeGather must be installed (see above) before Android lists it as a share
 target. **iPhone and iPad** do not support sharing into web apps; use the
-upload buttons in Photos and Documents there.
+upload buttons in Photos and Documents there, or the [iPhone app](IPHONE_APP.md).
 
 ## Self-hosted: getting an HTTPS address
 
 On Android there is a simpler option: the [Android app](ANDROID_APP.md) opens a
 self-hosted server at its plain `http://` home-network address, with camera and
-sharing, and needs no HTTPS.
+sharing, and needs no HTTPS. The [iPhone app](IPHONE_APP.md) does the same, but
+has to be built once on a Mac.
 
 On the home network LifeGather is usually opened as `http://<nas-address>:8787`.
 That works in any browser, but phones will not install it, because browsers

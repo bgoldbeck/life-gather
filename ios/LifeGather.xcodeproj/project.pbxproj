@@ -1,0 +1,417 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1DD0B1143CC411B2EBF67407 /* ShareInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F91912DBA06DC1B4A844753 /* ShareInbox.swift */; };
+		543A035DEDD625C8093FD527 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30685774EDC5B4563E2847E7 /* ShareViewController.swift */; };
+		878EB08004FF69105D966B27 /* ServerAddress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6233BCD68407FA766A699DCF /* ServerAddress.swift */; };
+		88ACEB7D2B5303F8E82A2AE8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 59DAA59D477A91E75E0468AF /* Assets.xcassets */; };
+		A963ED0D23697BDEF50BEACA /* ShareInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F91912DBA06DC1B4A844753 /* ShareInbox.swift */; };
+		DDC49FA883405BA506D98492 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECF023ACC55C5B3172FD592A /* MainViewController.swift */; };
+		F48194E86DDAAF3C29535890 /* LifeGatherShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 523EC07AAE9B6E3158277156 /* LifeGatherShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F6E9625240A700749F2FE8AD /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4FDA2E4FD0E5D774CAE7366 /* AppDelegate.swift */; };
+		FB41FCA6D1B7D88C842C7D22 /* LoopbackRelay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15139BD4DD2D78EEAD0F6EAE /* LoopbackRelay.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BD834C62269D3B50DA0B1156 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 684DF8C4E98A11340F81F8E2;
+			remoteInfo = LifeGatherShare;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		496AF46EC2762DDF91F78F13 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				F48194E86DDAAF3C29535890 /* LifeGatherShare.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		001006BC429B289646689A9A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		101FBB6B7F6BE5310E68E23F /* LifeGather.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = LifeGather.xcconfig; sourceTree = "<group>"; };
+		15139BD4DD2D78EEAD0F6EAE /* LoopbackRelay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopbackRelay.swift; sourceTree = "<group>"; };
+		30190AA91DFF2B8CC2F8741A /* LifeGatherShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LifeGatherShare.entitlements; sourceTree = "<group>"; };
+		30685774EDC5B4563E2847E7 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		468DEE90561322AA7EA72B98 /* LifeGather.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LifeGather.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4F91912DBA06DC1B4A844753 /* ShareInbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareInbox.swift; sourceTree = "<group>"; };
+		523EC07AAE9B6E3158277156 /* LifeGatherShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LifeGatherShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		59DAA59D477A91E75E0468AF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		6233BCD68407FA766A699DCF /* ServerAddress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerAddress.swift; sourceTree = "<group>"; };
+		89BC3A0DD375E8849783014D /* LifeGather.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LifeGather.entitlements; sourceTree = "<group>"; };
+		A7E81C34341D7F260AC26212 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B4FDA2E4FD0E5D774CAE7366 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		ECF023ACC55C5B3172FD592A /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		DB575B01C9EDB90A46216F71 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F922A33FF2B44E6EE779E4A9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1029F7BBD2FC8876965F659D /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				101FBB6B7F6BE5310E68E23F /* LifeGather.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		518DA81DB9B99529C0C0AEBE = {
+			isa = PBXGroup;
+			children = (
+				82CF2A43A7100F086D7FCFDD /* LifeGather */,
+				A96F2AD6569CCB6669869397 /* LifeGatherShare */,
+				9CB302E9C7F6377B351DBEAB /* Shared */,
+				1029F7BBD2FC8876965F659D /* Config */,
+				547D009064F7C3F13BEF3460 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		547D009064F7C3F13BEF3460 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				468DEE90561322AA7EA72B98 /* LifeGather.app */,
+				523EC07AAE9B6E3158277156 /* LifeGatherShare.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		82CF2A43A7100F086D7FCFDD /* LifeGather */ = {
+			isa = PBXGroup;
+			children = (
+				B4FDA2E4FD0E5D774CAE7366 /* AppDelegate.swift */,
+				ECF023ACC55C5B3172FD592A /* MainViewController.swift */,
+				15139BD4DD2D78EEAD0F6EAE /* LoopbackRelay.swift */,
+				59DAA59D477A91E75E0468AF /* Assets.xcassets */,
+				A7E81C34341D7F260AC26212 /* Info.plist */,
+				89BC3A0DD375E8849783014D /* LifeGather.entitlements */,
+			);
+			path = LifeGather;
+			sourceTree = "<group>";
+		};
+		9CB302E9C7F6377B351DBEAB /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				6233BCD68407FA766A699DCF /* ServerAddress.swift */,
+				4F91912DBA06DC1B4A844753 /* ShareInbox.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		A96F2AD6569CCB6669869397 /* LifeGatherShare */ = {
+			isa = PBXGroup;
+			children = (
+				30685774EDC5B4563E2847E7 /* ShareViewController.swift */,
+				001006BC429B289646689A9A /* Info.plist */,
+				30190AA91DFF2B8CC2F8741A /* LifeGatherShare.entitlements */,
+			);
+			path = LifeGatherShare;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		684DF8C4E98A11340F81F8E2 /* LifeGatherShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CB3B8327643CA14287F4D1C8 /* Build configuration list for PBXNativeTarget "LifeGatherShare" */;
+			buildPhases = (
+				34F894FF86000E3720C657BF /* Sources */,
+				F922A33FF2B44E6EE779E4A9 /* Frameworks */,
+				5D4A7B1F6435318F54BD0587 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LifeGatherShare;
+			productName = LifeGatherShare;
+			productReference = 523EC07AAE9B6E3158277156 /* LifeGatherShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		E3435DDA2687639586BF0B70 /* LifeGather */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5505F9AF814A7F0992DE2402 /* Build configuration list for PBXNativeTarget "LifeGather" */;
+			buildPhases = (
+				25D9BA1528E55E2E0F1B2769 /* Sources */,
+				DB575B01C9EDB90A46216F71 /* Frameworks */,
+				0BC40DDAB69570E4FBE53FB5 /* Resources */,
+				496AF46EC2762DDF91F78F13 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D39DB2C7D6CF000D980809D5 /* PBXTargetDependency */,
+			);
+			name = LifeGather;
+			productName = LifeGather;
+			productReference = 468DEE90561322AA7EA72B98 /* LifeGather.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		46F86FAA6BBF9AC94A7E4595 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					E3435DDA2687639586BF0B70 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					684DF8C4E98A11340F81F8E2 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = 7EF2517A8FE63F4681EC5EEA /* Build configuration list for PBXProject "LifeGather" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 518DA81DB9B99529C0C0AEBE;
+			productRefGroup = 547D009064F7C3F13BEF3460 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E3435DDA2687639586BF0B70 /* LifeGather */,
+				684DF8C4E98A11340F81F8E2 /* LifeGatherShare */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		0BC40DDAB69570E4FBE53FB5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				88ACEB7D2B5303F8E82A2AE8 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5D4A7B1F6435318F54BD0587 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		25D9BA1528E55E2E0F1B2769 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F6E9625240A700749F2FE8AD /* AppDelegate.swift in Sources */,
+				DDC49FA883405BA506D98492 /* MainViewController.swift in Sources */,
+				FB41FCA6D1B7D88C842C7D22 /* LoopbackRelay.swift in Sources */,
+				878EB08004FF69105D966B27 /* ServerAddress.swift in Sources */,
+				1DD0B1143CC411B2EBF67407 /* ShareInbox.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		34F894FF86000E3720C657BF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				543A035DEDD625C8093FD527 /* ShareViewController.swift in Sources */,
+				A963ED0D23697BDEF50BEACA /* ShareInbox.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D39DB2C7D6CF000D980809D5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 684DF8C4E98A11340F81F8E2 /* LifeGatherShare */;
+			targetProxy = BD834C62269D3B50DA0B1156 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		083B7A7DB4F7C86A328AB6B7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = LifeGatherShare/LifeGatherShare.entitlements;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LifeGatherShare/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(LIFEGATHER_BUNDLE_ID).share";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		4A6C2F0F8A8CE88B7159E31D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = LifeGatherShare/LifeGatherShare.entitlements;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LifeGatherShare/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(LIFEGATHER_BUNDLE_ID).share";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		4C95F91A6D5CD87BB5DB8FDD /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 101FBB6B7F6BE5310E68E23F /* LifeGather.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		699FCDBED06EC64C8A6B513F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = LifeGather/LifeGather.entitlements;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LifeGather/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(LIFEGATHER_BUNDLE_ID)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		969595A508627F35A110362C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 101FBB6B7F6BE5310E68E23F /* LifeGather.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		C0DD1C3E4BFC124D878FE440 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = LifeGather/LifeGather.entitlements;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LifeGather/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(LIFEGATHER_BUNDLE_ID)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		5505F9AF814A7F0992DE2402 /* Build configuration list for PBXNativeTarget "LifeGather" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C0DD1C3E4BFC124D878FE440 /* Debug */,
+				699FCDBED06EC64C8A6B513F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7EF2517A8FE63F4681EC5EEA /* Build configuration list for PBXProject "LifeGather" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				969595A508627F35A110362C /* Debug */,
+				4C95F91A6D5CD87BB5DB8FDD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CB3B8327643CA14287F4D1C8 /* Build configuration list for PBXNativeTarget "LifeGatherShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4A6C2F0F8A8CE88B7159E31D /* Debug */,
+				083B7A7DB4F7C86A328AB6B7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+}
