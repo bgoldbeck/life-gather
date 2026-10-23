@@ -168,8 +168,12 @@ it('preserves legacy positions and sanitizes invalid saved dimensions', () => {
 
 it('resizes side docks vertically when the narrow-screen fallback is active', () => {
   vi.stubGlobal('innerWidth', 600)
-  render(dock())
-  expect(dockedEdge('assistant')).toBe('right')
+  const { container } = render(dock())
+  expect(container.firstElementChild).toHaveClass('dock-bottom')
+  // Edge choices only apply to wide screens, so narrow screens hide them.
+  expect(
+    screen.queryByRole('group', { name: 'Assistant dock position' }),
+  ).not.toBeInTheDocument()
   const handle = screen.getByRole('separator')
   expect(handle).toHaveAttribute('aria-orientation', 'horizontal')
   fireEvent.keyDown(handle, { key: 'ArrowUp' })
@@ -178,6 +182,30 @@ it('resizes side docks vertically when the narrow-screen fallback is active', ()
   fireEvent(window, new Event('resize'))
   expect(handle).toHaveAttribute('aria-orientation', 'vertical')
   expect(handle).toHaveAttribute('aria-valuenow', '38')
+  expect(dockedEdge('assistant')).toBe('right')
+})
+
+it('keeps the assistant below the page on a portrait tablet', () => {
+  vi.stubGlobal('innerWidth', 820)
+  const { container } = render(dock())
+  expect(container.firstElementChild).toHaveClass('dock-bottom')
+  expect(container.firstElementChild).not.toHaveClass('dock-collapsed')
+})
+
+it('starts collapsed on a phone until the person opens it', async () => {
+  vi.stubGlobal('innerWidth', 390)
+  const { container } = render(dock())
+  expect(container.firstElementChild).toHaveClass(
+    'dock-bottom',
+    'dock-collapsed',
+  )
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Expand assistant' }),
+  )
+  expect(screen.getByLabelText('Synthetic draft')).toBeVisible()
+  expect(
+    JSON.parse(localStorage.getItem('lifegather-chat-dock:one')!),
+  ).toMatchObject({ collapsed: false })
 })
 
 it('keeps resizing usable if browser preference storage is unavailable', () => {
