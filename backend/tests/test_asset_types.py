@@ -102,7 +102,7 @@ def test_type_revisions_retry_staleness_retirement_and_field_identity(
     assert len(types.history(alice, original["id"])["items"]) == 2
     raw = RecordExport(store.engine).download(alice)
     exported = json.loads(raw)
-    assert exported["format"] == "lifegather-records/5"
+    assert exported["format"] == "lifegather-records/6"
     assert len(exported["collections"]["asset_type_revisions"]) == 2
     assert original["id"].encode() not in RecordExport(store.engine).download(bob)
 

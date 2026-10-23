@@ -106,3 +106,5 @@ feature docs for [assistant](CONTEXTUAL_ASSISTANT.md), [discovery](EMAIL_DISCOVE
 [account limitations](EMAIL_PASSWORD_AUTH.md). Checked the current App navigation
 directly. Update this inventory as bounded releases actually land; do not treat
 older stage-specific exclusions as proof a subsequently released feature is absent.
+
+Research-save reliability: v0.84.1 binds each accepted request to its original input and finding, including duplicates. Exact retries preserve removal state; records format 6 preserves receipts.

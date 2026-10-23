@@ -14,7 +14,7 @@ from lifegather.auth.store import Account
 from lifegather.chat.models import Conversation, Turn
 from lifegather.database import begin_snapshot
 from lifegather.documents.models import Document
-from lifegather.findings.models import ResearchFinding
+from lifegather.findings.models import ResearchFinding, ResearchSaveReceipt
 from lifegather.maintenance.models import MaintenanceRevision, MaintenanceTask
 from lifegather.memory.models import (
     Alias,
@@ -39,9 +39,12 @@ from lifegather.reconciliation.proposal_models import AssetProposal
 from lifegather.reconciliation.receipt_models import ReceiptDetail, ReceiptProposal
 from lifegather.version import __version__
 
-FORMAT = "lifegather-records/5"
+FORMAT = "lifegather-records/6"
 # Earlier formats a restore still accepts: the same collections minus newer ones.
-PREVIOUS_FORMATS = {"lifegather-records/4": frozenset({"research_findings"})}
+PREVIOUS_FORMATS = {
+    "lifegather-records/4": frozenset({"research_findings", "research_save_receipts"}),
+    "lifegather-records/5": frozenset({"research_save_receipts"}),
+}
 MAX_RECORDS = 10_000
 MAX_BYTES = 16 * 1024 * 1024
 
@@ -175,6 +178,10 @@ COLLECTIONS = (
         ResearchFinding,
         "id asset_id request_id turn_id question provider model researched_at url "
         "title published excerpt_kind excerpts_json recorded_at removed_at",
+    ),
+    Projection(
+        ResearchSaveReceipt,
+        "id request_id asset_id turn_id url finding_id recorded_at",
     ),
     Projection(
         Document,

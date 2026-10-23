@@ -103,7 +103,7 @@ def test_owned_archive_preserves_originals_history_money_units_and_customs(
     )
     manifest, records, content = unpack(raw)
     assert manifest["format"] == "lifegather-personal-archive/1"
-    assert records["format"] == "lifegather-records/5"
+    assert records["format"] == "lifegather-records/6"
     assert manifest["snapshot_at"] == records["snapshot_at"]
     assert (
         manifest["records"]["sha256"]

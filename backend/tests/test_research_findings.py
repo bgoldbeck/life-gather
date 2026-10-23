@@ -1,24 +1,28 @@
 """Saving cited web research sources to an asset as dated evidence."""
 
 import json
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine, delete, select, update
+from sqlalchemy import Engine, delete, insert, select, text, update
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import Session
 from stored_files import files as stored
 from test_account_isolation import sign_in, use_installation
 from test_personal_restore import repack, target, unpack
 from test_recovery_bundle import Installation, installation
 
+from lifegather.assets.consolidation import ConsolidationService, ReverseConsolidation
 from lifegather.assets.identity import canonical_id
 from lifegather.auth.store import Account
 from lifegather.chat.models import Turn
 from lifegather.chat.research import IDENTITY_NOTE
 from lifegather.chat.service import ChatService, TurnInput
-from lifegather.findings.models import ResearchFinding
+from lifegather.database import account_scope
+from lifegather.findings.models import ResearchFinding, ResearchSaveReceipt
 from lifegather.findings.service import FindingRemove, FindingSave, FindingService
 from lifegather.main import create_app
 from lifegather.memory.archive import PersonalArchive
@@ -195,6 +199,47 @@ def test_only_cited_sources_of_finished_research_replies_save(
         assert db.scalar(select(ResearchFinding.id)) is None
 
 
+def test_save_request_cannot_change_its_target(case: Installation) -> None:
+    memory = MemoryService(case.store.engine)
+    source = memory.ingest(case.alice, SourceInput(text="A separate synthetic item"))
+    other = memory.create_entity(
+        case.alice,
+        EntityInput(
+            name="Separate item",
+            kind="asset",
+            source_id=source.id,
+            operation_key="separate-item",
+        ),
+    )
+    turn = research_turn(case.store.engine, case.alice)
+    service = FindingService(memory)
+    save(service, case.alice, turn, case.primary)
+    with pytest.raises(MemoryError, match="already used"):
+        save(service, case.alice, turn, other.id)
+
+
+def test_duplicate_receipt_does_not_revive_removed_evidence(case: Installation) -> None:
+    engine = case.store.engine
+    service = FindingService(MemoryService(engine))
+    turn = research_turn(engine, case.alice)
+    first = save(service, case.alice, turn, case.primary)
+    duplicate = save(service, case.alice, turn, case.secondary, request_id="duplicate")
+    assert duplicate["id"] == first["id"]
+    removed = service.remove(case.alice, FindingRemove(finding_id=first["id"]))
+    replay = save(service, case.alice, turn, case.secondary, request_id="duplicate")
+    assert replay["id"] == first["id"]
+    assert replay["removed_at"] == removed["removed_at"]
+    assert service.for_asset(case.alice, case.primary)["items"] == []
+    with Session(engine) as db, db.begin():
+        db.execute(delete(Turn))
+    assert (
+        save(service, case.alice, turn, case.secondary, request_id="duplicate")["id"]
+        == first["id"]
+    )
+    with pytest.raises(MemoryError, match="already used"):
+        save(service, case.alice, turn, case.primary, request_id="duplicate")
+
+
 def test_another_account_cannot_save_read_or_remove(case: Installation) -> None:
     engine = case.store.engine
     service = FindingService(MemoryService(engine))
@@ -207,6 +252,92 @@ def test_another_account_cannot_save_read_or_remove(case: Installation) -> None:
     with pytest.raises(MemoryError, match="Finding not found"):
         service.remove(case.bob, FindingRemove(finding_id=saved["id"]))
     assert len(service.for_asset(case.alice, case.primary)["items"]) == 1
+
+
+def test_receipts_are_atomic_and_enforce_account_boundaries(case: Installation) -> None:
+    engine = case.store.engine
+    service = FindingService(MemoryService(engine))
+    turn = research_turn(engine, case.alice)
+    with account_scope(case.alice.id):
+        saved = save(service, case.alice, turn, case.primary)
+    with Session(engine) as db:
+        receipt = db.scalar(select(ResearchSaveReceipt))
+        assert receipt is not None and receipt.finding_id == saved["id"]
+    with account_scope(case.bob.id), engine.connect() as connection:
+        assert (
+            connection.scalar(text("SELECT count(*) FROM research_save_receipts")) == 0
+        )
+        with pytest.raises(DBAPIError, match="row-level security"):
+            connection.execute(
+                insert(ResearchSaveReceipt).values(
+                    id="forbidden",
+                    user_id=case.alice.id,
+                    request_id="foreign",
+                    asset_id=case.primary,
+                    turn_id=turn,
+                    url=MANUAL,
+                    finding_id=saved["id"],
+                    recorded_at=1,
+                )
+            )
+    with pytest.raises(IntegrityError), engine.begin() as connection:
+        connection.execute(
+            insert(ResearchSaveReceipt).values(
+                id="foreign-reference",
+                user_id=case.bob.id,
+                request_id="foreign",
+                asset_id=case.primary,
+                turn_id=turn,
+                url=MANUAL,
+                finding_id=saved["id"],
+                recorded_at=1,
+            )
+        )
+    # A rejected conflicting payload creates neither a receipt nor new evidence.
+    with pytest.raises(MemoryError):
+        save(service, case.alice, turn, case.primary, url=PARTS)
+    with Session(engine) as db:
+        assert len(list(db.scalars(select(ResearchSaveReceipt)))) == 1
+        assert len(list(db.scalars(select(ResearchFinding)))) == 1
+
+
+def test_exact_receipt_survives_identity_reversal(case: Installation) -> None:
+    engine = case.store.engine
+    service = FindingService(MemoryService(engine))
+    turn = research_turn(engine, case.alice)
+    saved = save(service, case.alice, turn, case.secondary)
+    ConsolidationService(engine).reverse(
+        case.alice,
+        ReverseConsolidation(
+            consolidation_id=case.choice, request_id="separate", note="Separate items"
+        ),
+    )
+    replay = save(service, case.alice, turn, case.secondary)
+    assert replay["id"] == saved["id"] and replay["already_saved"]
+    with pytest.raises(MemoryError, match="already used"):
+        save(service, case.alice, turn, case.primary)
+
+
+def test_concurrent_duplicate_requests_keep_each_receipt(case: Installation) -> None:
+    engine = case.store.engine
+    service = FindingService(MemoryService(engine))
+    turn = research_turn(engine, case.alice)
+    requests = ["one", "one", "two", "three"]
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(
+            pool.map(
+                lambda request: save(
+                    service, case.alice, turn, case.primary, request_id=request
+                ),
+                requests,
+            )
+        )
+    assert len({row["id"] for row in results}) == 1
+    with Session(engine) as db:
+        assert {
+            row.request_id for row in db.scalars(select(ResearchSaveReceipt))
+        } == set(requests)
+        assert len(list(db.scalars(select(ResearchFinding)))) == 1
 
 
 def test_remove_keeps_history_and_allows_saving_again(case: Installation) -> None:
@@ -256,7 +387,10 @@ def test_personal_archive_round_trip_and_format_4_archives(
     saved = save(service, case.alice, research_turn(engine, case.alice), case.primary)
     raw = PersonalArchive(engine, stored(engine)).download(case.alice)
     manifest, records, _ = unpack(raw)
-    assert manifest["records_format"] == "lifegather-records/5"
+    assert manifest["records_format"] == "lifegather-records/6"
+    receipts = records["collections"]["research_save_receipts"]
+    assert len(receipts) == 1 and receipts[0]["finding_id"] == saved["id"]
+    assert "user_id" not in receipts[0]
     assert [row["id"] for row in records["collections"]["research_findings"]] == [
         saved["id"]
     ]
@@ -266,16 +400,24 @@ def test_personal_archive_round_trip_and_format_4_archives(
         actor, case.primary
     )["items"]
     assert [(item["id"], item["url"]) for item in restored] == [(saved["id"], MANUAL)]
+    restored_service = FindingService(MemoryService(store.engine))
+    restored_service.remove(actor, FindingRemove(finding_id=saved["id"]))
+    replay = save(restored_service, actor, saved["turn_id"], case.primary)
+    assert replay["id"] == saved["id"] and replay["removed_at"] is not None
 
     # An archive written before findings existed still restores, with none.
     older = dict(records, format="lifegather-records/4")
     older["collections"] = {
-        k: v for k, v in records["collections"].items() if k != "research_findings"
+        k: v
+        for k, v in records["collections"].items()
+        if k not in {"research_findings", "research_save_receipts"}
     }
     older["counts"] = {
-        k: v for k, v in records["counts"].items() if k != "research_findings"
+        k: v
+        for k, v in records["counts"].items()
+        if k not in {"research_findings", "research_save_receipts"}
     }
-    older["total_records"] = records["total_records"] - 1
+    older["total_records"] = records["total_records"] - 2
     old_raw = repack(raw, older, dict(manifest, records_format="lifegather-records/4"))
     store, actor = target(tmp_path / "old")
     PersonalRestore(store.engine, stored(store.engine)).restore(actor, old_raw)
@@ -298,6 +440,37 @@ def test_personal_archive_round_trip_and_format_4_archives(
     ):
         with pytest.raises(RestoreError):
             restore.restore(actor, bad)
+
+
+def test_format_5_receiptless_findings_replay_safely(
+    tmp_path: Path, case: Installation
+) -> None:
+    engine = case.store.engine
+    saved = save(
+        FindingService(MemoryService(engine)),
+        case.alice,
+        research_turn(engine, case.alice),
+        case.secondary,
+    )
+    raw = PersonalArchive(engine, stored(engine)).download(case.alice)
+    manifest, records, _ = unpack(raw)
+    old = dict(records, format="lifegather-records/5")
+    for key in ("collections", "counts"):
+        old[key] = {
+            k: v for k, v in records[key].items() if k != "research_save_receipts"
+        }
+    old["total_records"] -= len(records["collections"]["research_save_receipts"])
+    store, actor = target(tmp_path)
+    PersonalRestore(store.engine, stored(store.engine)).restore(
+        actor, repack(raw, old, dict(manifest, records_format="lifegather-records/5"))
+    )
+    service = FindingService(MemoryService(store.engine))
+    service.remove(actor, FindingRemove(finding_id=saved["id"]))
+    replay = save(service, actor, saved["turn_id"], case.secondary)
+    assert replay["id"] == saved["id"] and replay["removed_at"] is not None
+    with Session(store.engine) as db:
+        receipt = db.scalar(select(ResearchSaveReceipt))
+        assert receipt is not None and receipt.asset_id == case.secondary
 
 
 def test_http_save_list_and_remove(

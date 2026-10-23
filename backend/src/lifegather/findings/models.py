@@ -42,3 +42,29 @@ class ResearchFinding(Base):
     excerpts_json: Mapped[str]
     recorded_at: Mapped[int]
     removed_at: Mapped[int | None]
+
+
+class ResearchSaveReceipt(Base):
+    """Original input and result for every accepted save, including deduplication."""
+
+    __tablename__ = "research_save_receipts"
+    __table_args__ = (
+        UniqueConstraint("user_id", "id"),
+        UniqueConstraint("user_id", "request_id"),
+        ForeignKeyConstraint(
+            ["user_id", "asset_id"], ["memory_entities.user_id", "memory_entities.id"]
+        ),
+        ForeignKeyConstraint(
+            ["user_id", "finding_id"],
+            ["research_findings.user_id", "research_findings.id"],
+        ),
+    )
+    id: Mapped[str] = mapped_column(primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    request_id: Mapped[str]
+    # Keep the supplied identity, rather than its current consolidation target.
+    asset_id: Mapped[str]
+    turn_id: Mapped[str]
+    url: Mapped[str]
+    finding_id: Mapped[str]
+    recorded_at: Mapped[int]

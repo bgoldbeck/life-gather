@@ -86,7 +86,9 @@ class _Manifest(BaseModel):
     model_config = ConfigDict(extra="ignore", strict=True)
 
     format: Literal["lifegather-personal-archive/1"]
-    records_format: Literal["lifegather-records/4", "lifegather-records/5"]
+    records_format: Literal[
+        "lifegather-records/4", "lifegather-records/5", "lifegather-records/6"
+    ]
     snapshot_at: str = Field(max_length=64)
     records: _Records
     originals: list[_Original] = Field(max_length=MAX_ORIGINALS)
@@ -150,7 +152,9 @@ def _collections(records: Any) -> dict[str, list[dict[str, Any]]]:
         records.get("format") != FORMAT
         and records.get("format") not in PREVIOUS_FORMATS
     ):
-        raise RestoreError("Only lifegather-records/4 and /5 archives can be restored")
+        raise RestoreError(
+            "Only lifegather-records/4, /5 and /6 archives can be restored"
+        )
     collections = records.get("collections")
     absent = PREVIOUS_FORMATS.get(records["format"], frozenset())
     if not isinstance(collections, dict) or absent & set(collections):
