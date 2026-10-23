@@ -266,7 +266,7 @@ it('automatic checks remain local and refresh on configuration changes', async (
   ).toBeVisible()
 })
 
-it('shows the growth power bar from reported points only', async () => {
+it('shows the power level capsule from reported points only', async () => {
   vi.stubGlobal(
     'fetch',
     vi.fn(async () => Response.json(snapshot())),
@@ -279,6 +279,15 @@ it('shows the growth power bar from reported points only', async () => {
     '55 confirmed points, up to 65 if unverified dependencies work; stage Growing',
   )
   expect(screen.getByText('55–65 pts')).toBeVisible()
+  const capsule = meter.parentElement as HTMLElement
+  expect(within(capsule).getByText('Growing')).toBeVisible()
+  expect(
+    within(capsule).getByText('Next stage: Thriving at 70 points.'),
+  ).toBeInTheDocument()
+  expect(capsule).toHaveAttribute(
+    'title',
+    expect.stringContaining('Seedling 0+, Sapling 20+, Growing 40+'),
+  )
   expect(
     screen.getByRole('heading', { name: 'Synthetic mailbox' }).parentElement,
   ).toHaveTextContent('Unverified')
@@ -305,4 +314,48 @@ it('lists connections before health and folds each source scope into details', a
   expect(scope.closest('details')).toHaveTextContent(
     'Scope and supported outcomes',
   )
+})
+
+it('marks only cards that need setup or attention, keeping category color on icons', async () => {
+  const data = snapshot()
+  data.sources.push({
+    ...data.sources[1],
+    id: 'openai',
+    title: 'OpenAI',
+    category: 'ai',
+    configured: false,
+    state: 'blocked',
+    reason: 'Add a connection',
+    action: 'Settings',
+  })
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => Response.json(data)),
+  )
+  render(<PowerCenter userId="alice" onNavigate={vi.fn()} />)
+  const openai = (
+    await screen.findByRole('heading', { name: 'OpenAI' })
+  ).closest('.power-source')!
+  expect(openai).toHaveAttribute('data-attention', 'setup')
+  expect(openai).not.toHaveAttribute('data-tone')
+  expect(openai.querySelector('.tone-tile')).toHaveAttribute('data-tone', 'ai')
+  expect(
+    within(openai as HTMLElement).getByRole('button', {
+      name: 'Open Settings',
+    }),
+  ).toHaveAttribute('data-variant', 'default')
+  for (const name of ['Workspace', 'Synthetic mailbox', 'Bank syncing']) {
+    expect(
+      screen.getByRole('heading', { name }).closest('.power-source'),
+    ).not.toHaveAttribute('data-attention')
+  }
+  const aiAnswers = screen
+    .getByRole('heading', { name: 'AI answers' })
+    .closest('.power-capability')
+  expect(aiAnswers).toHaveAttribute('data-attention', 'setup')
+  expect(
+    screen
+      .getByRole('heading', { name: 'Local evidence' })
+      .closest('.power-capability'),
+  ).not.toHaveAttribute('data-attention')
 })

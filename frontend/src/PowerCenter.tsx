@@ -120,6 +120,14 @@ function capabilityLook(id: string): [LucideIcon, Tone] {
     (id.startsWith('gmail') ? [Mail, 'email'] : [Zap, 'power'])
   )
 }
+// Only cards the person must act on get the attention style.
+function attention(state: State) {
+  return state === 'blocked'
+    ? 'setup'
+    : state === 'failed'
+      ? 'failed'
+      : undefined
+}
 function StatePill({ state, label }: { state: State; label: string }) {
   return (
     <Badge variant="secondary" className="state-pill" data-state={state}>
@@ -291,22 +299,24 @@ export function PowerCenter({
             </p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          disabled={busy}
-          onClick={() => void load('all sources')}
-        >
-          <RefreshCw size={16} aria-hidden="true" />
-          {busy ? 'Checking locally…' : 'Check all locally'}
-        </Button>
-        {!compact && snapshot && (
-          <PowerGrowth
-            score={snapshot.score}
-            minimum={snapshot.minimum_score}
-            maximum={snapshot.maximum_score}
-            stale={!!stale}
-          />
-        )}
+        <div className="power-hero-actions">
+          {!compact && snapshot && (
+            <PowerGrowth
+              score={snapshot.score}
+              minimum={snapshot.minimum_score}
+              maximum={snapshot.maximum_score}
+              stale={!!stale}
+            />
+          )}
+          <Button
+            variant="outline"
+            disabled={busy}
+            onClick={() => void load('all sources')}
+          >
+            <RefreshCw size={16} aria-hidden="true" />
+            {busy ? 'Checking locally…' : 'Check all locally'}
+          </Button>
+        </div>
       </div>
       {error && (
         <div role="alert">
@@ -449,7 +459,8 @@ export function PowerCenter({
                           size="sm"
                           key={source.id}
                           className="power-source"
-                          data-tone={tone}
+                          data-state={source.state}
+                          data-attention={attention(source.state)}
                         >
                           <CardContent>
                             <div className="power-source-heading">
@@ -514,7 +525,11 @@ export function PowerCenter({
                                   </Button>
                                 )}
                                 <Button
-                                  variant="outline"
+                                  variant={
+                                    attention(source.state)
+                                      ? 'default'
+                                      : 'outline'
+                                  }
                                   onClick={() => action(source.action)}
                                 >
                                   Open {source.action}
@@ -662,7 +677,8 @@ export function PowerCenter({
                     <div
                       className="power-capability"
                       key={c.id}
-                      data-tone={tone}
+                      data-state={c.state}
+                      data-attention={attention(c.state)}
                     >
                       <div>
                         <ToneIcon icon={icon} tone={tone} size={16} />

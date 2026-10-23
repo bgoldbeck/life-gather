@@ -124,7 +124,10 @@ Treat this as a release gate as well as continuing work during Phases 1 and 2.
   export/recovery loop with representative synthetic possessions and two accounts.
   v0.80.0 adds [browser end-to-end checks](END_TO_END_CHECKS.md): sign in, add an
   asset, attach a receipt photo and document, search, back up and restore into a
-  second installation, on PostgreSQL.
+  second installation, on PostgreSQL. The [two-account loop](END_TO_END_CHECKS.md)
+  (2026-10-23) runs add, evidence, recall, correction, server restart and
+  backup/restore for two accounts in one installation and found nothing crossing
+  between them.
 - Retain direct correction, safe existing duplicate resolution, history and
   inspectable unknowns. Broaden undo only for operations that support safe reversal.
   v0.73.0 adds [undo](UNDO.md) for review-queue decisions (including dismissals),
@@ -213,9 +216,9 @@ for the Phase 3 acceptance gate.
   the launch gate passes.
   The test-site package is done (see [Cloudflare test site](CLOUDFLARE_TEST_SITE.md)):
   Worker and container, Cron tick, R2, Worker secrets, Access in front of the whole
-  test site, and Lisa's setup runbook. A live staging deployment, trusted-proxy
-  handling for real client addresses, and Access only on operator routes (once
-  public) remain.
+  test site, and Lisa's setup runbook. Real visitor addresses through a
+  Worker-signed header are done in 0.91.0. A live staging deployment and Access
+  only on operator routes (once public) remain.
 - **5.5 Hosted account lifecycle.** Turnstile bot checks on sign-up/password
   forms, terms and privacy acceptance, and verified account deletion across
   database rows, stored files and backup expiry; personal archive remains export.
@@ -232,7 +235,7 @@ for the Phase 3 acceptance gate.
   Until approved, hosted Gmail scanning is limited to allowlisted test users.
 - **5.8 Operations.** Structured logs without private content, error alerts, an
   Access-protected operator view of job backlog, failures and storage use.
-  v0.91.0 delivers the logs, alerts and an operator-only
+  v0.92.0 delivers the logs, alerts and an operator-only
   [Operations page](OPERATIONS.md), which also shows the per-account storage
   limit.
 - **5.9 Plans and billing (conditional).** Only if the hosted service charges;

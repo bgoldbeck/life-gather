@@ -1,4 +1,5 @@
-// Creates test-site.env from the example with a new vault key and tick token.
+// Creates test-site.env from the example with a new vault key, tick token and
+// proxy secret.
 // Refuses to replace an existing file, so saved secrets are never lost.
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -13,7 +14,8 @@ if (existsSync(target)) {
 const month = new Date().toISOString().slice(0, 7);
 const text = readFileSync(here("test-site.env.example"), "utf8")
   .replace(/^VAULT_KEYS=$/m, `VAULT_KEYS=test-${month}:${randomBytes(32).toString("base64")}`)
-  .replace(/^JOB_TICK_TOKEN=$/m, `JOB_TICK_TOKEN=${randomBytes(32).toString("hex")}`);
+  .replace(/^JOB_TICK_TOKEN=$/m, `JOB_TICK_TOKEN=${randomBytes(32).toString("hex")}`)
+  .replace(/^PROXY_SECRET=$/m, `PROXY_SECRET=${randomBytes(32).toString("hex")}`);
 writeFileSync(target, text, { mode: 0o600, flag: "wx" });
-console.log("Created test-site.env with a new vault key and tick token.");
+console.log("Created test-site.env with a new vault key, tick token and proxy secret.");
 console.log("Keep a copy of VAULT_KEYS in your password manager.");

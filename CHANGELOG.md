@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.91.0 - Operations: logs, alerts and the Operations page
+## 0.92.0 - Operations: logs, alerts and the Operations page
 
 - Backend logs are now one JSON line per record. API requests log the route
   template (never the real path or query string), status, duration and a
@@ -21,6 +21,48 @@
 - Migration `0038_operational_events` adds the system table; the per-account
   database role has no access to it. Both new settings are deployment-local and
   are not carried by recovery bundles. No MCP change.
+
+## 0.91.0 - Real visitor addresses behind the Cloudflare test site
+
+- Sign-in rate limits on the Cloudflare test site now count each visitor's own
+  address instead of treating every visitor as the Worker.
+- New optional setting `LIFEGATHER_PROXY_SECRET` (32+ visible ASCII
+  characters, empty by default). A request carrying exactly that value in
+  `X-LifeGather-Proxy-Secret` may set the client address from one valid
+  `X-Forwarded-For` address and the scheme from `X-Forwarded-Proto`. A missing,
+  wrong or repeated secret, an address list or an invalid address is ignored.
+  The header is always removed before the app sees the request. An empty secret
+  never matches.
+- The test-site Worker has a new required `PROXY_SECRET` setting (created by
+  `npm run init-settings`), drops any visitor-sent copy of the header and adds
+  its own. Existing `test-site.env` files need the line added; see
+  docs/CLOUDFLARE_TEST_SITE.md.
+- `LIFEGATHER_TRUSTED_PROXIES` is unchanged and still not used on the test
+  site. The proxy secret is deployment-local and is not stored in recovery
+  bundles; no recovery format change.
+- No schema change or migration; migration head remains 0037.
+
+## 0.90.2 - Power Center setup cards stand out
+
+- Power Center connection cards and capability rows are now neutral; category
+  color stays on the icon tile only, instead of a colored strip on every card.
+- Cards that need setup get one consistent attention style in every theme: an
+  amber edge and outline, a light amber wash, a solid "Needs setup" pill and a
+  filled action button. Failed items use the same style in red. Ready,
+  unverified, disabled and planned cards stay plain. No backend, API or
+  migration changes.
+
+## 0.90.1 - Power level capsule
+
+- The Power Center's power level is now a small capsule in the heading row
+  instead of a full-width panel with a five-stage ladder. It still shows the
+  current stage, the points (or the confirmed to possible range when the score
+  is incomplete), a small bar and the stale state. The stage thresholds and the
+  next stage are in its hover title and screen reader text. On wide screens it
+  sits above "Check all locally"; when the heading fills the row, the capsule
+  and button share the next row. The heading is about half as tall on laptop
+  screens, so the stat tiles and connections move up. No backend, API or
+  migration change.
 
 ## 0.90.0 - Sign-up bot checks and terms of use
 

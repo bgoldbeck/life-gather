@@ -87,8 +87,15 @@ async function handleVisitor(request: Request, env: Env): Promise<Response> {
   if (isInternalPath(new URL(request.url).pathname)) {
     return plainResponse(404, "Not found");
   }
+  let forwarded;
+  try {
+    forwarded = forwardRequest(request, config);
+  } catch (error) {
+    if (error instanceof ConfigError) return plainResponse(503, error.message);
+    throw error;
+  }
   const container = env.LIFEGATHER.getByName(instanceName(config));
-  return container.fetch(forwardRequest(request));
+  return container.fetch(forwarded);
 }
 
 export default {

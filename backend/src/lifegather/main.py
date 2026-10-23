@@ -36,6 +36,7 @@ from lifegather.credentials.routes import private_router
 from lifegather.credentials.service import PrivateSettings, VaultError, read_keyring
 from lifegather.documents.routes import document_router
 from lifegather.findings.routes import finding_router
+from lifegather.forwarding import SignedProxyHeaders
 from lifegather.jobs import scan_service, scan_worker
 from lifegather.mailboxes.provider import GmailProvider
 from lifegather.mailboxes.routes import mailbox_router
@@ -203,6 +204,10 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
         app.add_middleware(
             ProxyHeadersMiddleware, trusted_hosts=settings.trusted_proxy_list
         )
+    # Added last so it runs first and always removes the secret header.
+    app.add_middleware(
+        SignedProxyHeaders, secret=settings.proxy_secret.get_secret_value()
+    )
 
     @app.exception_handler(MemoryError)
     async def memory_error(request: Request, error: MemoryError) -> JSONResponse:
