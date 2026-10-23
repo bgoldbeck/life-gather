@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     vault_keys: SecretStr = SecretStr("")
     # Comma-separated IP addresses or CIDR networks allowed to set X-Forwarded-*.
     trusted_proxies: str = ""
+    # Shared with a proxy whose address can't be listed above (the Cloudflare
+    # Worker); requests proving it may set X-Forwarded-For and -Proto.
+    proxy_secret: SecretStr = SecretStr("")
     migrate_on_start: bool = True
     # "external" runs scheduled scans only from POST /internal/jobs/tick or
     # python -m lifegather.jobs; "inprocess" keeps the built-in loop.
@@ -81,6 +84,14 @@ class Settings(BaseSettings):
         raw = value.get_secret_value()
         if raw and (len(raw) < 32 or not all("!" <= c <= "~" for c in raw)):
             raise ValueError("The job tick token must be 32+ visible ASCII characters")
+        return value
+
+    @field_validator("proxy_secret")
+    @classmethod
+    def strong_proxy_secret(cls, value: SecretStr) -> SecretStr:
+        raw = value.get_secret_value()
+        if raw and (len(raw) < 32 or not all("!" <= c <= "~" for c in raw)):
+            raise ValueError("The proxy secret must be 32+ visible ASCII characters")
         return value
 
     @property
