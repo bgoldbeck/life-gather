@@ -334,3 +334,37 @@ def test_document_attachment_is_assistant_only(case: Case) -> None:
         },
     )
     assert response.status_code == 422
+
+
+def test_reply_records_the_file_attached_to_that_message(case: Case) -> None:
+    vision(case)
+    plate = photo(case)
+    conversation = case.conversation()
+
+    def answer(payload: dict[str, Any]) -> dict[str, Any]:
+        assert payload["attachment"]["name"] == "fridge-plate.jpg"
+        return step("answer", message="The plate shows model WX-9.")
+
+    asked = case.send(
+        conversation,
+        "ask",
+        "Which appliance is this plate from?",
+        step("clarify", message="Which room is the appliance in?"),
+        photo_id=plate["id"],
+    )
+    assert asked["result"]["attached"] == {
+        "kind": "photo",
+        "id": plate["id"],
+        "name": "fridge-plate.jpg",
+    }
+    # The follow-up keeps the file for the answer but did not attach it itself.
+    followed = case.send(conversation, "follow", "The garage.", read(), answer)
+    assert followed["state"] == "complete", followed
+    assert "attached" not in followed["result"]
+    listed = case.client.get(
+        f"/api/chat/conversations/{conversation}/turns", headers=case.headers
+    ).json()["items"]
+    assert [item["result"].get("attached", {}).get("id") for item in listed] == [
+        plate["id"],
+        None,
+    ]

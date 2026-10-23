@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.93.0 - Operations: logs, alerts and the Operations page
+## 0.94.0 - Operations: logs, alerts and the Operations page
 
 - Backend logs are now one JSON line per record. API requests log the route
   template (never the real path or query string), status, duration and a
@@ -21,6 +21,45 @@
 - Migration `0038_operational_events` adds the system table; the per-account
   database role has no access to it. Both new settings are deployment-local and
   are not carried by recovery bundles. No MCP change.
+
+## Developer tooling - Windows container terminal helper
+
+- Double-click `scripts/Container-Helper.cmd` or `Publish-Container.cmd` for setup
+  status, individual installer progress, browser sign-in, verification, local
+  builds and publishing. Python/uv/Node/npm verification now runs in Docker.
+- Publishing checks full commit labels and GHCR digests before rebuilding. An
+  existing publication is skipped; an existing commit image can update latest
+  without a rebuild. Registry errors stop publication; force rebuild is explicit.
+- Existing source, authentication, full-suite and isolated smoke gates remain.
+  Tooling only: no application version, schema, dependency or runtime-image change.
+
+## Developer tooling - Faster backend release verification
+
+- The Windows publisher runs the full backend suite in four Linux shards, each
+  with its own private PostgreSQL17 server. Whole-file allocation and exact
+  collection counts preserve coverage; failures/cancellation stop the release.
+- Test images are keyed and checked by their input fingerprint and reused when
+  unchanged. Progress prints every15 seconds; ignored per-shard logs include
+  the slowest25 test phases and JUnit reports.
+- Pure tests and service-only modules no longer create an unused default
+  database. API modules/shared app fixtures explicitly request an isolated
+  default database; migrated templates start on first use.
+- No application source, dependency, version, schema or runtime-image change.
+
+## 0.93.0 - Pick saved photos in Chat
+
+- In **AI assistant**, **Attach a photo** now opens your saved photos straight
+  away, without a second **Load** click. Chat shows them as compact square
+  thumbnails, twelve per page, with file names on one line, so several fit on a
+  phone. **Read a saved photo** uses the same thumbnails and page size.
+- The attached photo shows as a thumbnail next to its name before sending.
+- Your message in the conversation shows the photo (thumbnail) or document you
+  attached to it, also after a reload. The reply records it under `attached`
+  (kind, id, name) in the turn's existing result; an answer that only carries the
+  file over from the assistant's question does not. Turns saved before this
+  release show no attachment.
+- No migration, dependency or API request change. Browser check at 1366x900 and
+  390x844, light and dark: no page scrolls sideways.
 
 ## 0.92.0 - Maintenance through chat
 

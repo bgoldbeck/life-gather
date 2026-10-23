@@ -26,6 +26,8 @@ from lifegather.scans.registry import ScanRegistry
 from lifegather.scans.service import ScanService
 from lifegather.scans.worker import ScanWorker
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 # Answers arrive after the key was saved at wall-clock time.
 LATER = 4_000_000_000
 GRANT = GmailGrant(address="owner@example.test", refresh_token=SecretStr("synthetic"))

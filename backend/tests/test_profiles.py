@@ -7,6 +7,8 @@ from lifegather.main import create_app
 from lifegather.memory.service import MemoryError, MemoryService
 from lifegather.profiles.service import ProfileChange, ProfileCreate, ProfileService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def test_profiles_preserve_sources_history_idempotence_and_private_ownership() -> None:
     with TestClient(create_app()) as client:

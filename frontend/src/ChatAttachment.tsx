@@ -124,8 +124,18 @@ export function ChatAttachment({
       aria-label="Attach a photo or document"
     >
       {selected ? (
-        <p>
-          Attached {selected.kind}: <strong>{selected.filename}</strong>.{' '}
+        <p className="chat-attached">
+          {selected.kind === 'photo' && (
+            <img
+              className="chat-attached-thumb"
+              alt=""
+              src={`/api/photos/${selected.id}/preview`}
+              onError={(event) => (event.currentTarget.hidden = true)}
+            />
+          )}
+          <span>
+            Attached {selected.kind}: <strong>{selected.filename}</strong>.
+          </span>
           <Button
             type="button"
             variant="outline"
@@ -164,6 +174,7 @@ export function ChatAttachment({
           csrfToken={csrfToken}
           selected={null}
           disabled={disabled}
+          autoLoad
           onSelect={(photo) => {
             if (!photo) return
             onSelect({ kind: 'photo', id: photo.id, filename: photo.filename })

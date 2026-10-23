@@ -15,6 +15,8 @@ from lifegather.memory.service import MemoryError
 from lifegather.purchases.schemas import EvidenceSave, EvidenceWithdraw
 from lifegather.purchases.service import PurchaseEvidenceService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def test_exact_order_id_is_not_a_prefix_and_amount_date_must_be_supported(
     tmp_path: Path,

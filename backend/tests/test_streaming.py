@@ -13,6 +13,8 @@ from lifegather.chat.claude import ClaudeProvider
 from lifegather.chat.provider import Answer, OpenAIProvider
 from lifegather.chat.streaming import AnswerPreview, DeltaSink
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def test_openai_stream_delivers_json_deltas_before_completion() -> None:
     raw = json.dumps({"text": "Synthetic answer", "source_ids": ["source"]})

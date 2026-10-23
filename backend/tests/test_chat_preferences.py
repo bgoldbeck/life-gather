@@ -6,6 +6,8 @@ from fastapi.testclient import TestClient
 
 from lifegather.main import create_app
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 @pytest.mark.usefixtures("legacy_audit_writer")
 def test_chat_preference_migration_preserves_existing_settings(tmp_path: Path) -> None:

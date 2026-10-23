@@ -10,6 +10,8 @@ from lifegather.documents.service import DocumentService, DocumentText
 from lifegather.main import create_app
 from lifegather.memory.service import MemoryError, MemoryService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def synthetic_pdf(
     text: str = "Synthetic receipt item 349.00",

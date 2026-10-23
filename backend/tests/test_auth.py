@@ -14,6 +14,8 @@ from lifegather.auth.google import GoogleProvider
 from lifegather.config import Settings
 from lifegather.version import __version__
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 class GoogleFixture:
     def __init__(self) -> None:
@@ -90,6 +92,7 @@ class GoogleFixture:
 
 @pytest.fixture
 def google_client(
+    configured_database: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> Iterator[tuple[TestClient, GoogleFixture]]:
     google = GoogleFixture()

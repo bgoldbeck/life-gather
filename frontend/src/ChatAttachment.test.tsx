@@ -17,7 +17,13 @@ const turn = {
   },
 }
 
-function mockServer() {
+const savedPhoto = {
+  id: 'photo-1',
+  filename: 'fridge-plate.jpg',
+  purpose: 'nameplate',
+}
+
+function mockServer(reply: unknown = turn, photos = [savedPhoto]) {
   const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
     if (url === '/api/chat/preferences')
       return new Response(
@@ -40,6 +46,8 @@ function mockServer() {
       )
     if (url === '/api/chat/usage')
       return new Response(JSON.stringify({ requests: 0, limit: 20 }))
+    if (url.startsWith('/api/photos?'))
+      return new Response(JSON.stringify({ items: photos, next_cursor: null }))
     if (url.startsWith('/api/documents'))
       return new Response(
         JSON.stringify({
@@ -55,7 +63,7 @@ function mockServer() {
       return new Response(JSON.stringify({ items: [], next_cursor: null }))
     if (url === '/api/chat/conversations/chat-1/stream')
       return new Response(
-        `data: ${JSON.stringify({ type: 'complete', turn })}\n\n`,
+        `data: ${JSON.stringify({ type: 'complete', turn: reply })}\n\n`,
         { headers: { 'content-type': 'text/event-stream' } },
       )
     throw new Error('Unexpected request: ' + url)
@@ -134,4 +142,84 @@ it('can remove an attachment before sending', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Send' }))
   await screen.findByText(/came from the attached document/)
   expect(streamBodies(fetcher)[0]).not.toHaveProperty('document_id')
+})
+
+it('opens saved photos straight away and shows the attached photo on the message', async () => {
+  const photoTurn = {
+    ...turn,
+    id: 'turn-2',
+    text: 'What model is on this plate?',
+    result: {
+      text: 'The plate shows model WX-9. No changes were saved.',
+      attached: { kind: 'photo', id: 'photo-1', name: 'fridge-plate.jpg' },
+    },
+  }
+  const fetcher = mockServer(photoTurn)
+  const { container } = render(<ChatPanel csrfToken="csrf" />)
+  await screen.findByText('A place for the details')
+  await userEvent.selectOptions(screen.getByLabelText('Action'), 'assistant')
+  await userEvent.click(screen.getByRole('button', { name: 'Attach a photo' }))
+  // The library loads without a second click; choosing makes no AI request.
+  expect(
+    screen.queryByRole('button', { name: 'Load saved Chat photos' }),
+  ).toBeNull()
+  await userEvent.click(
+    await screen.findByRole('button', {
+      name: 'Choose photo fridge-plate.jpg',
+    }),
+  )
+  expect(fetcher).toHaveBeenCalledWith(
+    '/api/photos?limit=12',
+    expect.objectContaining({ credentials: 'same-origin' }),
+  )
+  expect(streamBodies(fetcher)).toEqual([])
+  const chip = screen.getByRole('region', {
+    name: 'Attach a photo or document',
+  })
+  expect(chip).toHaveTextContent('Attached photo: fridge-plate.jpg.')
+  expect(chip.querySelector('img')?.getAttribute('src')).toBe(
+    '/api/photos/photo-1/preview',
+  )
+  await userEvent.type(
+    screen.getByLabelText('Message your assistant'),
+    'What model is on this plate?',
+  )
+  await userEvent.click(screen.getByRole('button', { name: 'Send' }))
+  await screen.findByText(/model WX-9/)
+  expect(streamBodies(fetcher)[0]).toMatchObject({ photo_id: 'photo-1' })
+  const message = container.querySelector('.chat-turn')!
+  expect(message).toHaveTextContent('Attached photo: fridge-plate.jpg')
+  expect(
+    container
+      .querySelector('.chat-turn .chat-attached-thumb')
+      ?.getAttribute('src'),
+  ).toBe('/api/photos/photo-1/preview')
+})
+
+it('offers a retry when saved photos fail to load', async () => {
+  const fetcher = mockServer()
+  const original = fetcher.getMockImplementation()!
+  let failed = false
+  fetcher.mockImplementation(async (url: string, init?: RequestInit) => {
+    if (url.startsWith('/api/photos?') && !failed) {
+      failed = true
+      return new Response('{}', { status: 503 })
+    }
+    return original(url, init)
+  })
+  render(<ChatPanel csrfToken="csrf" />)
+  await screen.findByText('A place for the details')
+  await userEvent.selectOptions(screen.getByLabelText('Action'), 'assistant')
+  await userEvent.click(screen.getByRole('button', { name: 'Attach a photo' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Unable to load saved photos',
+  )
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Load saved Chat photos' }),
+  )
+  expect(
+    await screen.findByRole('button', {
+      name: 'Choose photo fridge-plate.jpg',
+    }),
+  ).toBeVisible()
 })

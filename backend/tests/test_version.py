@@ -7,6 +7,8 @@ from fastapi.testclient import TestClient
 from lifegather.main import create_app
 from lifegather.version import __version__
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def test_runtime_version_matches_installed_package() -> None:
     assert re.fullmatch(r"\d+\.\d+\.\d+", __version__)

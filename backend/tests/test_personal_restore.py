@@ -39,6 +39,8 @@ from lifegather.memory.service import MemoryService
 from lifegather.photos.models import Photo
 from lifegather.photos.service import PhotoDelete, PhotoService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def png() -> bytes:
     output = BytesIO()

@@ -29,6 +29,8 @@ from lifegather.main import create_app
 from lifegather.memory.backup import operator_snapshot
 from lifegather.memory.service import MemoryError
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 class FakeProvider:
     def __init__(self) -> None:

@@ -1,6 +1,6 @@
 # LifeGather
 
-[![Source version](https://img.shields.io/badge/source_version-v0.93.0-426B46)](CHANGELOG.md)
+[![Source version](https://img.shields.io/badge/source_version-v0.94.0-426B46)](CHANGELOG.md)
 
 This badge identifies the source release. Check the login screen or app header for your running container’s version.
 
@@ -75,6 +75,10 @@ For a private test copy on Cloudflare (Container, Neon PostgreSQL, R2, Access), 
 To build and publish when your connection is free, use the [local release script and instructions](docs/LOCAL_RELEASE.md). It asks separately before building and uploading, reports local image sizes, and never pushes or merges source code.
 
 Install Docker Engine with the Compose plugin on Linux, or Docker Desktop with the Linux engine on Windows/macOS. No host Python or Node.js installation is needed for this path.
+
+On Windows, double-click `scripts/Container-Helper.cmd` for setup status, guided
+installs, local image builds and GHCR publishing. Verification runs in Docker;
+already-published commits skip rebuilding. See the [container helper](docs/CONTAINER_HELPER.md).
 
 The standalone test-preview launcher names containers `lifegather-preview-v<version>`
 using the downloaded image's OCI version label and starts that exact inspected

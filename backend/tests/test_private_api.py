@@ -9,6 +9,8 @@ from lifegather.auth.store import AuthStore
 from lifegather.credentials.keygen import generate
 from lifegather.main import create_app
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def login(client: TestClient, subject: str) -> dict[str, str]:
     store: AuthStore = client.app.state.auth_store  # type: ignore[attr-defined]

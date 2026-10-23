@@ -1,11 +1,14 @@
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 
 from lifegather.main import create_app
 from lifegather.memory.schemas import EntityInput, FactInput, SourceInput
 from lifegather.memory.service import MemoryService
+
+pytestmark = pytest.mark.usefixtures("configured_database")
 
 ORIGIN = "http://127.0.0.1:8787"
 META = {

@@ -38,6 +38,8 @@ from lifegather.memory.service import MemoryError
 from lifegather.photos.models import Photo
 from lifegather.photos.service import PhotoDelete, PhotoDeleteMany, PhotoService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def accounts(tmp_path: Path) -> tuple[AuthStore, Account, Account]:
     store = AuthStore(database(tmp_path / "data"))

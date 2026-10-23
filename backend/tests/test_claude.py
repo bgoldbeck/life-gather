@@ -18,6 +18,8 @@ from lifegather.chat.runner import PhotoReading
 from lifegather.credentials.keygen import generate
 from lifegather.main import create_app
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def message(value: dict[str, Any], **updates: Any) -> dict[str, Any]:
     return {

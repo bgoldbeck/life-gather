@@ -28,6 +28,8 @@ from lifegather.operations.monitor import OperationsMonitor
 from lifegather.operations.service import pseudonym
 from lifegather.scans.models import ScanSchedule
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 PRIVATE = "PRIVATE-receipt-from-dr-smith"
 log = logging.getLogger("lifegather.tests")
 

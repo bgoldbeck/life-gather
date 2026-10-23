@@ -18,6 +18,8 @@ from lifegather.memory.service import MemoryError, MemoryService
 from lifegather.profiles.service import ProfileChange, ProfileCreate, ProfileService
 from lifegather.recovery.bundle import RecoveryService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def change(entity: str, **values: object) -> ProfileChange:
     return ProfileChange.model_validate(

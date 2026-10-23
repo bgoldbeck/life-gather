@@ -4,6 +4,8 @@ from fastapi.testclient import TestClient
 from lifegather.auth.store import AuthStore
 from lifegather.main import create_app
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 BASE = "http://127.0.0.1:8787"
 
 

@@ -31,6 +31,8 @@ from lifegather.reconciliation.proposals import (
 )
 from lifegather.reconciliation.service import ReconciliationService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 TEXT = "I bought a Husqvarna 525L trimmer."
 
 

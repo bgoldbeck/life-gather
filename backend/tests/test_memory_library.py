@@ -21,6 +21,8 @@ from lifegather.memory.schemas import SourceInput
 from lifegather.memory.service import MemoryError
 from lifegather.photos.service import PhotoDelete, PhotoService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def test_library_current_search_history_and_source_categories(tmp_path: Path) -> None:
     auth, actor, bob, memory, _ = setup(tmp_path)

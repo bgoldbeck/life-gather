@@ -356,7 +356,7 @@ it('supports private photo paging and retrying failed metadata reads', async () 
   ).toBeVisible()
   expect(
     fetcher.mock.calls.some(
-      ([path]) => path === '/api/photos?limit=5&cursor=cursor',
+      ([path]) => path === '/api/photos?limit=12&cursor=cursor',
     ),
   ).toBe(true)
   expect(writes).toEqual([])

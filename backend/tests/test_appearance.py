@@ -1,11 +1,14 @@
 from pathlib import Path
 
+import pytest
 from database_support import database
 from fastapi.testclient import TestClient
 
 from lifegather.auth.store import AuthStore
 from lifegather.credentials.service import PrivateSettings
 from lifegather.main import create_app
+
+pytestmark = pytest.mark.usefixtures("configured_database")
 
 
 def test_appearance_migration_preserves_existing_ai_consent(tmp_path: Path) -> None:

@@ -27,6 +27,8 @@ from lifegather.reconciliation.purchase_details import (
 from lifegather.reconciliation.receipt_models import ReceiptDetail
 from lifegather.reconciliation.receipts import ReceiptReview, ReceiptService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 MONEY = "Acme Drill Qty: 2; Line total: USD 49.90"
 WHEN = "Purchase date: 2026-10-18"
 SOURCE = MONEY + "\nAcme Saw Qty: 1\n" + WHEN

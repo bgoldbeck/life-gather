@@ -35,6 +35,8 @@ from lifegather.photos.service import (
     decode,
 )
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def image_bytes() -> bytes:
     output = BytesIO()

@@ -12,6 +12,8 @@ from lifegather.memory.service import MemoryError, MemoryService
 from lifegather.reconciliation.schemas import DiscoveryInput
 from lifegather.reconciliation.service import ReconciliationService
 
+pytestmark = pytest.mark.usefixtures("configured_database")
+
 
 def test_private_asset_detail_and_history(tmp_path: Path) -> None:
     auth, alice, bob, memory, original, proposals, proposal = setup(tmp_path)
