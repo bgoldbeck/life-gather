@@ -1,13 +1,6 @@
-import { PanelBottom, PanelLeft, PanelRight, PanelTop } from 'lucide-react'
+import { GripVertical } from 'lucide-react'
 import { dockEdges, type Edge } from './dockDrag'
 import './dockDrag.css'
-
-const icons = {
-  left: PanelLeft,
-  right: PanelRight,
-  top: PanelTop,
-  bottom: PanelBottom,
-}
 
 export function DockDropZones({
   target,
@@ -36,39 +29,39 @@ export function DockDropZones({
   )
 }
 
-export function DockEdgeButtons({
+const arrowEdges: Record<string, Edge> = {
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+  ArrowUp: 'top',
+  ArrowDown: 'bottom',
+}
+
+/** Small drag handle; keyboard users focus it and press an arrow key to dock. */
+export function DockGrip({
   panel,
   value,
-  title,
   onChange,
 }: {
   panel: string
   value: Edge
-  title?: string
   onChange: (edge: Edge) => void
 }) {
   return (
-    <div
-      className="dock-edge-buttons"
-      role="group"
-      aria-label={`${panel[0].toUpperCase() + panel.slice(1)} dock position`}
-      title={title}
+    <span
+      role="button"
+      tabIndex={0}
+      className="dock-grip-handle"
+      aria-label={`Move ${panel}, docked ${value}`}
+      aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown"
+      title="Drag to dock on another edge, or focus and press an arrow key"
+      onKeyDown={(event) => {
+        const edge = arrowEdges[event.key]
+        if (!edge) return
+        event.preventDefault()
+        if (edge !== value) onChange(edge)
+      }}
     >
-      {dockEdges.map((edge) => {
-        const Icon = icons[edge]
-        return (
-          <button
-            key={edge}
-            type="button"
-            aria-label={`Dock ${panel} ${edge}`}
-            aria-pressed={value === edge}
-            title={`Dock ${edge}`}
-            onClick={() => onChange(edge)}
-          >
-            <Icon aria-hidden="true" size={14} />
-          </button>
-        )
-      })}
-    </div>
+      <GripVertical aria-hidden="true" size={14} />
+    </span>
   )
 }

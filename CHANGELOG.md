@@ -18,6 +18,15 @@
   `users.terms_accepted_at`. No records-format change. See
   [sign-up protection](docs/SIGNUP_PROTECTION.md).
 
+## 0.89.1 - Remove the dock icon bar
+
+- The row of four small dock-position icon buttons (left, right, top, bottom) is
+  gone from the navigation header and the assistant header, so both take less
+  room. Docking still works by dragging either header onto a highlighted edge.
+- Keyboard docking moved to the small grip handle (⋮⋮) at the start of each
+  header: focus it and press an arrow key to dock on that edge. Reset, collapse
+  and resize are unchanged. No migration; saved dock positions are kept.
+
 ## 0.89.0 - Per-account storage quotas
 
 - Settings has a **File storage** section showing how much space the account's
