@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.96.0 - Erase a source and everything from it
+
+- **Settings → Email connections** can erase a Gmail connection and everything
+  saved from it; **Scans** can erase what one finished scan saved. A list of
+  what will go (emails, assets, details, purchases, suggestions, documents and
+  their files, scans, schedules, the connection) comes first, and the erase
+  refuses if anything changed since. Active scans refuse.
+- Derived records are found by following the database's own references, so
+  any record pointing at an erased one goes too, as does a fact whose own
+  evidence is all erased. An asset or product a kept source also supports
+  stays, attributed to that source; kept corrections stay and a value an erased
+  correction replaced becomes current again. Search entries and history
+  receipts for erased rows are removed; one content-free `source_erased`
+  receipt is written. Documents you uploaded yourself stay.
+- Chat conversations, the grant at Google and existing backups are not
+  changed. See docs/SOURCE_ERASURE.md.
+- New endpoints `POST /api/erasure/preview` and `POST /api/erasure/erase`. No
+  migration, records-format or MCP change.
+
 ## 0.95.0 - Install LifeGather to the home screen
 
 - LifeGather can now be installed as an app on phones, tablets and computers

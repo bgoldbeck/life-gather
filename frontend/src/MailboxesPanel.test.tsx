@@ -95,3 +95,40 @@ it('explains missing installation setup and disables connection', async () => {
   ).toBeDisabled()
   expect(screen.getByText(/installation owner/)).toBeVisible()
 })
+
+it('erases a mailbox after its preview and removes it from the list', async () => {
+  const user = userEvent.setup()
+  const onChanged = vi.fn()
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      const body = url.endsWith('/preview')
+        ? {
+            counts: { memories: 3, connections: 1 },
+            fingerprint: 'a'.repeat(64),
+          }
+        : url.endsWith('/erase')
+          ? { erased: true }
+          : { items: [mailbox], oauth_configured: true, vault_configured: true }
+      return new Response(JSON.stringify(body))
+    }),
+  )
+  render(<MailboxesPanel csrfToken="csrf" onChanged={onChanged} />)
+  await user.click(
+    await screen.findByRole('button', {
+      name: 'Erase everything from this mailbox: synthetic@example.test',
+    }),
+  )
+  expect(
+    await screen.findByText('3 saved emails and memories'),
+  ).toBeInTheDocument()
+  await user.click(screen.getByRole('checkbox'))
+  await user.click(screen.getByRole('button', { name: 'Erase permanently' }))
+  expect(
+    await screen.findByText(
+      'Erased synthetic@example.test and everything saved from it.',
+    ),
+  ).toBeInTheDocument()
+  expect(screen.queryByText('synthetic@example.test')).not.toBeInTheDocument()
+  expect(onChanged).toHaveBeenCalled()
+})

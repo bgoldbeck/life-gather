@@ -35,6 +35,7 @@ from lifegather.credentials.middleware import CredentialBodyLimit
 from lifegather.credentials.routes import private_router
 from lifegather.credentials.service import PrivateSettings, VaultError, read_keyring
 from lifegather.documents.routes import document_router
+from lifegather.erasure.routes import erasure_router
 from lifegather.findings.routes import finding_router
 from lifegather.forwarding import SignedProxyHeaders
 from lifegather.jobs import scan_service, scan_worker
@@ -188,6 +189,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(history_router())
     app.include_router(document_router())
     app.include_router(mailbox_router())
+    app.include_router(erasure_router())
     app.include_router(scan_router())
     app.include_router(schedule_router())
     app.include_router(purchase_router())

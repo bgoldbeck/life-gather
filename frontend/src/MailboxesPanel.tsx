@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { SourceErasure } from './SourceErasure'
 
 type Mailbox = {
   id: string
@@ -196,13 +197,38 @@ export function MailboxesPanel({
                 Disconnect
               </Button>
             )}
+            <SourceErasure
+              csrfToken={csrfToken}
+              kind="mailbox"
+              id={mailbox.id}
+              name={mailbox.address}
+              disabled={busy}
+              onErased={() => {
+                setPage((current) =>
+                  current
+                    ? {
+                        ...current,
+                        items: current.items.filter(
+                          (row) => row.id !== mailbox.id,
+                        ),
+                      }
+                    : current,
+                )
+                setNotice(
+                  `Erased ${mailbox.address} and everything saved from it.`,
+                )
+                onChanged?.()
+              }}
+            />
           </li>
         ))}
       </ul>
       <p>
         Disconnect forgets this app’s local access credentials. It does not
-        delete saved evidence or revoke other Google sign-in grants. Google
-        account permissions can also be managed in{' '}
+        delete saved evidence or revoke other Google sign-in grants. Erase also
+        deletes every email, document, asset and scan saved from that mailbox,
+        after showing you what will go. Google account permissions can also be
+        managed in{' '}
         <a
           href="https://myaccount.google.com/connections"
           target="_blank"
