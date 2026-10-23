@@ -52,6 +52,9 @@ LOCAL_FIELDS = {
     "turnstile_secret_key",
     "terms_version",
     "terms_file",
+    # Who operates this host and where its alerts go belong to the host too.
+    "operator_emails",
+    "alert_webhook_url",
 }
 BOOLEAN_FIELDS = {"test_login_enabled", "smtp_implicit_tls"}
 
@@ -102,6 +105,8 @@ def validate_configuration(path: Path, root: Path, has_key: bool) -> dict[str, A
             "trusted_proxies": "",
             "proxy_secret": "",
             "migrate_on_start": True,
+            "operator_emails": "",
+            "alert_webhook_url": "",
             **STORAGE_DEFAULTS,
         }
         # Every model field is supplied, so the operator's ambient settings cannot

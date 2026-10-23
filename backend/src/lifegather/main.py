@@ -21,7 +21,7 @@ from lifegather.auth.email_routes import email_router
 from lifegather.auth.email_service import EmailAuth
 from lifegather.auth.email_validation import EmailAuthError
 from lifegather.auth.google import GoogleProvider
-from lifegather.auth.mail import MailSender, SmtpSender
+from lifegather.auth.mail import MailSender, smtp_sender
 from lifegather.auth.routes import auth_router
 from lifegather.auth.store import AuthStore
 from lifegather.auth.terms_routes import terms_router
@@ -49,6 +49,9 @@ from lifegather.memory.notes import NoteConflict
 from lifegather.memory.origins import change_origin
 from lifegather.memory.routes import graph_router, library_router
 from lifegather.memory.service import MemoryError
+from lifegather.operations.logs import RequestLog, configure_logging
+from lifegather.operations.monitor import OperationsMonitor
+from lifegather.operations.routes import operations_router
 from lifegather.photos.routes import photo_router
 from lifegather.power.routes import power_router
 from lifegather.power.service import PowerCenter
@@ -68,6 +71,7 @@ from lifegather.version import __version__, build_info
 
 def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     settings = Settings()
+    configure_logging()
     mcp_server = build_server(
         lambda: PowerCenter(
             app.state.auth_store.engine,
@@ -106,17 +110,9 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
                 "The database needs upgrading: run python -m lifegather.migrate"
             )
         app.state.auth_store = store
-        sender = mail_sender
-        if sender is None and settings.mail_enabled:
-            sender = SmtpSender(
-                settings.smtp_host,
-                settings.smtp_port,
-                settings.smtp_username,
-                settings.smtp_password.get_secret_value(),
-                settings.smtp_sender,
-                settings.smtp_implicit_tls,
-            )
+        sender = mail_sender if mail_sender is not None else smtp_sender(settings)
         app.state.email_auth = EmailAuth(store, sender, settings.public_url)
+        app.state.operations_monitor = OperationsMonitor(store.engine, settings, sender)
         try:
             app.state.private_settings = PrivateSettings(
                 store.engine, keyring.active if keyring is not None else None
@@ -138,10 +134,14 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
             if settings.background_mode == "inprocess":
                 tasks.append(asyncio.create_task(app.state.scan_worker.serve()))
             tasks.append(asyncio.create_task(retention_sweeps(store.engine)))
+            tasks.append(asyncio.create_task(app.state.operations_monitor.serve()))
             try:
                 async with mcp_server.session_manager.run():
                     yield
             finally:
+                # Keep errors captured just before shutdown.
+                with suppress(SQLAlchemyError):
+                    await asyncio.to_thread(app.state.operations_monitor.flush)
                 for task in tasks:
                     task.cancel()
                     with suppress(asyncio.CancelledError):
@@ -195,7 +195,9 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(search_router())
     app.include_router(storage_router())
     app.include_router(tick_router(settings))
+    app.include_router(operations_router())
     app.add_middleware(CredentialBodyLimit)
+    app.add_middleware(RequestLog)
     if settings.trusted_proxy_list:
         # Outermost, so rate limits and logs see the forwarded client and scheme.
         # The image runs uvicorn with --no-proxy-headers; only listed peers count.

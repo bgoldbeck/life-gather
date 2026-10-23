@@ -27,6 +27,7 @@ PageName = Literal[
     "Purchases",
     "Review",
     "Settings",
+    "Operations",
 ]
 
 

@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
+  Activity,
   ArrowLeft,
   ArrowUpRight,
   BookOpen,
@@ -48,6 +49,7 @@ import { MailboxesPanel } from './MailboxesPanel'
 import { ScansPanel } from './ScansPanel'
 import { PurchasesPanel } from './PurchasesPanel'
 import { PowerCenter } from './PowerCenter'
+import { OperationsPanel } from './OperationsPanel'
 import type { ReconnectTarget } from './reconnect'
 import { GlobalSearch, type SearchResult } from './GlobalSearch'
 import type { Theme } from './appearance'
@@ -128,6 +130,12 @@ const navigation = [
     tone: 'settings',
     description: 'Manage privacy, authentication, and model connections.',
   },
+  {
+    name: 'Operations',
+    icon: Activity,
+    tone: 'settings',
+    description: 'Installation health: background jobs, problems and storage.',
+  },
 ] as const
 
 type View = (typeof navigation)[number]['name']
@@ -183,6 +191,22 @@ export function Workspace({
     visit: 0,
   })
   const [expandAssistant, setExpandAssistant] = useState(0)
+  // Operations is listed only for accounts the installation names as operators.
+  const [operator, setOperator] = useState(false)
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch('/api/operator/access', {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { operator?: boolean } | null) => {
+        if (!controller.signal.aborted) setOperator(data?.operator === true)
+      })
+      .catch(() => undefined)
+    return () => controller.abort()
+  }, [userId])
   const [contextRevision, setContextRevision] = useState(0)
   const [powerRevision, setPowerRevision] = useState(0)
   const powerChanged = () => setPowerRevision((value) => value + 1)
@@ -267,29 +291,31 @@ export function Workspace({
           </div>
           <p className="sidebar-caption">A little more connected.</p>
           <nav aria-label="Main navigation">
-            {navigation.map(({ name, icon, tone }) => (
-              <Button
-                key={name}
-                variant="ghost"
-                className="nav-button"
-                title={name}
-                data-tone={tone}
-                aria-current={view === name ? 'page' : undefined}
-                onClick={() => {
-                  if (name === 'Scans') setScanRunId('')
-                  setTarget((previous) => ({
-                    photo: '',
-                    document: '',
-                    source: '',
-                    visit: previous.visit + 1,
-                  }))
-                  setView(name)
-                }}
-              >
-                <ToneIcon icon={icon} tone={tone} size={15} />
-                <span className="nav-label">{name}</span>
-              </Button>
-            ))}
+            {navigation
+              .filter(({ name }) => operator || name !== 'Operations')
+              .map(({ name, icon, tone }) => (
+                <Button
+                  key={name}
+                  variant="ghost"
+                  className="nav-button"
+                  title={name}
+                  data-tone={tone}
+                  aria-current={view === name ? 'page' : undefined}
+                  onClick={() => {
+                    if (name === 'Scans') setScanRunId('')
+                    setTarget((previous) => ({
+                      photo: '',
+                      document: '',
+                      source: '',
+                      visit: previous.visit + 1,
+                    }))
+                    setView(name)
+                  }}
+                >
+                  <ToneIcon icon={icon} tone={tone} size={15} />
+                  <span className="nav-label">{name}</span>
+                </Button>
+              ))}
           </nav>
           <div className="sidebar-note">
             <LockKeyhole aria-hidden="true" size={18} />
@@ -375,6 +401,8 @@ export function Workspace({
                     refreshSession={refreshSession}
                   />
                 </>
+              ) : view === 'Operations' ? (
+                <OperationsPanel refreshSession={refreshSession} />
               ) : view === 'Power Center' ? (
                 <PowerCenter
                   userId={userId}

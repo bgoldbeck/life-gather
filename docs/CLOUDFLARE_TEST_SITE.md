@@ -202,6 +202,10 @@ Database migrations run automatically on the next start.
 - Dashboard → **Workers & Pages** → `lifegather-test` → **Containers** shows
   instances, their state and container logs.
 - Neon's dashboard shows database size; R2's shows stored files.
+- Put your sign-in email in `OPERATOR_EMAILS` to get the in-app
+  [Operations page](OPERATIONS.md) (stuck jobs, failures, storage) and, with SMTP
+  or `ALERT_WEBHOOK_URL`, error alerts. The whole test site is already behind
+  Access; a public site should keep Access on `/api/operator/`.
 
 ## Visitor addresses
 

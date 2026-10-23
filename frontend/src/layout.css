@@ -92,7 +92,8 @@
     [data-view='Graph'],
     [data-view='Documents'],
     [data-view='Photos'],
-    [data-view='Profiles']
+    [data-view='Profiles'],
+    [data-view='Operations']
   )
   > section,
 .main-content[data-view='Settings'] > :is(.power-center, .settings-panel),

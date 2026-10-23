@@ -1,6 +1,7 @@
 """One bounded async runner; handlers never control job ownership or recurrence."""
 
 import asyncio
+import logging
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -13,6 +14,8 @@ from lifegather.database import account_scope
 from lifegather.memory.origins import ChangeOrigin, change_origin
 from lifegather.scans.registry import ScanContext
 from lifegather.scans.service import LeaseLost, ScanCanceled, ScanClaim, ScanService
+
+logger = logging.getLogger(__name__)
 
 Outcome = Literal["idle", "ran", "paused"]
 
@@ -81,7 +84,11 @@ class ScanWorker:
             # Fixed text naming the refused sign-in; completed evidence stays.
             self.scans.finish(claim, "failed", str(error))
         except Exception:
-            # Provider exception strings may contain private request material.
+            # Provider exception strings may contain private request material:
+            # the log keeps only the exception type and code location.
+            logger.exception(
+                "Scan stopped unexpectedly", extra={"handler": claim.handler_key}
+            )
             self.scans.finish(
                 claim,
                 "failed",

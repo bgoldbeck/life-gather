@@ -239,6 +239,9 @@ for the Phase 3 acceptance gate.
   Until approved, hosted Gmail scanning is limited to allowlisted test users.
 - **5.8 Operations.** Structured logs without private content, error alerts, an
   Access-protected operator view of job backlog, failures and storage use.
+  v0.94.0 delivers the logs, alerts and an operator-only
+  [Operations page](OPERATIONS.md), which also shows the per-account storage
+  limit.
 - **5.9 Plans and billing (conditional).** Only if the hosted service charges;
   includes any platform-paid AI usage, which is otherwise not offered.
 
