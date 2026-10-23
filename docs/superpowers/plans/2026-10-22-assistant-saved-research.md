@@ -70,3 +70,23 @@ This feature is therefore v0.86.0, with no additional migration. Preserve the
 Reconnect button, credential state labels, provider refusal handling and source
 citations together. Re-run the full suite and browser checks on this combined
 baseline; prior pre-merge test evidence does not cover the new baseline.
+
+## Final reconciliation and bounded search correction
+
+PR126 merged restore into existing accounts at2138d16 while final verification
+was completing. Preserve it and release this branch asv0.87.0 on migration0036.
+IDs remain unchanged during restore, preserving saved research citation targets.
+The browser journey must now expect an idempotent second restore with no new
+records, rather than the superseded empty-account refusal.
+
+A separate synthetic reproduction found that SearchService._sources can return
+content-free deleted-memory markers when the query matches placeholder words.
+Include this bounded evidence-recall repair in this release: reuse the existing
+owner-scoped deleted_source predicate; never filter by the placeholder text.
+Add failing tests in tests/test_search.py for deleted versus active literal-marker
+notes and owner isolation, and extend the archive-deletion test in
+tests/test_memory_deletion.py. Keep direct evidence readers and surviving files
+unchanged. Run focused regressions RED/GREEN, then the final full Linux suite and
+frontend/browser checks on the combined baseline. A fresh read-only integration
+review covers this new scope and upstream compatibility, not a repeat of the
+already-verified original review fixes.

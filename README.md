@@ -1,6 +1,6 @@
 # LifeGather
 
-[![Source version](https://img.shields.io/badge/source_version-v0.86.0-426B46)](CHANGELOG.md)
+[![Source version](https://img.shields.io/badge/source_version-v0.87.0-426B46)](CHANGELOG.md)
 
 This badge identifies the source release. Check the login screen or app header for your running container’s version.
 
@@ -10,7 +10,7 @@ It aims to help organize possessions, events, documents, and relationships while
 
 ## Project status
 
-The [AI assistant](docs/AI_ASSISTANT.md#saved-web-research-v0860) can recall saved
+The [AI assistant](docs/AI_ASSISTANT.md#saved-web-research-v0870) can recall saved
 web research for an asset in later conversations, with dated excerpts and source
 links. Findings stay distinct from ownership, purchase and compatibility facts.
 

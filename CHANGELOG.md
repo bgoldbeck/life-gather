@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.86.0 - Recall saved web research in the asset assistant
+## 0.87.0 - Recall saved web research in the asset assistant
 
 - Ask the AI assistant about an asset's saved manual or web research in a later
   conversation. It can select the read-only `read_asset_research` tool over the
@@ -19,6 +19,26 @@
   remain in force. No migration, records-format or dependency change; migration
   head remains 0036 and records format 6. Synthetic providers verify contracts;
   live provider answer quality has not been checked.
+
+## 0.86.0 - Restore a backup into an account that already has records
+
+- **Settings → Restore your records** now works when the account already has
+  records. Records whose ID the account already holds are left exactly as they
+  are (the current version wins, so later corrections, renamed types, deleted
+  memory text and deleted photos/documents stay as they are). Records the
+  account does not have are added back with their original IDs, dates,
+  provenance, history and original files, in one all-or-nothing transaction.
+- Restoring the same archive again adds nothing. The result says how many
+  records were added and how many were already in the account.
+- The restore is refused (HTTP 409) with nothing saved when an archive record
+  belongs to another account in this installation (now also detected under
+  per-account row security, which previously surfaced as a 422), or when a new
+  archive record repeats a different record already in the account (the same
+  source, request, starter asset type or current history version). IDs are never
+  rewritten and distinct records are never merged.
+- `POST /api/import/archive` returns `already_present`; `total_records`, `counts`
+  and `originals` now count what was added. Empty-account restores behave as
+  before. No schema change or migration; no MCP or model tool.
 
 ## 0.85.0 - Reconnect prompts for expired sign-ins
 

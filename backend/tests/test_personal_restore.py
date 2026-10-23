@@ -169,24 +169,131 @@ def test_restore_round_trip_keeps_records_history_originals_and_search(
     )
 
 
-def test_restore_refuses_non_empty_account_and_repeat_without_changes(
+def without_restores(raw: bytes) -> tuple[dict[str, Any], dict[str, bytes]]:
+    _, records, content = unpack(raw)
+    audits = records["collections"]["memory_audit"]
+    records["collections"]["memory_audit"] = [
+        row for row in audits if row["operation"] != "personal_archive_restored"
+    ]
+    return records["collections"], {
+        k: v for k, v in content.items() if k.startswith("originals/")
+    }
+
+
+def test_restore_adds_to_non_empty_account_and_repeat_adds_nothing(
     tmp_path: Path,
 ) -> None:
     _, raw = rich_archive(tmp_path)
+    _, records, _ = unpack(raw)
     store, actor = target(tmp_path)
-    MemoryService(store.engine).ingest(actor, SourceInput(text="Existing note"))
-    with pytest.raises(RestoreConflict, match="already has saved records"):
-        PersonalRestore(store.engine, stored(store.engine)).restore(actor, raw)
-    other = store.login("second", "second@example.test", "Second", now=1).user
-    PersonalRestore(store.engine, stored(store.engine)).restore(other, raw)
-    with pytest.raises(RestoreConflict, match="already has saved records"):
-        PersonalRestore(store.engine, stored(store.engine)).restore(other, raw)
+    storage = stored(store.engine)
+    memory = MemoryService(store.engine)
+    memory.ingest(actor, SourceInput(text="Existing synthetic note"))
+    result = PersonalRestore(store.engine, storage).restore(actor, raw)
+    assert result["total_records"] == records["total_records"]
+    assert result["already_present"] == 0 and result["originals"] == 2
+    assert memory.search(actor, "mower") and memory.search(actor, "Existing")
+    before = without_restores(PersonalArchive(store.engine, storage).download(actor))
+    again = PersonalRestore(store.engine, storage).restore(actor, raw)
+    assert again["total_records"] == 0 and again["originals"] == 0
+    assert again["already_present"] == records["total_records"]
+    assert set(again["counts"].values()) == {0}
+    after = without_restores(PersonalArchive(store.engine, storage).download(actor))
+    assert after == before
     third = store.login("third", "third@example.test", "Third", now=1).user
-    with pytest.raises(RestoreConflict, match="already exist in this installation"):
-        PersonalRestore(store.engine, stored(store.engine)).restore(third, raw)
+    with pytest.raises(RestoreConflict, match="belong to another account"):
+        PersonalRestore(store.engine, storage).restore(third, raw)
     with Session(store.engine) as db:
         assert db.scalar(select(func.count()).where(Audit.user_id == third.id)) == 0
     assert not list((tmp_path / "target" / "files" / "users" / third.id).glob("**/*"))
+
+
+def test_restore_into_same_account_keeps_current_records_and_returns_lost_ones(
+    tmp_path: Path,
+) -> None:
+    case, raw = rich_archive(tmp_path)
+    engine = case.store.engine
+    storage = stored(engine)
+    _, records, _ = unpack(raw)
+    # Changes made after the backup must survive the restore unchanged.
+    types = AssetTypes(engine)
+    family = next(
+        item for item in types.list(case.alice)["items"] if item["name"] == "Family car"
+    )
+    types.save(
+        case.alice,
+        TypeSave.model_validate(
+            {
+                "type_id": family["id"],
+                "expected_revision": family["revision"],
+                "request_id": "rename-again",
+                "name": "Second car",
+                "fields": family["fields"],
+            }
+        ),
+    )
+    MemoryService(engine).ingest(case.alice, SourceInput(text="Note after backup"))
+    # Lose the chat records, as if removed by mistake after the backup.
+    [conversation] = records["collections"]["chat_conversations"]
+    with engine.begin() as db:
+        db.execute(
+            text("DELETE FROM chat_turns WHERE user_id = :u"), {"u": case.alice.id}
+        )
+        db.execute(
+            text("DELETE FROM chat_conversations WHERE user_id = :u"),
+            {"u": case.alice.id},
+        )
+    current = without_restores(PersonalArchive(engine, storage).download(case.alice))
+    result = PersonalRestore(engine, storage).restore(case.alice, raw)
+    lost = len(records["collections"]["chat_turns"]) + 1
+    assert result["total_records"] == lost and result["originals"] == 0
+    assert result["counts"]["chat_conversations"] == 1
+    assert result["already_present"] == records["total_records"] - lost
+    collections, originals = without_restores(
+        PersonalArchive(engine, storage).download(case.alice)
+    )
+    assert originals == current[1]
+    for name, rows in collections.items():
+        if name in ("chat_conversations", "chat_turns"):
+            assert rows == records["collections"][name]
+        else:
+            assert rows == current[0][name], name
+    assert conversation in collections["chat_conversations"]
+    names = [item["name"] for item in types.list(case.alice)["items"]]
+    assert "Second car" in names and "Family car" not in names
+
+
+def test_restore_refuses_natural_key_clash_with_nothing_saved(tmp_path: Path) -> None:
+    _, raw = rich_archive(tmp_path)
+    store, actor = target(tmp_path)
+    storage = stored(store.engine)
+    types = AssetTypes(store.engine)
+    vehicle = types.list(actor)["items"][0]
+    types.save(
+        actor,
+        TypeSave.model_validate(
+            {
+                "type_id": vehicle["id"],
+                "expected_revision": vehicle["revision"],
+                "request_id": "my-vehicle",
+                "name": "My truck",
+                "fields": vehicle["fields"],
+            }
+        ),
+    )
+    with Session(store.engine) as db:
+        counts = {
+            p.table.name: db.scalar(select(func.count()).select_from(p.table))
+            for p in COLLECTIONS
+        }
+    with pytest.raises(RestoreConflict, match="asset type .* repeats"):
+        PersonalRestore(store.engine, storage).restore(actor, raw)
+    with Session(store.engine) as db:
+        assert {
+            p.table.name: db.scalar(select(func.count()).select_from(p.table))
+            for p in COLLECTIONS
+        } == counts
+    assert not list((tmp_path / "target" / "files").glob("**/original"))
 
 
 def test_restore_round_trip_keeps_non_pdf_documents(tmp_path: Path) -> None:
@@ -212,7 +319,7 @@ def test_restore_round_trip_keeps_non_pdf_documents(tmp_path: Path) -> None:
 def test_restore_into_source_installation_is_refused(tmp_path: Path) -> None:
     case, raw = rich_archive(tmp_path)
     fresh = case.store.login("carol", "carol@example.test", "Carol", now=1).user
-    with pytest.raises(RestoreConflict, match="already exist"):
+    with pytest.raises(RestoreConflict, match="belong to another account"):
         PersonalRestore(case.store.engine, stored(case.store.engine)).restore(
             fresh, raw
         )
@@ -350,5 +457,12 @@ def test_http_restore_requires_owner_csrf_and_maps_errors(tmp_path: Path) -> Non
         assert result.status_code == 200, result.text
         assert result.json()["originals"] == 2
         repeat = client.post(path, headers=zipped, content=raw)
-        assert repeat.status_code == 409
-        assert "already has saved records" in repeat.json()["detail"]
+        assert repeat.status_code == 200, repeat.text
+        assert repeat.json()["total_records"] == 0
+        assert repeat.json()["already_present"] == result.json()["total_records"]
+        other, _ = signed_headers(app, "restore-other")
+        clash = client.post(
+            path, headers={**other, "Content-Type": "application/zip"}, content=raw
+        )
+        assert clash.status_code == 409, clash.text
+        assert "belong to another account" in clash.json()["detail"]
