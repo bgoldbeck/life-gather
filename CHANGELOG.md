@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.89.0 - Per-account storage quotas
+
+- Settings has a **File storage** section showing how much space the account's
+  photos (with previews) and documents use, the limit or "No limit", and counts
+  per kind. `GET /api/storage/usage` returns the same figures.
+- New optional setting `LIFEGATHER_STORAGE_QUOTA_MB` caps each account's stored
+  files. The default `0` means no limit, so self-hosted installations behave as
+  before. When set, photo and document uploads, chat attachments and Gmail
+  attachment intake refuse a new file that would pass the limit (nothing is
+  stored), and a personal-archive restore whose files would not fit is refused
+  (HTTP 409) with nothing saved. Duplicates of files already held are never
+  refused, and lowering the limit never removes files.
+- The existing per-kind caps (200 photos / 256 MiB, 200 documents / 256 MiB)
+  are unchanged. No migration and no records-format change. See
+  [storage quotas](docs/STORAGE_QUOTAS.md).
+
 ## 0.88.1 - Phone and tablet layout
 
 - Checked every main page at phone (390x844), tablet portrait (820x1180) and

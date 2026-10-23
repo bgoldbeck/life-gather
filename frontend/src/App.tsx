@@ -29,6 +29,7 @@ import { AuthGate } from './AuthGate'
 import { PrivateSettingsPanel } from './PrivateSettingsPanel'
 import { PasswordSettings } from './PasswordSettings'
 import { AccountDeletion } from './AccountDeletion'
+import { StorageUsage } from './StorageUsage'
 import { ChatDock } from './ChatDock'
 import { NavigationDock } from './NavigationDock'
 import { WorkspaceAssistant } from './WorkspaceAssistant'
@@ -350,6 +351,7 @@ export function Workspace({
                     csrfToken={csrfToken}
                     refreshSession={refreshSession}
                   />
+                  <StorageUsage refreshSession={refreshSession} />
                   <PrivateSettingsPanel
                     reconnect={reconnectKey}
                     onChanged={powerChanged}
