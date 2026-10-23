@@ -101,7 +101,8 @@ def auth_router(settings: Settings, provider: GoogleProvider) -> APIRouter:
     attempts: OrderedDict[str, deque[float]] = OrderedDict()
 
     def limit_attempts(request: Request) -> None:
-        # Use connection IP, never forwarded headers; bound memory and sessions.
+        # Connection IP; forwarded only from a trusted or signed proxy (see
+        # lifegather.forwarding). Bound memory and sessions.
         host = request.client.host if request.client else "unknown"
         now = time.monotonic()
         if host not in attempts and len(attempts) >= 1024:

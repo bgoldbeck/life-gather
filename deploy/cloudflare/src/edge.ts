@@ -37,7 +37,11 @@ export function isInternalPath(pathname: string): boolean {
   return path === "/internal" || path.startsWith("/internal/");
 }
 
+/** Header the app checks before it believes the forwarded visitor address. */
+export const PROXY_SECRET_HEADER = "x-lifegather-proxy-secret";
+
 const DROPPED_HEADERS = [
+  PROXY_SECRET_HEADER,
   "forwarded",
   "x-forwarded-for",
   "x-forwarded-proto",
@@ -46,13 +50,19 @@ const DROPPED_HEADERS = [
   "cf-access-jwt-assertion",
 ];
 
-/** Copy a visitor's request with forwarded headers set only from Cloudflare's view. */
-export function forwardRequest(request: Request): Request {
+/**
+ * Copy a visitor's request with forwarded headers set only from Cloudflare's
+ * view, signed with the proxy secret so the app knows the Worker set them.
+ */
+export function forwardRequest(request: Request, config: Config): Request {
+  const secret = config.PROXY_SECRET?.trim();
+  if (!secret) throw new ConfigError(["PROXY_SECRET"]);
   const headers = new Headers(request.headers);
   for (const name of DROPPED_HEADERS) headers.delete(name);
   const client = request.headers.get("cf-connecting-ip");
   if (client) headers.set("x-forwarded-for", client);
   headers.set("x-forwarded-proto", "https");
+  headers.set(PROXY_SECRET_HEADER, secret);
   return new Request(request, { headers });
 }
 

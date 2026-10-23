@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.91.0 - Real visitor addresses behind the Cloudflare test site
+
+- Sign-in rate limits on the Cloudflare test site now count each visitor's own
+  address instead of treating every visitor as the Worker.
+- New optional setting `LIFEGATHER_PROXY_SECRET` (32+ visible ASCII
+  characters, empty by default). A request carrying exactly that value in
+  `X-LifeGather-Proxy-Secret` may set the client address from one valid
+  `X-Forwarded-For` address and the scheme from `X-Forwarded-Proto`. A missing,
+  wrong or repeated secret, an address list or an invalid address is ignored.
+  The header is always removed before the app sees the request. An empty secret
+  never matches.
+- The test-site Worker has a new required `PROXY_SECRET` setting (created by
+  `npm run init-settings`), drops any visitor-sent copy of the header and adds
+  its own. Existing `test-site.env` files need the line added; see
+  docs/CLOUDFLARE_TEST_SITE.md.
+- `LIFEGATHER_TRUSTED_PROXIES` is unchanged and still not used on the test
+  site. The proxy secret is deployment-local and is not stored in recovery
+  bundles; no recovery format change.
+- No schema change or migration; migration head remains 0037.
+
 ## 0.90.2 - Power Center setup cards stand out
 
 - Power Center connection cards and capability rows are now neutral; category

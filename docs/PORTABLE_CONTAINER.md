@@ -80,6 +80,20 @@ Entries are IP addresses or CIDR networks, comma-separated; `*` is not accepted.
 Only requests whose direct peer is listed may set those headers. Secure cookies
 still follow `LIFEGATHER_PUBLIC_URL`, which must be the public HTTPS origin.
 
+When the proxy's own address can't be listed (for example a Cloudflare Worker
+in front of a Cloudflare Container), set a shared secret instead:
+
+```
+LIFEGATHER_PROXY_SECRET=<32+ random visible characters>
+```
+
+The proxy must send it as `X-LifeGather-Proxy-Secret`, replace any copy from
+the visitor, and set `X-Forwarded-For` to exactly one client address. Requests
+with a missing or wrong secret, or a list of addresses, keep the connection's
+own address and scheme. The secret header is removed before the app sees the
+request, and the secret never goes into recovery bundles. Both settings are
+empty by default, so a plain self-hosted install is unchanged.
+
 ## Background scans on sleeping containers
 
 Platforms that stop idle containers also stop the in-process scan loop. Set
