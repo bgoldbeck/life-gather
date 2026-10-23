@@ -20,20 +20,24 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-function dockButton(panel: string, edge: string) {
-  return screen.getByRole('button', { name: `Dock ${panel} ${edge}` })
+const arrowKeys: Record<string, string> = {
+  left: 'ArrowLeft',
+  right: 'ArrowRight',
+  top: 'ArrowUp',
+  bottom: 'ArrowDown',
+}
+
+function grip(panel: string) {
+  return screen.getByRole('button', { name: new RegExp(`^Move ${panel}`) })
+}
+
+// Keyboard docking: focus the grip and press the arrow toward the edge.
+function dockTo(panel: string, edge: string) {
+  fireEvent.keyDown(grip(panel), { key: arrowKeys[edge] })
 }
 
 function dockedEdge(panel: string) {
-  const group = screen.getByRole('group', {
-    name: `${panel[0].toUpperCase() + panel.slice(1)} dock position`,
-  })
-  return within(group)
-    .getAllByRole('button')
-    .find((button) => button.getAttribute('aria-pressed') === 'true')
-    ?.getAttribute('aria-label')
-    ?.split(' ')
-    .at(-1)
+  return grip(panel).getAttribute('aria-label')?.split(' ').at(-1)
 }
 
 it('defaults navigation left and moves every edge without losing the page or assistant draft', async () => {
@@ -41,6 +45,10 @@ it('defaults navigation left and moves every edge without losing the page or ass
   render(<Workspace userId="one" />)
   expect(dockedEdge('navigation')).toBe('left')
   expect(dockedEdge('assistant')).toBe('right')
+  // The old row of four dock icon buttons is gone; the grip does the job.
+  expect(
+    screen.queryByRole('group', { name: /dock position/ }),
+  ).not.toBeInTheDocument()
   await user.type(
     screen.getByLabelText('Message your assistant'),
     'Keep this draft',
@@ -51,7 +59,7 @@ it('defaults navigation left and moves every edge without losing the page or ass
     ).getByRole('button', { name: 'Memories' }),
   )
   for (const edge of ['top', 'bottom', 'right', 'left']) {
-    await user.click(dockButton('navigation', edge))
+    dockTo('navigation', edge)
     expect(screen.getByRole('heading', { name: 'Memories' })).toBeVisible()
     expect(screen.getByLabelText('Message your assistant')).toHaveValue(
       'Keep this draft',
@@ -77,7 +85,7 @@ it('resizes by keyboard with independent dimensions, persists per account and re
   expect(handle).toHaveAttribute('aria-orientation', 'vertical')
   fireEvent.keyDown(handle, { key: 'ArrowRight' })
   expect(handle).toHaveAttribute('aria-valuenow', '226')
-  await user.click(dockButton('navigation', 'bottom'))
+  dockTo('navigation', 'bottom')
   handle = screen.getByRole('separator', { name: 'Resize navigation' })
   expect(handle).toHaveAttribute('aria-orientation', 'horizontal')
   fireEvent.keyDown(handle, { key: 'ArrowUp' })
@@ -90,7 +98,7 @@ it('resizes by keyboard with independent dimensions, persists per account and re
   expect(
     screen.getByRole('separator', { name: 'Resize navigation' }),
   ).toHaveAttribute('aria-valuenow', '320')
-  await user.click(dockButton('navigation', 'left'))
+  dockTo('navigation', 'left')
   expect(
     screen.getByRole('separator', { name: 'Resize navigation' }),
   ).toHaveAttribute('aria-valuenow', '226')
@@ -116,11 +124,10 @@ it.each([
   ['bottom', 300, 620, 180],
 ])(
   'resizes the %s navigation by pointer and stops after cancellation',
-  async (edge, x, y, expected) => {
+  (edge, x, y, expected) => {
     vi.stubGlobal('PointerEvent', MouseEvent)
-    const user = userEvent.setup()
     const { container } = render(<Workspace userId="one" />)
-    await user.click(dockButton('navigation', String(edge)))
+    dockTo('navigation', String(edge))
     vi.spyOn(
       container.querySelector('.app-layout')!,
       'getBoundingClientRect',
@@ -159,7 +166,7 @@ it('uses compact navigation on narrow screens without overwriting desktop positi
   ).not.toBeInTheDocument()
   // Edge and reset choices only apply to wide screens.
   expect(
-    screen.queryByRole('group', { name: 'Navigation dock position' }),
+    screen.queryByRole('button', { name: /^Move navigation/ }),
   ).not.toBeInTheDocument()
   expect(
     screen.queryByRole('button', { name: 'Reset navigation layout' }),
@@ -200,7 +207,7 @@ it('rejects invalid stored layout and remains usable without browser storage', a
     throw new Error('Unavailable')
   })
   render(<Workspace userId="one" />)
-  await userEvent.click(dockButton('navigation', 'top'))
+  dockTo('navigation', 'top')
   fireEvent.keyDown(
     screen.getByRole('separator', { name: 'Resize navigation' }),
     { key: 'Home' },

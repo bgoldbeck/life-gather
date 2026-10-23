@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     smtp_implicit_tls: bool = False
     storage_backend: Literal["local", "s3"] = "local"
     storage_dir: Path | None = None
+    # Account-wide stored-file limit in MiB; 0 means no limit (self-hosting).
+    storage_quota_mb: int = Field(default=0, ge=0, le=16 * 1024 * 1024)
     s3_bucket: str = ""
     s3_prefix: str = ""
     s3_endpoint_url: str = ""

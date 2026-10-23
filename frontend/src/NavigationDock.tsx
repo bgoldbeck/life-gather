@@ -7,7 +7,7 @@ import {
 } from 'react'
 import { PanelLeftClose, PanelLeftOpen, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { DockDropZones, DockEdgeButtons } from './DockControls'
+import { DockDropZones, DockGrip } from './DockControls'
 import { dockEdges as edges, useDockDrag, type Edge } from './dockDrag'
 import './navigationDock.css'
 
@@ -150,7 +150,7 @@ function NavigationLayout({ userId, navigation, children }: Props) {
           >
             {!collapsed && !compact && (
               <>
-                <DockEdgeButtons
+                <DockGrip
                   panel="navigation"
                   value={layout.edge}
                   onChange={(next) => {

@@ -201,11 +201,12 @@ for the Phase 3 acceptance gate.
 - **5.2 External background mode** (done in 0.82.0, see [outside scheduler](EXTERNAL_BACKGROUND.md)). Optional setting that disables the
   in-process scan loop and exposes an authenticated, time-bounded job tick so a
   scheduler (Cloudflare Cron Trigger or system cron) runs due schedules and jobs.
-- **5.3 Isolation hardening.** PostgreSQL row-level security as a second lock on
+- **5.3 Isolation hardening** (done in 0.89.0). PostgreSQL row-level security as a second lock on
   owned tables, a cross-account test suite over every HTTP route and MCP tool, and
   per-user file-size and storage quotas. Row-level security, account-scoped files
   and jobs, and the cross-account suite are done in 0.81.0 (see
-  [account isolation](ACCOUNT_ISOLATION.md)); quotas remain.
+  [account isolation](ACCOUNT_ISOLATION.md)); the account-wide storage quota is
+  done in 0.89.0 (see [storage quotas](STORAGE_QUOTAS.md)).
 - **5.4 Cloudflare deployment package.** Worker, wrangler config, container pool
   routing with streamed chat, Cron tick, Secrets Store, private R2 bucket,
   Cloudflare Access on operator routes, and a setup runbook. Staging only until

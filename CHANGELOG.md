@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.89.0 - Pick saved photos in Chat
+## 0.90.0 - Pick saved photos in Chat
 
 - In **AI assistant**, **Attach a photo** now opens your saved photos straight
   away, without a second **Load** click. Chat shows them as compact square
@@ -14,6 +14,31 @@
   release show no attachment.
 - No migration, dependency or API request change. Browser check at 1366x900 and
   390x844, light and dark: no page scrolls sideways.
+
+## 0.89.1 - Remove the dock icon bar
+
+- The row of four small dock-position icon buttons (left, right, top, bottom) is
+  gone from the navigation header and the assistant header, so both take less
+  room. Docking still works by dragging either header onto a highlighted edge.
+- Keyboard docking moved to the small grip handle (⋮⋮) at the start of each
+  header: focus it and press an arrow key to dock on that edge. Reset, collapse
+  and resize are unchanged. No migration; saved dock positions are kept.
+
+## 0.89.0 - Per-account storage quotas
+
+- Settings has a **File storage** section showing how much space the account's
+  photos (with previews) and documents use, the limit or "No limit", and counts
+  per kind. `GET /api/storage/usage` returns the same figures.
+- New optional setting `LIFEGATHER_STORAGE_QUOTA_MB` caps each account's stored
+  files. The default `0` means no limit, so self-hosted installations behave as
+  before. When set, photo and document uploads, chat attachments and Gmail
+  attachment intake refuse a new file that would pass the limit (nothing is
+  stored), and a personal-archive restore whose files would not fit is refused
+  (HTTP 409) with nothing saved. Duplicates of files already held are never
+  refused, and lowering the limit never removes files.
+- The existing per-kind caps (200 photos / 256 MiB, 200 documents / 256 MiB)
+  are unchanged. No migration and no records-format change. See
+  [storage quotas](docs/STORAGE_QUOTAS.md).
 
 ## 0.88.1 - Phone and tablet layout
 

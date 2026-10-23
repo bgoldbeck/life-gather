@@ -20,6 +20,7 @@ from lifegather.memory.service import MemoryError, MemoryService
 from lifegather.photos.models import Photo, PhotoAsset
 from lifegather.storage.base import ObjectStorage, StorageError
 from lifegather.storage.originals import delete_quietly, object_key, read_original
+from lifegather.storage.quota import has_room, quota_message
 
 MAX_BYTES = 8 * 1024 * 1024
 MAX_PREVIEW = 2 * 1024 * 1024
@@ -286,6 +287,10 @@ class PhotoService:
                         raise MemoryError(
                             "Photo storage limit reached (200 photos / 256 MiB)"
                         )
+                    if not has_room(
+                        db, actor.id, storage, len(raw) + len(decoded.preview)
+                    ):
+                        raise MemoryError(quota_message(storage))
                     now = self.memory.clock()
                     identifier = str(uuid4())
                     keys = [
