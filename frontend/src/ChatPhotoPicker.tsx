@@ -5,25 +5,79 @@ import { ChatPhotoUpload } from './ChatPhotoUpload'
 
 export type SavedChatPhoto = { id: string; filename: string; purpose: string }
 
+const PAGE = 12
+
+type PhotoPage = { items: SavedChatPhoto[]; next_cursor: string | null }
+
+async function fetchPhotos(
+  cursor: string | null,
+  signal: AbortSignal,
+): Promise<PhotoPage> {
+  const response = await fetch(
+    `/api/photos?limit=${PAGE}${cursor ? '&cursor=' + encodeURIComponent(cursor) : ''}`,
+    { credentials: 'same-origin', cache: 'no-store', signal },
+  )
+  if (!response.ok) throw new Error()
+  return response.json()
+}
+
+/** Append a page, keeping the first copy of any photo already listed. */
+function merge(old: SavedChatPhoto[], page: PhotoPage) {
+  const rows = [...old]
+  const known = new Set(rows.map((photo) => photo.id))
+  for (const photo of page.items) {
+    if (!known.has(photo.id)) {
+      rows.push(photo)
+      known.add(photo.id)
+    }
+  }
+  return rows
+}
+
 export function ChatPhotoPicker({
   csrfToken,
   selected,
   onSelect,
   disabled,
+  autoLoad = false,
 }: {
   csrfToken: string
   selected: SavedChatPhoto | null
   onSelect: (photo: SavedChatPhoto | null) => void
   disabled: boolean
+  /** Open the saved library straight away instead of waiting for a click. */
+  autoLoad?: boolean
 }) {
   const [items, setItems] = useState<SavedChatPhoto[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState(autoLoad)
   const [uploadBusy, setUploadBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const controller = useRef<AbortController | null>(null)
   useEffect(() => () => controller.current?.abort(), [])
+  useEffect(() => {
+    // The first page loads once when the picker opens; later loads are explicit.
+    if (!autoLoad) return
+    const pending = new AbortController()
+    controller.current = pending
+    fetchPhotos(null, pending.signal)
+      .then((page) => {
+        if (pending.signal.aborted) return
+        setItems((old) => merge(old, page))
+        setCursor(page.next_cursor)
+        if (!page.items.length)
+          setMessage('No saved private photos. Upload one below or in Photos.')
+      })
+      .catch(() => {
+        if (!pending.signal.aborted)
+          setError('Unable to load saved photos. Try again.')
+      })
+      .finally(() => {
+        if (!pending.signal.aborted) setBusy(false)
+      })
+    return () => pending.abort()
+  }, [autoLoad])
   async function load(more = false) {
     controller.current?.abort()
     const pending = new AbortController()
@@ -33,28 +87,9 @@ export function ChatPhotoPicker({
     setMessage('')
     if (!more) onSelect(null)
     try {
-      const response = await fetch(
-        `/api/photos?limit=5${more ? '&cursor=' + encodeURIComponent(cursor ?? '') : ''}`,
-        {
-          credentials: 'same-origin',
-          cache: 'no-store',
-          signal: pending.signal,
-        },
-      )
-      if (!response.ok) throw new Error()
-      const page = await response.json()
+      const page = await fetchPhotos(more ? cursor : null, pending.signal)
       if (pending.signal.aborted) return
-      setItems((old) => {
-        const rows: SavedChatPhoto[] = more ? [...old] : []
-        const known = new Set(rows.map((photo) => photo.id))
-        for (const photo of page.items) {
-          if (!known.has(photo.id)) {
-            rows.push(photo)
-            known.add(photo.id)
-          }
-        }
-        return rows
-      })
+      setItems((old) => merge(more ? old : [], page))
       setCursor(page.next_cursor)
       if (!more && !page.items.length)
         setMessage('No saved private photos. Upload one in Photos first.')
@@ -72,17 +107,20 @@ export function ChatPhotoPicker({
     >
       <h3>Choose a saved private photo</h3>
       <p>
-        Load your private library, then select one original to read. Choosing a
-        photo makes no AI request. You can also upload a new original below.
+        {autoLoad
+          ? 'Pick one of your saved photos, or upload a new one below. Choosing makes no AI request.'
+          : 'Load your private library, then select one original to read. Choosing a photo makes no AI request. You can also upload a new original below.'}
       </p>
-      <Button
-        type="button"
-        variant="outline"
-        disabled={disabled || busy || uploadBusy}
-        onClick={() => void load()}
-      >
-        Load saved Chat photos
-      </Button>
+      {(!autoLoad || error) && (
+        <Button
+          type="button"
+          variant="outline"
+          disabled={disabled || busy || uploadBusy}
+          onClick={() => void load()}
+        >
+          Load saved Chat photos
+        </Button>
+      )}
       <ul className="photo-grid">
         {items.map((photo) => (
           <li key={photo.id}>
@@ -99,7 +137,7 @@ export function ChatPhotoPicker({
                 alt=""
                 src={`/api/photos/${photo.id}/preview`}
               />
-              <span>{photo.filename}</span>
+              <span title={photo.filename}>{photo.filename}</span>
               <small>{photo.purpose}</small>
             </Button>
           </li>
