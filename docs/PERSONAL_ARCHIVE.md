@@ -13,10 +13,10 @@ backup, including all users and installation secrets.
 
 ## Contents
 
-- `records.json`: the `lifegather-records/6` copy of your source text,
+- `records.json`: the `lifegather-records/7` copy of your source text,
   entities, original/corrected facts, history, distinct purchased units, exact
   monetary claims, maintenance tasks/revisions, saved asset types/fields/revisions,
-  saved web research findings and save-request receipts,
+  saved web research findings and save-request receipts, photo galleries,
   conversations and file metadata/text. Its own exclusions still
   describe this JSON file; original bytes live in the separate archive members.
 - `originals/photos/…` and `originals/documents/…`: your active saved photo and document
@@ -75,10 +75,11 @@ encrypted or oversized members; stored or deflated only), the manifest, the
 records file's size and SHA-256, and each original's path, size, MIME type and
 SHA-256 against its photo/document record. Every active photo and document must
 have exactly one original, and every record must have exactly the
-`lifegather-records/6` fields with the right types. Archives written before
+`lifegather-records/7` fields with the right types. Archives written before
 v0.83.0 (`lifegather-records/4`) still restore; they simply have no saved web
 research findings. Format 5 archives restore without save receipts; original finding request IDs can be replayed through a conservative compatibility check. Unknown old duplicate request IDs cannot be recovered because format 5 never stored them. Photos are decoded again and
-must match their recorded type and dimensions.
+must match their recorded type and dimensions. Format 6 and older archives
+restore with no photo galleries.
 
 The restore is all or nothing. One database transaction inserts every record in
 dependency order, owned by the signed-in account, with the **original IDs**,

@@ -18,7 +18,8 @@ from lifegather.mailboxes.discovery_models import EmailAttachment
 from lifegather.memory.notes import NoteConflict, NoteService
 from lifegather.memory.schemas import SourceInput
 from lifegather.memory.service import MemoryError, MemoryService
-from lifegather.photos.models import Photo, PhotoAsset
+from lifegather.photos.galleries import GalleryService
+from lifegather.photos.models import Photo, PhotoAsset, PhotoGalleryPhoto
 from lifegather.storage.base import ObjectStorage, StorageError
 from lifegather.storage.originals import delete_quietly, object_key, read_original
 from lifegather.storage.quota import has_room, quota_message
@@ -32,6 +33,7 @@ Purpose = Literal["receipt", "nameplate", "photo"]
 class PhotoList(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     asset_id: str = Field(default="", max_length=36)
+    gallery_id: str = Field(default="", max_length=36)
     cursor: str = Field(default="", max_length=36)
     limit: int = Field(default=25, ge=1, le=25)
 
@@ -154,6 +156,16 @@ class PhotoService:
                         PhotoAsset.asset_id.in_(member_ids(db, actor, data.asset_id)),
                     )
                     .distinct()
+                )
+            if data.gallery_id:
+                GalleryService.owned(db, actor, data.gallery_id)
+                query = query.where(
+                    Photo.id.in_(
+                        select(PhotoGalleryPhoto.photo_id).where(
+                            PhotoGalleryPhoto.user_id == actor.id,
+                            PhotoGalleryPhoto.gallery_id == data.gallery_id,
+                        )
+                    )
                 )
             rows = list(db.scalars(query.order_by(Photo.id).limit(data.limit + 1)))
             return {
@@ -422,6 +434,14 @@ class PhotoService:
             raise NoteConflict("Photo changed. Reload before deleting.")
         row.deleted_at = self.memory.clock()
         row.original = row.preview = None
+        # A deleted photo leaves every gallery; the galleries stay.
+        for member in db.scalars(
+            select(PhotoGalleryPhoto).where(
+                PhotoGalleryPhoto.user_id == actor.id,
+                PhotoGalleryPhoto.photo_id == row.id,
+            )
+        ):
+            db.delete(member)
         self.memory._audit(db, actor, "photo_deleted", row.id, row.deleted_at)
         return row, [row.original_key, row.preview_key]
 

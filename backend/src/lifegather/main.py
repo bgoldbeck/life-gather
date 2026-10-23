@@ -54,7 +54,7 @@ from lifegather.memory.service import MemoryError
 from lifegather.operations.logs import RequestLog, configure_logging
 from lifegather.operations.monitor import OperationsMonitor
 from lifegather.operations.routes import operations_router
-from lifegather.photos.routes import photo_router
+from lifegather.photos.routes import gallery_router, photo_router
 from lifegather.power.routes import power_router
 from lifegather.power.service import PowerCenter
 from lifegather.profiles.routes import profile_router
@@ -179,6 +179,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(asset_router())
     app.include_router(asset_type_router())
     app.include_router(photo_router())
+    app.include_router(gallery_router())
     app.include_router(finding_router())
     app.include_router(review_router())
     app.include_router(receipt_router())
