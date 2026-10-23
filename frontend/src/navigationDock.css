@@ -252,3 +252,9 @@
   order: 2;
   margin: 0;
 }
+@media (pointer: coarse) {
+  .navigation-controls button {
+    min-width: 36px;
+    min-height: 36px;
+  }
+}

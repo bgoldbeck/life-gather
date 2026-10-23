@@ -323,6 +323,24 @@
 .dock-content .chat-conversations {
   overflow: auto;
 }
+/* Matches narrowWidth in ChatDock.tsx: the assistant sits below the page. */
+@media (max-width: 1023.98px) {
+  .workspace-body.dock-left,
+  .workspace-body.dock-right,
+  .workspace-body.dock-top,
+  .workspace-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) clamp(
+        min(180px, 50%),
+        var(--dock-height, 50%),
+        calc(100% - min(90px, 25%))
+      );
+    grid-template-areas: 'page' 'chat';
+  }
+  .workspace-body.dock-collapsed {
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+}
 @media (max-width: 800px) {
   .app-layout {
     height: 100dvh;
@@ -370,21 +388,6 @@
     gap: 0.4rem;
     flex-wrap: wrap;
   }
-  .workspace-body.dock-left,
-  .workspace-body.dock-right,
-  .workspace-body.dock-top,
-  .workspace-body {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) clamp(
-        min(180px, 50%),
-        var(--dock-height, 50%),
-        calc(100% - min(90px, 25%))
-      );
-    grid-template-areas: 'page' 'chat';
-  }
-  .workspace-body.dock-collapsed {
-    grid-template-rows: minmax(0, 1fr) auto;
-  }
   .dock-toolbar {
     gap: 0.4rem;
     padding: 0.4rem 0.6rem;
@@ -401,5 +404,12 @@
   }
   .dock-content .chat-composer > p {
     display: none;
+  }
+}
+/* Touch screens get a finger-sized collapse and expand button. */
+@media (pointer: coarse) {
+  .dock-toolbar .dock-collapse {
+    min-width: 40px;
+    min-height: 40px;
   }
 }

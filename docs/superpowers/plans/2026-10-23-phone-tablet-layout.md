@@ -1,5 +1,7 @@
 # Phone and tablet layout check
 
+Status: released in v0.86.1.
+
 Goal: confirm the web UI is usable on phones and tablets, and fix real problems.
 
 Scope:

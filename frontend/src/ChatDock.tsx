@@ -12,6 +12,10 @@ import './chatDock.css'
 
 type Layout = { edge: Edge; collapsed: boolean; width: number; height: number }
 const limits = { width: { min: 20, max: 75 }, height: { min: 25, max: 75 } }
+// Below this width a side dock leaves the page too narrow, so the assistant
+// sits below the page; tablets in portrait fall under it.
+const narrowWidth = 1024
+const phoneWidth = 600
 
 function savedSize(value: unknown, dimension: 'width' | 'height'): number {
   const { min, max } = limits[dimension]
@@ -44,7 +48,13 @@ function savedLayout(userId: string): Layout {
   } catch {
     /* Storage may be unavailable. */
   }
-  return { edge: 'right', collapsed: false, width: 38, height: 50 }
+  // A phone screen starts with the assistant collapsed so the page stays readable.
+  return {
+    edge: 'right',
+    collapsed: window.innerWidth < phoneWidth,
+    width: 38,
+    height: 50,
+  }
 }
 
 export function ChatDock({
@@ -61,11 +71,11 @@ export function ChatDock({
   const [layout, setLayout] = useState(() => savedLayout(userId))
   const workspace = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
-  const [narrow, setNarrow] = useState(() => window.innerWidth <= 800)
+  const [narrow, setNarrow] = useState(() => window.innerWidth < narrowWidth)
   useEffect(() => {
     const update = () => {
       dragging.current = false
-      setNarrow(window.innerWidth <= 800)
+      setNarrow(window.innerWidth < narrowWidth)
     }
     window.addEventListener('resize', update)
     return () => window.removeEventListener('resize', update)
@@ -204,7 +214,7 @@ export function ChatDock({
             />
           )}
           <strong>LifeGather assistant</strong>
-          {!layout.collapsed && (
+          {!layout.collapsed && !narrow && (
             <DockEdgeButtons
               panel="assistant"
               value={layout.edge}

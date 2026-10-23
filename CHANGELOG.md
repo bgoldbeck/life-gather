@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.86.1 - Phone and tablet layout
+
+- Checked every main page at phone (390x844), tablet portrait (820x1180) and
+  tablet landscape (1180x820) sizes in light and dark themes. No page scrolls
+  sideways.
+- Below 1024 px wide the assistant now sits below the page instead of beside it,
+  so portrait tablets no longer squeeze the page into a narrow middle column
+  (Overview cards were clipping words). A saved side position is kept and used
+  again on wider screens.
+- On phones (under 600 px wide) the assistant starts collapsed to a bar at the
+  bottom until it is opened, instead of covering half the screen. Once opened
+  or collapsed, that choice is remembered as before.
+- Dock position and navigation reset buttons are hidden on screens where they
+  have no effect. On touch screens the dock and assistant collapse buttons are
+  finger-sized (36-40 px instead of 22-24 px).
+- Frontend only. No schema change, migration, API or MCP change.
+
 ## 0.86.0 - Restore a backup into an account that already has records
 
 - **Settings → Restore your records** now works when the account already has
