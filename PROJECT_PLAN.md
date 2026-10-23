@@ -1,7 +1,16 @@
 # LifeGather — Product and Engineering Plan
 
-**Status:** v0.88.0 adds dated saved-research recall to the AI asset assistant; tracking and evidence-backed recall remain the active priorities.
+**Status:** v0.90.0 adds optional sign-up bot checks and terms-of-use acceptance; tracking and evidence-backed recall remain the active priorities.
 **Date:** Updated 2026-10-23
+
+v0.90.0 adds two optional sign-up protections for hosted installations (Phase
+5.5), both off by default: a Cloudflare Turnstile check on the email sign-up and
+password-reset forms, and a terms-of-use screen every account must accept before
+using the app (migration `0037_terms_acceptance`). The bundled terms text is a
+placeholder to replace. See [sign-up protection](docs/SIGNUP_PROTECTION.md).
+
+v0.89.0 adds optional per-account file storage quotas. See
+[storage quotas](docs/STORAGE_QUOTAS.md).
 
 v0.88.0 lets the asset assistant read a bounded selection of saved web findings,
 with inspectable source links, dated excerpts and ownership/compatibility

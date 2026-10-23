@@ -176,6 +176,11 @@ Pick one:
 - **One-click test login.** Set `TEST_LOGIN_ENABLED=true`. Everyone who passes
   Access shares one workspace; use synthetic data only ([test mode](TEST_MODE.md)).
 
+To try the sign-up protections, set `TURNSTILE_SITE_KEY` and
+`TURNSTILE_SECRET_KEY` (a Turnstile widget for the Worker's hostname) and/or
+`TERMS_VERSION`; see [sign-up protection](SIGNUP_PROTECTION.md). The terms text
+is a placeholder.
+
 After changing `test-site.env`, run `npm run push-settings` again. The container
 reads settings when it starts, so changes apply after its next sleep: stay off the
 site for about 15 minutes (it sleeps 5 quiet minutes after the last visit or

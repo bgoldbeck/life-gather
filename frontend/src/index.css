@@ -92,6 +92,45 @@
   font-size: 0.875rem;
 }
 
+.terms-card {
+  width: min(100%, 42rem);
+}
+.terms-text {
+  max-height: 50dvh;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background: var(--background);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.terms-text:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.terms-agree {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+.terms-agree input {
+  margin-top: 0.25rem;
+}
+.terms-decline summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+.terms-decline .account-deletion {
+  margin: 1rem 0 0;
+}
+.bot-check {
+  min-height: 65px;
+}
+
 .account-actions {
   display: flex;
   align-items: center;

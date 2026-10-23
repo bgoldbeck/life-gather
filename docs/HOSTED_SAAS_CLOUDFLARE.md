@@ -160,7 +160,7 @@ Rules for every hosted increment:
 | G3 | Vault key only from a file; single unversioned key | Containers get secrets as env; rotation | Yes |
 | G4 | Migrations and file moves run in every app start | Instances race on deploy | Yes |
 | G5 | Scan worker only in-process | Sleeping instances skip schedules | Optional |
-| G6 | No trusted-proxy handling (client IP, scheme); done in 0.78.0 (listed proxies) and 0.89.0 (Worker-signed header) | Rate limits and audit see the Worker, not the user | Yes, behind any proxy |
+| G6 | No trusted-proxy handling (client IP, scheme); done in 0.78.0 (listed proxies) and 0.91.0 (Worker-signed header) | Rate limits and audit see the Worker, not the user | Yes, behind any proxy |
 | G7 | Isolation enforced only in service code | One missed filter leaks another user's data | Yes |
 | G8 | No per-user storage/usage quotas | Abuse and cost control | Minor |
 | G9 | Sign-up abuse controls, terms/privacy acceptance | Public registration | No |

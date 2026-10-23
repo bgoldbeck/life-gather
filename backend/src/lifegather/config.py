@@ -52,12 +52,36 @@ class Settings(BaseSettings):
     smtp_implicit_tls: bool = False
     storage_backend: Literal["local", "s3"] = "local"
     storage_dir: Path | None = None
+    # Account-wide stored-file limit in MiB; 0 means no limit (self-hosting).
+    storage_quota_mb: int = Field(default=0, ge=0, le=16 * 1024 * 1024)
     s3_bucket: str = ""
     s3_prefix: str = ""
     s3_endpoint_url: str = ""
     s3_region: str = ""
     s3_access_key_id: str = ""
     s3_secret_access_key: SecretStr = SecretStr("")
+    # Cloudflare Turnstile on the email sign-up and reset forms; off unless both.
+    turnstile_site_key: str = Field(default="", max_length=200)
+    turnstile_secret_key: SecretStr = SecretStr("")
+    # Accounts must accept this terms version before using the app; "" is off.
+    terms_version: str = Field(default="", pattern=r"^[A-Za-z0-9._-]{0,40}$")
+    terms_file: Path | None = None
+
+    @property
+    def bot_check_enabled(self) -> bool:
+        return bool(
+            self.turnstile_site_key and self.turnstile_secret_key.get_secret_value()
+        )
+
+    @model_validator(mode="after")
+    def validate_bot_check(self) -> Self:
+        if bool(self.turnstile_site_key) != bool(
+            self.turnstile_secret_key.get_secret_value()
+        ):
+            raise ValueError("Configure both Turnstile site key and secret key")
+        if any(not ("!" <= c <= "~") for c in self.turnstile_site_key):
+            raise ValueError("Invalid Turnstile site key")
+        return self
 
     @property
     def trusted_proxy_list(self) -> list[str]:
@@ -190,7 +214,11 @@ class Settings(BaseSettings):
         return raw
 
     @field_validator(
-        "vault_key_file", "configuration_file", "storage_dir", mode="before"
+        "vault_key_file",
+        "configuration_file",
+        "storage_dir",
+        "terms_file",
+        mode="before",
     )
     @classmethod
     def empty_key_path(cls, value: object) -> object:

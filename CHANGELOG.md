@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.89.0 - Real visitor addresses behind the Cloudflare test site
+## 0.91.0 - Real visitor addresses behind the Cloudflare test site
 
 - Sign-in rate limits on the Cloudflare test site now count each visitor's own
   address instead of treating every visitor as the Worker.
@@ -18,7 +18,50 @@
 - `LIFEGATHER_TRUSTED_PROXIES` is unchanged and still not used on the test
   site. The proxy secret is deployment-local and is not stored in recovery
   bundles; no recovery format change.
-- No schema change or migration; migration head remains 0036.
+- No schema change or migration; migration head remains 0037.
+
+## 0.90.0 - Sign-up bot checks and terms of use
+
+- Optional **Cloudflare Turnstile** on the email **Create account** and
+  **Forgot password?** forms. Set `LIFEGATHER_TURNSTILE_SITE_KEY` and
+  `LIFEGATHER_TURNSTILE_SECRET_KEY` together to turn it on; the server verifies
+  each token with Cloudflare before sending any email and refuses the request if
+  the check fails or Cloudflare cannot be reached. Off by default.
+- Optional **terms of use**. Set `LIFEGATHER_TERMS_VERSION` (and optionally
+  `LIFEGATHER_TERMS_FILE`) and every account, new or existing, sees the terms
+  after signing in and must tick "I agree" before using the app. Until then app
+  routes and MCP answer 403; signing out and deleting the account still work.
+  Changing the version asks everyone again. Off by default.
+- The bundled terms text (`backend/src/lifegather/auth/terms_placeholder.md`)
+  is a placeholder, not legal advice; replace it before inviting other people.
+- Migration `0037_terms_acceptance` adds `users.terms_version` and
+  `users.terms_accepted_at`. No records-format change. See
+  [sign-up protection](docs/SIGNUP_PROTECTION.md).
+
+## 0.89.1 - Remove the dock icon bar
+
+- The row of four small dock-position icon buttons (left, right, top, bottom) is
+  gone from the navigation header and the assistant header, so both take less
+  room. Docking still works by dragging either header onto a highlighted edge.
+- Keyboard docking moved to the small grip handle (⋮⋮) at the start of each
+  header: focus it and press an arrow key to dock on that edge. Reset, collapse
+  and resize are unchanged. No migration; saved dock positions are kept.
+
+## 0.89.0 - Per-account storage quotas
+
+- Settings has a **File storage** section showing how much space the account's
+  photos (with previews) and documents use, the limit or "No limit", and counts
+  per kind. `GET /api/storage/usage` returns the same figures.
+- New optional setting `LIFEGATHER_STORAGE_QUOTA_MB` caps each account's stored
+  files. The default `0` means no limit, so self-hosted installations behave as
+  before. When set, photo and document uploads, chat attachments and Gmail
+  attachment intake refuse a new file that would pass the limit (nothing is
+  stored), and a personal-archive restore whose files would not fit is refused
+  (HTTP 409) with nothing saved. Duplicates of files already held are never
+  refused, and lowering the limit never removes files.
+- The existing per-kind caps (200 photos / 256 MiB, 200 documents / 256 MiB)
+  are unchanged. No migration and no records-format change. See
+  [storage quotas](docs/STORAGE_QUOTAS.md).
 
 ## 0.88.1 - Phone and tablet layout
 

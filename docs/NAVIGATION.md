@@ -4,8 +4,9 @@ Available in v0.57.0; drag-to-dock and the icon rail arrived in v0.71.0. The mai
 navigation starts on the left. To move it, drag its header (the LifeGather brand or
 the control row) toward an edge: highlighted drop zones show left, right, top and
 bottom, the zone nearest the pointer lights up, and navigation snaps there when you
-let go. Press Escape while dragging to cancel. The four small dock buttons in the
-header do the same by click, touch or keyboard.
+let go. Press Escape while dragging to cancel. With a keyboard, focus the small
+grip handle (⋮⋮) in the control row and press an arrow key to dock on that edge.
+The row of four dock-position icon buttons was removed in v0.89.1 to save space.
 
 **Collapse navigation** shrinks it to a thin icon rail on its edge instead of hiding
 it; every destination stays one click away (hover for its name), and **Expand

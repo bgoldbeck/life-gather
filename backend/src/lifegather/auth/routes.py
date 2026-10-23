@@ -16,6 +16,7 @@ from lifegather.auth.google import GoogleFailure, GoogleProvider
 from lifegather.auth.store import (
     FLOW_SECONDS,
     SESSION_SECONDS,
+    TERMS_PENDING,
     AuthStore,
     CurrentSession,
     InvalidFlow,
@@ -38,13 +39,21 @@ def store_for(request: Request) -> AuthStore:
     return store
 
 
-def session_for(request: Request) -> CurrentSession:
-    """Authenticate the request and act for its account from here on."""
+def signed_in_for(request: Request) -> CurrentSession:
+    """Authenticate the request, even before the current terms are accepted."""
     token = request.cookies.get(SESSION_COOKIE, "")
     current = store_for(request).authenticate(token, now=int(time.time()))
     if current is None:
         raise HTTPException(status_code=401, detail="Sign in required")
     bind_account(current.user.id)
+    return current
+
+
+def session_for(request: Request) -> CurrentSession:
+    """Authenticate the request and act for its account from here on."""
+    current = signed_in_for(request)
+    if current.terms_pending:
+        raise HTTPException(status_code=403, detail=TERMS_PENDING)
     return current
 
 
@@ -56,9 +65,26 @@ async def require_session(request: Request) -> CurrentSession:
     return current
 
 
+async def require_signed_in(request: Request) -> CurrentSession:
+    """Only for leaving or accepting terms: sign-out, deletion, acceptance."""
+    current = await run_in_threadpool(signed_in_for, request)
+    bind_account(current.user.id)
+    return current
+
+
+def require_signed_in_write(
+    request: Request, current: Annotated[CurrentSession, Depends(require_signed_in)]
+) -> CurrentSession:
+    return check_write(request, current)
+
+
 def require_write_session(
     request: Request, current: Annotated[CurrentSession, Depends(require_session)]
 ) -> CurrentSession:
+    return check_write(request, current)
+
+
+def check_write(request: Request, current: CurrentSession) -> CurrentSession:
     settings: Settings = request.app.state.settings
     if request.headers.get(
         "origin"
@@ -122,6 +148,15 @@ def auth_router(settings: Settings, provider: GoogleProvider) -> APIRouter:
                 "email_password_enabled": has_password,
                 "email_delivery_enabled": request.app.state.email_auth.delivery_enabled,
                 "user": asdict(current.user) if current else None,
+                "bot_check_site_key": settings.turnstile_site_key or None,
+                "terms": (
+                    {
+                        "version": settings.terms_version,
+                        "accepted": current is not None and not current.terms_pending,
+                    }
+                    if settings.terms_version
+                    else None
+                ),
                 **({"appearance": private.theme(current.user)} if current else {}),
                 "csrf_token": current.csrf_token if current else None,
             }
@@ -210,7 +245,7 @@ def auth_router(settings: Settings, provider: GoogleProvider) -> APIRouter:
     @router.post("/auth/logout")
     def logout(
         request: Request,
-        current: Annotated[CurrentSession, Depends(require_write_session)],
+        current: Annotated[CurrentSession, Depends(require_signed_in_write)],
     ) -> Response:
         store_for(request).logout(request.cookies.get(SESSION_COOKIE, ""))
         response = Response(status_code=204)

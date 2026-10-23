@@ -1,6 +1,7 @@
 # Account isolation (Phase 5.3)
 
-Status: delivered in 0.81.0, except per-user quotas. Every service already filtered
+Status: delivered in 0.81.0; per-user storage quotas followed in 0.89.0 (see
+[storage quotas](STORAGE_QUOTAS.md)). Every service already filtered
 by the signed-in account; this adds a second, database-enforced lock so one missed
 filter cannot read or change another account's data.
 
@@ -58,6 +59,6 @@ does.
 
 ## Not included
 
-Per-user file-size and total storage quotas (the remaining 5.3 item) are a
-separate increment. Sign-in bookkeeping tables (`login_flows`, `auth_attempts`)
+Per-user storage quotas were added separately in 0.89.0 (see
+[storage quotas](STORAGE_QUOTAS.md)). Sign-in bookkeeping tables (`login_flows`, `auth_attempts`)
 and the encrypted `vault_key` have no owner column and no policy.

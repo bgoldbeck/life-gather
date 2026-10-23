@@ -56,6 +56,7 @@ from lifegather.memory.service import MemoryError, MemoryService
 from lifegather.photos.service import decode
 from lifegather.storage.base import ObjectStorage, StorageError
 from lifegather.storage.originals import delete_quietly, object_key
+from lifegather.storage.quota import describe_limit, has_room
 
 MAX_MANIFEST_BYTES = 1024 * 1024
 TABLES = {projection.table.name: projection for projection in COLLECTIONS}
@@ -403,6 +404,17 @@ class PersonalRestore:
                 new_ids = {
                     row["id"] for name in ("photos", "documents") for row in added[name]
                 }
+                incoming = sum(
+                    len(data) + len(previews.get(identifier, b""))
+                    for identifier, data in package.originals.items()
+                    if identifier in new_ids
+                )
+                if not has_room(db, actor.id, storage, incoming):
+                    raise RestoreConflict(
+                        "This archive's files would take your account past its "
+                        f"storage limit ({describe_limit(storage)}), so nothing "
+                        "was restored."
+                    )
                 for identifier, data in package.originals.items():
                     if identifier not in new_ids:
                         # Never touch the files of a record the account already has.
