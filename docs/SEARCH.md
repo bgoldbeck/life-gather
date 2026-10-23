@@ -12,7 +12,9 @@ Type at least two characters. Results appear after a short pause, grouped as:
 - **Documents**: by file name or reviewed text. Deleted documents are not shown.
 - **Sources**: the current text of saved notes, transcriptions, reviewed
   document text and imported email evidence. Earlier versions of a corrected
-  note are left out; Memories' history view still shows them.
+  note are left out; Memories' history view still shows them. Deleted memories
+  are excluded using their deletion receipt, including searches for words in
+  the deletion notice. Active notes containing those words still appear.
 
 Every word you type must appear, in any order; matching ignores case. Characters
 such as `%` and `_` are matched literally. Up to six results per group are shown;

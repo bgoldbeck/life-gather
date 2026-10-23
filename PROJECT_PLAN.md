@@ -1,7 +1,12 @@
 # LifeGather — Product and Engineering Plan
 
-**Status:** v0.87.0 lets a person permanently delete their own account; tracking and evidence-backed recall remain the active priorities.
+**Status:** v0.88.0 adds dated saved-research recall to the AI asset assistant; tracking and evidence-backed recall remain the active priorities.
 **Date:** Updated 2026-10-23
+
+v0.88.0 lets the asset assistant read a bounded selection of saved web findings,
+with inspectable source links, dated excerpts and ownership/compatibility
+safeguards. No new migration or dependency; current head is 0036. See
+[recall plan](docs/superpowers/plans/2026-10-22-assistant-saved-research.md).
 
 v0.87.0 adds full account deletion from Settings (Phase 5.5): rows in every owned
 table, stored files and saved sign-ins, with no migration. See
