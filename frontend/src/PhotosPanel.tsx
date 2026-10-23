@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { BulkDelete } from './BulkDelete'
 import { PhotoAssetLinks } from './PhotoAssetLinks'
+import { PhotoEmailLinks } from './PhotoEmailLinks'
 import { isAIProvider, aiProviderLabel } from './aiProviders'
 import { AssetProposalCard } from './AssetProposalCard'
 import { ReceiptProposalCard } from './ReceiptProposalCard'
@@ -625,6 +626,12 @@ export function PhotosPanel({
               onOpenAsset={onOpenAsset}
             />
           )}
+          <PhotoEmailLinks
+            key={selected.id}
+            photoId={selected.id}
+            disabled={busy || retry || linking || sourceOpening}
+            onOpenSource={(id) => void openSource(id)}
+          />
           {selected.source_id && (
             <Button
               disabled={busy || retry || linking || sourceOpening}

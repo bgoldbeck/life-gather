@@ -99,7 +99,9 @@ screens or new domain subsystems.
   existing text discovery or evidence scan. v0.77.0 adds bounded attachment
   intake ([EMAIL_SCANS.md](EMAIL_SCANS.md#attachment-intake-v0770)), requested
   ahead of this gate, so limits stay conservative (supported documents only,
-  4 MiB, three per email, 20 emails, reviewed in Documents).
+  4 MiB, three per email, 20 emails, reviewed in Documents). v0.97.0 adds
+  JPEG/PNG/WebP photo attachments (8 MiB, saved in Photos) and scheduled
+  attachment imports.
 - Improve retrieval and source/photo navigation where representative user tasks
   reveal friction. Add OCR/formats only for demonstrated intake gaps; common
   documents already have local extraction and reviewed originals.

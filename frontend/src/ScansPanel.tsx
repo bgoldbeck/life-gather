@@ -38,6 +38,7 @@ type Result = Run & {
       review?: number
       reused?: boolean
       attachments_saved?: number
+      photos_saved?: number
       attachments_skipped?: number
     }
   }[]
@@ -53,7 +54,7 @@ export function ScansPanel({
 }: {
   csrfToken: string
   initialRunId?: string
-  onNavigate?: (view: 'Review' | 'Assets' | 'Documents') => void
+  onNavigate?: (view: 'Review' | 'Assets' | 'Documents' | 'Photos') => void
   onReconnectKey?: (target: ReconnectTarget) => void
 }) {
   const [discovery, setDiscovery] = useState(false)
@@ -326,9 +327,10 @@ export function ScansPanel({
         Import private email text as evidence on request. Enable purchase
         discovery to use your selected AI provider and reconcile inferred
         inventory. Attachments are omitted unless you import them: supported
-        documents (PDF, Word, Excel, CSV, text; up to 4 MiB, three per email)
-        are saved privately in Documents for text review, with no AI. Find saved
-        email evidence and corrections in Memories.
+        documents (PDF, Word, Excel, CSV, text; up to 4 MiB) are saved privately
+        in Documents for text review and photos (JPEG, PNG, WebP; up to 8 MiB)
+        in Photos, three per email, with no AI. Find saved email evidence and
+        corrections in Memories.
       </p>
       {error && <p role="alert">{error}</p>}
       <form
@@ -351,7 +353,7 @@ export function ScansPanel({
                 }
               }}
             />{' '}
-            Import attached documents for review
+            Import attached documents and photos for review
           </label>
           <label className="sm:col-span-2">
             <input
@@ -528,8 +530,11 @@ export function ScansPanel({
               · {item.state} {item.reason}
               {item.metadata?.attachments_saved !== undefined && (
                 <p>
-                  {item.metadata.attachments_saved} attachments saved ·{' '}
-                  {item.metadata.attachments_skipped ?? 0} not imported
+                  {item.metadata.attachments_saved} attachments saved
+                  {item.metadata.photos_saved
+                    ? ` (${item.metadata.photos_saved} photo${item.metadata.photos_saved === 1 ? '' : 's'})`
+                    : ''}{' '}
+                  · {item.metadata.attachments_skipped ?? 0} not imported
                 </p>
               )}
               {item.metadata?.created !== undefined && (
@@ -544,9 +549,17 @@ export function ScansPanel({
             </div>
           ))}
           {result.handler_key === 'gmail_attachments' && (
-            <Button variant="outline" onClick={() => onNavigate?.('Documents')}>
-              Review imported documents
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={() => onNavigate?.('Documents')}
+              >
+                Review imported documents
+              </Button>
+              <Button variant="outline" onClick={() => onNavigate?.('Photos')}>
+                Review imported photos
+              </Button>
+            </div>
           )}
           {result.handler_key === 'gmail_discovery' && (
             <div className="flex flex-wrap gap-2">
