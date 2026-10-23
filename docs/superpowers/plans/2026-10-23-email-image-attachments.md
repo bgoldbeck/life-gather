@@ -1,6 +1,6 @@
 # Email image attachments and scheduled attachment scans
 
-Status: released as v0.96.0.
+Status: released as v0.97.0.
 
 ## Problem
 

@@ -1,6 +1,6 @@
 # Private email connections and scans
 
-## Attachment intake (v0.77.0, photos and schedules v0.96.0)
+## Attachment intake (v0.77.0, photos and schedules v0.97.0)
 
 Scans → **Import attached documents and photos for review** (or ask the
 assistant to "save the receipt attachments from my email last week") queues a

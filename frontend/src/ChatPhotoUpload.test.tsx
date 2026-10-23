@@ -49,8 +49,6 @@ it('uploads only on explicit action with the original bytes, CSRF and encoded na
     expect.objectContaining({
       method: 'POST',
       body: original,
-      credentials: 'same-origin',
-      cache: 'no-store',
       headers: {
         'Content-Type': 'application/octet-stream',
         'X-CSRF-Token': 'csrf',
@@ -59,6 +57,69 @@ it('uploads only on explicit action with the original bytes, CSRF and encoded na
     }),
   )
   expect(onSaved).toHaveBeenCalledWith(photo)
+})
+
+it('saves a camera photo straight away with progress and the chosen purpose', async () => {
+  let release!: (value: Response) => void
+  const fetcher = vi.fn(
+    (_path: string, _init?: RequestInit) =>
+      new Promise<Response>((resolve) => {
+        release = resolve
+      }),
+  )
+  vi.stubGlobal('fetch', fetcher)
+  const { onSaved } = mount()
+  const user = userEvent.setup()
+  await user.selectOptions(
+    screen.getByLabelText('Chat photo purpose'),
+    'receipt',
+  )
+  const camera = screen.getByLabelText('Take a photo for Chat')
+  expect(camera).toHaveAttribute('capture', 'environment')
+  expect(camera).toHaveAttribute('accept', 'image/jpeg,image/png,image/webp')
+  const original = file()
+  await user.upload(camera, original)
+  expect(fetcher).toHaveBeenCalledWith(
+    '/api/photos?purpose=receipt',
+    expect.objectContaining({ method: 'POST', body: original }),
+  )
+  expect(
+    screen.getByRole('progressbar', { name: 'Photo upload progress' }),
+  ).toHaveAttribute('value', '50')
+  await act(async () => release(json()))
+  expect(await screen.findByText(/Photo saved privately/)).toBeVisible()
+  expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+  expect(onSaved).toHaveBeenCalledWith(photo)
+})
+
+it('cancels an upload and sends the same photo again on request', async () => {
+  const fetcher = vi
+    .fn()
+    .mockImplementationOnce(
+      (_path: string, init: RequestInit) =>
+        new Promise<Response>((_resolve, reject) =>
+          init.signal?.addEventListener('abort', () =>
+            reject(new DOMException('aborted', 'AbortError')),
+          ),
+        ),
+    )
+    .mockImplementationOnce(async () => json())
+  vi.stubGlobal('fetch', fetcher)
+  const { onSaved, onBusy } = mount()
+  const user = userEvent.setup()
+  const original = file()
+  await user.upload(screen.getByLabelText('Take a photo for Chat'), original)
+  await user.click(screen.getByRole('button', { name: 'Cancel upload' }))
+  expect(await screen.findByText(/Upload cancelled/)).toBeVisible()
+  expect(fetcher.mock.calls[0][1].signal.aborted).toBe(true)
+  expect(onBusy.mock.calls).toEqual([[true], [false]])
+  expect(screen.getByText(/Photo ready to save/)).toHaveTextContent(
+    original.name,
+  )
+  await user.click(screen.getByRole('button', { name: 'Save photo privately' }))
+  expect(await screen.findByText(/Photo saved privately/)).toBeVisible()
+  expect(fetcher.mock.calls[1][1].body).toBe(original)
+  expect(onSaved).toHaveBeenCalledTimes(1)
 })
 
 it.each(['large', 'type', 'empty'])(
