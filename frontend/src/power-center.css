@@ -347,3 +347,181 @@
     animation: none;
   }
 }
+
+/* Compact layout: a short hero, slim stat tiles and connections above the
+   fold on laptop screens (1366x768 and up, even with the assistant docked). */
+.power-center:not(.power-compact) {
+  max-width: none;
+}
+.power-center:not(.power-compact) p {
+  line-height: 1.45;
+  margin: 0.3rem 0;
+}
+.power-center:not(.power-compact) h2 {
+  font-size: 1.15rem;
+  margin: 1rem 0 0.4rem;
+}
+.power-center:not(.power-compact) .power-hero {
+  align-items: center;
+  gap: 0.6rem 1rem;
+  padding: 0.9rem 1rem;
+}
+.power-title {
+  flex: 1 1 20rem;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-width: 0;
+}
+.power-hero .power-title > .tone-tile {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.8rem;
+}
+.power-center:not(.power-compact) .power-title p {
+  color: var(--muted-foreground);
+  margin: 0;
+}
+.power-center:not(.power-compact) .forest-scene {
+  height: 6rem;
+}
+.power-center:not(.power-compact) .power-growth {
+  gap: 0.35rem;
+  padding: 0.55rem 0.8rem;
+}
+.power-center:not(.power-compact) .power-growth-heading .tone-tile {
+  width: 1.9rem;
+  height: 1.9rem;
+}
+.power-center:not(.power-compact) .power-growth-heading > div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.power-center:not(.power-compact) .power-growth-heading strong {
+  font-size: 1.05rem;
+}
+.power-center:not(.power-compact) .power-bar {
+  height: 0.55rem;
+}
+.power-center:not(.power-compact) .power-stages {
+  margin: 0;
+}
+.power-center:not(.power-compact) .power-stages li {
+  display: flex;
+  gap: 0.35rem;
+  align-items: baseline;
+  padding-top: 0.2rem;
+}
+.power-center:not(.power-compact) > .power-meta {
+  font-size: 0.78rem;
+}
+
+/* Stat tiles: icon beside value, label and note. */
+.power-center .power-summary {
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+.power-center .power-summary [data-slot='card-content'] {
+  grid-template-columns: auto 1fr;
+  grid-template-areas: 'icon value' 'icon label' 'note note';
+  align-items: center;
+  column-gap: 0.75rem;
+  row-gap: 0;
+  padding: 0.7rem 0.9rem;
+}
+.power-summary .tone-tile {
+  grid-area: icon;
+  margin: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+}
+.power-center .power-summary .tone-tile {
+  margin-bottom: 0;
+}
+.power-summary strong {
+  grid-area: value;
+  line-height: 1.15;
+}
+.power-center .power-summary strong {
+  font-size: 1.45rem;
+}
+.power-summary span {
+  grid-area: label;
+  font-size: 0.82rem;
+  font-weight: 550;
+}
+.power-center .power-summary p {
+  grid-area: note;
+  margin: 0.4rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+/* Connections: heading and filters share a row; denser source cards. */
+.power-section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  margin: 1rem 0 0.4rem;
+}
+.power-center .power-section-heading h2 {
+  margin: 0;
+}
+.power-center .power-section-heading .power-filters {
+  margin: 0;
+  gap: 0.6rem;
+}
+.power-section-heading .power-filters label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+}
+.power-center .power-sources {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+.power-center .power-sources [data-slot='card-content'] {
+  padding: 0.75rem 0.9rem;
+}
+.power-sources .power-source [data-slot='card-content'] > p {
+  font-size: 0.82rem;
+}
+.power-source .power-source-heading .tone-tile {
+  width: 2rem;
+  height: 2rem;
+}
+.power-source .power-actions {
+  justify-content: flex-start;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+.power-source .power-actions button {
+  height: 1.9rem;
+  padding-inline: 0.6rem;
+  font-size: 0.8rem;
+}
+.power-center:not(.power-compact) .power-issues li {
+  padding: 0.5rem 0;
+}
+.power-center:not(.power-compact) .power-capability {
+  padding: 0.7rem 0.85rem;
+}
+.power-source-details summary {
+  cursor: pointer;
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+}
+.power-source-details summary:hover {
+  color: var(--foreground);
+}
+.power-center .power-hero > button {
+  background: color-mix(in oklab, var(--card) 85%, transparent);
+}
