@@ -64,43 +64,22 @@
 .dock-dragging * {
   cursor: grabbing !important;
 }
-.dock-edge-buttons {
-  display: inline-flex;
-  gap: 1px;
-  padding: 2px;
-  border: 1px solid var(--border);
-  border-radius: 0.45rem;
-  background: var(--card);
-}
-.dock-edge-buttons button {
-  display: grid;
+.dock-grip-handle {
+  display: inline-grid;
+  flex-shrink: 0;
   place-items: center;
-  width: 24px;
+  width: 18px;
   height: 22px;
-  padding: 0;
-  border: 0;
   border-radius: 0.3rem;
-  background: transparent;
   color: var(--muted-foreground);
 }
-.dock-edge-buttons button:hover {
+.dock-grip-handle:hover {
   background: var(--accent);
   color: var(--foreground);
 }
-.dock-edge-buttons button[aria-pressed='true'] {
-  background: color-mix(in oklab, var(--primary) 16%, transparent);
-  color: var(--foreground);
-}
-.dock-edge-buttons button:focus-visible {
+.dock-grip-handle:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 1px;
-}
-/* Touch screens get finger-sized dock buttons. */
-@media (pointer: coarse) {
-  .dock-edge-buttons button {
-    width: 36px;
-    height: 36px;
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   .dock-drop-zone {

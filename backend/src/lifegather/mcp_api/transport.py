@@ -15,7 +15,7 @@ from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from lifegather.auth.routes import SESSION_COOKIE
-from lifegather.auth.store import AuthStore
+from lifegather.auth.store import TERMS_PENDING, AuthStore
 from lifegather.config import Settings
 from lifegather.database import account_scope
 from lifegather.mcp_api.schemas import INPUTS
@@ -112,6 +112,9 @@ class PrivateMCP:
         )
         if current is None:
             await self.error(scope, receive, send, 401, "Sign in required")
+            return
+        if current.terms_pending:
+            await self.error(scope, receive, send, 403, TERMS_PENDING)
             return
         if not secrets.compare_digest(
             request.headers.get("x-csrf-token", ""), current.csrf_token

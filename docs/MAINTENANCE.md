@@ -51,7 +51,7 @@ The first increment creates no automatic reminders, repeating schedules, mileage
 triggers, background jobs or external notifications. The built-in assistant can operate the same tasks as described below. Direct
 entry works without an AI provider.
 
-## Maintenance through chat (v0.90.0)
+## Maintenance through chat (v0.91.0)
 
 In Chat choose **AI assistant** and a configured provider/model. Select or name an
 existing asset and ask to add a task, log completed work, or complete, cancel,

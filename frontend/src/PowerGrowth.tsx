@@ -21,8 +21,9 @@ function stageFor(points: number) {
   return stages.findLast((stage) => points >= stage.from) ?? stages[0]
 }
 
-/* Shows only points the snapshot reports: confirmed points fill the bar, and an
-   incomplete score shades the unverified range up to its possible maximum. */
+/* A small capsule for the hero row. Shows only points the snapshot reports:
+   confirmed points fill the bar, and an incomplete score shades the unverified
+   range up to its possible maximum. */
 export function PowerGrowth({
   score,
   minimum,
@@ -37,18 +38,22 @@ export function PowerGrowth({
   const confirmed = Math.max(0, Math.min(100, score ?? minimum))
   const possible = Math.max(confirmed, Math.min(100, score ?? maximum))
   const stage = stageFor(confirmed)
+  const next = stages.find((item) => item.from > confirmed)
+  const hint = stale
+    ? 'Waiting for a fresh check.'
+    : next
+      ? `Next stage: ${next.name} at ${next.from} points.`
+      : 'Top stage reached.'
   return (
-    <div className={`power-growth ${stale ? 'power-growth-stale' : ''}`}>
-      <div className="power-growth-heading">
-        <ToneIcon icon={stage.icon} tone="assets" size={20} />
-        <div>
-          <span>Power level</span>
-          <strong>{stale ? 'Waiting for a fresh check' : stage.name}</strong>
-        </div>
-        <span className="power-growth-points">
-          {score === null ? `${confirmed}–${possible} pts` : `${confirmed} pts`}
-        </span>
-      </div>
+    <div
+      className={`power-growth ${stale ? 'power-growth-stale' : ''}`}
+      title={`Power level stages: ${stages
+        .map((item) => `${item.name} ${item.from}+`)
+        .join(', ')}. ${hint}`}
+    >
+      <ToneIcon icon={stage.icon} tone="assets" size={16} />
+      <span className="power-growth-label">Power level</span>
+      <strong>{stale ? 'Stale' : stage.name}</strong>
       <div
         className="power-bar"
         role="meter"
@@ -70,18 +75,10 @@ export function PowerGrowth({
         />
         <span className="power-bar-fill" style={{ width: `${confirmed}%` }} />
       </div>
-      <ol className="power-stages" aria-hidden="true">
-        {stages.map((item) => (
-          <li
-            key={item.name}
-            data-reached={confirmed >= item.from || undefined}
-            data-current={item === stage || undefined}
-          >
-            <span>{item.name}</span>
-            <small>{item.from}+</small>
-          </li>
-        ))}
-      </ol>
+      <span className="power-growth-points">
+        {score === null ? `${confirmed}–${possible} pts` : `${confirmed} pts`}
+      </span>
+      <span className="sr-only">{hint}</span>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.90.0 - Maintenance through chat
+## 0.91.0 - Maintenance through chat
 
 - Ask the AI assistant to add one maintenance task, log explicitly completed
   work, or complete, cancel, reopen or correct one existing task on an asset.
@@ -19,9 +19,48 @@
 - Research-reading turns cannot write maintenance. Owner boundaries, observed
   task/asset versions, cancellation, bounded reads and explicit user authorization
   apply. No inferred intervals, recurrence, reminders, mileage rules or new schema,
-  dependency, records format or MCP operation; head0036 / format6 remain.
+  dependency, records format or MCP operation; head0037 / format6 remain.
 - Synthetic provider/UI tests cover contracts. Live provider testing remains
   deferred by Lisa; this does not establish real model quality.
+
+## 0.90.1 - Power level capsule
+
+- The Power Center's power level is now a small capsule in the heading row
+  instead of a full-width panel with a five-stage ladder. It still shows the
+  current stage, the points (or the confirmed to possible range when the score
+  is incomplete), a small bar and the stale state. The stage thresholds and the
+  next stage are in its hover title and screen reader text. On wide screens it
+  sits above "Check all locally"; when the heading fills the row, the capsule
+  and button share the next row. The heading is about half as tall on laptop
+  screens, so the stat tiles and connections move up. No backend, API or
+  migration change.
+
+## 0.90.0 - Sign-up bot checks and terms of use
+
+- Optional **Cloudflare Turnstile** on the email **Create account** and
+  **Forgot password?** forms. Set `LIFEGATHER_TURNSTILE_SITE_KEY` and
+  `LIFEGATHER_TURNSTILE_SECRET_KEY` together to turn it on; the server verifies
+  each token with Cloudflare before sending any email and refuses the request if
+  the check fails or Cloudflare cannot be reached. Off by default.
+- Optional **terms of use**. Set `LIFEGATHER_TERMS_VERSION` (and optionally
+  `LIFEGATHER_TERMS_FILE`) and every account, new or existing, sees the terms
+  after signing in and must tick "I agree" before using the app. Until then app
+  routes and MCP answer 403; signing out and deleting the account still work.
+  Changing the version asks everyone again. Off by default.
+- The bundled terms text (`backend/src/lifegather/auth/terms_placeholder.md`)
+  is a placeholder, not legal advice; replace it before inviting other people.
+- Migration `0037_terms_acceptance` adds `users.terms_version` and
+  `users.terms_accepted_at`. No records-format change. See
+  [sign-up protection](docs/SIGNUP_PROTECTION.md).
+
+## 0.89.1 - Remove the dock icon bar
+
+- The row of four small dock-position icon buttons (left, right, top, bottom) is
+  gone from the navigation header and the assistant header, so both take less
+  room. Docking still works by dragging either header onto a highlighted edge.
+- Keyboard docking moved to the small grip handle (⋮⋮) at the start of each
+  header: focus it and press an arrow key to dock on that edge. Reset, collapse
+  and resize are unchanged. No migration; saved dock positions are kept.
 
 ## 0.89.0 - Per-account storage quotas
 

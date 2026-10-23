@@ -291,22 +291,24 @@ export function PowerCenter({
             </p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          disabled={busy}
-          onClick={() => void load('all sources')}
-        >
-          <RefreshCw size={16} aria-hidden="true" />
-          {busy ? 'Checking locally…' : 'Check all locally'}
-        </Button>
-        {!compact && snapshot && (
-          <PowerGrowth
-            score={snapshot.score}
-            minimum={snapshot.minimum_score}
-            maximum={snapshot.maximum_score}
-            stale={!!stale}
-          />
-        )}
+        <div className="power-hero-actions">
+          {!compact && snapshot && (
+            <PowerGrowth
+              score={snapshot.score}
+              minimum={snapshot.minimum_score}
+              maximum={snapshot.maximum_score}
+              stale={!!stale}
+            />
+          )}
+          <Button
+            variant="outline"
+            disabled={busy}
+            onClick={() => void load('all sources')}
+          >
+            <RefreshCw size={16} aria-hidden="true" />
+            {busy ? 'Checking locally…' : 'Check all locally'}
+          </Button>
+        </div>
       </div>
       {error && (
         <div role="alert">

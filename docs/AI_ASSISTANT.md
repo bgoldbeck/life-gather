@@ -32,7 +32,7 @@ contacts a provider.
   the pending question. Another account's records are never readable.
 - One write per request, at most 6 model replies and 8 reads, bounded context.
 
-## Maintenance tasks (v0.90.0)
+## Maintenance tasks (v0.91.0)
 
 Use an existing asset, then ask: "Add oil change to my mower", "Log completed
 blade replacement on my mower", or "Mark my mower oil change complete". The

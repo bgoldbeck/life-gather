@@ -74,7 +74,7 @@ v0.63.0 adds asset type assignment with typed template fields. Live-provider
 verification with real OpenAI, Claude and Gemini connections is **Deferred by
 Lisa (2026-10-23)**: do not pick it up until she asks for it.
 
-v0.90.0 adds [maintenance through chat](MAINTENANCE.md#maintenance-through-chat-v0900)
+v0.91.0 adds [maintenance through chat](MAINTENANCE.md#maintenance-through-chat-v0910)
 over existing private tasks: one asset/task write, original statements/history,
 unknown dates and stable retry receipts. Recurrence/reminders remain deferred.
 
@@ -224,8 +224,10 @@ for the Phase 3 acceptance gate.
   forms, terms and privacy acceptance, and verified account deletion across
   database rows, stored files and backup expiry; personal archive remains export.
   Account deletion across database rows and stored files is done in 0.87.0
-  (see [account deletion](ACCOUNT_DELETION.md)); Turnstile, terms acceptance and
-  hosted backup-expiry records remain.
+  (see [account deletion](ACCOUNT_DELETION.md)). Optional Turnstile bot checks
+  and terms-of-use acceptance are done in 0.90.0 (see
+  [sign-up protection](SIGNUP_PROTECTION.md)); hosted backup-expiry records
+  remain.
 - **5.6 Backups and recovery for many users.** Managed Postgres point-in-time
   recovery, protected R2 copies, a timed restore drill with written RPO/RTO, and
   per-user restore from the personal archive.
