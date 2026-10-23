@@ -5,8 +5,11 @@ from datetime import UTC, datetime
 from typing import Any
 
 import pytest
+from sqlalchemy import delete
+from sqlalchemy.orm import Session
 from test_ai_assistant import Case, case, step  # noqa: F401
 
+from lifegather.chat.models import Turn
 from lifegather.chat.service import ChatService
 from lifegather.maintenance.schemas import (
     MaintenanceChange,
@@ -521,6 +524,64 @@ def test_relative_date_without_request_timezone_asks_instead_of_guessing(
         step("clarify", message="What calendar date was the oil change?"),
     )["result"]
     assert result["assistant_pending"] and tasks(case, asset) == []
+
+
+def test_retained_task_retry_cites_original_revision_after_chat_reply_is_removed(
+    case: Case,
+) -> None:
+    asset = case.asset("Synthetic mower", "mower")
+    conversation = case.conversation()
+    message = "Log completed oil change on my mower"
+
+    def send() -> dict[str, Any]:
+        return case.send(
+            conversation,
+            "retained-task",
+            message,
+            step("search_assets", query="mower"),
+            step("read_asset", asset_id=asset),
+            step(
+                "create_maintenance",
+                asset_id=asset,
+                maintenance=write(
+                    "Log completed oil change",
+                    change("title", "oil change", "oil change"),
+                    change("state", "completed", "completed"),
+                ),
+            ),
+        )["result"]
+
+    original = send()
+    identifier = original["maintenance"]["task_id"]
+    service = MaintenanceService(case.engine)
+    observed = service.get(case.actor, identifier)
+    service.revise(
+        case.actor,
+        MaintenanceChange.model_validate(
+            {
+                "task_id": identifier,
+                "state_token": observed["state_token"],
+                "request_id": "later-reopen",
+                "title": "oil change",
+                "state": "open",
+                "due_on": None,
+                "timezone": "UTC",
+                "text": "Reopen this task",
+            }
+        ),
+    )
+    with Session(case.engine) as db:
+        db.execute(
+            delete(Turn).where(
+                Turn.user_id == case.actor.id, Turn.request_id == "retained-task"
+            )
+        )
+        db.commit()
+    retried = send()
+    assert len(tasks(case, asset)) == 1
+    assert retried["maintenance"] == original["maintenance"]
+    assert retried["sources"] == original["sources"]
+    assert service.get(case.actor, identifier)["revision"]["state"] == "open"
 
 
 def test_cancellation_before_maintenance_commit_saves_no_task(case: Case) -> None:

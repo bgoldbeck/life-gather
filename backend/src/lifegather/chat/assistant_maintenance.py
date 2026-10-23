@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from lifegather.chat.assistant_dates import stated_date
 from lifegather.chat.context import ContextRead
 from lifegather.chat.models import Turn
+from lifegather.maintenance.models import MaintenanceRevision
 from lifegather.maintenance.schemas import (
     MaintenanceChange,
     MaintenanceCreate,
@@ -22,7 +23,7 @@ from lifegather.maintenance.schemas import (
 from lifegather.maintenance.service import MaintenanceService
 from lifegather.memory.notes import NoteConflict
 from lifegather.memory.origins import change_origin
-from lifegather.memory.service import fingerprint
+from lifegather.memory.service import MemoryError, fingerprint
 
 if TYPE_CHECKING:
     from lifegather.chat.assistant import AssistantRunner
@@ -367,8 +368,17 @@ class AssistantMaintenance:
                     "Invalid task fields or source statement. Ask for a nonblank title "
                     "and valid dates in a concise request (at most 4,000 characters)."
                 ) from None
-            task = self.service._task(db, runner.actor, saved["id"])
-            revision = self.service._head(db, runner.actor, task)
+            revision = db.scalar(
+                select(MaintenanceRevision).where(
+                    MaintenanceRevision.user_id == runner.actor.id,
+                    MaintenanceRevision.task_id == saved["id"],
+                    MaintenanceRevision.id == saved["revision_id"],
+                )
+            )
+            if revision is None:
+                raise MemoryError("Saved maintenance revision is unavailable.")
+            recorded = self.service._revision(db, runner.actor, revision)
+            fields = {key: recorded[key] for key in fields}
             result = self._receipt(
                 db, target, snapshot["name"], saved, fields, revision.source_id
             )
