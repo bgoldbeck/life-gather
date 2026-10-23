@@ -147,7 +147,7 @@ Treat this as a release gate as well as continuing work during Phases 1 and 2.
   conversation retention. v0.84.0 lets users [delete memories](MEMORIES.md#deleting-memories-v0840),
   removing their text while records made from them keep their provenance.
   v0.86.0 restores a personal archive into an account that already has records,
-  adding only missing records and keeping current ones. v0.98.0 [erases a
+  adding only missing records and keeping current ones. v0.99.0 [erases a
   source](SOURCE_ERASURE.md) (a Gmail connection or one scan) and everything
   derived from it.
 - Verify configured-provider behavior and connection recovery before claiming
@@ -279,9 +279,15 @@ alike, with no app store review, second codebase or separate release train.
   is saved straight away with a progress bar and Cancel; a lost response or a
   Cancel can resend the same photo, which the server stores once. Uploads keep
   the existing limits and quotas. Not yet checked on a real phone.
-- **6.3 Share to LifeGather.** Android: manifest `share_target`, so a receipt
+- **6.3 Share to LifeGather. Done in v0.98.0.** Android: manifest `share_target`, so a receipt
   photo or PDF can be shared from another app. iPhone Safari does not support
   share targets; ordinary upload stays the universal path there.
+  Delivered in v0.98.0: the service worker holds shared files in memory only
+  (never Cache Storage or IndexedDB) until the signed-in page claims them once;
+  the page saves each through the existing Photos or Documents upload, so CSRF,
+  size limits and storage quotas still apply. Without a running worker the
+  server answers the share with a "share again" notice and stores nothing. Not
+  yet tried on a real Android phone. See [installable app](INSTALLABLE_APP.md).
 - **6.4 Native wrapper (conditional).** Only if a demonstrated need (iPhone share
   sheet, app store listing, reliable background upload) justifies it: wrap the
   same web UI with Capacitor rather than writing a separate app. No offline

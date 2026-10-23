@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.98.0 - Erase a source and everything from it
+## 0.99.0 - Erase a source and everything from it
 
 - **Settings → Email connections** can erase a Gmail connection and everything
   saved from it; **Scans** can erase what one finished scan saved. A list of
@@ -18,6 +18,25 @@
   changed. See docs/SOURCE_ERASURE.md.
 - New endpoints `POST /api/erasure/preview` and `POST /api/erasure/erase`. No
   migration, records-format or MCP change.
+## 0.98.0 - Share to LifeGather on Android
+
+- On Android, an installed LifeGather appears in the share menu of other apps.
+  Share a receipt photo, a PDF manual or another supported file (JPEG, PNG,
+  WebP, PDF, DOCX, XLSX, TXT, MD, CSV; up to 10 files of 8 MiB each) and
+  LifeGather opens a **Shared to LifeGather** card to review it, pick each
+  photo's purpose and save it to Photos or Documents, or discard it.
+- Saving uses the ordinary uploads, so the sign-in session, CSRF check, 8 MiB
+  limit and account storage quota apply as before; nothing is saved until you
+  press Save, and no AI request is made.
+- The service worker keeps shared files in memory only, for at most five
+  minutes, and hands them to the page once. They are never written to the
+  browser's cache or IndexedDB. If the worker is not running, the server
+  answers the share without reading or storing it and asks you to share again.
+- iPhone Safari does not support share targets; upload from Photos or
+  Documents as before. See docs/INSTALLABLE_APP.md.
+- No migration, API or MCP change (new `POST /share-target` fallback only
+  redirects).
+
 ## 0.97.0 - Photos from email attachments and scheduled attachment imports
 
 - Gmail attachment imports now also save JPEG, PNG and WebP attachments (up to

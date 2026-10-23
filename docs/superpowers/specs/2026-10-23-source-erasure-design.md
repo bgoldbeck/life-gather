@@ -1,6 +1,6 @@
 # Source erasure
 
-Date: 2026-10-23. Status: chosen by Lisa from the remaining-work list; built in v0.98.0 (see [Source erasure](../../SOURCE_ERASURE.md)).
+Date: 2026-10-23. Status: chosen by Lisa from the remaining-work list; built in v0.99.0 (see [Source erasure](../../SOURCE_ERASURE.md)).
 Baseline: GitHub main aa2093d, application 0.95.0. No other branch or open PR touches deletion. Builds on selective deletion (v0.76.0), memory deletion (v0.84.0) and account deletion (v0.87.0).
 
 ## Intent
