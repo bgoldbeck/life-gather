@@ -1,9 +1,9 @@
 # LifeGather — Product and Engineering Plan
 
-**Status:** v0.91.0 adds sourced maintenance creation and corrections through the AI assistant; tracking and evidence-backed recall remain the active priorities.
+**Status:** v0.92.0 adds sourced maintenance creation and corrections through the AI assistant; tracking and evidence-backed recall remain the active priorities.
 **Date:** Updated 2026-10-23
 
-v0.91.0 extends the assistant over existing maintenance tasks: one asset/task write,
+v0.92.0 extends the assistant over existing maintenance tasks: one asset/task write,
 original statements/history, grounded dates, safe retries and inspectable receipts.
 No maintenance migration or dependency; current head is0037. See
 [maintenance](docs/MAINTENANCE.md#maintenance-through-chat-v0910).

@@ -74,7 +74,7 @@ v0.63.0 adds asset type assignment with typed template fields. Live-provider
 verification with real OpenAI, Claude and Gemini connections is **Deferred by
 Lisa (2026-10-23)**: do not pick it up until she asks for it.
 
-v0.91.0 adds [maintenance through chat](MAINTENANCE.md#maintenance-through-chat-v0910)
+v0.92.0 adds [maintenance through chat](MAINTENANCE.md#maintenance-through-chat-v0920)
 over existing private tasks: one asset/task write, original statements/history,
 unknown dates and stable retry receipts. Recurrence/reminders remain deferred.
 
