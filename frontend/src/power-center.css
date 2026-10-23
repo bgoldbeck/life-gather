@@ -322,9 +322,6 @@
 .power-summary .tone-tile {
   margin-bottom: 0.4rem;
 }
-.power-source {
-  border-top: 3px solid var(--tone);
-}
 .power-source-heading {
   justify-content: flex-start;
   flex-wrap: nowrap;
@@ -333,9 +330,28 @@
   flex: 1;
   min-width: 0;
 }
-.power-capability {
-  border-left: 3px solid var(--tone);
-  background: color-mix(in oklab, var(--tone) 5%, transparent);
+/* Category color stays on the icon tile; cards stay neutral so the ones that
+   need setup or attention are the only ones that stand out. */
+.power-source[data-attention],
+.power-capability[data-attention] {
+  border-color: color-mix(in oklab, var(--attention) 55%, var(--border));
+  box-shadow:
+    inset 4px 0 0 var(--attention),
+    0 0 0 1px color-mix(in oklab, var(--attention) 60%, transparent),
+    0 0 0.9rem color-mix(in oklab, var(--attention) 16%, transparent);
+  background: color-mix(in oklab, var(--attention) 7%, var(--card));
+}
+.power-source[data-attention] .state-pill,
+.power-capability[data-attention] .state-pill {
+  border-color: transparent;
+  background: var(--attention);
+  color: #1a1405;
+  font-weight: 600;
+}
+.power-source[data-attention] .state-pill::before,
+.power-capability[data-attention] .state-pill::before {
+  background: #1a1405;
+  box-shadow: none;
 }
 .power-capability .tone-tile {
   width: 1.75rem;
