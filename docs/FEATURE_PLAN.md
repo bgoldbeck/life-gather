@@ -272,6 +272,10 @@ alike, with no app store review, second codebase or separate release train.
 - **6.2 Camera capture.** Take a photo straight into chat or Photos through the
   ordinary file input (no custom camera code), with progress, retry and
   Cancel. Uploads keep the existing limits, quotas and idempotent retries.
+  In progress on `claude/phone-camera-capture`: a "Take a photo" button on
+  touch screens (file input with `capture="environment"`) in Chat and Photos,
+  upload progress with Cancel, and a safe retry of the same photo. Checks: unit
+  tests for capture, progress, cancel and retry, and a phone-size browser check.
 - **6.3 Share to LifeGather.** Android: manifest `share_target`, so a receipt
   photo or PDF can be shared from another app. iPhone Safari does not support
   share targets; ordinary upload stays the universal path there.
