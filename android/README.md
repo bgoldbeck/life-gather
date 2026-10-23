@@ -22,6 +22,12 @@ lambdas, because `dx` does not desugar. Methods newer than API 23 (such as the
 `WebResourceRequest` form of `shouldOverrideUrlLoading`) are declared without
 `@Override` and still override at run time.
 
+## Published APK
+
+`release/LifeGather.apk` is the current signed build, committed so phones can
+download it from GitHub. Replace it with a fresh `build/LifeGather.apk` when the
+app itself changes.
+
 ## Signing
 
 Phones only install an update over the existing app when both are signed with
