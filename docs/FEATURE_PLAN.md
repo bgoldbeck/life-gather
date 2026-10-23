@@ -275,6 +275,13 @@ alike, with no app store review, second codebase or separate release train.
 - **6.3 Share to LifeGather.** Android: manifest `share_target`, so a receipt
   photo or PDF can be shared from another app. iPhone Safari does not support
   share targets; ordinary upload stays the universal path there.
+  In progress on `claude/android-share-target`: the service worker holds shared
+  files in memory only (never Cache Storage or IndexedDB) until the signed-in
+  page claims them once; the page saves each through the existing Photos or
+  Documents upload, so CSRF, size limits and storage quotas still apply. Without
+  a running worker the server answers the share with a "share again" notice and
+  stores nothing. Checks: unit tests for the worker hand-off, a UI test for the
+  review screen, and a browser check that shares a photo and a PDF.
 - **6.4 Native wrapper (conditional).** Only if a demonstrated need (iPhone share
   sheet, app store listing, reliable background upload) justifies it: wrap the
   same web UI with Capacitor rather than writing a separate app. No offline
