@@ -20,6 +20,7 @@ from lifegather.memory.schemas import SourceInput
 from lifegather.memory.service import MemoryError, MemoryService
 from lifegather.storage.base import ObjectStorage, StorageError
 from lifegather.storage.originals import delete_quietly, object_key, read_original
+from lifegather.storage.quota import has_room, quota_message
 
 
 class DocumentRead(BaseModel):
@@ -220,6 +221,8 @@ class DocumentService:
                 ).one()
                 if count >= 200 or size + len(raw) > 256 * 1024 * 1024:
                     raise MemoryError("Private document storage quota reached")
+                if not has_room(db, actor.id, storage, len(raw)):
+                    raise MemoryError(quota_message(storage))
                 now = self.memory.clock()
                 identifier = str(uuid4())
                 key = object_key(actor.id, "documents", identifier, "original")
