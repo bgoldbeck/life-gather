@@ -1,6 +1,6 @@
 # Email image attachments and scheduled attachment scans
 
-Status: in progress.
+Status: released as v0.96.0.
 
 ## Problem
 
@@ -19,8 +19,8 @@ be started by hand or from Chat, not on a schedule.
    provider sees the image and no asset is created or attached.
 2. Migration `0039_email_photo_attachments` lets an `email_attachments` link
    point at a photo instead of a document (exactly one of the two).
-3. Photo detail returns `email_sources`; Photos shows **Open the email this
-   photo came from**, like Documents.
+3. `GET /api/photos/{id}/email-sources` lists the linking emails; Photos
+   shows **Open the email this photo came from**, like Documents.
 4. Scans → Scheduled scans can schedule attachment imports (daily/weekly,
    at most 20 messages), using the existing schedule runner.
 

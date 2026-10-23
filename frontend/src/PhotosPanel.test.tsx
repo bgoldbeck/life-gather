@@ -236,3 +236,36 @@ it('displays an existing multi-item photo receipt returned by photo reading and 
     screen.queryByRole('region', { name: 'Existing photo receipt' }),
   ).not.toBeInTheDocument()
 })
+
+it('opens the saved email a photo attachment came from', async () => {
+  const user = userEvent.setup()
+  const urls: string[] = []
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      urls.push(url)
+      let result: unknown = { items: [photo], next_cursor: null }
+      if (url === '/api/photos/photo/email-sources')
+        result = {
+          items: [{ source_id: 'email-source', filename: 'plate.jpg' }],
+        }
+      else if (url === '/api/chat/sources/email-source')
+        result = {
+          id: 'email-source',
+          text: 'Subject: Synthetic order\n\nAttachment: plate.jpg',
+        }
+      else if (url === '/api/settings') result = { allow_external_ai: false }
+      else if (url.startsWith('/api/credentials')) result = { items: [] }
+      return new Response(JSON.stringify(result))
+    }),
+  )
+  render(<PhotosPanel csrfToken="csrf" />)
+  await user.click(await screen.findByRole('button', { name: /plate\.jpg/ }))
+  await user.click(
+    await screen.findByRole('button', {
+      name: 'Open the email this photo came from',
+    }),
+  )
+  expect(await screen.findByText(/Attachment: plate\.jpg/)).toBeVisible()
+  expect(urls).toContain('/api/chat/sources/email-source')
+})

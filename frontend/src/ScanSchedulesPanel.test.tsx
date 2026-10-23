@@ -44,7 +44,10 @@ it('schedules discovery using the chosen AI adapter without changing evidence-on
   )
   await screen.findByRole('button', { name: /^Create schedule$/ })
   await user.type(screen.getByLabelText('Schedule name'), 'Discover receipts')
-  await user.click(screen.getByLabelText('Schedule purchase discovery with AI'))
+  await user.selectOptions(
+    screen.getByLabelText('Scheduled scan type'),
+    'gmail_discovery',
+  )
   await screen.findByRole('option', { name: 'Synthetic Claude (anthropic)' })
   await user.selectOptions(
     screen.getByLabelText('Discovery AI connection'),
@@ -62,6 +65,47 @@ it('schedules discovery using the chosen AI adapter without changing evidence-on
       },
     }),
   )
+})
+
+it('schedules attachment imports with the tighter message limit', async () => {
+  const user = userEvent.setup()
+  let saved: unknown
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        saved = JSON.parse(String(init.body))
+        return new Response('{}')
+      }
+      return new Response('{"items":[]}')
+    }),
+  )
+  render(
+    <ScanSchedulesPanel
+      csrfToken="csrf"
+      mailboxes={[{ id: 'mailbox', address: 'synthetic@example.test' }]}
+      onRun={vi.fn()}
+    />,
+  )
+  await screen.findByRole('button', { name: /^Create schedule$/ })
+  await user.type(screen.getByLabelText('Schedule name'), 'Emailed photos')
+  await user.selectOptions(
+    screen.getByLabelText('Scheduled scan type'),
+    'gmail_attachments',
+  )
+  expect(screen.getByText(/JPEG, PNG and WebP photos/)).toBeVisible()
+  const limit = screen.getByLabelText('Scheduled maximum messages')
+  expect(limit).toHaveValue(10)
+  expect(limit).toHaveAttribute('max', '20')
+  expect(screen.queryByLabelText('Discovery model')).not.toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: /^Create schedule$/ }))
+  await waitFor(() =>
+    expect(saved).toMatchObject({
+      handler_key: 'gmail_attachments',
+      config: { mailbox_id: 'mailbox', query: '', max_messages: 10 },
+    }),
+  )
+  expect((saved as { config: object }).config).not.toHaveProperty('model')
 })
 
 it('creates only after explicit submission and supports a private pause action', async () => {

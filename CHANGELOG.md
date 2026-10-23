@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.96.0 - Photos from email attachments and scheduled attachment imports
+
+- Gmail attachment imports now also save JPEG, PNG and WebP attachments (up to
+  8 MiB, three files per email) as private photos in Photos, through the normal
+  photo upload: real-image check, metadata-free preview, dedupe, the photo limit
+  and the storage quota. No AI reads them and no item is created or attached.
+  A broken image or full quota is listed as not imported; the run continues.
+- Photos shows **Open the email this photo came from**
+  (`GET /api/photos/{id}/email-sources`). Scan results count saved photos and
+  offer **Review imported photos**.
+- Scheduled scans can now run attachment imports daily or weekly
+  (**Scheduled scan type**), with the 20-message attachment limit.
+- Migration `0039_email_photo_attachments` adds `email_attachments.photo_id`
+  and makes `document_id` optional; each link names exactly one file. Existing
+  links are unchanged.
+- Only tested with simulated Gmail.
+
 ## 0.95.0 - Install LifeGather to the home screen
 
 - LifeGather can now be installed as an app on phones, tablets and computers

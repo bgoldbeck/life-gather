@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from lifegather.assets.identity import canonical_id, member_ids
 from lifegather.auth.store import Account
+from lifegather.mailboxes.discovery_models import EmailAttachment
 from lifegather.memory.notes import NoteConflict, NoteService
 from lifegather.memory.schemas import SourceInput
 from lifegather.memory.service import MemoryError, MemoryService
@@ -165,6 +166,26 @@ class PhotoService:
     def get(self, actor: Account, identifier: str) -> dict[str, Any]:
         with Session(self.engine) as db:
             return self.view(self.owned(db, actor, identifier))
+
+    def email_sources(
+        self, actor: Account, identifier: str
+    ) -> tuple[dict[str, str], ...]:
+        """Saved emails this photo was imported from as an attachment."""
+        with Session(self.engine) as db:
+            self.owned(db, actor, identifier)
+            links = db.scalars(
+                select(EmailAttachment)
+                .where(
+                    EmailAttachment.user_id == actor.id,
+                    EmailAttachment.photo_id == identifier,
+                )
+                .order_by(EmailAttachment.recorded_at, EmailAttachment.id)
+                .limit(5)
+            )
+            return tuple(
+                {"source_id": link.source_id, "filename": link.filename}
+                for link in links
+            )
 
     def assets(self, actor: Account, identifier: str) -> tuple[dict[str, str], ...]:
         """Assets this photo is attached to; merged duplicates appear once."""

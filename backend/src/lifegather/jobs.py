@@ -29,6 +29,7 @@ from lifegather.mailboxes.provider import GmailProvider
 from lifegather.mailboxes.scan import GmailImportHandler
 from lifegather.operations.logs import configure_logging
 from lifegather.operations.monitor import OperationsMonitor
+from lifegather.photos.service import PhotoService
 from lifegather.scans.registry import ScanRegistry
 from lifegather.scans.schedules import ScheduleService
 from lifegather.scans.service import ScanService
@@ -54,7 +55,11 @@ def scan_service(
             [
                 GmailImportHandler(engine, vault, gmail),
                 GmailAttachmentHandler(
-                    engine, vault, gmail, DocumentService(engine, storage)
+                    engine,
+                    vault,
+                    gmail,
+                    DocumentService(engine, storage),
+                    PhotoService(engine, storage),
                 ),
                 GmailDiscoveryHandler(engine, vault, gmail, providers),
             ]

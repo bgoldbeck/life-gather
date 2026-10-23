@@ -1,8 +1,9 @@
-"""Bounded Gmail attachment intake as reviewable original documents.
+"""Bounded Gmail attachment intake as reviewable documents and private photos.
 
-Only supported document files within fixed limits are downloaded. Their text is
-extracted locally by the document service; nothing is sent to an AI provider and
-nothing becomes evidence until the user reviews the document text.
+Only supported document and image files within fixed limits are downloaded.
+Document text is extracted locally by the document service and images go through
+the normal photo upload; nothing is sent to an AI provider, no asset is created,
+and nothing becomes evidence until the user reviews it.
 """
 
 import base64
@@ -10,7 +11,7 @@ import binascii
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 
 from pydantic import Field
@@ -33,9 +34,13 @@ from lifegather.mailboxes.scan import GmailImportHandler, GmailScanConfig
 from lifegather.mailboxes.text import message_text
 from lifegather.memory.schemas import SourceInput
 from lifegather.memory.service import MemoryError
+from lifegather.photos.models import Photo
+from lifegather.photos.service import MAX_BYTES as MAX_IMAGE_BYTES
+from lifegather.photos.service import PhotoService
 from lifegather.scans.registry import ScanContext, ScanEvidence
 
 MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024
+IMAGES = frozenset({"jpg", "jpeg", "png", "webp"})
 MAX_ATTACHMENTS = 3
 IDENTIFIER = re.compile(r"[A-Za-z0-9_-]{1,2048}")
 
@@ -51,6 +56,7 @@ class AttachmentPart:
     size: int
     attachment_id: str
     inline: str
+    kind: Literal["document", "photo"] = "document"
 
 
 def safe_filename(value: Any) -> str:
@@ -90,10 +96,12 @@ def attachment_parts(
         part_id = str(part.get("partId", ""))[:50] or str(visited)
         attachment_id = body.get("attachmentId", "")
         inline = body.get("data", "")
-        if extension not in MIMES:
+        photo = extension in IMAGES
+        limit = MAX_IMAGE_BYTES if photo else MAX_ATTACHMENT_BYTES
+        if extension not in MIMES and not photo:
             skipped.append((filename, "unsupported type"))
-        elif not isinstance(size, int) or not 0 < size <= MAX_ATTACHMENT_BYTES:
-            skipped.append((filename, "larger than 4 MiB"))
+        elif not isinstance(size, int) or not 0 < size <= limit:
+            skipped.append((filename, f"larger than {limit // 1048576} MiB"))
         elif len(candidates) >= MAX_ATTACHMENTS:
             skipped.append((filename, "attachment limit reached"))
         elif not (
@@ -109,6 +117,7 @@ def attachment_parts(
                     size,
                     attachment_id if isinstance(attachment_id, str) else "",
                     inline if isinstance(inline, str) else "",
+                    "photo" if photo else "document",
                 )
             )
     if stack:
@@ -117,7 +126,7 @@ def attachment_parts(
 
 
 def decode(data: Any, size: int) -> bytes:
-    if not isinstance(data, str) or len(data) > (MAX_ATTACHMENT_BYTES * 4) // 3 + 8:
+    if not isinstance(data, str) or len(data) > (MAX_IMAGE_BYTES * 4) // 3 + 8:
         raise ValueError("Attachment data exceeds its limit")
     try:
         raw = base64.b64decode(
@@ -125,7 +134,7 @@ def decode(data: Any, size: int) -> bytes:
         )
     except (binascii.Error, ValueError):
         raise ValueError("Attachment data is not valid base64") from None
-    if len(raw) != size or len(raw) > MAX_ATTACHMENT_BYTES:
+    if len(raw) != size or len(raw) > MAX_IMAGE_BYTES:
         raise ValueError("Attachment size does not match its message")
     return raw
 
@@ -133,7 +142,7 @@ def decode(data: Any, size: int) -> bytes:
 class GmailAttachmentHandler(GmailImportHandler):
     key = "gmail_attachments"
     title = "Import Gmail attachments"
-    permissions = (*GmailImportHandler.permissions, "stored_documents")
+    permissions = (*GmailImportHandler.permissions, "stored_documents", "photos")
     config_model = GmailAttachmentConfig
 
     def __init__(
@@ -142,9 +151,11 @@ class GmailAttachmentHandler(GmailImportHandler):
         vault: PrivateSettings,
         provider: GmailProvider,
         documents: DocumentService,
+        photos: PhotoService,
     ) -> None:
         super().__init__(engine, vault, provider)
         self.documents = documents
+        self.photos = photos
 
     async def evidence(
         self,
@@ -189,7 +200,10 @@ class GmailAttachmentHandler(GmailImportHandler):
                 continue
             check()
             try:
-                document = self.documents.upload(context.actor, raw, part.filename)
+                if part.kind == "photo":
+                    stored = self.photos.upload(context.actor, raw, part.filename)
+                else:
+                    stored = self.documents.upload(context.actor, raw, part.filename)
             except MemoryError as error:
                 skipped.append((part.filename, str(error)[:100]))
                 continue
@@ -197,11 +211,12 @@ class GmailAttachmentHandler(GmailImportHandler):
                 {
                     "part_id": part.part_id,
                     "filename": part.filename,
-                    "document_id": document["id"],
+                    part.kind + "_id": stored["id"],
                 }
             )
         metadata: dict[str, str | int | bool] = {
             "attachments_saved": len(saved),
+            "photos_saved": sum("photo_id" in value for value in saved),
             "attachments_skipped": len(skipped),
         }
         if not saved:
@@ -243,21 +258,26 @@ class GmailAttachmentHandler(GmailImportHandler):
         self.authorize(db, actor, config)
         linked = 0
         for value in item.processing.get("attachments", [])[:MAX_ATTACHMENTS]:
-            document = db.scalar(
-                select(Document.id).where(
-                    Document.user_id == actor.id,
-                    Document.id == value["document_id"],
-                    Document.deleted_at.is_(None),
+            # Each link names exactly one stored file: a document or a photo.
+            photo = "photo_id" in value
+            target: type[Photo] | type[Document] = Photo if photo else Document
+            column = EmailAttachment.photo_id if photo else EmailAttachment.document_id
+            identifier = value["photo_id" if photo else "document_id"]
+            stored = db.scalar(
+                select(target.id).where(
+                    target.user_id == actor.id,
+                    target.id == identifier,
+                    target.deleted_at.is_(None),
                 )
             )
-            if document is None:
+            if stored is None:
                 continue
             if db.scalar(
                 select(EmailAttachment.id).where(
                     EmailAttachment.user_id == actor.id,
                     EmailAttachment.source_id == source_id,
                     EmailAttachment.part_id == value["part_id"],
-                    EmailAttachment.document_id == document,
+                    column == stored,
                 )
             ):
                 continue
@@ -266,7 +286,8 @@ class GmailAttachmentHandler(GmailImportHandler):
                     id=str(uuid4()),
                     user_id=actor.id,
                     source_id=source_id,
-                    document_id=document,
+                    document_id=None if photo else stored,
+                    photo_id=stored if photo else None,
                     mailbox_id=config["mailbox_id"],
                     message_id=item.key,
                     part_id=value["part_id"],
