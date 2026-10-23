@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#234e3c" />
+    <title>LifeGather · Can't reach your server</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f7f0e0;
+        --fg: #1c2a22;
+        --muted: #4d5c53;
+        --accent: #234e3c;
+        --accent-fg: #f7f0e0;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #101a15;
+          --fg: #ece6d8;
+          --muted: #a9b5ad;
+          --accent: #3f8a66;
+          --accent-fg: #0c1410;
+        }
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: var(--bg);
+        color: var(--fg);
+        font:
+          16px/1.5 system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 26rem;
+        padding: 1.5rem;
+        text-align: center;
+      }
+      h1 {
+        font-size: 1.35rem;
+        margin: 1rem 0 0.5rem;
+      }
+      p {
+        color: var(--muted);
+        margin: 0 0 1.5rem;
+      }
+      a {
+        display: inline-block;
+        padding: 0.7rem 1.4rem;
+        border-radius: 0.6rem;
+        background: var(--accent);
+        color: var(--accent-fg);
+        font-weight: 600;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/icons/lifegather-192.png" width="72" height="72" alt="" />
+      <h1>Can't reach your LifeGather server</h1>
+      <p>
+        Your records stay on your server, not on this device. Check your
+        internet connection, or that your server is running, then try again.
+      </p>
+      <a href="/">Try again</a>
+    </main>
+  </body>
+</html>

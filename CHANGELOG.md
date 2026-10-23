@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.95.0 - Install LifeGather to the home screen
+
+- LifeGather can now be installed as an app on phones, tablets and computers
+  (Safari "Add to Home Screen", Chrome/Edge "Install app"). It adds a web app
+  manifest, home screen and maskable icons, and a service worker.
+- The service worker stores only an offline "Can't reach your LifeGather
+  server" page and its icon. It never stores pages, API, sign-in, file or chat
+  responses, so nothing personal is kept on the device and releases still load
+  as before. See docs/INSTALLABLE_APP.md, including how to give a self-hosted
+  server the HTTPS address that installing requires.
+- No migration, API or MCP change.
+
 ## 0.94.0 - Operations: logs, alerts and the Operations page
 
 - Backend logs are now one JSON line per record. API requests log the route

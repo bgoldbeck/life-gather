@@ -1,3 +1,5 @@
+import json
+import shutil
 from pathlib import Path
 
 import pytest
@@ -94,3 +96,32 @@ def test_static_cache_policy_revalidates_html_and_only_pins_hashed_assets(
             == "no-cache, must-revalidate"
         )
         assert client.get("/api/version").headers["cache-control"] == "no-store"
+
+
+def test_serves_installable_app_files_without_long_caching(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    public = Path(__file__).resolve().parents[2] / "frontend" / "public"
+    static_dir = tmp_path / "static"
+    shutil.copytree(public, static_dir)
+    (static_dir / "index.html").write_text("LifeGather", encoding="utf-8")
+    monkeypatch.setenv("LIFEGATHER_STATIC_DIR", str(static_dir))
+    with TestClient(create_app()) as client:
+        manifest = client.get("/manifest.webmanifest")
+        assert manifest.headers["content-type"].startswith("application/manifest+json")
+        assert manifest.headers["cache-control"] == "no-cache, must-revalidate"
+        data = json.loads(manifest.text)
+        assert data["display"] == "standalone"
+        assert data["start_url"] == data["scope"] == "/"
+        assert {icon["sizes"] for icon in data["icons"]} >= {"192x192", "512x512"}
+        assert any(icon["purpose"] == "maskable" for icon in data["icons"])
+        for icon in data["icons"]:
+            image = client.get(icon["src"])
+            assert image.status_code == 200
+            assert image.headers["content-type"] == "image/png"
+        worker = client.get("/sw.js")
+        assert "javascript" in worker.headers["content-type"]
+        assert worker.headers["cache-control"] == "no-cache, must-revalidate"
+        offline = client.get("/offline.html")
+        assert offline.status_code == 200
+        assert "Can't reach your LifeGather server" in offline.text

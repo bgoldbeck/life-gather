@@ -29,6 +29,11 @@ signed-in Chromium session that builds on one workspace:
    searchable, and restoring the same archive again is refused.
 8. **Sign out** ends the session; the API then answers 401.
 
+`frontend/e2e/installable-app.spec.ts` checks home screen install: the manifest
+loads, the service worker activates and controls the page, and after loading
+Assets and Settings while signed in its cache still holds only the offline
+notice page and its icon (see [installable app](INSTALLABLE_APP.md)).
+
 `frontend/e2e/two-account-loop.spec.ts` runs the Phase 3 loop for **two accounts
 in one installation**, each in its own browser context, and checks at every step
 that nothing crosses between them:
