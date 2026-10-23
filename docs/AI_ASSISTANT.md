@@ -43,7 +43,9 @@ fills a draft with the explicit choice; send it to continue. A limited list is
 not exhaustive and requires an explicit choice before changing a task.
 
 Only user-stated task fields authorize writes. File/manual/research text cannot
-supply task instructions or establish completion. Dates left out of new tasks
+supply task instructions or establish completion. Negated status wording such as
+"not completed" requires clarification rather than saving an extracted positive
+word. Dates left out of new tasks
 stay unknown, including the completion date. Revisions preserve omitted fields;
 reopening or canceling clears completion in the new revision while keeping history.
 An explicit date may be YYYY-MM-DD or an unambiguous English month/day/year.

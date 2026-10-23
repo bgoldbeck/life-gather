@@ -151,8 +151,9 @@ class AssistantMaintenance:
             r"\s*(?:no\b|nope\b|never\s?mind\b|forget it\b|stop\b|"
             r"what\b|why\b|when\b|where\b|how\b|should\b|did\b|if\b|suppose\b)"
         )
+        negated = r"\b(?:no|not|never|without|\w+n['’]t)\b"
         if re.match(blocked, self.runner.text, re.I) or re.search(
-            r"\b(don't|do not|cancel (?:that |this )?request)\b", self.runner.text, re.I
+            negated + r"|\bcancel (?:that |this )?request\b", self.runner.text, re.I
         ):
             return False
         direct = (
@@ -171,7 +172,7 @@ class AssistantMaintenance:
         for message in messages:
             if not mentions(message, quote):
                 continue
-            if re.search(r"\b(don't|do not|never|not yet)\b", message, re.I):
+            if re.search(negated, message, re.I):
                 continue
             if re.match(
                 r"\s*(what|why|when|where|how|should|did|if|suppose)\b", message, re.I

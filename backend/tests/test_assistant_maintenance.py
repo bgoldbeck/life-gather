@@ -821,3 +821,35 @@ def test_blank_task_title_returns_validation_feedback_without_saving(
         step("clarify", message="What is the task title?"),
     )["result"]
     assert result["assistant_pending"] and tasks(case, asset) == []
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Log oil change on my mower as not completed",
+        "Log oil change on my mower without marking it completed",
+    ],
+)
+def test_negated_completion_cannot_be_extracted_as_completed(
+    case: Case, text: str
+) -> None:
+    asset = case.asset("Synthetic mower", "mower")
+    result = case.send(
+        case.conversation(),
+        "negated-completion",
+        text,
+        step("search_assets", query="mower"),
+        step("read_asset", asset_id=asset),
+        step(
+            "create_maintenance",
+            asset_id=asset,
+            maintenance=write(
+                "Log oil change",
+                change("title", "oil change", "oil change"),
+                change("state", "completed", "completed"),
+            ),
+        ),
+        step("clarify", message="Please state the task status directly."),
+    )["result"]
+    assert tasks(case, asset) == []
+    assert not result.get("changed_entity_id")

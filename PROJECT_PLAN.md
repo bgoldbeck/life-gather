@@ -6,7 +6,7 @@
 v0.92.0 extends the assistant over existing maintenance tasks: one asset/task write,
 original statements/history, grounded dates, safe retries and inspectable receipts.
 No maintenance migration or dependency; current head is0037. See
-[maintenance](docs/MAINTENANCE.md#maintenance-through-chat-v0910).
+[maintenance](docs/MAINTENANCE.md#maintenance-through-chat-v0920).
 
 
 v0.90.0 adds two optional sign-up protections for hosted installations (Phase
