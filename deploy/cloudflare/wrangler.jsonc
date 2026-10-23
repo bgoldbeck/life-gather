@@ -1,0 +1,34 @@
+// LifeGather test site. Staging only: see docs/CLOUDFLARE_TEST_SITE.md.
+// Settings and secrets are not kept here; they go in with
+// `npx wrangler secret bulk test-site.env`.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lifegather-test",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": {
+    "enabled": true,
+    // OAuth callbacks and sign-in links carry one-time codes in the query.
+    "redact_query_string": true,
+    "logs": { "enabled": true, "invocation_logs": true }
+  },
+  "containers": [
+    {
+      "class_name": "LifeGatherContainer",
+      // Built from the repository Dockerfile by `wrangler deploy` (needs Docker running).
+      "image": "../../Dockerfile",
+      "image_build_context": "../..",
+      // basic: 1/4 vCPU, 1 GiB. Use standard-1 if large documents run out of memory.
+      "instance_type": "basic",
+      "max_instances": 2
+    }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "LIFEGATHER", "class_name": "LifeGatherContainer" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["LifeGatherContainer"] }],
+  // Runs due scheduled scans; the container sleeps 5 minutes after the last request.
+  "triggers": { "crons": ["*/10 * * * *"] }
+}

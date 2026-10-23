@@ -66,6 +66,8 @@ The source also includes [private settings and an encrypted credential vault](do
 
 For TrueNAS or an installation without a local source build, use the published image `ghcr.io/bgoldbeck/life-gather:latest`. See [TrueNAS installation and updates](docs/TRUENAS.md) and the [image-only Compose file](deploy/compose.image.yaml). GitHub Actions is disabled; maintainers verify releases locally and rebuild/upload images only with user approval.
 
+For a private test copy on Cloudflare (Container, Neon PostgreSQL, R2, Access), follow the [Cloudflare test site](docs/CLOUDFLARE_TEST_SITE.md) steps. Self-hosting does not need it.
+
 To build and publish when your connection is free, use the [local release script and instructions](docs/LOCAL_RELEASE.md). It asks separately before building and uploading, reports local image sizes, and never pushes or merges source code.
 
 Install Docker Engine with the Compose plugin on Linux, or Docker Desktop with the Linux engine on Windows/macOS. No host Python or Node.js installation is needed for this path.

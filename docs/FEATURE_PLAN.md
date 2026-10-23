@@ -205,6 +205,11 @@ for the Phase 3 acceptance gate.
   routing with streamed chat, Cron tick, Secrets Store, private R2 bucket,
   Cloudflare Access on operator routes, and a setup runbook. Staging only until
   the launch gate passes.
+  The test-site package is done (see [Cloudflare test site](CLOUDFLARE_TEST_SITE.md)):
+  Worker and container, Cron tick, R2, Worker secrets, Access in front of the whole
+  test site, and Lisa's setup runbook. A live staging deployment, trusted-proxy
+  handling for real client addresses, and Access only on operator routes (once
+  public) remain.
 - **5.5 Hosted account lifecycle.** Turnstile bot checks on sign-up/password
   forms, terms and privacy acceptance, and verified account deletion across
   database rows, stored files and backup expiry; personal archive remains export.
