@@ -4,6 +4,15 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { ManualAssetForm } from './ManualAssetForm'
 
 afterEach(() => vi.unstubAllGlobals())
+// The form loads the asset type catalog on open; answer it separately so each
+// test's fetcher only sees the manual-asset requests.
+function stubFetch(fetcher: (...args: never[]) => unknown) {
+  vi.stubGlobal('fetch', (path: string, init?: RequestInit) =>
+    path.startsWith('/api/asset-types')
+      ? Promise.resolve(new Response(JSON.stringify({ items: [] })))
+      : (fetcher as (path: string, init?: RequestInit) => unknown)(path, init),
+  )
+}
 const result = {
   asset: { id: 'asset', name: 'Synthetic truck' },
   source_id: 'source',
@@ -30,7 +39,7 @@ it('saves manual input without AI and retains an uncertain request for safe retr
     )
     .mockRejectedValueOnce(new Error('connection lost'))
     .mockResolvedValueOnce(new Response(JSON.stringify(result)))
-  vi.stubGlobal('fetch', fetcher)
+  stubFetch(fetcher)
   render(<ManualAssetForm {...callbacks} />)
   const user = await enter()
   await user.type(screen.getByLabelText('Notes'), 'My own entry')
@@ -62,7 +71,7 @@ it('requires an explicit duplicate choice and prevents creating a serial duplica
     .mockResolvedValueOnce(
       new Response(JSON.stringify({ ...result, created: false })),
     )
-  vi.stubGlobal('fetch', fetcher)
+  stubFetch(fetcher)
   render(<ManualAssetForm {...callbacks} />)
   const user = await enter()
   await user.click(screen.getByRole('button', { name: 'Save asset' }))
@@ -89,7 +98,7 @@ it('cancels a duplicate preview when the form unmounts without saving anything',
         finish = resolve
       }),
   )
-  vi.stubGlobal('fetch', fetcher)
+  stubFetch(fetcher)
   const callbacks = props()
   const view = render(<ManualAssetForm {...callbacks} />)
   const user = await enter()

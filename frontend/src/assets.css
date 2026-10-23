@@ -3,29 +3,113 @@
   margin: 0 auto;
 }
 .manual-asset {
-  padding: 1rem;
+  padding: 1.25rem;
   margin-block: 1rem;
   border: 1px solid var(--border);
   border-radius: 0.8rem;
   background: var(--card);
 }
+.manual-asset h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+.assets-panel .manual-asset > .manual-asset-hint {
+  margin-bottom: 1rem;
+}
 .manual-asset-fields {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  align-items: start;
   gap: 1rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  border: 0;
+  min-width: 0;
 }
 .manual-asset-fields label {
   display: grid;
   gap: 0.35rem;
+  font-weight: 500;
 }
-.manual-asset-fields :is(input:not([type='checkbox']), textarea) {
+.manual-asset-fields :is(input:not([type='checkbox']), textarea, select) {
   width: 100%;
 }
-.manual-asset-notes {
+.manual-asset-fields select {
+  min-height: 2.25rem;
+}
+.assets-panel .manual-asset-hint {
+  margin: 0.3rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+.manual-asset-fields .manual-asset-required {
+  grid-template-columns: 1fr auto;
+}
+.manual-asset-required > input {
+  grid-row: 2;
   grid-column: 1 / -1;
+}
+.manual-asset-required::after {
+  content: 'Required';
+  grid-row: 1;
+  grid-column: 2;
+  align-self: center;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+.manual-asset-notes,
+.manual-asset-type-details {
+  grid-column: 1 / -1;
+}
+.manual-asset-type-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  align-items: start;
+  gap: 0.75rem 1rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+}
+.manual-asset-type-details legend {
+  padding: 0 0.35rem;
+  font-weight: 600;
+}
+.assets-panel .manual-asset-type-details > p {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.manual-asset-owned label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.manual-asset-owned input {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+.manual-asset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.manual-asset .manual-asset-actions button {
+  margin: 0;
 }
 .manual-asset button {
   margin: 0.35rem 0.5rem 0.35rem 0;
+}
+@media (max-width: 480px) {
+  .manual-asset {
+    padding: 1rem;
+  }
+  .manual-asset-actions > button {
+    flex: 1 1 8rem;
+  }
 }
 .assets-panel p {
   margin: 0.7rem 0;

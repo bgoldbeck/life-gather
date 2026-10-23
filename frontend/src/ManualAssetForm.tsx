@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { CandidateComparison } from './CandidateComparison'
-import { AssetTypePicker } from './AssetTypePicker'
-import type { AssetType, TypeValue } from './assetTypes'
+import { AssetTypeDetails, AssetTypeSelect } from './AssetTypePicker'
+import { typeValues, useAssetTypeCatalog, type TypeValue } from './assetTypes'
 import './asset-types.css'
 
 type Fields = {
@@ -53,8 +53,10 @@ export function ManualAssetForm({
     notes: '',
   })
   const [owned, setOwned] = useState(false)
-  const [assetType, setAssetType] = useState<AssetType | null>(null)
-  const [typeValues, setTypeValues] = useState<TypeValue[]>([])
+  const catalog = useAssetTypeCatalog(refreshSession)
+  const [typeId, setTypeId] = useState('')
+  const [details, setDetails] = useState<Record<string, string>>({})
+  const assetType = catalog.items.find((item) => item.id === typeId) ?? null
   const [preview, setPreview] = useState<Preview | null>(null)
   const [busy, setBusy] = useState(false)
   const [retry, setRetry] = useState(false)
@@ -88,7 +90,7 @@ export function ManualAssetForm({
         ? {
             type_id: assetType.id,
             type_revision: assetType.revision,
-            type_values: typeValues,
+            type_values: typeValues(assetType, details),
           }
         : {}),
     }
@@ -190,43 +192,57 @@ export function ManualAssetForm({
       if (!check.candidates.length) await save('new', check)
     })
   }
+  function edited() {
+    setPreview(null)
+    setError('')
+  }
   return (
     <section className="manual-asset" aria-label="Add asset manually">
       <h2>Add asset</h2>
-      <p>
-        Record one physical item. Your entry is saved as your statement, with
-        its original details and history. Unknown fields can stay blank.
+      <p className="manual-asset-hint">
+        Record one physical item. It is saved as your statement with its
+        history. Leave anything you don't know blank.
       </p>
       <form onSubmit={(event) => void submit(event)}>
         <fieldset disabled={frozen} className="manual-asset-fields">
-          <AssetTypePicker
-            disabled={frozen}
-            refreshSession={refreshSession}
-            onChange={(type, values) => {
-              setAssetType(type)
-              setTypeValues(values)
-              setPreview(null)
-              setError('')
-            }}
-          />
-          <label>
+          <label className="manual-asset-required">
             Asset name
             <input
               required
+              autoFocus
               maxLength={200}
+              placeholder="e.g. Kitchen refrigerator"
               value={fields.name}
               onChange={(event) => change('name', event.target.value)}
             />
           </label>
-          <label>
-            Manufacturer
-            <input
-              maxLength={100}
-              value={fields.manufacturer}
-              required={Boolean(fields.model || fields.serial)}
-              onChange={(event) => change('manufacturer', event.target.value)}
-            />
-          </label>
+          <AssetTypeSelect
+            catalog={catalog}
+            disabled={frozen}
+            value={typeId}
+            onChange={(id) => {
+              setTypeId(id)
+              edited()
+            }}
+          />
+          <div className="manual-asset-field">
+            <label>
+              Manufacturer
+              <input
+                maxLength={100}
+                value={fields.manufacturer}
+                required={Boolean(fields.model || fields.serial)}
+                aria-describedby="manual-asset-manufacturer-hint"
+                onChange={(event) => change('manufacturer', event.target.value)}
+              />
+            </label>
+            <p
+              id="manual-asset-manufacturer-hint"
+              className="manual-asset-hint"
+            >
+              Needed for a model or serial number.
+            </p>
+          </div>
           <label>
             Model
             <input
@@ -243,6 +259,15 @@ export function ManualAssetForm({
               onChange={(event) => change('serial', event.target.value)}
             />
           </label>
+          <AssetTypeDetails
+            type={assetType}
+            disabled={frozen}
+            values={details}
+            onChange={(fieldId, value) => {
+              setDetails((old) => ({ ...old, [fieldId]: value }))
+              edited()
+            }}
+          />
           <label className="manual-asset-notes">
             Notes
             <textarea
@@ -251,23 +276,26 @@ export function ManualAssetForm({
               onChange={(event) => change('notes', event.target.value)}
             />
           </label>
-          <label className="manual-asset-notes">
-            <input
-              required
-              type="checkbox"
-              checked={owned}
-              onChange={(event) => {
-                setOwned(event.target.checked)
-                setPreview(null)
-              }}
-            />
-            I currently own this item
-          </label>
+          <div className="manual-asset-notes manual-asset-owned">
+            <label>
+              <input
+                required
+                type="checkbox"
+                checked={owned}
+                aria-describedby="manual-asset-owned-hint"
+                onChange={(event) => {
+                  setOwned(event.target.checked)
+                  setPreview(null)
+                }}
+              />
+              I currently own this item
+            </label>
+            <p id="manual-asset-owned-hint" className="manual-asset-hint">
+              Required to save. Recorded as your statement; you can correct
+              ownership later.
+            </p>
+          </div>
         </fieldset>
-        <p>
-          A model or serial number needs its manufacturer. No AI provider is
-          required.
-        </p>
         {error && <p role="alert">{error}</p>}
         {busy && <p role="status">Checking or saving your asset…</p>}
         {preview && preview.candidates.length > 0 && (
@@ -318,19 +346,21 @@ export function ManualAssetForm({
             )}
           </div>
         )}
-        {(!preview?.candidates.length || retry) && (
-          <Button type="submit" disabled={busy}>
-            {retry ? 'Retry same save' : 'Save asset'}
+        <div className="manual-asset-actions">
+          {(!preview?.candidates.length || retry) && (
+            <Button type="submit" disabled={busy}>
+              {retry ? 'Retry same save' : 'Save asset'}
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={frozen}
+            onClick={onCancel}
+          >
+            Cancel
           </Button>
-        )}
-        <Button
-          type="button"
-          variant="outline"
-          disabled={frozen}
-          onClick={onCancel}
-        >
-          Cancel
-        </Button>
+        </div>
       </form>
     </section>
   )

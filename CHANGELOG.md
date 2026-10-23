@@ -12,6 +12,19 @@
   server the HTTPS address that installing requires.
 - No migration, API or MCP change.
 
+## 0.94.1 - Easier Add asset form
+
+- Asset type is now one dropdown from the start. Before, clicking **Choose asset
+  type** swapped the button for a second dropdown and moved every field.
+- The form starts with the name (focused, marked Required) and type, then
+  manufacturer, model and serial. A chosen type's fields appear below those in
+  their own "<type> details" group instead of pushing the name down; values
+  typed into a type's fields are kept if you switch types and back.
+- Manufacturer and ownership explain their rules next to the field. Fields line
+  up evenly, the heading is clearer and the Save/Cancel buttons fill the width on
+  phones. If types fail to load, General item still works with a retry button.
+- Frontend only. No API, MCP or schema change.
+
 ## 0.94.0 - Operations: logs, alerts and the Operations page
 
 - Backend logs are now one JSON line per record. API requests log the route

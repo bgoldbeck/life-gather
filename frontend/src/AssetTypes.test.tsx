@@ -80,11 +80,15 @@ it('uses the selected type in manual duplicate checks and the atomic save', asyn
     />,
   )
   const user = userEvent.setup()
-  await user.click(screen.getByRole('button', { name: 'Choose asset type' }))
-  await user.selectOptions(
-    await screen.findByLabelText('Asset type'),
-    'vehicle',
-  )
+  expect(screen.getByLabelText('Asset name')).toHaveFocus()
+  await screen.findByRole('option', { name: 'Vehicle' })
+  const select = screen.getByLabelText('Asset type')
+  await user.selectOptions(select, 'vehicle')
+  // The same dropdown stays in place; the type only adds a details group.
+  expect(screen.getAllByRole('combobox')).toEqual([select])
+  expect(
+    screen.getByRole('group', { name: 'Vehicle details' }),
+  ).toBeInTheDocument()
   await user.type(screen.getByLabelText('Tire size'), '205/55 R16')
   await user.type(screen.getByLabelText('Asset name'), 'Test car')
   await user.click(screen.getByLabelText('I currently own this item'))

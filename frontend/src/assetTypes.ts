@@ -159,3 +159,49 @@ export function useTypeWrite(
   }
   return { save, busy, retry, error }
 }
+
+// Loads the active asset types once the add-asset form opens, so the type
+// dropdown is a single stable control from the start.
+export function useAssetTypeCatalog(refreshSession?: () => Promise<void>) {
+  const [items, setItems] = useState<AssetType[]>([])
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [attempt, setAttempt] = useState(0)
+  useEffect(() => {
+    const controller = new AbortController()
+    void typeCatalog(false, controller.signal, refreshSession)
+      .then((items) => {
+        if (!controller.signal.aborted) setItems(items)
+      })
+      .catch((caught) => {
+        if (!controller.signal.aborted) setError(caught.message)
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false)
+      })
+    return () => controller.abort()
+  }, [attempt, refreshSession])
+  function reload() {
+    setLoading(true)
+    setError('')
+    setAttempt((value) => value + 1)
+  }
+  return { items, error, loading, reload }
+}
+
+export function activeFields(type: AssetType | null) {
+  return (type?.fields ?? []).filter((field) => !field.retired && field.id)
+}
+
+export function typeValues(
+  type: AssetType | null,
+  values: Record<string, string>,
+): TypeValue[] {
+  return activeFields(type)
+    .filter((field) => values[field.id!]?.trim())
+    .map((field) => ({
+      field_id: field.id!,
+      value: values[field.id!].trim(),
+      text: `I state ${field.name}: ${values[field.id!].trim()}`,
+    }))
+}
