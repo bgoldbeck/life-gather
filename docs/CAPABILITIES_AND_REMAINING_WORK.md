@@ -108,3 +108,5 @@ directly. Update this inventory as bounded releases actually land; do not treat
 older stage-specific exclusions as proof a subsequently released feature is absent.
 
 Research-save reliability: v0.84.1 binds each accepted request to its original input and finding, including duplicates. Exact retries preserve removal state; records format 6 preserves receipts.
+
+Reconnect prompts: v0.85.0 remembers when Google or an AI provider refuses a saved sign-in and offers one-click Reconnect in Power Center, Scans, chat and Settings. Migration 0036.

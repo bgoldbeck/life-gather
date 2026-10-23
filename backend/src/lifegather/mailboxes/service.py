@@ -98,12 +98,14 @@ class Mailboxes:
         return row
 
     @staticmethod
-    def view(row: Mailbox) -> dict[str, Any]:
+    def view(row: Mailbox, needs_reconnect: bool = False) -> dict[str, Any]:
         return {
             "id": row.id,
             "provider": "gmail",
             "address": row.address,
             "connected": row.credential_id is not None,
+            # Google refused this grant (expired or revoked) on its last use.
+            "needs_reconnect": row.credential_id is not None and needs_reconnect,
             "revision": row.revision,
             "created_at": row.created_at,
             "updated_at": row.updated_at,
@@ -112,9 +114,14 @@ class Mailboxes:
     def list(self, actor: Account) -> list[dict[str, Any]]:
         with Session(self.engine) as db:
             return [
-                self.view(row)
-                for row in db.scalars(
-                    select(Mailbox)
+                self.view(row, state == "reconnect")
+                for row, state in db.execute(
+                    select(Mailbox, Credential.auth_state)
+                    .outerjoin(
+                        Credential,
+                        (Credential.user_id == Mailbox.user_id)
+                        & (Credential.id == Mailbox.credential_id),
+                    )
                     .where(Mailbox.user_id == actor.id)
                     .order_by(Mailbox.created_at, Mailbox.id)
                     .limit(10)
@@ -179,6 +186,8 @@ class Mailboxes:
                 actor, credential, grant.refresh_token.get_secret_value()
             )
             credential.updated_at = now
+            # Consent and the profile read just succeeded with this grant.
+            credential.auth_state, credential.auth_checked_at = "working", now
             db.flush()
             if row is None:
                 row = Mailbox(

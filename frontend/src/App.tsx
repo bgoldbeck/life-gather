@@ -46,6 +46,7 @@ import { MailboxesPanel } from './MailboxesPanel'
 import { ScansPanel } from './ScansPanel'
 import { PurchasesPanel } from './PurchasesPanel'
 import { PowerCenter } from './PowerCenter'
+import type { ReconnectTarget } from './reconnect'
 import { GlobalSearch, type SearchResult } from './GlobalSearch'
 import type { Theme } from './appearance'
 import { ToneIcon } from './tones'
@@ -164,6 +165,12 @@ export function Workspace({
   const [profileId, setProfileId] = useState('')
   const [receiptSourceId, setReceiptSourceId] = useState('')
   const [scanRunId, setScanRunId] = useState('')
+  const [reconnectKey, setReconnectKey] = useState<ReconnectTarget | null>(null)
+  // An AI key's Reconnect opens its Replace form; Gmail goes straight to Google.
+  const openReconnect = (target: ReconnectTarget) => {
+    setReconnectKey({ ...target })
+    setView('Settings')
+  }
   // A photo, document or source to open on its page; `visit` remounts the page.
   const [target, setTarget] = useState({
     photo: '',
@@ -328,6 +335,8 @@ export function Workspace({
                     onNavigate={setView}
                     onOpenAssistant={openAssistant}
                     refreshSession={refreshSession}
+                    csrfToken={csrfToken}
+                    onReconnectKey={openReconnect}
                   />
                   <AppearanceSettings
                     theme={appearance}
@@ -339,6 +348,7 @@ export function Workspace({
                     refreshSession={refreshSession}
                   />
                   <PrivateSettingsPanel
+                    reconnect={reconnectKey}
                     onChanged={powerChanged}
                     csrfToken={csrfToken}
                     refreshSession={refreshSession}
@@ -360,6 +370,8 @@ export function Workspace({
                   onNavigate={setView}
                   refreshSession={refreshSession}
                   onOpenAssistant={openAssistant}
+                  csrfToken={csrfToken}
+                  onReconnectKey={openReconnect}
                   onOpenScan={(id) => {
                     setScanRunId(id)
                     setView('Scans')
@@ -372,6 +384,7 @@ export function Workspace({
                   key={scanRunId}
                   csrfToken={csrfToken}
                   onNavigate={setView}
+                  onReconnectKey={openReconnect}
                   initialRunId={scanRunId}
                 />
               ) : view === 'Purchases' ? (
@@ -652,6 +665,7 @@ export function Workspace({
               setScanRunId(id)
               setView('Scans')
             }}
+            onReconnectKey={openReconnect}
             onRecordChanged={(id) => {
               if (view === 'Assets') setAssetId(id)
               setContextRevision((value) => value + 1)

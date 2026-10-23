@@ -6,6 +6,7 @@ it, and alternatives the text allows are reported as ambiguities, not resolved.
 """
 
 import re
+import time
 from collections.abc import Callable, Mapping
 from typing import Any
 
@@ -14,9 +15,9 @@ from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
 from lifegather.auth.store import Account
-from lifegather.chat.provider import Provider
+from lifegather.chat.provider import Provider, tracked
 from lifegather.chat.service import ChatService
-from lifegather.credentials.service import PrivateSettings
+from lifegather.credentials.service import PrivateSettings, ReconnectRequired
 from lifegather.memory.service import MemoryError
 from lifegather.reconciliation.printed_values import (
     AMBIGUOUS_MARKERS,
@@ -225,20 +226,30 @@ class DetailSuggester:
         provider = self.providers.get(provider_name)
         if provider is None:
             raise MemoryError("This AI connection is unavailable")
+        read_at = int(time.time())
         secret, day = self.chat.reserve(actor, self.vault, data.credential_id)
         active()
         try:
-            completion = await provider.complete(
-                secret,
-                data.model,
-                INSTRUCTION,
-                {
-                    "receipt_text": text,
-                    "item_quote": item_quote,
-                    "quantity": quantity,
-                },
-                DetailReading,
+            completion = await tracked(
+                self.vault,
+                actor,
+                data.credential_id,
+                provider_name,
+                read_at,
+                provider.complete(
+                    secret,
+                    data.model,
+                    INSTRUCTION,
+                    {
+                        "receipt_text": text,
+                        "item_quote": item_quote,
+                        "quantity": quantity,
+                    },
+                    DetailReading,
+                ),
             )
+        except ReconnectRequired as error:
+            raise MemoryError(str(error)) from None
         except Exception:
             raise MemoryError(
                 "The AI provider was unavailable or returned an invalid answer"

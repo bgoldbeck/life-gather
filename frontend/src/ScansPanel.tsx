@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { EvidencePanel, type EvidenceSource } from './EvidencePanel'
+import { ReconnectButton } from './ReconnectButton'
+import type { ReconnectTarget } from './reconnect'
 import { ScanSchedulesPanel } from './ScanSchedulesPanel'
 import { ScanAIOptions } from './ScanAIOptions'
 
-type Mailbox = { id: string; address: string; connected: boolean }
+type Mailbox = {
+  id: string
+  address: string
+  connected: boolean
+  needs_reconnect?: boolean
+}
 type Run = {
   id: string
   handler_key: string
@@ -41,11 +48,13 @@ type Evidence = EvidenceSource & { next_offset: number | null }
 export function ScansPanel({
   csrfToken,
   onNavigate,
+  onReconnectKey,
   initialRunId = '',
 }: {
   csrfToken: string
   initialRunId?: string
   onNavigate?: (view: 'Review' | 'Assets' | 'Documents') => void
+  onReconnectKey?: (target: ReconnectTarget) => void
 }) {
   const [discovery, setDiscovery] = useState(false)
   const [attachments, setAttachments] = useState(false)
@@ -284,6 +293,25 @@ export function ScansPanel({
   return (
     <section className="space-y-5">
       <h2 className="text-xl font-semibold">Scans</h2>
+      {mailboxes
+        .filter((item) => item.needs_reconnect)
+        .map((item) => (
+          <div
+            key={item.id}
+            role="alert"
+            className="space-y-2 rounded border p-3"
+          >
+            <p>
+              Gmail access for <strong>{item.address}</strong> expired or was
+              revoked, so its scans stop until you reconnect. Saved evidence is
+              kept.
+            </p>
+            <ReconnectButton
+              target={{ kind: 'gmail', provider: 'gmail', mailbox_id: item.id }}
+              csrfToken={csrfToken}
+            />
+          </div>
+        ))}
       <ScanSchedulesPanel
         csrfToken={csrfToken}
         mailboxes={mailboxes}
@@ -340,6 +368,7 @@ export function ScansPanel({
               model={model}
               onCredential={setCredential}
               onModel={setModel}
+              onReconnectKey={onReconnectKey}
             />
           )}
           <label>
@@ -353,6 +382,7 @@ export function ScansPanel({
               {mailboxes.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.address}
+                  {item.needs_reconnect ? ' · needs reconnect' : ''}
                 </option>
               ))}
             </select>

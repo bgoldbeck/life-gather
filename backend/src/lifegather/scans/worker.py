@@ -8,6 +8,7 @@ from typing import Literal
 
 from sqlalchemy.exc import OperationalError
 
+from lifegather.credentials.service import ReconnectRequired
 from lifegather.database import account_scope
 from lifegather.memory.origins import ChangeOrigin, change_origin
 from lifegather.scans.registry import ScanContext
@@ -76,6 +77,9 @@ class ScanWorker:
         except asyncio.CancelledError:
             self.scans.release(claim)
             raise
+        except ReconnectRequired as error:
+            # Fixed text naming the refused sign-in; completed evidence stays.
+            self.scans.finish(claim, "failed", str(error))
         except Exception:
             # Provider exception strings may contain private request material.
             self.scans.finish(

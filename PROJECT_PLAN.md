@@ -1,7 +1,11 @@
 # LifeGather — Product and Engineering Plan
 
-**Status:** v0.84.1 hardens research-save retries and evidence acknowledgments; tracking and evidence-backed recall remain the active priorities.
-**Date:** Updated 2026-10-22
+**Status:** v0.85.0 adds reconnect prompts for expired Gmail and AI sign-ins; tracking and evidence-backed recall remain the active priorities.
+**Date:** Updated 2026-10-23
+
+v0.85.0 remembers when Google or an AI provider refuses a saved sign-in and offers
+one-click Reconnect in Power Center, Scans, chat and Settings. Migration 0036. See
+[reconnect plan](docs/superpowers/plans/2026-10-23-reconnect-prompts.md).
 
 v0.84.1 hardens saved web research retries with durable owner-scoped receipts,
 removed-result acknowledgments and records format 6. Migration 0035; formats 4/5

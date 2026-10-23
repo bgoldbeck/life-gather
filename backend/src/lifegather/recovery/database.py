@@ -38,6 +38,7 @@ SUPPORTED_MIGRATIONS = frozenset(
         "0033_account_row_security",
         "0034_research_findings",
         "0035_research_save_receipts",
+        "0036_credential_auth_state",
     }
 )
 STORED_PARTS = {
