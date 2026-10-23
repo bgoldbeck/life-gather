@@ -40,6 +40,11 @@ input, shows progress and **Cancel upload**, and sending the same photo again
 saves it once; the assistant's **Review a receipt photo** picker takes and
 selects a photo the same way. A desktop browser does not show the button.
 
+`frontend/e2e/share-target.spec.ts` checks Share to LifeGather: it posts a photo
+and a text document to `/share-target` the way Android does, saves both from the
+**Shared to LifeGather** card, and confirms the browser's cache and IndexedDB
+still hold nothing shared and that the files cannot be claimed a second time.
+
 `frontend/e2e/two-account-loop.spec.ts` runs the Phase 3 loop for **two accounts
 in one installation**, each in its own browser context, and checks at every step
 that nothing crosses between them:
