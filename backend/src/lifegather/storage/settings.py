@@ -11,8 +11,9 @@ if TYPE_CHECKING:
 
 
 def storage_from_settings(settings: "Settings") -> ObjectStorage:
+    quota = settings.storage_quota_mb * 1024 * 1024
     if settings.storage_backend == "local":
-        return LocalStorage(settings.files_dir)
+        return LocalStorage(settings.files_dir, quota)
     try:
         import boto3  # type: ignore[import-not-found,unused-ignore]
     except ImportError:
@@ -28,4 +29,4 @@ def storage_from_settings(settings: "Settings") -> ObjectStorage:
         aws_access_key_id=settings.s3_access_key_id or None,
         aws_secret_access_key=secret or None,
     )
-    return S3Storage(client, settings.s3_bucket, settings.s3_prefix)
+    return S3Storage(client, settings.s3_bucket, settings.s3_prefix, quota)

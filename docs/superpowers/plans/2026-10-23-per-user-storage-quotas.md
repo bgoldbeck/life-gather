@@ -7,8 +7,8 @@ service can bound storage cost. Self-hosting stays unlimited by default.
 - Usage: the bytes an account keeps in file storage, counted from the live
   photo (original + preview) and document rows it owns. No new table; the rows
   already record exact sizes and deleted rows have their files removed.
-- Limit: `LIFEGATHER_STORAGE_QUOTA_MB` (also settable in the installation
-  configuration file). `0`, the default, means no account-wide limit.
+- Limit: `LIFEGATHER_STORAGE_QUOTA_MB` (environment-only, like the other
+  storage settings). `0`, the default, means no account-wide limit.
 - Enforcement: photo upload, document upload, chat attachments, Gmail attachment
   intake and personal-archive restore refuse a new file that would take the
   account past its limit. The check runs inside the existing serialized write,
