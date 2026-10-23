@@ -36,6 +36,7 @@ LOCAL_FIELDS = {
     # startup behaviour belong to the host that runs the restored installation.
     "vault_keys",
     "trusted_proxies",
+    "proxy_secret",
     "migrate_on_start",
     # How background scans are driven, and the tick token, belong to the host.
     "background_mode",
@@ -99,6 +100,7 @@ def validate_configuration(path: Path, root: Path, has_key: bool) -> dict[str, A
             "build_revision": "",
             "vault_keys": "",
             "trusted_proxies": "",
+            "proxy_secret": "",
             "migrate_on_start": True,
             **STORAGE_DEFAULTS,
         }
