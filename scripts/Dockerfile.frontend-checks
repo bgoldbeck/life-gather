@@ -1,0 +1,8 @@
+FROM node:24-bookworm-slim
+WORKDIR /app/frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY frontend/ ./
+COPY backend/src/lifegather/version.py /app/backend/src/lifegather/version.py
+# Run checks on every invocation, including when Docker reuses the image.
+CMD ["sh", "-c", "npm test && npm run lint && npm run typecheck && npm run format:check && npm run build"]

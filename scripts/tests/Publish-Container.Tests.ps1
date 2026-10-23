@@ -1,5 +1,13 @@
 # Offline control-flow tests: no Docker, network, credentials, or registry writes.
 $ErrorActionPreference = 'Stop'
+if (-not ('LifeGatherMissingManifest' -as [type])) {
+    Add-Type @'
+public class LifeGatherMissingManifest : System.Exception {
+    public object Response { get { return new LifeGatherMissingResponse(); } }
+}
+public class LifeGatherMissingResponse { public int StatusCode { get { return 404; } } }
+'@
+}
 $publisher = Join-Path (Split-Path -Parent $PSScriptRoot) 'Publish-Container.ps1'
 $parseErrors = $null
 [void][Management.Automation.Language.Parser]::ParseFile($publisher, [ref]$null, [ref]$parseErrors)
@@ -75,15 +83,8 @@ function global:git {
         default { throw 'Unexpected git command' }
     }
 }
-function global:uv {
-    $global:LifeGatherReleaseTest.Checks++
-    $global:LASTEXITCODE = 0
-    if ($args -contains '../scripts/run_backend_tests.py') {
-        $global:LifeGatherReleaseTest.BackendRuns++
-        if ($global:LifeGatherReleaseTest.BackendFailure) { $global:LASTEXITCODE = 1 }
-    }
-}
-function global:npm { $global:LifeGatherReleaseTest.Checks++; $global:LASTEXITCODE = 0 }
+function global:uv { throw 'Publisher must not require host uv' }
+function global:npm { throw 'Publisher must not require host npm' }
 function global:Read-Host {
     param([string]$Prompt)
     if ($global:LifeGatherReleaseTest.Answers.Count -eq 0) { throw "Unexpected prompt: $Prompt" }
@@ -105,6 +106,13 @@ function global:docker {
         }
         'compose' { }
         'build' {
+            if ($arguments -contains 'scripts/Dockerfile.release-controller' -or $arguments -contains 'scripts/Dockerfile.frontend-checks') {
+                $idFile = $arguments[[array]::IndexOf($arguments, '--iidfile') + 1]
+                $idChar = if ($arguments -contains 'scripts/Dockerfile.release-controller') { '1' } else { '2' }
+                Set-Content -LiteralPath $idFile -Value ('sha256:' + ($idChar * 64))
+                $global:LifeGatherReleaseTest.Checks++
+                return
+            }
             if ($arguments -notcontains '--progress=plain') {
                 throw 'Build must show readable plain progress'
             }
@@ -121,6 +129,17 @@ function global:docker {
             if ($global:LifeGatherReleaseTest.BuildFailure) { $global:LASTEXITCODE = 1 }
         }
         'run' {
+            if ($arguments -contains ('sha256:' + ('1' * 64))) {
+                $global:LifeGatherReleaseTest.BackendRuns++
+                if ($arguments -notcontains 'type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock' -or
+                    -not ($arguments | Where-Object { $_ -like '*target=/workspace,readonly' })) { throw 'Controller must use read-only source and local socket' }
+                if ($global:LifeGatherReleaseTest.BackendFailure) { $global:LASTEXITCODE = 1 }
+                return
+            }
+            if ($arguments -contains ('sha256:' + ('2' * 64))) {
+                if ($arguments -notcontains 'none') { throw 'Frontend checks must be offline after dependency build' }
+                return
+            }
             if ($arguments[-1] -eq 'pgvector/pgvector:pg17') {
                 if ($arguments -notcontains 'POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=C') {
                     throw 'Test databases must use byte-order collation'
@@ -167,6 +186,28 @@ function global:docker {
     }
 }
 
+function global:Invoke-WebRequest {
+    param($Uri, $Headers, $Method, $Body, $ContentType, [switch]$UseBasicParsing, $TimeoutSec, $ErrorAction)
+    if ($global:LifeGatherReleaseTest.RegistryFailure) { throw 'synthetic registry unavailable' }
+    if ($Uri -like '*/token?*') { return [pscustomobject]@{ Content = '{"token":"synthetic-registry-token"}'; Headers = @{} } }
+    if ($Uri -like '*/blobs/*') {
+        $revision = $global:LifeGatherReleaseTest.PublishedRevision
+        if ($global:LifeGatherReleaseTest.Pushes -gt 0) { $revision = $global:LifeGatherReleaseTest.Head }
+        return [pscustomobject]@{ Content = ('{"os":"linux","architecture":"amd64","config":{"Labels":{"org.opencontainers.image.revision":"' + $revision + '","org.opencontainers.image.version":"' + $global:LifeGatherReleaseTest.Version + '"}}}'); Headers = @{} }
+    }
+    if ($Method -eq 'PUT') { $global:LifeGatherReleaseTest.Retags++; return [pscustomobject]@{ Content = ''; Headers = @{} } }
+    if ($global:LifeGatherReleaseTest.PublishedRevision -eq 'missing' -and $global:LifeGatherReleaseTest.Pushes -eq 0) {
+        # Throw a fixture WebException with a 404 response via a simple custom type.
+        throw [LifeGatherMissingManifest]::new()
+    }
+    $digest = 'd' * 64
+    if ($Uri -like '*/latest' -and $global:LifeGatherReleaseTest.LatestBehind -and $global:LifeGatherReleaseTest.Retags -eq 0 -and $global:LifeGatherReleaseTest.Pushes -lt 2) { $digest = 'e' * 64 }
+    return [pscustomobject]@{
+        Content = '{"mediaType":"application/vnd.oci.image.manifest.v1+json","config":{"digest":"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}}'
+        Headers = @{ 'Docker-Content-Digest' = "sha256:$digest" }
+    }
+}
+
 function Test-Release {
     param(
         [string]$Name, [hashtable]$Flags = @{}, [string[]]$Answers,
@@ -180,7 +221,9 @@ function Test-Release {
         [bool]$FetchFailure = $false, [bool]$MoveAgain = $false,
         [bool]$NoAuth = $false, [int]$ExpectedUpdates = 0, [int]$ExpectedAuthRepairs = 0,
         [bool]$AuthRepairFailure = $false, [bool]$DirtyAfterFetch = $false,
-        [bool]$ContainerBuilder = $false, [bool]$BackendFailure = $false
+        [bool]$ContainerBuilder = $false, [bool]$BackendFailure = $false,
+        [string]$PublishedRevision = 'missing', [bool]$LatestBehind = $false,
+        [bool]$RegistryFailure = $false, [string]$Result = '', [int]$ExpectedRetags = 0
     )
     $queue = New-Object 'System.Collections.Generic.Queue[string]'
     foreach ($answer in $Answers) { $queue.Enqueue($answer) }
@@ -193,6 +236,8 @@ function Test-Release {
         AuthRepairFailure = $AuthRepairFailure; DirtyAfterFetch = $DirtyAfterFetch
         ContainerBuilder = $ContainerBuilder; ImageLoaded = $false; Databases = 0
         BackendFailure = $BackendFailure; BackendRuns = 0
+        PublishedRevision = $PublishedRevision; LatestBehind = $LatestBehind; RegistryFailure = $RegistryFailure; Retags = 0
+        Version = ([regex]::Match((Get-Content (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'backend/src/lifegather/version.py') -Raw), '__version__ = "([^"]+)"')).Groups[1].Value
     }
     $failed = $false
     $captured = New-Object System.Text.StringBuilder
@@ -208,7 +253,9 @@ function Test-Release {
         $global:LifeGatherReleaseTest.Pushes -ne $ExpectedPushes) {
         throw "FAIL: $Name (failure=$failed builds=$($global:LifeGatherReleaseTest.Builds) pushes=$($global:LifeGatherReleaseTest.Pushes))"
     }
-    if (-not $ExpectFailure -and $global:LifeGatherReleaseTest.BackendRuns -ne 1) { throw 'Must run Linux backend verification exactly once' }
+    if (-not $ExpectFailure -and -not $Result -and $global:LifeGatherReleaseTest.BackendRuns -ne 1) { throw 'Must run Linux backend verification exactly once' }
+    if ($Result -and $global:LifeGatherReleaseTest.BackendRuns -ne 0) { throw 'Already published images must skip verification/build' }
+    if ($global:LifeGatherReleaseTest.Retags -ne $ExpectedRetags) { throw 'Unexpected latest manifest updates' }
     if ($output -match 'synthetic-token') { throw 'Registry token leaked in logs' }
     if (-not $ExpectFailure -and $global:LifeGatherReleaseTest.Databases -ne $ExpectedBuilds) {
         throw "FAIL: $Name must test against temporary PostgreSQL databases"
@@ -227,7 +274,7 @@ function Test-Release {
         $global:LifeGatherReleaseTest.Checks -ne 0) {
         throw 'Missing scope must fail before backend/frontend verification, not just before building'
     }
-    $expectedResult = if ($ExpectFailure) { 'FAILED' }
+    $expectedResult = if ($Result) { $Result } elseif ($ExpectFailure) { 'FAILED' }
         elseif ($Flags.CheckOnly) { 'CHECKS PASSED' }
         elseif ($ExpectedBuilds -eq 0) { 'BUILD DEFERRED' }
         elseif ($ExpectedPushes -gt 0) { 'PUBLISHED' }
@@ -246,10 +293,16 @@ function Test-Release {
 
 try {
     $launcher = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'Publish-Container.cmd') -Raw
-    if ($launcher -notmatch '-Publish -PublishLatest' -or $launcher -notmatch '%~dp0Publish-Container.ps1' -or $launcher -notmatch 'exit /b %result%') {
+    if ($launcher -notmatch 'Container-Helper.ps1' -or $launcher -notmatch '%~dp0Publish-Container.ps1.*%\*' -or $launcher -notmatch 'exit /b %result%') {
         throw 'Launcher must preserve the guarded publisher flags and exit code'
     }
     Test-Release 'failed Linux shard cannot build or publish' -Flags @{ Publish = $true; PublishLatest = $true } -BackendFailure $true -ExpectFailure $true -ExpectedMessage 'Release stopped'
+    Test-Release 'matching commit and latest skip build/upload' -Flags @{ Publish = $true; PublishLatest = $true } -PublishedRevision ('a' * 40) -Result 'ALREADY PUBLISHED (no rebuild)'
+    Test-Release 'matching commit-only publication skips build/upload' -Flags @{ Publish = $true } -PublishedRevision ('a' * 40) -Result 'ALREADY PUBLISHED (no rebuild)'
+    Test-Release 'existing commit updates latest without building' -Flags @{ Publish = $true; PublishLatest = $true } -PublishedRevision ('a' * 40) -LatestBehind $true -ExpectedRetags 1 -Result 'LATEST UPDATED (no rebuild)'
+    Test-Release 'registry failure never builds or uploads' -Flags @{ Publish = $true } -RegistryFailure $true -ExpectFailure $true -ExpectedMessage 'GHCR metadata request failed'
+    Test-Release 'mismatched commit label stops before checks' -Flags @{ Publish = $true } -PublishedRevision ('c' * 40) -ExpectFailure $true -ExpectedMessage 'metadata does not match'
+    Test-Release 'force rebuild bypasses existing matching publication' -Flags @{ Publish = $true; PublishLatest = $true; ForceRebuild = $true } -PublishedRevision ('a' * 40) -ExpectedBuilds 1 -ExpectedPushes 2
     Test-Release 'dirty checkout stops early' -Dirty $true -ExpectFailure $true
     Test-Release 'check-only never builds' -Flags @{ CheckOnly = $true }
     Test-Release 'build-only never pushes' -ExpectedBuilds 1
@@ -276,7 +329,7 @@ try {
     Test-Release 'denied authentication repair never builds' -Flags @{ Publish = $true; RepairAuthentication = $true } -NoAuth $true -AuthRepairFailure $true -ExpectedAuthRepairs 1 -ExpectFailure $true -ExpectedMessage 'Release stopped'
     Test-Release 'edits arriving during fetch prevent update' -Remote ('b' * 40) -Relation 'behind' -DirtyAfterFetch $true -ExpectFailure $true -ExpectedMessage 'checkout changed'
 } finally {
-    foreach ($name in @('Get-Command', 'git', 'uv', 'npm', 'Read-Host', 'docker')) {
+    foreach ($name in @('Get-Command', 'git', 'uv', 'npm', 'Read-Host', 'docker', 'Invoke-WebRequest')) {
         Remove-Item -LiteralPath "Function:\$name"
     }
     Remove-Item -LiteralPath $global:LifeGatherFakeGh

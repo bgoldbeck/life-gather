@@ -1,5 +1,16 @@
 # Changelog
 
+## Developer tooling - Windows container terminal helper
+
+- Double-click `scripts/Container-Helper.cmd` or `Publish-Container.cmd` for setup
+  status, individual installer progress, browser sign-in, verification, local
+  builds and publishing. Python/uv/Node/npm verification now runs in Docker.
+- Publishing checks full commit labels and GHCR digests before rebuilding. An
+  existing publication is skipped; an existing commit image can update latest
+  without a rebuild. Registry errors stop publication; force rebuild is explicit.
+- Existing source, authentication, full-suite and isolated smoke gates remain.
+  Tooling only: no application version, schema, dependency or runtime-image change.
+
 ## Developer tooling - Faster backend release verification
 
 - The Windows publisher runs the full backend suite in four Linux shards, each

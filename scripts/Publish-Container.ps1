@@ -7,6 +7,8 @@ param(
     [switch]$CheckOnly,
     # Explicitly start the browser sign-in/scope repair when publishing needs it.
     [switch]$RepairAuthentication,
+    # Explicitly rebuild even when GHCR already contains this source revision.
+    [switch]$ForceRebuild,
     [Parameter(DontShow)][switch]$SourceUpdated
 )
 
@@ -37,6 +39,7 @@ $imageName = 'ghcr.io/bgoldbeck/life-gather'
 $releaseTimer = [Diagnostics.Stopwatch]::StartNew()
 $currentStage = 'Preflight'
 $releaseOutcome = 'FAILED'
+. (Join-Path $PSScriptRoot 'Registry-Release.ps1')
 
 function Write-Stage {
     param([string]$Name)
@@ -141,7 +144,7 @@ try {
     Write-Host "Workspace: $repoRoot"
     Write-Host 'Verbose progress is enabled. Registry credentials and stdin are never logged.'
     if ($PublishLatest -and -not $Publish) { throw '-PublishLatest requires -Publish.' }
-    foreach ($command in @('git', 'uv', 'npm', 'docker')) {
+    foreach ($command in @('git', 'docker')) {
         if (-not (Get-Command $command -ErrorAction SilentlyContinue)) {
             throw "Install $command and put it on PATH first."
         }
@@ -200,29 +203,44 @@ try {
         if ($PublishLatest -and ($branch -ne 'main' -or $remoteMain -ne $revision)) {
             throw 'Publishing latest requires a clean main checkout matching GitHub main. Push/merge source separately first.'
         }
+        if (-not $ForceRebuild -and -not $CheckOnly) {
+            Write-Stage 'Check published revision'
+            $registryHeaders = New-ReleaseRegistrySession $ghExecutable $registryUser
+            try {
+                $published = Get-ReleaseRegistryImage -Tag "sha-$revision" -Headers $registryHeaders
+                if ($null -ne $published) {
+                    if ($published.Revision -ne $revision -or $published.Version -ne $appVersion) {
+                        throw 'Commit tag metadata does not match source revision/version. Investigate the registry tag before publishing.'
+                    }
+                    if ($PublishLatest) {
+                        $latest = Get-ReleaseRegistryImage -Tag latest -Headers $registryHeaders
+                        if ($null -eq $latest -or $latest.Digest -ne $published.Digest) {
+                            # Retag only a verified immutable image, and recheck source/account.
+                            $advertised = Get-CheckedOutput git @('ls-remote', 'https://github.com/bgoldbeck/life-gather.git', 'refs/heads/main')
+                            if (($advertised -split '\s+')[0] -ne $revision -or
+                                (Get-CheckedOutput git @('rev-parse', 'HEAD')) -ne $revision -or
+                                (Get-CheckedOutput git @('status', '--porcelain')) -or
+                                (Get-PublishIdentity $ghExecutable) -ne $registryUser) {
+                                throw 'Source or publishing account changed. Latest was not updated.'
+                            }
+                            Write-Stage 'Update latest from existing commit image'
+                            Set-ReleaseRegistryLatest -Image $published -Headers $registryHeaders
+                            $releaseOutcome = 'LATEST UPDATED (no rebuild)'
+                            Write-Host "Latest now matches $revision; digest $($published.Digest). No image layers uploaded."
+                            return
+                        }
+                    }
+                    $releaseOutcome = 'ALREADY PUBLISHED (no rebuild)'
+                    Write-Host "Already published: $revision; digest $($published.Digest). Build and upload skipped."
+                    return
+                }
+                Write-Host 'Commit image is absent from GHCR. Continuing with full verification and build.'
+            } finally { $registryHeaders = $null }
+        }
     }
 
-    Write-Stage 'Backend verification'
-    Write-Host 'Dependency setup may download missing packages.'
-    Push-Location (Join-Path $repoRoot 'backend')
-    try {
-        Invoke-Checked uv @('sync', '--locked')
-        Write-Host 'Running the full backend suite in four isolated Linux/PostgreSQL shards; elapsed progress and slow-test logs are reported.'
-        Invoke-Checked uv @('run', '--locked', 'python', '../scripts/run_backend_tests.py')
-        Invoke-Checked uv @('run', '--locked', 'ruff', 'check', '.')
-        Invoke-Checked uv @('run', '--locked', 'ruff', 'format', '--check', '.')
-        Invoke-Checked uv @('run', '--locked', 'mypy')
-    } finally { Pop-Location }
-    Write-Stage 'Frontend verification'
-    Push-Location (Join-Path $repoRoot 'frontend')
-    try {
-        Invoke-Checked npm @('ci', '--no-audit', '--no-fund')
-        Invoke-Checked npm @('test')
-        Invoke-Checked npm @('run', 'lint')
-        Invoke-Checked npm @('run', 'typecheck')
-        Invoke-Checked npm @('run', 'format:check')
-        Invoke-Checked npm @('run', 'build')
-    } finally { Pop-Location }
+    Write-Stage 'Backend and frontend verification in Docker'
+    & (Join-Path $PSScriptRoot 'Verify-ContainerSource.ps1')
     Write-Stage 'Compose validation'
     $configuredPassword = $env:LIFEGATHER_DB_PASSWORD
     if (-not $configuredPassword) { $env:LIFEGATHER_DB_PASSWORD = 'composevalidation' }
@@ -380,6 +398,18 @@ print('Container health, UI, PostgreSQL migration, user, and private storage ver
         Invoke-Checked docker @('tag', $commitTag, $latestTag)
         Invoke-Checked docker ($dockerAuth + @('push', $latestTag))
     }
+    $registryHeaders = New-ReleaseRegistrySession $ghExecutable $registryUser
+    try {
+        $remoteImage = Get-ReleaseRegistryImage -Tag "sha-$revision" -Headers $registryHeaders
+        if ($null -eq $remoteImage -or $remoteImage.Revision -ne $revision -or $remoteImage.Version -ne $appVersion) {
+            throw 'Upload completed but remote commit image revision/version could not be verified.'
+        }
+        if ($PublishLatest) {
+            $remoteLatest = Get-ReleaseRegistryImage -Tag latest -Headers $registryHeaders
+            if ($null -eq $remoteLatest -or $remoteLatest.Digest -ne $remoteImage.Digest) { throw 'Latest digest does not match the uploaded commit image.' }
+        }
+        Write-Host "Verified remote digest: $($remoteImage.Digest); revision: $revision"
+    } finally { $registryHeaders = $null }
     Write-Host "Published $destination. TrueNAS must pull and redeploy to use it."
     Write-Host 'Existing package visibility is unchanged; verify public access for first publication.'
     $releaseOutcome = 'PUBLISHED'

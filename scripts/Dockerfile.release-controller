@@ -1,0 +1,7 @@
+FROM docker:29-cli AS docker-cli
+FROM python:3.13-slim-bookworm
+COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/docker
+COPY --from=docker-cli /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 BUILDX_GIT_INFO=false
+WORKDIR /workspace/backend
+ENTRYPOINT ["python", "../scripts/run_backend_tests.py"]
