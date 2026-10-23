@@ -15,6 +15,7 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from lifegather.assets.routes import asset_router
 from lifegather.assets.type_routes import asset_type_router
+from lifegather.auth.account_routes import account_router
 from lifegather.auth.email_routes import email_router
 from lifegather.auth.email_service import EmailAuth
 from lifegather.auth.email_validation import EmailAuthError
@@ -158,6 +159,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(auth_router(settings, GoogleProvider(settings)))
     app.include_router(private_router())
     app.include_router(email_router(settings))
+    app.include_router(account_router())
     app.include_router(chat_router())
     app.include_router(asset_router())
     app.include_router(asset_type_router())
