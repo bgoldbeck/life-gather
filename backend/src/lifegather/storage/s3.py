@@ -24,11 +24,18 @@ def _missing(error: Exception) -> bool:
 
 
 class S3Storage:
-    def __init__(self, client: S3Client, bucket: str, prefix: str = "") -> None:
+    def __init__(
+        self,
+        client: S3Client,
+        bucket: str,
+        prefix: str = "",
+        account_quota_bytes: int = 0,
+    ) -> None:
         if not bucket:
             raise StorageError("Configure an S3 bucket")
         self.client = client
         self.bucket = bucket
+        self.account_quota_bytes = account_quota_bytes
         self.prefix = prefix.strip("/") + "/" if prefix.strip("/") else ""
 
     def _key(self, key: str) -> str:

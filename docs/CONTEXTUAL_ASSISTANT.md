@@ -2,8 +2,8 @@
 
 The assistant lives in the workspace rather than a separate Chat page. It starts
 on the right and can dock at any edge: drag its header and drop it on the
-highlighted zone, or use the small dock buttons in the header (keyboard and touch
-friendly). Collapsing leaves a thin rail on the same edge. Drag
+highlighted zone, or focus the grip handle at the left of the header and press an
+arrow key to dock on that edge. Collapsing leaves a thin rail on the same edge. Drag
 the divider between the page and assistant to resize it, or focus the divider
 and use arrow keys (Home/End select the size limits). Width and height are saved
 separately per account; existing saved dock positions are preserved. On

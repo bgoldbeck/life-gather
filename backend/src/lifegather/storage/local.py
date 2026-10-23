@@ -12,8 +12,9 @@ BINARY = getattr(os, "O_BINARY", 0)
 
 
 class LocalStorage:
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, account_quota_bytes: int = 0) -> None:
         self.root = root
+        self.account_quota_bytes = account_quota_bytes
 
     def _path(self, key: str) -> Path:
         validate_key(key)

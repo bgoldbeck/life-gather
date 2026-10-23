@@ -21,6 +21,7 @@ from lifegather.documents.models import Document
 from lifegather.operations.models import OperationalEvent
 from lifegather.photos.models import Photo
 from lifegather.scans.models import ScanRun, ScanSchedule
+from lifegather.storage.quota import MIB
 
 # A running scan renews its 60-second lease while it works; one this far past
 # expiry was not picked up again by any worker.
@@ -96,8 +97,7 @@ class StorageUse(BaseModel):
     document_bytes: int
     total_bytes: int
     largest: list[AccountStorage]
-    # Per-account limit in bytes once per-user storage quotas exist; None means
-    # no limit is configured (or quotas are not available in this version).
+    # LIFEGATHER_STORAGE_QUOTA_MB in bytes; None when accounts have no limit.
     quota_bytes: int | None = None
 
 
@@ -300,4 +300,5 @@ class OperationsView:
             document_bytes=int(document_bytes),
             total_bytes=int(photo_bytes) + int(document_bytes),
             largest=largest,
+            quota_bytes=self.settings.storage_quota_mb * MIB or None,
         )

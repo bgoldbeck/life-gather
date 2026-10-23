@@ -201,11 +201,12 @@ for the Phase 3 acceptance gate.
 - **5.2 External background mode** (done in 0.82.0, see [outside scheduler](EXTERNAL_BACKGROUND.md)). Optional setting that disables the
   in-process scan loop and exposes an authenticated, time-bounded job tick so a
   scheduler (Cloudflare Cron Trigger or system cron) runs due schedules and jobs.
-- **5.3 Isolation hardening.** PostgreSQL row-level security as a second lock on
+- **5.3 Isolation hardening** (done in 0.89.0). PostgreSQL row-level security as a second lock on
   owned tables, a cross-account test suite over every HTTP route and MCP tool, and
   per-user file-size and storage quotas. Row-level security, account-scoped files
   and jobs, and the cross-account suite are done in 0.81.0 (see
-  [account isolation](ACCOUNT_ISOLATION.md)); quotas remain.
+  [account isolation](ACCOUNT_ISOLATION.md)); the account-wide storage quota is
+  done in 0.89.0 (see [storage quotas](STORAGE_QUOTAS.md)).
 - **5.4 Cloudflare deployment package.** Worker, wrangler config, container pool
   routing with streamed chat, Cron tick, Secrets Store, private R2 bucket,
   Cloudflare Access on operator routes, and a setup runbook. Staging only until
@@ -219,8 +220,10 @@ for the Phase 3 acceptance gate.
   forms, terms and privacy acceptance, and verified account deletion across
   database rows, stored files and backup expiry; personal archive remains export.
   Account deletion across database rows and stored files is done in 0.87.0
-  (see [account deletion](ACCOUNT_DELETION.md)); Turnstile, terms acceptance and
-  hosted backup-expiry records remain.
+  (see [account deletion](ACCOUNT_DELETION.md)). Optional Turnstile bot checks
+  and terms-of-use acceptance are done in 0.90.0 (see
+  [sign-up protection](SIGNUP_PROTECTION.md)); hosted backup-expiry records
+  remain.
 - **5.6 Backups and recovery for many users.** Managed Postgres point-in-time
   recovery, protected R2 copies, a timed restore drill with written RPO/RTO, and
   per-user restore from the personal archive.
@@ -229,9 +232,9 @@ for the Phase 3 acceptance gate.
   Until approved, hosted Gmail scanning is limited to allowlisted test users.
 - **5.8 Operations.** Structured logs without private content, error alerts, an
   Access-protected operator view of job backlog, failures and storage use.
-  v0.89.0 delivers the logs, alerts and an operator-only
-  [Operations page](OPERATIONS.md); the per-account limit appears there once
-  storage quotas (5.3) are released.
+  v0.91.0 delivers the logs, alerts and an operator-only
+  [Operations page](OPERATIONS.md), which also shows the per-account storage
+  limit.
 - **5.9 Plans and billing (conditional).** Only if the hosted service charges;
   includes any platform-paid AI usage, which is otherwise not offered.
 

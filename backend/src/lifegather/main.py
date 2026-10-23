@@ -16,6 +16,7 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from lifegather.assets.routes import asset_router
 from lifegather.assets.type_routes import asset_type_router
 from lifegather.auth.account_routes import account_router
+from lifegather.auth.bot_check import TurnstileCheck
 from lifegather.auth.email_routes import email_router
 from lifegather.auth.email_service import EmailAuth
 from lifegather.auth.email_validation import EmailAuthError
@@ -23,6 +24,7 @@ from lifegather.auth.google import GoogleProvider
 from lifegather.auth.mail import MailSender, smtp_sender
 from lifegather.auth.routes import auth_router
 from lifegather.auth.store import AuthStore
+from lifegather.auth.terms_routes import terms_router
 from lifegather.chat.claude import ClaudeProvider
 from lifegather.chat.google import GeminiProvider
 from lifegather.chat.provider import OpenAIProvider
@@ -61,6 +63,7 @@ from lifegather.scans.schedule_routes import schedule_router
 from lifegather.scans.tick_routes import tick_router
 from lifegather.search.routes import search_router
 from lifegather.startup import StartupError, run_startup_tasks, schema_current
+from lifegather.storage.routes import storage_router
 from lifegather.storage.settings import storage_from_settings
 from lifegather.version import __version__, build_info
 
@@ -91,7 +94,9 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
         settings.data_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
         keyring = read_keyring(settings)
         store = AuthStore(
-            settings.database(), test_login_enabled=settings.test_login_enabled
+            settings.database(),
+            test_login_enabled=settings.test_login_enabled,
+            terms_version=settings.terms_version,
         )
         app.state.object_storage = storage_from_settings(settings)
         if settings.migrate_on_start:
@@ -145,6 +150,11 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
 
     app = FastAPI(title=settings.app_name, version=__version__, lifespan=lifespan)
     app.state.settings = settings
+    app.state.bot_check = (
+        TurnstileCheck(settings.turnstile_secret_key.get_secret_value())
+        if settings.bot_check_enabled
+        else None
+    )
     app.state.gmail_provider = GmailProvider(settings)
     app.state.chat_provider = OpenAIProvider()
     app.state.claude_provider = ClaudeProvider()
@@ -160,6 +170,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(private_router())
     app.include_router(email_router(settings))
     app.include_router(account_router())
+    app.include_router(terms_router(settings))
     app.include_router(chat_router())
     app.include_router(asset_router())
     app.include_router(asset_type_router())
@@ -181,6 +192,7 @@ def create_app(mail_sender: MailSender | None = None) -> FastAPI:
     app.include_router(purchase_router())
     app.include_router(power_router())
     app.include_router(search_router())
+    app.include_router(storage_router())
     app.include_router(tick_router(settings))
     app.include_router(operations_router())
     app.add_middleware(CredentialBodyLimit)

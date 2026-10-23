@@ -21,20 +21,24 @@ function Draft() {
   )
 }
 
-function dockButton(panel: string, edge: string) {
-  return screen.getByRole('button', { name: `Dock ${panel} ${edge}` })
+const arrowKeys: Record<string, string> = {
+  left: 'ArrowLeft',
+  right: 'ArrowRight',
+  top: 'ArrowUp',
+  bottom: 'ArrowDown',
+}
+
+function grip(panel: string) {
+  return screen.getByRole('button', { name: new RegExp(`^Move ${panel}`) })
+}
+
+// Keyboard docking: focus the grip and press the arrow toward the edge.
+function dockTo(panel: string, edge: string) {
+  fireEvent.keyDown(grip(panel), { key: arrowKeys[edge] })
 }
 
 function dockedEdge(panel: string) {
-  const group = screen.getByRole('group', {
-    name: `${panel[0].toUpperCase() + panel.slice(1)} dock position`,
-  })
-  return within(group)
-    .getAllByRole('button')
-    .find((button) => button.getAttribute('aria-pressed') === 'true')
-    ?.getAttribute('aria-label')
-    ?.split(' ')
-    .at(-1)
+  return grip(panel).getAttribute('aria-label')?.split(' ').at(-1)
 }
 
 it('keeps the assistant and its draft through docking and collapse, with private layout preferences', async () => {
@@ -45,7 +49,7 @@ it('keeps the assistant and its draft through docking and collapse, with private
     </ChatDock>,
   )
   await user.type(screen.getByLabelText('Synthetic draft'), 'Unsaved message')
-  await user.click(dockButton('assistant', 'left'))
+  dockTo('assistant', 'left')
   await user.click(screen.getByRole('button', { name: 'Collapse assistant' }))
   expect(screen.getByLabelText('Synthetic draft')).not.toBeVisible()
   expect(
@@ -87,7 +91,7 @@ it('resizes by keyboard, bounds sizes and remembers separate width/height per ac
   fireEvent.keyDown(handle, { key: 'End' })
   fireEvent.keyDown(handle, { key: 'ArrowLeft' })
   expect(handle).toHaveAttribute('aria-valuenow', '75')
-  await user.click(dockButton('assistant', 'top'))
+  dockTo('assistant', 'top')
   handle = screen.getByRole('separator')
   expect(handle).toHaveAttribute('aria-orientation', 'horizontal')
   fireEvent.keyDown(handle, { key: 'ArrowDown' })
@@ -98,7 +102,7 @@ it('resizes by keyboard, bounds sizes and remembers separate width/height per ac
   view.unmount()
   const second = render(dock())
   expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '25')
-  await user.click(dockButton('assistant', 'right'))
+  dockTo('assistant', 'right')
   expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '75')
   await user.click(screen.getByRole('button', { name: 'Collapse assistant' }))
   expect(screen.queryByRole('separator')).not.toBeInTheDocument()
@@ -125,7 +129,7 @@ it.each([
     const user = userEvent.setup()
     const { container } = render(dock())
     await user.type(screen.getByLabelText('Synthetic draft'), 'Keep this')
-    await user.click(dockButton('assistant', String(edge)))
+    dockTo('assistant', String(edge))
     vi.spyOn(
       container.firstElementChild!,
       'getBoundingClientRect',
@@ -172,7 +176,7 @@ it('resizes side docks vertically when the narrow-screen fallback is active', ()
   expect(container.firstElementChild).toHaveClass('dock-bottom')
   // Edge choices only apply to wide screens, so narrow screens hide them.
   expect(
-    screen.queryByRole('group', { name: 'Assistant dock position' }),
+    screen.queryByRole('button', { name: /^Move assistant/ }),
   ).not.toBeInTheDocument()
   const handle = screen.getByRole('separator')
   expect(handle).toHaveAttribute('aria-orientation', 'horizontal')

@@ -1,6 +1,6 @@
 # Operations: logs, alerts and the Operations page
 
-v0.89.0 adds what the person running an installation needs to see that it is
+v0.91.0 adds what the person running an installation needs to see that it is
 healthy, without reading anyone's records.
 
 ## Logs without private content
@@ -28,7 +28,7 @@ The backend writes one JSON object per line to standard error (Docker and
 
 Every error-level log line becomes an **operational event**: its fixed message
 plus the route, scan type or error type, counted. Events are kept for 30 days in
-the `operational_events` table (migration `0037_operational_events`). It has no
+the `operational_events` table (migration `0038_operational_events`). It has no
 owner column and the per-account database role cannot read it.
 
 Each kind of problem alerts at most once an hour. Alerts go to:
@@ -68,8 +68,9 @@ The page shows, across every account, counts only:
   when an alert last went out.
 - **Storage:** stored photo and document bytes and counts (live files,
   including photo previews), number of accounts, and the five largest accounts
-  by a short pseudonym (`account-1a2b3c4d`, a hash of the account ID). The
-  per-account limit reads "No limit" until per-user storage quotas are released.
+  by a short pseudonym (`account-1a2b3c4d`, a hash of the account ID), counted
+  the same way as [storage quotas](FILE_STORAGE.md), and the per-account limit
+  from `LIFEGATHER_STORAGE_QUOTA_MB` ("No limit" when unset).
 
 No names, emails, file names, record text or messages appear.
 

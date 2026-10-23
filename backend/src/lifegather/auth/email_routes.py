@@ -5,6 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
+from lifegather.auth.bot_check import BotCheck
 from lifegather.auth.email_service import EmailAuth
 from lifegather.auth.email_validation import EmailAuthError, email_key
 from lifegather.auth.routes import SESSION_COOKIE, require_write_session, store_for
@@ -16,6 +17,7 @@ class RequestInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     email: str = Field(min_length=3, max_length=254)
     name: str = Field(default="", max_length=100)
+    bot_token: str = Field(default="", max_length=2048)
 
 
 class LoginInput(BaseModel):
@@ -67,6 +69,11 @@ def email_router(settings: Settings) -> APIRouter:
         service = email_for(request)
         if not service.delivery_enabled:
             raise HTTPException(503, "Email delivery needs installation setup")
+        bot_check: BotCheck | None = request.app.state.bot_check
+        if bot_check is not None and not bot_check.verify(
+            data.bot_token, client_id(request)
+        ):
+            raise HTTPException(400, "Complete the bot check and try again")
         key = email_key(data.email)
         if action == "signup" and (
             not data.name.strip() or any(ord(c) < 32 for c in data.name)

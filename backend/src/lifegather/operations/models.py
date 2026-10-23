@@ -8,7 +8,7 @@ class OperationalEvent(Base):
     """One kind of installation problem, counted; never personal content.
 
     A system table: it has no owner, and the per-account database role has no
-    access to it (migration 0037).
+    access to it (migration 0038).
     """
 
     __tablename__ = "operational_events"

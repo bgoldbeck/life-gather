@@ -5,8 +5,8 @@ import {
   type CSSProperties,
   type ReactNode,
 } from 'react'
-import { GripVertical, Maximize2, MessageSquare, Minimize2 } from 'lucide-react'
-import { DockDropZones, DockEdgeButtons } from './DockControls'
+import { Maximize2, MessageSquare, Minimize2 } from 'lucide-react'
+import { DockDropZones, DockGrip } from './DockControls'
 import { dockEdges as edges, useDockDrag, type Edge } from './dockDrag'
 import './chatDock.css'
 
@@ -200,10 +200,10 @@ export function ChatDock({
           {...drag.handleProps}
         >
           {!narrow && (
-            <GripVertical
-              className="dock-grip-icon"
-              aria-hidden="true"
-              size={14}
+            <DockGrip
+              panel="assistant"
+              value={layout.edge}
+              onChange={(next) => change({ ...layout, edge: next })}
             />
           )}
           {layout.collapsed && (
@@ -214,13 +214,6 @@ export function ChatDock({
             />
           )}
           <strong>LifeGather assistant</strong>
-          {!layout.collapsed && !narrow && (
-            <DockEdgeButtons
-              panel="assistant"
-              value={layout.edge}
-              onChange={(next) => change({ ...layout, edge: next })}
-            />
-          )}
           <button
             type="button"
             className="dock-collapse"

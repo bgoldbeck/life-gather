@@ -222,6 +222,10 @@ def test_stuck_jobs_raise_an_event_and_the_overview_counts_only(
     assert overview.storage.total_bytes == overview.storage.document_bytes > 0
     assert overview.storage.largest[0].account == pseudonym(alice.id)
     assert overview.storage.quota_bytes is None
+    limited = OperationsMonitor(
+        store.engine, Settings(storage_quota_mb=5), clock=lambda: NOW
+    )
+    assert limited.view().read().storage.quota_bytes == 5 * 1024 * 1024
     dumped = overview.model_dump_json()
     for private in (PRIVATE, alice.id, bob.id, "alice@example.test", "synthetic.pdf"):
         assert private not in dumped
