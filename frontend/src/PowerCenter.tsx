@@ -264,19 +264,24 @@ export function PowerCenter({
     >
       <div className="power-heading power-hero">
         {!compact && <ForestScene />}
-        <div>
-          <p className="power-eyebrow">
-            <Zap size={16} aria-hidden="true" /> YOUR WORKSPACE, EXPLAINED
-          </p>
-          {compact ? (
-            <h2>What your connections enable</h2>
-          ) : (
-            <h1>Power Center</h1>
-          )}
-          <p>
-            Understand what is available, what needs attention, and what to do
-            next.
-          </p>
+        <div className="power-title">
+          {!compact && <ToneIcon icon={Zap} tone="power" size={26} />}
+          <div>
+            {compact && (
+              <p className="power-eyebrow">
+                <Zap size={16} aria-hidden="true" /> YOUR WORKSPACE, EXPLAINED
+              </p>
+            )}
+            {compact ? (
+              <h2>What your connections enable</h2>
+            ) : (
+              <h1>Power Center</h1>
+            )}
+            <p>
+              Understand what is available, what needs attention, and what to do
+              next.
+            </p>
+          </div>
         </div>
         <Button
           variant="outline"
@@ -348,7 +353,7 @@ export function PowerCenter({
           {!compact && (
             <>
               <div className="power-summary">
-                <Card>
+                <Card size="sm">
                   <CardContent>
                     <ToneIcon icon={Zap} tone="power" />
                     <span>
@@ -368,7 +373,7 @@ export function PowerCenter({
                     </p>
                   </CardContent>
                 </Card>
-                <Card>
+                <Card size="sm">
                   <CardContent>
                     <ToneIcon icon={Plug} tone="graph" />
                     <span>Configured source providers / mailboxes</span>
@@ -376,7 +381,7 @@ export function PowerCenter({
                     <p>Configuration is separate from verified health.</p>
                   </CardContent>
                 </Card>
-                <Card>
+                <Card size="sm">
                   <CardContent>
                     <ToneIcon icon={ScanSearch} tone="email" />
                     <span>Completed scans · last 7 days</span>
@@ -388,16 +393,149 @@ export function PowerCenter({
                   </CardContent>
                 </Card>
               </div>
-              <p className="power-meta">
-                Activity period: {when(snapshot.period_start)} –{' '}
-                {when(snapshot.checked_at)}. Local workspace is excluded from
-                connected-source counts.
-              </p>
+              <section aria-labelledby="power-sources">
+                <div className="power-section-heading">
+                  <h2 id="power-sources">
+                    <Plug aria-hidden="true" size={21} /> Your connections
+                  </h2>
+                  <div className="power-filters">
+                    <label>
+                      Connection status
+                      <select
+                        value={connectionFilter}
+                        onChange={(e) => setConnectionFilter(e.target.value)}
+                      >
+                        <option value="all">All connections</option>
+                        <option value="connected">Configured</option>
+                        <option value="not-connected">Not configured</option>
+                      </select>
+                    </label>
+                    <label>
+                      Source category
+                      <select
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                      >
+                        <option value="all">All categories</option>
+                        <option value="local">Local</option>
+                        <option value="ai">AI</option>
+                        <option value="email">Email</option>
+                        <option value="planned">Planned</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+                <div className="power-sources">
+                  {snapshot.sources
+                    .filter(
+                      (s) =>
+                        (category === 'all' || s.category === category) &&
+                        (connectionFilter === 'all' ||
+                          s.configured === (connectionFilter === 'connected')),
+                    )
+                    .map((source) => {
+                      const [icon, tone] =
+                        sourceLooks[source.id] ?? categoryLooks[source.category]
+                      return (
+                        <Card
+                          size="sm"
+                          key={source.id}
+                          className="power-source"
+                          data-tone={tone}
+                        >
+                          <CardContent>
+                            <div className="power-source-heading">
+                              <ToneIcon icon={icon} tone={tone} size={20} />
+                              <h3>{source.title}</h3>
+                              {stale && source.state !== 'planned' ? (
+                                <StatePill
+                                  state="stale"
+                                  label="Stale snapshot"
+                                />
+                              ) : (
+                                <StatePill
+                                  state={source.state}
+                                  label={labels[source.state]}
+                                />
+                              )}
+                            </div>
+                            <p>{source.reason}</p>
+                            {source.category === 'email' && (
+                              <p>
+                                Data freshness: {source.freshness}. Last
+                                successful scan:{' '}
+                                {source.last_success
+                                  ? when(source.last_success)
+                                  : 'Never observed'}
+                                .
+                              </p>
+                            )}
+                            {(source.scope ||
+                              source.capabilities.length > 0) && (
+                              <details className="power-source-details">
+                                <summary>Scope and supported outcomes</summary>
+                                {source.scope && (
+                                  <p className="power-meta">{source.scope}</p>
+                                )}
+                                {source.capabilities.length > 0 && (
+                                  <p>
+                                    <strong>Supports:</strong>{' '}
+                                    {source.capabilities.map(title).join(', ')}.
+                                    Dependencies below determine availability.
+                                  </p>
+                                )}
+                              </details>
+                            )}
+                            {source.state !== 'planned' && (
+                              <div className="power-actions">
+                                {source.last_run_id && onOpenScan && (
+                                  <Button
+                                    variant="outline"
+                                    onClick={() =>
+                                      onOpenScan(source.last_run_id!)
+                                    }
+                                  >
+                                    Inspect last successful scan
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="outline"
+                                  onClick={() => action(source.action)}
+                                >
+                                  Open {source.action}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  disabled={busy}
+                                  onClick={() => void load(source.title)}
+                                  aria-label={`Check ${source.title} locally`}
+                                >
+                                  Check locally
+                                </Button>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                </div>
+                {snapshot.sources.filter(
+                  (s) =>
+                    (category === 'all' || s.category === category) &&
+                    (connectionFilter === 'all' ||
+                      s.configured === (connectionFilter === 'connected')),
+                ).length === 0 && <p>No sources match these filters.</p>}
+              </section>
               <section aria-labelledby="power-health">
                 <h2 id="power-health">
                   <Activity aria-hidden="true" size={21} /> Health and next
                   actions
                 </h2>
+                <p className="power-meta">
+                  Activity period: {when(snapshot.period_start)} –{' '}
+                  {when(snapshot.checked_at)}. Local workspace is excluded from
+                  connected-source counts.
+                </p>
                 <p>
                   AI requests: {snapshot.ai_requests}/{snapshot.ai_limit};
                   resets {when(snapshot.ai_resets_at)}.{' '}
@@ -450,126 +588,6 @@ export function PowerCenter({
                       ))}
                   </ul>
                 )}
-              </section>
-              <section aria-labelledby="power-sources">
-                <h2 id="power-sources">Your sources</h2>
-                <div className="power-filters">
-                  <label>
-                    Connection status
-                    <select
-                      value={connectionFilter}
-                      onChange={(e) => setConnectionFilter(e.target.value)}
-                    >
-                      <option value="all">All connections</option>
-                      <option value="connected">Configured</option>
-                      <option value="not-connected">Not configured</option>
-                    </select>
-                  </label>
-                  <label>
-                    Source category
-                    <select
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                    >
-                      <option value="all">All categories</option>
-                      <option value="local">Local</option>
-                      <option value="ai">AI</option>
-                      <option value="email">Email</option>
-                      <option value="planned">Planned</option>
-                    </select>
-                  </label>
-                </div>
-                <div className="power-sources">
-                  {snapshot.sources
-                    .filter(
-                      (s) =>
-                        (category === 'all' || s.category === category) &&
-                        (connectionFilter === 'all' ||
-                          s.configured === (connectionFilter === 'connected')),
-                    )
-                    .map((source) => {
-                      const [icon, tone] =
-                        sourceLooks[source.id] ?? categoryLooks[source.category]
-                      return (
-                        <Card
-                          key={source.id}
-                          className="power-source"
-                          data-tone={tone}
-                        >
-                          <CardContent>
-                            <div className="power-source-heading">
-                              <ToneIcon icon={icon} tone={tone} size={20} />
-                              <h3>{source.title}</h3>
-                              {stale && source.state !== 'planned' ? (
-                                <StatePill
-                                  state="stale"
-                                  label="Stale snapshot"
-                                />
-                              ) : (
-                                <StatePill
-                                  state={source.state}
-                                  label={labels[source.state]}
-                                />
-                              )}
-                            </div>
-                            <p>{source.reason}</p>
-                            <p className="power-meta">{source.scope}</p>
-                            {source.category === 'email' && (
-                              <p>
-                                Data freshness: {source.freshness}. Last
-                                successful scan:{' '}
-                                {source.last_success
-                                  ? when(source.last_success)
-                                  : 'Never observed'}
-                                .
-                              </p>
-                            )}
-                            {source.capabilities.length > 0 && (
-                              <p>
-                                <strong>Supports:</strong>{' '}
-                                {source.capabilities.map(title).join(', ')}.
-                                Dependencies below determine availability.
-                              </p>
-                            )}
-                            {source.state !== 'planned' && (
-                              <div className="power-actions">
-                                {source.last_run_id && onOpenScan && (
-                                  <Button
-                                    variant="outline"
-                                    onClick={() =>
-                                      onOpenScan(source.last_run_id!)
-                                    }
-                                  >
-                                    Inspect last successful scan
-                                  </Button>
-                                )}
-                                <Button
-                                  variant="outline"
-                                  onClick={() => action(source.action)}
-                                >
-                                  Open {source.action}
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  disabled={busy}
-                                  onClick={() => void load(source.title)}
-                                  aria-label={`Check ${source.title} locally`}
-                                >
-                                  Check locally
-                                </Button>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      )
-                    })}
-                </div>
-                {snapshot.sources.filter(
-                  (s) =>
-                    (category === 'all' || s.category === category) &&
-                    (connectionFilter === 'all' ||
-                      s.configured === (connectionFilter === 'connected')),
-                ).length === 0 && <p>No sources match these filters.</p>}
               </section>
             </>
           )}

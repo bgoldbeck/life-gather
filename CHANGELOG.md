@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.83.1 — Compact Power Center
+
+- Power Center is denser so your connections show without scrolling on a
+  typical laptop screen (checked at 1366x768 and 1440x900 with the assistant
+  docked), following `.references/lifegather-standard-dark-theme.png`.
+- The hero is one short row (icon, title, Check all locally) with a slimmer
+  power bar; stat tiles put the icon beside the value.
+- **Your connections** now comes right after the stat tiles, with its filters
+  beside the heading. Each card's scope and supported outcomes fold into
+  **Scope and supported outcomes**. Health and next actions follow the
+  connections. No data, API or migration changes.
+
 ## 0.83.0 — Save web research findings as evidence
 
 - In a finished Chat web research reply, each cited source offers **Save to
