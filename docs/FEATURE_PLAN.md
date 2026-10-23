@@ -261,8 +261,8 @@ anti-goal is updated to reference this phase when 5.4 starts.
 ## Phone app plan (not scheduled)
 
 Planned 2026-10-23 at the user's request. The user scheduled steps 6.1 to 6.3 the same
-day; 6.1 to 6.3 are done. The user scheduled 6.4 (Android app) on 2026-10-23
-and wants an iPhone version later.
+day; 6.1 to 6.3 are done. The user scheduled 6.4 (Android app) on 2026-10-23,
+done in v0.101.0, and wants an iPhone version later (6.5).
 v0.88.1 checked the web UI at phone and tablet sizes, so the app already works in
 a phone browser.
 
@@ -291,15 +291,16 @@ alike, with no app store review, second codebase or separate release train.
   size limits and storage quotas still apply. Without a running worker the
   server answers the share with a "share again" notice and stores nothing. Not
   yet tried on a real Android phone. See [installable app](INSTALLABLE_APP.md).
-- **6.4 Android app. In progress (scheduled 2026-10-23).** The user wants the app on
-  phones without setting up HTTPS (a tunnel or Tailscale was too much). A small
-  Android app, installed once from an APK, asks for the server's home-network
-  address (`http://<ip>:8787`) on first launch and shows the same web UI in a
-  WebView. Camera capture uses the phone's camera app; "Share to LifeGather"
-  hands files to the page's existing share flow. The server gains an opt-in
-  home-network setting so a plain-HTTP private address can sign in. Plain Java
-  with no Gradle plugin, so it builds from distribution packages. No offline
-  editing or local copy of personal records on the phone.
+- **6.4 Android app. Done in v0.101.0** ([Android app](ANDROID_APP.md)). The user
+  wanted the app on phones without setting up HTTPS (a tunnel or Tailscale was
+  too much). A small Android app, installed once from an APK, asks for the
+  server's home-network address (`http://<ip>:8787`) on first launch and shows
+  the same web UI in a WebView, through a relay on the phone's own
+  `127.0.0.1:8787` so the server's sign-in and origin checks are unchanged.
+  Camera capture uses the phone's camera app; "Share to LifeGather" hands files
+  to the page's existing share flow. Plain Java with no Gradle plugin, so it
+  builds from distribution packages. No offline editing or local copy of
+  personal records on the phone. Not yet tried on a real phone.
 - **6.5 iPhone app (later).** Not built yet; see [Android app](ANDROID_APP.md#iphone).
 
 Requirement: installing and camera/share features need HTTPS on a real address.
@@ -335,7 +336,7 @@ Keep existing delivered functionality while deferring these extensions.
 | Advanced asset form builder | Existing editable optional text fields first; richer widgets/required-field migrations only for proven needs. |
 | Power Center expansion | Fix actionable reconnect/setup issues; defer elaborate remote probes and diagnostics without a concrete failure to solve. |
 | Account/credential tooling | Maintain privacy/security and repair blocking issues throughout; device UI, linking, email changes and richer rotation tooling are scoped individually. |
-| Mobile/PWA/remote access | Home screen install (6.1) done in v0.95.0. The rest waits until the user schedules it. When revisited, follow the [phone app plan](#phone-app-plan-not-scheduled): installable web app first, native wrapper only if needed. Domain/tunnel setup stays a separate user decision. |
+| Mobile/PWA/remote access | 6.1 to 6.4 done (installable app, camera, Android share, Android app in v0.101.0); iPhone app (6.5) later. When revisited, follow the [phone app plan](#phone-app-plan-not-scheduled): installable web app first, native wrapper only if needed. Domain/tunnel setup stays a separate user decision. |
 
 ## Execution rules
 

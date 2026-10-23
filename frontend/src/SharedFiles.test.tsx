@@ -2,7 +2,13 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import { SharedFiles } from './SharedFiles'
-import { claimSharedFiles, fileKind, readShareRequest } from './shareTarget'
+import {
+  androidBridge,
+  claimAndroidFiles,
+  claimSharedFiles,
+  fileKind,
+  readShareRequest,
+} from './shareTarget'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -165,4 +171,43 @@ it('claims the files from the active service worker over a private channel', asy
   // e2e/share-target.spec.ts covers real files.
   expect(files).toHaveLength(1)
   await expect(claimSharedFiles(ID, undefined)).resolves.toEqual([])
+})
+
+it('takes shared files from the Android app, only from its own addresses', async () => {
+  const sharedFiles = vi.fn(() =>
+    JSON.stringify([
+      {
+        url: `/__lifegather-android/share/${ID}/0`,
+        name: 'Synthetic receipt.jpg',
+        type: 'image/jpeg',
+      },
+      { url: 'https://elsewhere.example/file', name: 'x', type: 'image/png' },
+      { url: `/__lifegather-android/share/${'b'.repeat(32)}/0`, name: 'y' },
+      { url: `/__lifegather-android/share/${ID}/1`, name: '', type: '' },
+    ]),
+  )
+  const fetcher = vi.fn(
+    async (_url: string) => new Response('synthetic receipt image'),
+  )
+  const files = await claimAndroidFiles(
+    ID,
+    { sharedFiles },
+    fetcher as unknown as typeof fetch,
+  )
+  expect(sharedFiles).toHaveBeenCalledWith(ID)
+  expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
+    `/__lifegather-android/share/${ID}/0`,
+    `/__lifegather-android/share/${ID}/1`,
+  ])
+  expect(files.map((file) => [file.name, file.type, file.size])).toEqual([
+    ['Synthetic receipt.jpg', 'image/jpeg', 23],
+    ['Shared file', '', 23],
+  ])
+  expect(fileKind(files[0])).toBe('photo')
+})
+
+it('uses the Android bridge only inside the Android app', () => {
+  expect(androidBridge()).toBeUndefined()
+  vi.stubGlobal('LifeGatherAndroid', { sharedFiles: () => '[]' })
+  expect(androidBridge()).toBeDefined()
 })
