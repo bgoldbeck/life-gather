@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import type { SavedChatPhoto } from './ChatPhotoPicker'
+import {
+  CameraCaptureButton,
+  CANCELLED_MESSAGE,
+  PhotoUploadProgress,
+} from './PhotoCapture'
+import { PHOTO_ACCEPT, photoFileProblem, sendPhoto } from './photoUpload'
 
 export function ChatPhotoUpload({
   csrfToken,
@@ -18,73 +24,66 @@ export function ChatPhotoUpload({
   const [file, setFile] = useState<File | null>(null)
   const [purpose, setPurpose] = useState('photo')
   const [busy, setBusy] = useState(false)
+  const [percent, setPercent] = useState(0)
   const [uncertain, setUncertain] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const input = useRef<HTMLInputElement>(null)
   const controller = useRef<AbortController | null>(null)
-  useEffect(() => () => controller.current?.abort(), [])
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      controller.current?.abort()
+    }
+  }, [])
 
-  async function upload() {
-    if (!file || disabled || controller.current) return
-    if (
-      !file.size ||
-      file.size > 8 * 1024 * 1024 ||
-      (file.type &&
-        !['image/jpeg', 'image/png', 'image/webp'].includes(file.type))
-    ) {
-      setError('Choose a nonempty JPEG, PNG or WebP no larger than 8 MiB.')
+  async function upload(chosen = file) {
+    if (!chosen || disabled || controller.current) return
+    const problem = photoFileProblem(chosen)
+    if (problem) {
+      setError(problem)
+      setMessage('')
       return
     }
     const pending = new AbortController()
     controller.current = pending
     setBusy(true)
+    setPercent(0)
     onBusy(true)
     onStart()
     setError('')
     setMessage('')
-    try {
-      const response = await fetch(`/api/photos?purpose=${purpose}`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        cache: 'no-store',
-        signal: pending.signal,
-        headers: {
-          'Content-Type': 'application/octet-stream',
-          'X-CSRF-Token': csrfToken,
-          'X-File-Name': encodeURIComponent(file.name),
-        },
-        body: file,
-      })
-      if (pending.signal.aborted) return
-      if (!response.ok && response.status < 500) {
-        setUncertain(false)
-        setError(
-          'Photo was not accepted. Check the file, storage limit and session, then try again.',
-        )
-        return
-      }
-      if (!response.ok) throw new Error('Upload status unknown')
-      const photo: SavedChatPhoto = await response.json()
-      if (pending.signal.aborted) return
+    const result = await sendPhoto<SavedChatPhoto>({
+      url: `/api/photos?purpose=${purpose}`,
+      file: chosen,
+      csrfToken,
+      signal: pending.signal,
+      onProgress: (value) => mounted.current && setPercent(value),
+    })
+    if (!mounted.current) return
+    controller.current = null
+    setBusy(false)
+    onBusy(false)
+    if (result.kind === 'saved') {
       setUncertain(false)
       setFile(null)
       if (input.current) input.current.value = ''
-      onSaved(photo)
+      onSaved(result.photo)
       setMessage('Photo saved privately. Uploading made no AI request.')
-    } catch {
-      if (!pending.signal.aborted) {
-        setUncertain(true)
-        setError(
-          'Upload outcome is unknown. Retry the same file safely, or check Photos. Leaving Chat does not delete a saved original.',
-        )
-      }
-    } finally {
-      if (!pending.signal.aborted) {
-        controller.current = null
-        setBusy(false)
-        onBusy(false)
-      }
+    } else if (result.kind === 'cancelled') {
+      setMessage(CANCELLED_MESSAGE)
+    } else if (result.kind === 'rejected') {
+      setUncertain(false)
+      setError(
+        'Photo was not accepted. Check the file, storage limit and session, then try again.',
+      )
+    } else {
+      setUncertain(true)
+      setError(
+        'Upload outcome is unknown. Retry the same file safely, or check Photos. Leaving Chat does not delete a saved original.',
+      )
     }
   }
 
@@ -93,7 +92,7 @@ export function ChatPhotoUpload({
       className="chat-photo-upload"
       aria-label="Upload a private photo in Chat"
     >
-      <h4>Or upload a new photo</h4>
+      <h4>Or add a new photo</h4>
       <p>
         JPEG, PNG or WebP, up to 8 MiB. Originals stay in your private Photos
         library even if you leave Chat. Saving does not send an image to AI or
@@ -104,7 +103,7 @@ export function ChatPhotoUpload({
         <input
           ref={input}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept={PHOTO_ACCEPT}
           disabled={disabled || busy || uncertain}
           onChange={(event) => {
             setFile(event.target.files?.[0] ?? null)
@@ -125,6 +124,14 @@ export function ChatPhotoUpload({
           <option value="nameplate">Nameplate</option>
         </select>
       </label>
+      <CameraCaptureButton
+        label="Take a photo for Chat"
+        disabled={disabled || busy || uncertain}
+        onCapture={(captured) => {
+          setFile(captured)
+          void upload(captured)
+        }}
+      />
       <Button
         type="button"
         variant="outline"
@@ -137,7 +144,16 @@ export function ChatPhotoUpload({
             ? 'Retry same photo upload'
             : 'Save photo privately'}
       </Button>
-      {busy && <p role="status">Saving your private original…</p>}
+      {file && !busy && <p>Photo ready to save: {file.name}</p>}
+      {busy && (
+        <>
+          <p role="status">Saving your private original…</p>
+          <PhotoUploadProgress
+            percent={percent}
+            onCancel={() => controller.current?.abort()}
+          />
+        </>
+      )}
       {message && <p role="status">{message}</p>}
       {error && <p role="alert">{error}</p>}
     </section>

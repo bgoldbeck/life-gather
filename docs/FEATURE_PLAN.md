@@ -254,8 +254,8 @@ anti-goal is updated to reference this phase when 5.4 starts.
 
 ## Phone app plan (not scheduled)
 
-Planned 2026-10-23 at the user's request. The user scheduled step 6.1 the same
-day; 6.2 to 6.4 are not started.
+Planned 2026-10-23 at the user's request. The user scheduled steps 6.1 to 6.3 the same
+day; 6.1 and 6.2 are done, 6.4 is not started.
 v0.88.1 checked the web UI at phone and tablet sizes, so the app already works in
 a phone browser.
 
@@ -269,13 +269,12 @@ alike, with no app store review, second codebase or separate release train.
   API, sign-in, file or chat responses, so new releases load as described in
   [versioning](VERSIONING.md). Installing needs HTTPS (see below). Not yet
   checked on a real iPhone or Android phone.
-- **6.2 Camera capture.** Take a photo straight into chat or Photos through the
-  ordinary file input (no custom camera code), with progress, retry and
-  Cancel. Uploads keep the existing limits, quotas and idempotent retries.
-  In progress on `claude/phone-camera-capture`: a "Take a photo" button on
-  touch screens (file input with `capture="environment"`) in Chat and Photos,
-  upload progress with Cancel, and a safe retry of the same photo. Checks: unit
-  tests for capture, progress, cancel and retry, and a phone-size browser check.
+- **6.2 Camera capture. Done in v0.96.0** ([camera](INSTALLABLE_APP.md#taking-photos-with-the-camera)).
+  On touch screens Chat and Photos show a "Take a photo" button: the ordinary
+  file input with `capture="environment"`, so no custom camera code. The photo
+  is saved straight away with a progress bar and Cancel; a lost response or a
+  Cancel can resend the same photo, which the server stores once. Uploads keep
+  the existing limits and quotas. Not yet checked on a real phone.
 - **6.3 Share to LifeGather.** Android: manifest `share_target`, so a receipt
   photo or PDF can be shared from another app. iPhone Safari does not support
   share targets; ordinary upload stays the universal path there.
