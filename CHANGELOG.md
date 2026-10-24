@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.106.1 - Start-Home-Network asks for administrator rights again
+
+- `Start-Home-Network.cmd` stopped with "System error 5" when it was not run as
+  administrator, because Windows PowerShell treated `net session`'s error output
+  as a failure. It now checks the Windows account's Administrator role and asks
+  Windows for permission as intended. No server, migration or app change.
+
 ## 0.106.0 - Phones can reach LifeGather on a Windows PC
 
 - New `scripts/Start-Home-Network.cmd` for the Windows preview, so the Android
