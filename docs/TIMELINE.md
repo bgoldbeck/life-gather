@@ -46,6 +46,11 @@ calendar dates and never shift.
   `items` with `kind`, `date`, `date_basis` (`stated` or `recorded`), `title`,
   `detail`, optional amount and a `target` page and id. Kinds: `purchase`,
   `order`, `maintenance_done`, `maintenance_due`, `asset`, `document`, `photo`.
+- `GET /api/insights/overview?timezone=<zone>` (v0.105.0, for the Overview
+  page): `counts` of assets, documents, photos and memories (saved sources),
+  `review_count` (the Review queue's pending items), `overdue_count`,
+  `upcoming` maintenance as above, `today`, and the six newest assets,
+  documents and photos in `recent` with `recorded_at` and a `target`.
 
 The logic lives in `lifegather/insights/service.py`; the routes are thin
 authenticated read adapters. No MCP tool yet: the assistant can already read

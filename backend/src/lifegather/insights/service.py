@@ -20,12 +20,13 @@ from lifegather.auth.store import Account
 from lifegather.database import begin_snapshot
 from lifegather.documents.models import Document
 from lifegather.maintenance.models import MaintenanceRevision, MaintenanceTask
-from lifegather.memory.models import Entity
+from lifegather.memory.models import Entity, Episode
 from lifegather.memory.service import MemoryError
 from lifegather.photos.models import Photo
 from lifegather.purchases.models import PurchaseEvidence
 from lifegather.purchases.service import PurchaseEvidenceService
-from lifegather.reconciliation.models import Purchase
+from lifegather.reconciliation.models import Decision, Purchase
+from lifegather.reconciliation.proposal_models import AssetProposal
 from lifegather.reconciliation.receipt_models import ReceiptDetail, ReceiptProposal
 from lifegather.reconciliation.receipts import ReceiptReview, ReceiptService
 
@@ -35,6 +36,7 @@ EVENT_LIMIT = 200
 UPCOMING_DAYS = 30
 UPCOMING_LIMIT = 10
 LARGEST_LIMIT = 5
+RECENT_LIMIT = 6
 
 EventKind = Literal[
     "purchase",
@@ -74,6 +76,10 @@ class Input(BaseModel):
 
 class DashboardRead(Input):
     months: Literal[6, 12, 24] = 12
+
+
+class OverviewRead(Input):
+    pass
 
 
 class TimelineRead(Input):
@@ -340,6 +346,98 @@ class InsightsService:
                 },
                 **upcoming,
                 "truncated": truncated,
+            }
+
+    def overview(self, actor: Account, value: OverviewRead) -> dict[str, Any]:
+        """Counts, waiting work and the newest records for the Overview page."""
+        data = OverviewRead.model_validate(value)
+        zone = ZoneInfo(data.timezone)
+        today = self.today(zone)
+        assets = [
+            Entity.user_id == actor.id,
+            Entity.kind == "asset",
+            Entity.id.not_in(secondary_ids(actor)),
+        ]
+
+        def count(model: Any, *conditions: Any) -> int:
+            return (
+                db.scalar(select(func.count()).select_from(model).where(*conditions))
+                or 0
+            )
+
+        with Session(self.engine) as db:
+            begin_snapshot(db)
+            counts = {
+                "assets": count(Entity, *assets),
+                "documents": count(
+                    Document,
+                    Document.user_id == actor.id,
+                    Document.deleted_at.is_(None),
+                ),
+                "photos": count(
+                    Photo, Photo.user_id == actor.id, Photo.deleted_at.is_(None)
+                ),
+                "memories": count(Episode, Episode.user_id == actor.id),
+            }
+            # The same three kinds of pending work the Review queue lists.
+            review_count = (
+                count(
+                    AssetProposal,
+                    AssetProposal.user_id == actor.id,
+                    AssetProposal.state == "proposed",
+                )
+                + count(
+                    Decision,
+                    Decision.user_id == actor.id,
+                    Decision.outcome == "review",
+                    Decision.superseded_at.is_(None),
+                )
+                + count(
+                    ReceiptProposal,
+                    ReceiptProposal.user_id == actor.id,
+                    ReceiptProposal.state == "proposed",
+                )
+            )
+            recent: list[dict[str, Any]] = [
+                {
+                    "kind": "asset",
+                    "title": entity.name,
+                    "recorded_at": entity.recorded_at,
+                    "target": {"view": "Assets", "id": entity.id},
+                }
+                for entity in db.scalars(
+                    select(Entity)
+                    .where(*assets)
+                    .order_by(Entity.recorded_at.desc(), Entity.id)
+                    .limit(RECENT_LIMIT)
+                )
+            ]
+            for kind, model, view in (
+                ("document", Document, "Documents"),
+                ("photo", Photo, "Photos"),
+            ):
+                recent += [
+                    {
+                        "kind": kind,
+                        "title": filename,
+                        "recorded_at": created,
+                        "target": {"view": view, "id": identifier},
+                    }
+                    for identifier, filename, created in db.execute(
+                        select(model.id, model.filename, model.created_at)
+                        .where(model.user_id == actor.id, model.deleted_at.is_(None))
+                        .order_by(model.created_at.desc(), model.id)
+                        .limit(RECENT_LIMIT)
+                    )
+                ]
+            recent.sort(key=lambda item: -item["recorded_at"])
+            return {
+                "today": today.isoformat(),
+                "timezone": data.timezone,
+                "counts": counts,
+                "review_count": review_count,
+                **self.upcoming(db, actor, today),
+                "recent": recent[:RECENT_LIMIT],
             }
 
     @staticmethod

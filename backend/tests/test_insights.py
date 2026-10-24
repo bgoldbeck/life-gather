@@ -1,9 +1,11 @@
 from datetime import date
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
 from pydantic import ValidationError
 from test_maintenance import change, plan
 from test_mcp_http import signed_headers
@@ -15,6 +17,7 @@ from lifegather.chat.service import SaveText, save_text
 from lifegather.insights.service import (
     DashboardRead,
     InsightsService,
+    OverviewRead,
     TimelineRead,
     month_keys,
 )
@@ -235,3 +238,85 @@ def test_assets_counted_in_local_months_and_http_guards() -> None:
             ).status_code
             == 422
         )
+
+
+def test_overview_counts_attention_and_recent_per_account(tmp_path: Path) -> None:
+    from stored_files import files
+    from test_photos import image_bytes
+
+    from lifegather.photos.service import PhotoDelete, PhotoService
+
+    def other_image() -> bytes:
+        output = BytesIO()
+        Image.new("RGB", (20, 10), "black").save(output, format="PNG")
+        return output.getvalue()
+
+    auth, alice, bob, memory, _ = setup(tmp_path)
+    receipt = accepted(auth.engine, alice)
+    # A second receipt still waiting for review.
+    waiting = save_text(memory, alice, SaveText(text=EURO, request_id="waiting"))
+    ReceiptService(auth.engine).create(alice, waiting.id, extraction())
+    photos = PhotoService(auth.engine, files(auth.engine))
+    photo = photos.upload(alice, image_bytes(), "synthetic.jpg")
+    gone = photos.upload(alice, other_image(), "gone.jpg")
+    photos.delete(
+        alice, PhotoDelete(photo_id=gone["id"], expected_updated_at=gone["updated_at"])
+    )
+    vehicle = (
+        ProfileService(auth.engine)
+        .create(
+            alice,
+            ProfileCreate(
+                name="Synthetic vehicle",
+                kind="vehicle",
+                text="My synthetic vehicle.",
+                operation_key="vehicle",
+            ),
+        )
+        .id
+    )
+    MaintenanceService(auth.engine).create(
+        alice, plan(vehicle, title="Wash", request_id="wash", due_on="2026-10-01")
+    )
+    service = InsightsService(auth.engine, today=TODAY)
+    result = service.overview(alice, OverviewRead(timezone="America/Los_Angeles"))
+    # Two drills, the saw and the vehicle profile; the deleted photo is gone.
+    assert result["counts"] == {
+        "assets": 4,
+        "documents": 0,
+        "photos": 1,
+        "memories": 4,
+    }
+    assert result["review_count"] == 1
+    assert result["overdue_count"] == 1
+    assert [item["title"] for item in result["upcoming"]] == ["Wash"]
+    assert result["recent"][0]["title"] == "Synthetic vehicle"
+    assert {"view": "Photos", "id": photo["id"]} in [
+        item["target"] for item in result["recent"]
+    ]
+    assert {item["kind"] for item in result["recent"]} == {"asset", "photo"}
+    assert "gone.jpg" not in {item["title"] for item in result["recent"]}
+    assert receipt["id"]
+    empty = service.overview(bob, OverviewRead())
+    assert empty["counts"] == {"assets": 0, "documents": 0, "photos": 0, "memories": 0}
+    assert empty["review_count"] == 0
+    assert empty["recent"] == [] and empty["upcoming"] == []
+    auth.engine.dispose()
+
+
+def test_overview_http_guards() -> None:
+    app = create_app()
+    with TestClient(app) as client:
+        alice, _ = signed_headers(app, "overview-alice")
+        assert client.get("/api/insights/overview").status_code == 401
+        assert (
+            client.get(
+                "/api/insights/overview",
+                headers=alice,
+                params={"timezone": "Nowhere/City"},
+            ).status_code
+            == 422
+        )
+        mine = client.get("/api/insights/overview", headers=alice)
+        assert mine.status_code == 200, mine.text
+        assert mine.json()["counts"]["assets"] == 0

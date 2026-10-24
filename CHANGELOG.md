@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.105.0 - A more useful Overview page
+
+- The Overview hero's icons are now links. Hovering or focusing one shows its
+  name; the book opens Memories, the boxes open Assets, the speech bubble opens
+  Chat and the centre leaf opens the Graph. They are buttons, so Tab and Enter
+  work. On phones the illustration stays hidden and the tiles below do the job.
+- "At a glance" shows your real numbers of assets, documents, photos and
+  memories, each opening its page, plus a link to the Timeline for charts.
+- "Needs your attention" lists items waiting in Review and maintenance that is
+  overdue or due within 30 days, each opening its record. When nothing waits it
+  says you're all caught up.
+- "Recently added" lists the newest assets, documents and photos (today,
+  yesterday or the date) and opens each one.
+- The "Your story starts here" first steps now show only while the account is
+  still empty.
+- New read-only `GET /api/insights/overview` (session required, own records
+  only, bounded). Asset counts follow the Timeline: consolidated duplicates
+  count once and vehicle profiles count as assets. No migration,
+  records-format or MCP change.
+
 ## 0.104.0 - Timeline page with spending and activity charts
 
 - New Timeline page in the navigation. A spending-by-month chart (6, 12 or 24

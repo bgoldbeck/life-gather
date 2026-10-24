@@ -2,31 +2,24 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Activity,
   ArrowLeft,
-  ArrowUpRight,
   BookOpen,
   Boxes,
   Camera,
   ChartColumn,
-  CircleCheck,
   ClipboardCheck,
   FileText,
   House,
   LayoutDashboard,
-  Leaf,
   LockKeyhole,
   MailSearch,
-  MessageCircle,
   Network,
   Receipt,
   Settings,
-  ShieldCheck,
-  Sparkles,
   Wrench,
   Zap,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { AuthGate } from './AuthGate'
 import { PrivateSettingsPanel } from './PrivateSettingsPanel'
 import { SharedFiles } from './SharedFiles'
@@ -54,6 +47,7 @@ import { PurchasesPanel } from './PurchasesPanel'
 import { PowerCenter } from './PowerCenter'
 import { OperationsPanel } from './OperationsPanel'
 import { TimelinePanel } from './TimelinePanel'
+import { OverviewPanel } from './OverviewPanel'
 import type { ReconnectTarget } from './reconnect'
 import { GlobalSearch, type SearchResult } from './GlobalSearch'
 import type { Theme } from './appearance'
@@ -567,152 +561,25 @@ export function Workspace({
                   csrfToken={csrfToken}
                 />
               ) : view === 'Overview' ? (
-                <>
-                  <div className="section-label">
-                    <span /> A HOME FOR WHAT MATTERS
-                  </div>
-                  <section className="welcome">
-                    <div className="welcome-copy">
-                      <h1>
-                        A little less <br />
-                        to remember.
-                      </h1>
-                      <p>
-                        Life is full of details. Give them a place to belong.
-                        <br className="desktop-break" /> Your things, stories,
-                        and connections — with their sources intact.
-                      </p>
-                      <Button
-                        className="explore-button"
-                        onClick={() => {
-                          setReceiptSourceId('')
-                          openAssistant()
-                        }}
-                      >
-                        Explore your workspace{' '}
-                        <ArrowUpRight aria-hidden="true" size={17} />
-                      </Button>
-                      <span className="preview-note">
-                        Your account is ready. Save a memory or find it in Chat.
-                      </span>
-                    </div>
-                    <div className="memory-illustration" aria-hidden="true">
-                      <div className="orbit orbit-one" />
-                      <div className="orbit orbit-two" />
-                      <div className="graph-line line-one" />
-                      <div className="graph-line line-two" />
-                      <div className="graph-line line-three" />
-                      <div className="graph-center">
-                        <Leaf size={47} strokeWidth={1.4} />
-                      </div>
-                      <span
-                        className="graph-node node-one"
-                        data-tone="documents"
-                      >
-                        <BookOpen size={22} />
-                      </span>
-                      <span className="graph-node node-two" data-tone="assets">
-                        <Boxes size={22} />
-                      </span>
-                      <span className="graph-node node-three" data-tone="ai">
-                        <MessageCircle size={22} />
-                      </span>
-                      <span className="little-node little-one" />
-                      <span className="little-node little-two" />
-                      <span className="illustration-caption">
-                        Every detail has a connection.
-                      </span>
-                    </div>
-                  </section>
-                  <section
-                    className="start-section"
-                    aria-labelledby="start-heading"
-                  >
-                    <div className="section-heading">
-                      <h2 id="start-heading">Your story starts here</h2>
-                      <Badge variant="secondary">In the making</Badge>
-                    </div>
-                    <p className="section-description">
-                      A thoughtful foundation for memories you can trust.
-                    </p>
-                    <div className="feature-grid">
-                      {[
-                        {
-                          icon: MessageCircle,
-                          tone: 'ai',
-                          title: 'Start with a conversation',
-                          text: 'A natural way to capture a detail or find something you remember.',
-                          target: 'Assistant' as const,
-                          label: 'Explore Chat',
-                        },
-                        {
-                          icon: Boxes,
-                          tone: 'assets',
-                          title: 'Keep the whole story',
-                          text: 'Connect your belongings to their receipts, repairs, and history.',
-                          target: 'Assets' as View,
-                          label: 'Explore Assets',
-                        },
-                        {
-                          icon: Network,
-                          tone: 'graph',
-                          title: 'See how it connects',
-                          text: 'Follow the relationships between your memories, people, and places.',
-                          target: 'Graph' as View,
-                          label: 'Explore Graph',
-                        },
-                      ].map(
-                        ({ icon: Icon, tone, title, text, target, label }) => (
-                          <Card key={title} className="feature-card">
-                            <CardContent>
-                              <span className="feature-icon" data-tone={tone}>
-                                <Icon
-                                  aria-hidden="true"
-                                  size={22}
-                                  strokeWidth={1.5}
-                                />
-                              </span>
-                              <h3>{title}</h3>
-                              <p>{text}</p>
-                              <Button
-                                variant="link"
-                                className="feature-link"
-                                onClick={() =>
-                                  target === 'Assistant'
-                                    ? openAssistant()
-                                    : setView(target)
-                                }
-                              >
-                                {label}
-                                <ArrowUpRight aria-hidden="true" size={15} />
-                              </Button>
-                            </CardContent>
-                          </Card>
-                        ),
-                      )}
-                    </div>
-                  </section>
-                  <div className="principles">
-                    <ShieldCheck aria-hidden="true" size={23} />
-                    <div>
-                      <strong>Your memories deserve a source of truth.</strong>
-                      <p>
-                        Original evidence preserved. Uncertainty made clear.
-                        History kept intact.
-                      </p>
-                    </div>
-                    <span className="principles-icon">
-                      <CircleCheck aria-hidden="true" size={20} />
-                    </span>
-                  </div>
-                  <footer className="workspace-footer">
-                    Made for a life that keeps growing.
-                    <span>
-                      <Sparkles aria-hidden="true" size={13} /> LifeGather ·
-                      Working name
-                    </span>
-                  </footer>
-                </>
+                <OverviewPanel
+                  refreshSession={refreshSession}
+                  onNavigate={setView}
+                  onOpenAssistant={() => {
+                    setReceiptSourceId('')
+                    openAssistant()
+                  }}
+                  onOpen={({ view: page, id }) => {
+                    if (page === 'Assets') openAsset(id)
+                    else if (page === 'Profiles') {
+                      setProfileId(id)
+                      setView('Profiles')
+                    } else if (page === 'Documents')
+                      openTarget('Documents', { document: id })
+                    else if (page === 'Photos')
+                      openTarget('Photos', { photo: id })
+                    else setView(page)
+                  }}
+                />
               ) : (
                 <section className="placeholder-view">
                   <Badge variant="secondary">Planned feature</Badge>
