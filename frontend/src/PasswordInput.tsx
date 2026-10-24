@@ -1,7 +1,10 @@
 import { useId, useState, type InputHTMLAttributes } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 
-type PasswordInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & {
+type PasswordInputProps = Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  'type'
+> & {
   revealLabel?: string
 }
 
@@ -23,7 +26,9 @@ export function PasswordInput({
         {...inputProps}
         id={inputId}
         type={visible ? 'text' : 'password'}
-        className={['password-input-field', className].filter(Boolean).join(' ')}
+        className={['password-input-field', className]
+          .filter(Boolean)
+          .join(' ')}
         disabled={disabled}
         autoCapitalize="none"
         autoCorrect="off"
