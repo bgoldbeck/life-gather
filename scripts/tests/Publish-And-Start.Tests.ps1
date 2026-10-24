@@ -9,16 +9,16 @@ try {
     $combined = Join-Path $testRoot 'Publish-And-Start.ps1'
     $stub = {
         param([string]$Name)
-        "param([switch]`$Publish, [switch]`$PublishLatest)`n" +
-        "`$global:PublishStartCalls.Add('$Name' + `$(if (`$Publish) {' -Publish'}) + `$(if (`$PublishLatest) {' -PublishLatest'}))`n" +
+        "param([switch]`$Publish, [switch]`$PublishLatest, [switch]`$KeepMode)`n" +
+        "`$global:PublishStartCalls.Add('$Name' + `$(if (`$Publish) {' -Publish'}) + `$(if (`$PublishLatest) {' -PublishLatest'}) + `$(if (`$KeepMode) {' -KeepMode'}))`n" +
         "if (`$global:PublishStartFail -eq '$Name') { throw '$Name fixture failure' }`n"
     }
     Set-Content -LiteralPath (Join-Path $testRoot 'Publish-Container.ps1') -Value (& $stub 'publish')
     Set-Content -LiteralPath (Join-Path $testRoot 'Start-Test-Login.ps1') -Value (& $stub 'start')
     foreach ($case in @(
-        @{ Fail=''; Failed=$false; Calls='publish -Publish -PublishLatest|start' },
+        @{ Fail=''; Failed=$false; Calls='publish -Publish -PublishLatest|start -KeepMode' },
         @{ Fail='publish'; Failed=$true; Calls='publish -Publish -PublishLatest' },
-        @{ Fail='start'; Failed=$true; Calls='publish -Publish -PublishLatest|start' }
+        @{ Fail='start'; Failed=$true; Calls='publish -Publish -PublishLatest|start -KeepMode' }
     )) {
         $global:PublishStartCalls = [Collections.Generic.List[string]]::new()
         $global:PublishStartFail = $case.Fail

@@ -12,6 +12,9 @@ error visible until you press a key. Running it from an existing terminal return
 to that terminal after success.
 To publish a new image first and then start this preview from it in one step, use
 `scripts/Publish-And-Start.cmd`; see [LOCAL_RELEASE.md](LOCAL_RELEASE.md#commands).
+To let phones on your home Wi-Fi use this preview, run
+`scripts/Start-Home-Network.cmd` instead; it turns test login off and opens port
+8787 to the home network ([Android app](ANDROID_APP.md#windows-pc-as-the-server)).
 If container startup fails after recreation, the volume is still retained; correct
 the reported Docker error and rerun. It does not promise a database rollback.
 
