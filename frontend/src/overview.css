@@ -1,0 +1,235 @@
+/* Overview: clickable hero icons, counts, waiting work and recent records. */
+.memory-illustration button {
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+.memory-illustration .graph-node:hover,
+.memory-illustration .graph-node:focus-visible {
+  transform: rotate(0deg) translateY(-3px) scale(1.08);
+  border-color: color-mix(
+    in oklab,
+    var(--tone, var(--primary)) 60%,
+    var(--border)
+  );
+  box-shadow: 0 0 1.75rem
+    color-mix(in oklab, var(--tone, var(--primary)) 35%, transparent);
+}
+.memory-illustration .graph-center:hover,
+.memory-illustration .graph-center:focus-visible {
+  transform: translate(-50%, -50%) scale(1.05);
+  border-color: color-mix(in oklab, var(--primary) 55%, var(--border));
+}
+.memory-illustration button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+/* The name of each icon, shown under it on hover and keyboard focus. */
+.orbit-label {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-2px);
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  font-size: 11px;
+  font-weight: 550;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+.memory-illustration button:hover .orbit-label,
+.memory-illustration button:focus-visible .orbit-label {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.overview-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 13px;
+  margin-bottom: 12px;
+}
+.overview-heading h2 {
+  font-size: 17px;
+  font-weight: 550;
+  letter-spacing: -0.4px;
+}
+.overview-heading .feature-link {
+  margin-top: 0;
+}
+.overview-glance {
+  padding-top: 25px;
+  border-top: 1px solid var(--border);
+}
+.overview-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.overview-tile {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--card-foreground);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+.overview-tile:hover {
+  border-color: color-mix(in oklab, var(--primary) 45%, var(--border));
+  transform: translateY(-1px);
+}
+.overview-tile:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.overview-tile .tone-tile {
+  grid-row: span 2;
+}
+.overview-tile span:not(.tone-tile) {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.overview-tile strong {
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.overview-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: var(--destructive);
+  font-size: 13px;
+}
+.overview-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 12px;
+  margin: 12px 0 25px;
+}
+.overview-card {
+  min-width: 0;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+}
+.overview-card .overview-heading h2 {
+  font-size: 15px;
+}
+.overview-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.overview-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  min-width: 0;
+  font-size: 13px;
+}
+.overview-link {
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--foreground);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.overview-link:hover {
+  text-decoration: underline;
+}
+.overview-link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.overview-more {
+  color: var(--primary);
+  font-weight: 500;
+}
+.overview-muted {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.overview-when {
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.overview-list li[data-overdue] .overview-when {
+  color: var(--destructive);
+  font-weight: 600;
+}
+.overview-calm {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.overview-calm svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--primary);
+}
+.overview-columns + .principles,
+.overview-glance + .principles {
+  margin-top: 0;
+}
+@media (max-width: 800px) {
+  /* Keep the numbers close to the top on a phone. */
+  .welcome {
+    padding-bottom: 22px;
+  }
+  .welcome h1 {
+    font-size: 44px;
+    margin-bottom: 16px;
+  }
+  .explore-button {
+    margin-top: 18px;
+  }
+  .overview-glance {
+    padding-top: 20px;
+  }
+  .overview-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}

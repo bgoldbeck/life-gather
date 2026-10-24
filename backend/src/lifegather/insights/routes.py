@@ -9,6 +9,7 @@ from lifegather.insights.service import (
     DashboardRead,
     EventKind,
     InsightsService,
+    OverviewRead,
     TimelineRead,
 )
 
@@ -38,6 +39,16 @@ def insights_router() -> APIRouter:
                 422, "Choose 6, 12 or 24 months and a known time zone"
             ) from None
         return service(request).dashboard(current.user, value)
+
+    @router.get("/overview")
+    def overview(
+        request: Request, current: Read, timezone: Zone = "UTC"
+    ) -> dict[str, Any]:
+        try:
+            value = OverviewRead(timezone=timezone)
+        except ValidationError:
+            raise HTTPException(422, "Unknown time zone") from None
+        return service(request).overview(current.user, value)
 
     @router.get("/timeline")
     def timeline(

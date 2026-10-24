@@ -262,21 +262,22 @@ button {
   border-radius: 14px;
   color: var(--primary);
   z-index: 2;
+  transform: rotate(var(--tilt, 0deg));
 }
 .node-one {
   left: 4%;
   top: 21%;
-  transform: rotate(-9deg);
+  --tilt: -9deg;
 }
 .node-two {
   right: 3%;
   top: 12%;
-  transform: rotate(8deg);
+  --tilt: 8deg;
 }
 .node-three {
   right: 17%;
   bottom: 15%;
-  transform: rotate(7deg);
+  --tilt: 7deg;
 }
 .graph-line {
   position: absolute;

@@ -6,7 +6,24 @@ import { Workspace as App } from './App'
 afterEach(() => vi.unstubAllGlobals())
 
 describe('LifeGather shell', () => {
-  it('shows the planned navigation and an honest empty overview', () => {
+  it('shows the planned navigation and an honest empty overview', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        String(url).startsWith('/api/insights/overview')
+          ? new Response(
+              JSON.stringify({
+                today: '2026-10-23',
+                counts: { assets: 0, documents: 0, photos: 0, memories: 0 },
+                review_count: 0,
+                overdue_count: 0,
+                upcoming: [],
+                recent: [],
+              }),
+            )
+          : new Response('{}', { status: 404 }),
+      ),
+    )
     render(<App />)
     const navigation = screen.getByRole('navigation', {
       name: 'Main navigation',
@@ -23,7 +40,7 @@ describe('LifeGather shell', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       'A little less to remember.',
     )
-    expect(screen.getByText('Your story starts here')).toBeVisible()
+    expect(await screen.findByText('Your story starts here')).toBeVisible()
     expect(
       within(navigation).queryByRole('button', { name: 'Chat' }),
     ).not.toBeInTheDocument()
