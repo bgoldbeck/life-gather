@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 
 import { BotCheck } from './BotCheck'
+import { PasswordInput } from './PasswordInput'
 import type { EmailLink } from './emailLink'
 
 export function EmailAccess({
@@ -152,14 +153,13 @@ export function EmailAccess({
         {(link || mode === 'login') && (
           <label htmlFor="signin-password">
             {link ? 'New password' : 'Password'}
-            <input
+            <PasswordInput
               id="signin-password"
-              type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete={link ? 'new-password' : 'current-password'}
               required
-              minLength={link ? 15 : 1}
+              minLength={link ? 12 : 1}
               maxLength={128}
               disabled={busy}
             />
@@ -168,19 +168,19 @@ export function EmailAccess({
         {link && (
           <>
             <p>
-              Use 15–128 characters. Long passphrases and password managers are
+              Use 12–128 characters. Long passphrases and password managers are
               welcome.
             </p>
             <label htmlFor="confirm-password">
               Confirm password
-              <input
+              <PasswordInput
                 id="confirm-password"
-                type="password"
+                revealLabel="Show confirmed password"
                 value={confirmation}
                 onChange={(event) => setConfirmation(event.target.value)}
                 autoComplete="new-password"
                 required
-                minLength={15}
+                minLength={12}
                 maxLength={128}
                 disabled={busy}
               />

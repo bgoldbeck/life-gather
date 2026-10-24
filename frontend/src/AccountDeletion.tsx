@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
+import { PasswordInput } from './PasswordInput'
 
 export function AccountDeletion({
   email,
@@ -97,8 +98,7 @@ export function AccountDeletion({
         {passwordEnabled && (
           <label>
             Current password
-            <input
-              type="password"
+            <PasswordInput
               autoComplete="current-password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}

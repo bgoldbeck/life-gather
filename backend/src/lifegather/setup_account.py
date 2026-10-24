@@ -37,7 +37,7 @@ def main(argv: list[str] | None = None) -> int:
         email = email_key(input("Email: "))
         with warnings.catch_warnings():
             warnings.simplefilter("error", GetPassWarning)
-            password = getpass("Password (15–128 characters): ")
+            password = getpass("Password (12–128 characters): ")
             confirmation = getpass("Confirm password: ")
         if password != confirmation:
             raise EmailAuthError("Passwords do not match; no account was created")

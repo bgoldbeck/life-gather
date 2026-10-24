@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import type { ReconnectTarget } from './reconnect'
 import { RecordExportPanel } from './RecordExportPanel'
 import { RecordRestorePanel } from './RecordRestorePanel'
+import { PasswordInput } from './PasswordInput'
 
 type Entry = {
   id: string
@@ -335,8 +336,8 @@ export function PrivateSettingsPanel({
                 )}
                 <label>
                   API key or access token
-                  <input
-                    type="password"
+                  <PasswordInput
+                    revealLabel="Show API key or access token"
                     value={secret}
                     onChange={(event) => setSecret(event.target.value)}
                     autoComplete="off"

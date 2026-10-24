@@ -30,7 +30,7 @@ class CompletionInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     purpose: Literal["signup", "reset", "link"]
     token: SecretStr = Field(min_length=20, max_length=100)
-    password: SecretStr = Field(min_length=15, max_length=128)
+    password: SecretStr = Field(min_length=12, max_length=128)
 
 
 def email_for(request: Request) -> EmailAuth:
