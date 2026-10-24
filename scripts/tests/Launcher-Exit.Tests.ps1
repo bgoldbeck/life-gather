@@ -6,7 +6,7 @@ $testRoot = Join-Path ([IO.Path]::GetTempPath()) ('lifegather helper exit tests 
 New-Item -ItemType Directory -Path $testRoot | Out-Null
 $fixtures = [Collections.Generic.List[string]]::new()
 try {
-    foreach ($name in @('Publish-Container', 'Container-Helper', 'Start-Test-Login', 'Publish-And-Start')) {
+    foreach ($name in @('Publish-Container', 'Container-Helper', 'Start-Test-Login', 'Publish-And-Start', 'Start-Home-Network')) {
         $source = Get-Content -LiteralPath (Join-Path $scriptsRoot ($name + '.cmd')) -Raw
         $child = [regex]::new('(?m)^powershell\.exe [^\r\n]+')
         $expected = if ($name -eq 'Publish-Container') { 2 } else { 1 }

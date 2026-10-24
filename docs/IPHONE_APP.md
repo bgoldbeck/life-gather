@@ -20,9 +20,9 @@ on about an hour the first time, most of it waiting for downloads.
 - **An iPhone** with iOS 15 or newer, on the same Wi-Fi as the NAS running LifeGather.
 - **Your server's address**, the one you type on another computer to open
   LifeGather, such as `http://192.168.1.20:8787`. On TrueNAS it is `http://` +
-  the NAS's IP address + `:8787`. (The Windows test preview started by
-  `Publish-And-Start` only listens on the PC itself, so phones can't reach it;
-  use the TrueNAS install.)
+  the NAS's IP address + `:8787`. On a Windows PC, run
+  `scripts\Start-Home-Network.cmd` once first (see
+  [Windows PC as the server](ANDROID_APP.md#windows-pc-as-the-server)).
 - **An email-and-password sign-in** for LifeGather. Google sign-in doesn't work
   inside the app; if you only ever used Google, set one up first (see
   [local account](LOCAL_ACCOUNT_SETUP.md)).

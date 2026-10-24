@@ -138,6 +138,7 @@ Offline publisher tests run without Docker/network/registry operations:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\tests\Publish-Container.Tests.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\tests\Release-Source.Tests.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\tests\Publish-And-Start.Tests.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\tests\Start-Home-Network.Tests.ps1
 ```
 
 The scripts are covered by mocked release/refusal/authentication cases and real

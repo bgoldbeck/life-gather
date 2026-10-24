@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.106.0 - Phones can reach LifeGather on a Windows PC
+
+- New `scripts/Start-Home-Network.cmd` for the Windows preview, so the Android
+  and iPhone apps can connect over home Wi-Fi. It asks for administrator rights,
+  offers to mark a *public* Wi-Fi as private, adds the Windows Firewall rule
+  `LifeGather-Home-Network` (inbound TCP 8787, private networks, local subnet
+  only), offers to turn off Docker firewall block rules, and restarts the
+  preview listening on `0.0.0.0:8787`. It then offers to create an
+  email-and-password sign-in and shows the address to type on the phone.
+- Home network mode turns one-click test login off, since anyone on the Wi-Fi
+  could otherwise enter the test workspace. `Start-Test-Login.ps1` takes
+  `-HomeNetwork`, and `Publish-And-Start` now keeps whichever mode the preview
+  was in. Running `Start-Test-Login` on its own returns to test login on the PC
+  only. Data volumes are kept. No server, migration or app change.
+
 ## 0.105.0 - A more useful Overview page
 
 - The Overview hero's icons are now links. Hovering or focusing one shows its

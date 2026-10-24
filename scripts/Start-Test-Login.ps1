@@ -1,6 +1,9 @@
 # Recreate the standalone preview with one-click test login. Never deletes volumes.
+# -HomeNetwork instead listens on every address, so phones on the home Wi-Fi can
+# connect, and turns test login off (anyone on the Wi-Fi could otherwise enter).
+# -KeepMode keeps whichever of the two modes the existing preview uses.
 [CmdletBinding()]
-param()
+param([switch]$HomeNetwork, [switch]$KeepMode)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
@@ -36,7 +39,13 @@ if ($existing.Count -eq 1) {
         }
         throw 'Custom LifeGather settings found. Stopped rather than discard them; use Compose or preserve those settings manually.'
     }
+    if ($KeepMode) {
+        $bindings = @($details.HostConfig.PortBindings.'8787/tcp')
+        $HomeNetwork = $bindings.Count -gt 0 -and $bindings[0].HostIp -eq '0.0.0.0'
+    }
 }
+$bindAddress = if ($HomeNetwork) { '0.0.0.0' } else { '127.0.0.1' }
+$testLogin = if ($HomeNetwork) { 'false' } else { 'true' }
 
 Write-Host 'Downloading the latest image first. This can use internet bandwidth.'
 Invoke-Docker @('pull', $image) | Out-Host
@@ -85,12 +94,16 @@ if ($existing.Count -eq 1) {
 }
 Invoke-Docker @(
     'run', '-d', '--name', $containerName, '--pull', 'never',
-    '-p', '127.0.0.1:8787:8787', '-v', 'lifegather-preview-data:/data',
+    '-p', "${bindAddress}:8787:8787", '-v', 'lifegather-preview-data:/data',
     '--network', $network,
     '-e', "LIFEGATHER_DATABASE_URL=postgresql://lifegather:$password@${database}:5432/lifegather",
-    '-e', 'LIFEGATHER_TEST_LOGIN_ENABLED=true', '--restart', 'unless-stopped', $imageId
+    '-e', "LIFEGATHER_TEST_LOGIN_ENABLED=$testLogin", '--restart', 'unless-stopped', $imageId
 ) | Out-Host
 Write-Host ''
 Write-Host "Started $containerName from image $imageId. Open http://127.0.0.1:8787/ after the app becomes healthy."
-Write-Host 'Sign out if needed, then click Continue as test user.'
+if ($HomeNetwork) {
+    Write-Host 'Home network mode: phones on your Wi-Fi can connect, and test login is off. Sign in with email and password.'
+} else {
+    Write-Host 'Sign out if needed, then click Continue as test user.'
+}
 Write-Host 'Your lifegather-preview-data and lifegather-preview-db-data volumes were preserved. Use test data only.'

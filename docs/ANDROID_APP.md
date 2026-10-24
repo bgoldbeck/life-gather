@@ -12,9 +12,9 @@ or NAS that runs LifeGather, and the file `LifeGather.apk`.
 
 1. **Find your server's address.** It is the address you type on another
    computer to open LifeGather, such as `http://192.168.1.20:8787`. On TrueNAS it
-   is `http://` + the NAS's IP address + `:8787`. (The Windows test preview
-   started by `Publish-And-Start` only listens on the PC itself, so phones can't
-   reach it; use the TrueNAS install.)
+   is `http://` + the NAS's IP address + `:8787`. If LifeGather runs on a
+   Windows PC, first open it to your home Wi-Fi once, see
+   [Windows PC as the server](#windows-pc-as-the-server).
 2. **Get the file onto the phone.** On the phone, open
    <https://github.com/bgoldbeck/life-gather/raw/main/android/release/LifeGather.apk>
    to download `LifeGather.apk`, or copy it over from the computer.
@@ -32,6 +32,29 @@ or NAS that runs LifeGather, and the file `LifeGather.apk`.
    email-and-password sign-in first (see [local account](LOCAL_ACCOUNT_SETUP.md)).
 
 You can turn **Allow from this source** off again afterwards.
+
+## Windows PC as the server
+
+The Windows preview (started by `Start-Test-Login` or `Publish-And-Start`)
+normally listens only on the PC itself, and Windows Firewall blocks phones. On
+that PC, double-click **`scripts\Start-Home-Network.cmd`** once:
+
+1. Click **Yes** when Windows asks whether it may make changes (it needs this
+   for the firewall).
+2. If it says your Wi-Fi is a *public* network, answer **Y** when it is your own
+   home Wi-Fi. Windows blocks phones on public networks.
+3. It allows port 8787 from your home network only, and turns off a Docker
+   firewall block if it finds one (it asks first).
+4. It restarts LifeGather so phones can connect. **One-click test login is
+   turned off** in this mode, because anyone on the Wi-Fi could use it. Answer
+   **Y** to create an email-and-password sign-in, or **N** if you have one.
+5. It shows the address to type in the app, such as `http://192.168.1.111:8787`.
+
+Your data is kept. The PC itself still opens `http://127.0.0.1:8787`.
+`Publish-And-Start` keeps this mode when it updates the preview; running
+`Start-Test-Login` goes back to test login on the PC only. If the PC's address
+changes after a restart, type the new one in the app (or reserve the address in
+your router's settings).
 
 ## Using it
 
@@ -86,8 +109,9 @@ is not needed); see [`android/README.md`](../android/README.md).
   CSRF checks change. The relay listens on the phone's loopback interface only.
   An `https://` address is opened directly, without the relay.
   So the server must keep the default public URL and be reachable on the home
-  network (TrueNAS publishes `0.0.0.0:8787`; the Windows test-login preview
-  from `Start-Test-Login` listens on the PC only).
+  network (TrueNAS publishes `0.0.0.0:8787`; the Windows preview does after
+  `Start-Home-Network`, which also adds the firewall rule
+  `LifeGather-Home-Network`: inbound TCP 8787, private networks, local subnet).
 - **Camera:** the page's ordinary `capture` file input starts the phone's camera
   app, which writes into a private file the app grants it one photo at a time.
   The app does not ask for the camera permission.

@@ -11,5 +11,5 @@ try {
     Write-Host 'Publish failed. The preview was not started or changed.' -ForegroundColor Red
     throw
 }
-Write-Host "`nPublish finished. Starting the test-login preview from latest."
-& (Join-Path $PSScriptRoot 'Start-Test-Login.ps1')
+Write-Host "`nPublish finished. Starting the preview from latest."
+& (Join-Path $PSScriptRoot 'Start-Test-Login.ps1') -KeepMode

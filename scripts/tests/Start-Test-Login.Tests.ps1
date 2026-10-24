@@ -27,7 +27,8 @@ function global:docker {
             @(@{
                 Mounts = @(@{ Destination='/data'; Type='volume'; Name=$global:TestLoginFixture.Volume })
                 Config = @{ Env=$global:TestLoginFixture.Environment }
-            }) | ConvertTo-Json -Depth 5 -Compress
+                HostConfig = @{ PortBindings = @{ '8787/tcp' = @(@{ HostIp=$global:TestLoginFixture.ExistingBind; HostPort='8787' }) } }
+            }) | ConvertTo-Json -Depth 6 -Compress
         }
         'pull' { if ($global:TestLoginFixture.PullFails) { $global:LASTEXITCODE=1 } }
         'stop' {}
@@ -40,14 +41,16 @@ function Test-Launcher {
     param([string]$Name, [bool]$Exists=$true, [bool]$PullFails=$false,
           [string]$Volume='lifegather-preview-data', [string[]]$Environment=@(),
           [bool]$ExpectedFailure=$false, [string]$ImageVersion='0.59.0', [bool]$Multiple=$false,
-          [bool]$DatabaseExists=$false)
+          [bool]$DatabaseExists=$false, [string[]]$Arguments=@(), [string]$ExistingBind='127.0.0.1',
+          [bool]$ExpectHome=$false)
     $global:TestLoginFixture=@{
         Exists=$Exists; PullFails=$PullFails; Volume=$Volume; Environment=$Environment
         Calls=[Collections.Generic.List[string]]::new(); ImageVersion=$ImageVersion; Multiple=$Multiple
-        DatabaseExists=$DatabaseExists
+        DatabaseExists=$DatabaseExists; ExistingBind=$ExistingBind
     }
     $failed=$false
-    try { & $launcher 6>$null } catch { $failed=$true }
+    $switches=@{}; foreach ($argument in $Arguments) { $switches[$argument]=$true }
+    try { & $launcher @switches 6>$null } catch { $failed=$true }
     if ($failed -ne $ExpectedFailure) { throw "Unexpected result: $Name" }
     $calls=$global:TestLoginFixture.Calls
     if ($ExpectedFailure) {
@@ -62,10 +65,12 @@ function Test-Launcher {
         }
         $run=@($calls | Where-Object { $_ -match '^run .*--name lifegather-preview-v' })
         $password = if ($DatabaseExists) { 'b' * 32 } else { '[a-f0-9]{32}' }
-        if ($run.Count -ne 1 -or $run[0] -notmatch 'LIFEGATHER_TEST_LOGIN_ENABLED=true' -or
+        $bind = if ($ExpectHome) { '0.0.0.0' } else { '127.0.0.1' }
+        $testLogin = if ($ExpectHome) { 'false' } else { 'true' }
+        if ($run.Count -ne 1 -or $run[0] -notmatch ('LIFEGATHER_TEST_LOGIN_ENABLED=' + $testLogin) -or
             $run[0] -notmatch ('LIFEGATHER_DATABASE_URL=postgresql://lifegather:' + $password + '@lifegather-preview-db:5432/lifegather') -or
             $run[0] -notmatch 'lifegather-preview-data:/data' -or
-            $run[0] -notmatch '127.0.0.1:8787:8787' -or
+            $run[0] -notmatch (' -p ' + [regex]::Escape($bind) + ':8787:8787 ') -or
             $run[0] -notmatch ('--name lifegather-preview-v' + [regex]::Escape($ImageVersion)) -or
             $run[0] -notmatch ('sha256:' + ('a' * 64))) { throw "Incorrect startup: $Name" }
         if ($Exists -and $calls.IndexOf('pull ghcr.io/bgoldbeck/life-gather:latest') -gt
@@ -80,6 +85,11 @@ try {
     Test-Launcher 'reuses the existing preview database and password' -DatabaseExists $true
     Test-Launcher 'accepts its own database setting on upgrade' -DatabaseExists $true -Environment @('LIFEGATHER_DATABASE_URL=postgresql://lifegather:' + ('b' * 32) + '@lifegather-preview-db:5432/lifegather')
     Test-Launcher 'names the pulled version, independently of source' -ImageVersion '0.60.2'
+    Test-Launcher 'home network listens on all addresses with test login off' -Arguments @('HomeNetwork') -ExpectHome $true
+    Test-Launcher 'home network on first launch' -Exists $false -Arguments @('HomeNetwork') -ExpectHome $true
+    Test-Launcher 'keeps home network mode after publishing' -Arguments @('KeepMode') -ExistingBind '0.0.0.0' -Environment @('LIFEGATHER_TEST_LOGIN_ENABLED=false') -ExpectHome $true
+    Test-Launcher 'keeps test login mode after publishing' -Arguments @('KeepMode')
+    Test-Launcher 'plain start returns to test login on this PC only' -ExistingBind '0.0.0.0' -Environment @('LIFEGATHER_TEST_LOGIN_ENABLED=false')
     Test-Launcher 'invalid image version leaves app running' -ImageVersion 'unknown/latest' -ExpectedFailure $true
     Test-Launcher 'multiple previews are protected' -Multiple $true -ExpectedFailure $true
     Test-Launcher 'failed download leaves app running' -PullFails $true -ExpectedFailure $true
