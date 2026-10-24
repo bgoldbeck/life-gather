@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 
 from lifegather.auth.email_models import EmailCredential
 from lifegather.auth.email_service import EmailAuth, EmailAuthError
+from lifegather.auth.email_validation import password_value
 from lifegather.auth.models import User
 from lifegather.auth.store import AuthStore
 
@@ -192,3 +193,13 @@ def test_smtp_uses_verified_tls_before_credentials(implicit: bool) -> None:
             with pytest.raises(OSError):
                 sender.send("a@example.test", "Fixture subject", "Fixture body")
             client.login.assert_not_called()
+
+
+def test_password_length_policy_allows_twelve_characters() -> None:
+    assert password_value("twelve-chars") == "twelve-chars"
+    with pytest.raises(EmailAuthError, match="between 12 and 128"):
+        password_value("eleven-char")
+    with pytest.raises(EmailAuthError, match="between 12 and 128"):
+        password_value("x" * 129)
+    with pytest.raises(EmailAuthError, match="less common"):
+        password_value("123456789012")

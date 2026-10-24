@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.107.0 - Show-password button and 12-character passwords
+
+- Password fields now have an eye button that shows or hides what you typed:
+  email sign-in, choosing a new password (both fields), the current password
+  when deleting an account, and the API key field in Settings. The button is
+  announced as a toggle (`aria-pressed`), never submits the form, keeps the
+  phone keyboard open, and works in light and dark themes. The revealed field
+  turns off autocorrect and capitalisation.
+- The minimum password length is now 12 characters (was 15); the maximum is
+  still 128 characters and 512 UTF-8 bytes. A few common 12–14 character
+  passwords were added to the denylist. Existing passwords keep working.
+  `setup_account` and the docs show the new range. No migration.
+- Frontend and server only: the Android and iPhone apps show the web sign-in
+  page, so they pick this up without a new APK or iPhone build.
+
 ## 0.106.1 - Start-Home-Network asks for administrator rights again
 
 - `Start-Home-Network.cmd` stopped with "System error 5" when it was not run as

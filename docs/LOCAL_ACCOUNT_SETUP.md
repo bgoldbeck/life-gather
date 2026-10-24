@@ -25,7 +25,7 @@ For a standalone container, substitute its name (shown in Docker Desktop):
 docker exec -it lifegather-preview python -m lifegather.setup_account
 ```
 
-Enter a display name, email address, and a password of 15–128 characters twice. Password input is hidden and never supplied as a command argument or environment variable. Use an interactive terminal; the command refuses redirected input or a terminal that cannot hide the password. Then open the app and use **Sign in with email**. No email is sent.
+Enter a display name, email address, and a password of 12–128 characters twice. Password input is hidden and never supplied as a command argument or environment variable. Use an interactive terminal; the command refuses redirected input or a terminal that cannot hide the password. Then open the app and use **Sign in with email**. No email is sent.
 
 The server owner explicitly accepts the supplied email instead of proving mailbox control. The existing credential acceptance timestamp records that decision, not a successful verification email. Use an address you control, especially if recovery email is configured later. This is an ordinary private account, not a way to assume someone else's identity.
 

@@ -30,10 +30,15 @@ def email_key(value: str) -> str:
 
 
 def password_value(value: str) -> str:
-    if not 15 <= len(value) <= 128 or len(value.encode("utf-8")) > 512:
-        raise EmailAuthError("Use a password between 15 and 128 characters")
+    if not 12 <= len(value) <= 128 or len(value.encode("utf-8")) > 512:
+        raise EmailAuthError("Use a password between 12 and 128 characters")
     if value.casefold() in {
         "passwordpassword",
+        "password1234",
+        "qwertyuiopas",
+        "123456789012",
+        "1234567890123",
+        "12345678901234",
         "123456789012345",
         "1234567890123456",
         "qwertyuiopasdfgh",
