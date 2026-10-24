@@ -4,11 +4,10 @@ $ErrorActionPreference = 'Stop'
 $source = Join-Path (Split-Path -Parent $PSScriptRoot) 'Start-Home-Network.ps1'
 $testRoot = Join-Path ([IO.Path]::GetTempPath()) ('lifegather home network tests ' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $testRoot | Out-Null
-$stubs = @('net', 'Start-Process', 'Read-Host', 'Get-NetConnectionProfile', 'Set-NetConnectionProfile',
+$stubs = @('Start-Process', 'Read-Host', 'Get-NetConnectionProfile', 'Set-NetConnectionProfile',
     'Get-NetFirewallRule', 'Remove-NetFirewallRule', 'New-NetFirewallRule', 'Disable-NetFirewallRule',
     'Invoke-WebRequest', 'Start-Sleep', 'docker', 'Get-NetIPConfiguration')
 function global:Add-HomeCall { param([string]$Call) $global:HomeFixture.Calls.Add($Call) }
-function global:net { $global:LASTEXITCODE = [int](-not $global:HomeFixture.Admin) }
 function global:Start-Process {
     param($FilePath, $Verb, [switch]$Wait, [switch]$PassThru, [string[]]$ArgumentList)
     Add-HomeCall "elevate $FilePath $Verb $($ArgumentList -join ' ')"; [pscustomobject]@{ ExitCode = 0 }
@@ -65,8 +64,14 @@ function Test-HomeNetwork {
     return $output
 }
 try {
-    Copy-Item -LiteralPath $source -Destination $testRoot
+    # Windows identities don't exist here, so only the administrator check reads the fixture.
     $script = Join-Path $testRoot 'Start-Home-Network.ps1'
+    $check = [regex]::new('(?m)^\$isAdministrator = .+$')
+    $content = Get-Content -LiteralPath $source -Raw
+    if ($check.Matches($content).Count -ne 1 -or $content -match '\bnet session') { throw 'Unexpected administrator check' }
+    $content = $check.Replace($content, '$isAdministrator = $global:HomeFixture.Admin')
+    $content = $content -replace '(?m)^\$identity = .+\r?\n', ''
+    Set-Content -LiteralPath $script -Value $content
     Set-Content -LiteralPath (Join-Path $testRoot 'Start-Test-Login.ps1') -Value (
         "param([switch]`$HomeNetwork)`nAdd-HomeCall ('start' + `$(if (`$HomeNetwork) {' -HomeNetwork'}))`n" +
         "if (`$global:HomeFixture.StartFails) { throw 'start fixture failure' }")

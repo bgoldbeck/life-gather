@@ -13,8 +13,9 @@ function Confirm-Choice {
     return (Read-Host "$Question (Y/N)") -match '^\s*[Yy]'
 }
 
-& net session *> $null
-if ($LASTEXITCODE -ne 0) {
+$identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+$isAdministrator = ([Security.Principal.WindowsPrincipal]$identity).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdministrator) {
     if ($Elevated) { throw 'Windows did not give administrator rights. Nothing was changed.' }
     Write-Host 'Windows will ask whether LifeGather may change the firewall. Click Yes.'
     $process = Start-Process -FilePath 'powershell.exe' -Verb RunAs -Wait -PassThru -ArgumentList @(
