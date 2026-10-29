@@ -101,7 +101,7 @@ def fingerprint() -> str:
             "deploy/cloudflare/container-settings.json",
         ]
     ]
-    for name in ["backend/src", "backend/tests"]:
+    for name in ["backend/src", "backend/tests", "frontend/public"]:
         paths.extend(
             p
             for p in (ROOT / name).rglob("*")

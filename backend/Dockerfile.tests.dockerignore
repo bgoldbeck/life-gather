@@ -12,6 +12,9 @@
 !deploy/cloudflare/container-settings.json
 !scripts/
 !scripts/backend_test_shard.py
+!frontend/
+!frontend/public/
+!frontend/public/**
 **/__pycache__/
 **/*.pyc
 **/.pytest_cache/
