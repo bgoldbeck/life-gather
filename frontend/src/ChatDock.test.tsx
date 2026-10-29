@@ -243,7 +243,7 @@ it('drags the assistant header to an edge and collapses to a rail on that edge',
     y: 0,
     toJSON: () => ({}),
   })
-  const header = screen.getByText('LifeGather assistant')
+  const header = screen.getByText('AI assistant')
   fireEvent.pointerDown(header, { button: 0, clientX: 800, clientY: 20 })
   fireEvent.pointerMove(header, { clientX: 40, clientY: 500 })
   expect(container.querySelector('.dock-drop-zone[data-active]')).toHaveClass(
@@ -266,7 +266,7 @@ it('does not start a drag from the header on narrow screens', () => {
   vi.stubGlobal('PointerEvent', MouseEvent)
   vi.stubGlobal('innerWidth', 600)
   const { container } = render(dock())
-  const header = screen.getByText('LifeGather assistant')
+  const header = screen.getByText('AI assistant')
   fireEvent.pointerDown(header, { button: 0, clientX: 300, clientY: 900 })
   fireEvent.pointerMove(header, { clientX: 20, clientY: 400 })
   expect(container.querySelector('.dock-drop-zones')).not.toBeInTheDocument()

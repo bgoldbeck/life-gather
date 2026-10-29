@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.108.0 - Streamlined AI assistant and MCP integration
+
+- The assistant dock now defaults to collapsed (off) on all screens, keeping
+  page views wide, clean and uncluttered. A prominent "AI assistant" button and rail
+  allow expanding and collapsing it at will.
+- The assistant dock interface is streamlined to focus purely on the AI assistant,
+  removing the cluttered 11-mode Action select dropdown.
+- Settings now features an AI & Model Context Protocol (MCP) connection card with
+  a ready-to-copy configuration snippet for external assistants (Google Antigravity,
+  Claude Desktop, Cursor), while hiding the disabled vault credentials form.
+- Added standard stdio MCP bridge adapter `scripts/mcp/lifegather_mcp.py`.
+
 ## 0.107.0 - Show-password button and 12-character passwords
 
 - Password fields now have an eye button that shows or hides what you typed:

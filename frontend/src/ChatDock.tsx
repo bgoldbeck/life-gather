@@ -29,7 +29,7 @@ function savedSize(value: unknown, dimension: 'width' | 'height'): number {
       : 50
 }
 
-function savedLayout(userId: string): Layout {
+function savedLayout(userId: string, defaultCollapsed?: boolean): Layout {
   try {
     const data = JSON.parse(
       localStorage.getItem(`lifegather-chat-dock:${userId}`) || 'null',
@@ -49,9 +49,10 @@ function savedLayout(userId: string): Layout {
     /* Storage may be unavailable. */
   }
   // A phone screen starts with the assistant collapsed so the page stays readable.
+  // In the application workspace, defaultCollapsed is true so the page starts clean.
   return {
     edge: 'right',
-    collapsed: window.innerWidth < phoneWidth,
+    collapsed: defaultCollapsed ?? window.innerWidth < phoneWidth,
     width: 38,
     height: 50,
   }
@@ -62,13 +63,15 @@ export function ChatDock({
   children,
   page,
   expandSignal = 0,
+  defaultCollapsed,
 }: {
   userId?: string
   children: ReactNode
   page: ReactNode
   expandSignal?: number
+  defaultCollapsed?: boolean
 }) {
-  const [layout, setLayout] = useState(() => savedLayout(userId))
+  const [layout, setLayout] = useState(() => savedLayout(userId, defaultCollapsed))
   const workspace = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
   const [narrow, setNarrow] = useState(() => window.innerWidth < narrowWidth)
@@ -191,12 +194,20 @@ export function ChatDock({
           />
         )}
         <header
-          className={`dock-toolbar ${narrow ? '' : 'dock-grip'}`}
+          className={`dock-toolbar ${narrow ? '' : 'dock-grip'} ${layout.collapsed ? 'dock-collapsed-clickable' : ''}`}
           title={
-            narrow
-              ? 'Narrow screens keep the assistant below the page'
-              : 'Drag the header to dock the assistant on another edge'
+            layout.collapsed
+              ? 'Click to expand AI assistant'
+              : narrow
+                ? 'Narrow screens keep the assistant below the page'
+                : 'Drag the header to dock the assistant on another edge'
           }
+          onClick={(event) => {
+            if (layout.collapsed) {
+              event.preventDefault()
+              change({ ...layout, collapsed: false })
+            }
+          }}
           {...drag.handleProps}
         >
           {!narrow && (
@@ -213,7 +224,7 @@ export function ChatDock({
               size={16}
             />
           )}
-          <strong>LifeGather assistant</strong>
+          <strong>AI assistant</strong>
           <button
             type="button"
             className="dock-collapse"
@@ -224,10 +235,13 @@ export function ChatDock({
             aria-controls="assistant-content"
             title={
               layout.collapsed
-                ? 'Expand assistant'
-                : 'Collapse assistant to a rail'
+                ? 'Expand AI assistant'
+                : 'Collapse AI assistant to a rail'
             }
-            onClick={() => change({ ...layout, collapsed: !layout.collapsed })}
+            onClick={(event) => {
+              event.stopPropagation()
+              change({ ...layout, collapsed: !layout.collapsed })
+            }}
           >
             {layout.collapsed ? (
               <Maximize2 aria-hidden="true" size={14} />

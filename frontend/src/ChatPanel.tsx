@@ -731,7 +731,7 @@ export function ChatPanel({
       <div className="chat-heading">
         <div>
           {compact ? (
-            <h2 id="chat-title">Your personal assistant</h2>
+            <h2 id="chat-title">AI assistant</h2>
           ) : (
             <h1 id="chat-title">Chat</h1>
           )}
@@ -852,14 +852,7 @@ export function ChatPanel({
                 <div className="chat-empty">
                   <h2>A place for the details</h2>
                   <p>
-                    Save a note in your own words, search using a few keywords,
-                    or ask OpenAI, Claude or Google Gemini about your saved
-                    evidence.
-                  </p>
-                  <p>
-                    Saving and keyword search work without AI. Notes are
-                    original statements; they do not create verified facts or
-                    inventory items.
+                    Ask questions about your assets, purchases, maintenance, and records.
                   </p>
                 </div>
               )}
@@ -1162,36 +1155,38 @@ export function ChatPanel({
               className="chat-composer"
               onSubmit={(e) => void submit(e, Math.floor(Date.now() / 1000))}
             >
-              <label>
-                Action
-                <select
-                  value={mode}
-                  disabled={busy || retryNeeded}
-                  onChange={(e) => {
-                    cancelInitialSelection()
-                    setScanScope(null)
-                    setMode(e.target.value)
-                  }}
-                >
-                  <option value="assistant">AI assistant</option>
-                  <option value="organize">Local assistant (no AI)</option>
-                  <option value="save">Save memory</option>
-                  <option value="search">Keyword search</option>
-                  <option value="scan_email">Request an email scan</option>
-                  <option value="ask">Ask AI</option>
-                  <option value="research">Research manuals on the web</option>
-                  <option value="extract_photo">Read a saved photo</option>
-                  <option value="extract_photo_receipt">
-                    Review a receipt photo
-                  </option>
-                  <option value="extract_receipt" disabled={!extractSource}>
-                    Review multiple items from selected note
-                  </option>
-                  <option value="extract" disabled={!extractSource}>
-                    Suggest asset from selected note
-                  </option>
-                </select>
-              </label>
+              {!compact && (
+                <label>
+                  Action
+                  <select
+                    value={mode}
+                    disabled={busy || retryNeeded}
+                    onChange={(e) => {
+                      cancelInitialSelection()
+                      setScanScope(null)
+                      setMode(e.target.value)
+                    }}
+                  >
+                    <option value="assistant">AI assistant</option>
+                    <option value="organize">Local assistant (no AI)</option>
+                    <option value="save">Save memory</option>
+                    <option value="search">Keyword search</option>
+                    <option value="scan_email">Request an email scan</option>
+                    <option value="ask">Ask AI</option>
+                    <option value="research">Research manuals on the web</option>
+                    <option value="extract_photo">Read a saved photo</option>
+                    <option value="extract_photo_receipt">
+                      Review a receipt photo
+                    </option>
+                    <option value="extract_receipt" disabled={!extractSource}>
+                      Review multiple items from selected note
+                    </option>
+                    <option value="extract" disabled={!extractSource}>
+                      Suggest asset from selected note
+                    </option>
+                  </select>
+                </label>
+              )}
               {usesScan && (
                 <ChatEmailScan
                   key={photoContext}
