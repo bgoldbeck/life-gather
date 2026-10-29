@@ -852,7 +852,8 @@ export function ChatPanel({
                 <div className="chat-empty">
                   <h2>A place for the details</h2>
                   <p>
-                    Ask questions about your assets, purchases, maintenance, and records.
+                    Ask questions about your assets, purchases, maintenance, and
+                    records.
                   </p>
                 </div>
               )}
@@ -1173,7 +1174,9 @@ export function ChatPanel({
                     <option value="search">Keyword search</option>
                     <option value="scan_email">Request an email scan</option>
                     <option value="ask">Ask AI</option>
-                    <option value="research">Research manuals on the web</option>
+                    <option value="research">
+                      Research manuals on the web
+                    </option>
                     <option value="extract_photo">Read a saved photo</option>
                     <option value="extract_photo_receipt">
                       Review a receipt photo

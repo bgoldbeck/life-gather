@@ -267,8 +267,8 @@ export function PrivateSettingsPanel({
             <h2>AI &amp; Model Context Protocol (MCP)</h2>
             <p>
               Connect external AI tools (such as Google Antigravity, Claude
-              Desktop, or Cursor) directly to your LifeGather memory graph without
-              storing API keys on the server.
+              Desktop, or Cursor) directly to your LifeGather memory graph
+              without storing API keys on the server.
             </p>
             <div className="mcp-config-box">
               <label>
@@ -276,7 +276,11 @@ export function PrivateSettingsPanel({
                 <textarea
                   readOnly
                   rows={8}
-                  style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.85rem' }}
+                  style={{
+                    width: '100%',
+                    fontFamily: 'monospace',
+                    fontSize: '0.85rem',
+                  }}
                   value={JSON.stringify(
                     {
                       mcpServers: {
@@ -284,7 +288,10 @@ export function PrivateSettingsPanel({
                           command: 'python',
                           args: ['scripts/mcp/lifegather_mcp.py'],
                           env: {
-                            LIFEGATHER_URL: typeof window !== 'undefined' ? window.location.origin : 'http://127.0.0.1:8787',
+                            LIFEGATHER_URL:
+                              typeof window !== 'undefined'
+                                ? window.location.origin
+                                : 'http://127.0.0.1:8787',
                           },
                         },
                       },

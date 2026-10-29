@@ -56,7 +56,9 @@ it('keeps the executing UI version and unsent draft when a focus check discovers
   )
   render(<App />)
   await screen.findByText('Alice')
-  await userEvent.click(screen.getByRole('button', { name: 'Expand assistant' }))
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Expand assistant' }),
+  )
   await userEvent.type(
     screen.getByLabelText('Message your assistant'),
     'Keep this unsent draft',

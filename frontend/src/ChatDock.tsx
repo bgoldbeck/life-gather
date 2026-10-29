@@ -71,7 +71,9 @@ export function ChatDock({
   expandSignal?: number
   defaultCollapsed?: boolean
 }) {
-  const [layout, setLayout] = useState(() => savedLayout(userId, defaultCollapsed))
+  const [layout, setLayout] = useState(() =>
+    savedLayout(userId, defaultCollapsed),
+  )
   const workspace = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
   const [narrow, setNarrow] = useState(() => window.innerWidth < narrowWidth)
