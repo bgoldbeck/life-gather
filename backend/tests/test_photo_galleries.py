@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from io import BytesIO
 from pathlib import Path
 
@@ -197,7 +198,7 @@ def test_galleries_are_private_to_one_account(tmp_path: Path) -> None:
     theirs = photos.upload(bob, picture("blue"), "blue.jpg")
     gallery = galleries.create(alice, GalleryCreate(title="Trip"))
     galleries.add(alice, GalleryAdd(gallery_id=gallery["id"], photo_ids=[mine["id"]]))
-    for attempt in (
+    attempts: list[Callable[[], object]] = [
         lambda: galleries.get(bob, gallery["id"]),
         lambda: galleries.add(
             bob, GalleryAdd(gallery_id=gallery["id"], photo_ids=[theirs["id"]])
@@ -207,7 +208,8 @@ def test_galleries_are_private_to_one_account(tmp_path: Path) -> None:
         ),
         lambda: photos.list(bob, PhotoList(gallery_id=gallery["id"])),
         lambda: galleries.list(bob, GalleryList(photo_id=mine["id"])),
-    ):
+    ]
+    for attempt in attempts:
         with pytest.raises(MemoryError):
             attempt()
     # Alice cannot add Bob's photo to her own gallery either.
