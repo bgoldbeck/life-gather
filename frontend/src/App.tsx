@@ -368,6 +368,7 @@ export function Workspace({
           </div>
         </header>
         <ChatDock
+          defaultCollapsed
           userId={userId}
           expandSignal={expandAssistant}
           page={

@@ -264,6 +264,69 @@ export function PrivateSettingsPanel({
             </p>
           </div>
           <div className="settings-card">
+            <h2>AI &amp; Model Context Protocol (MCP)</h2>
+            <p>
+              Connect external AI tools (such as Google Antigravity, Claude
+              Desktop, or Cursor) directly to your LifeGather memory graph without
+              storing API keys on the server.
+            </p>
+            <div className="mcp-config-box">
+              <label>
+                MCP connection configuration
+                <textarea
+                  readOnly
+                  rows={8}
+                  style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.85rem' }}
+                  value={JSON.stringify(
+                    {
+                      mcpServers: {
+                        lifegather: {
+                          command: 'python',
+                          args: ['scripts/mcp/lifegather_mcp.py'],
+                          env: {
+                            LIFEGATHER_URL: typeof window !== 'undefined' ? window.location.origin : 'http://127.0.0.1:8787',
+                          },
+                        },
+                      },
+                    },
+                    null,
+                    2,
+                  )}
+                />
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(
+                    JSON.stringify(
+                      {
+                        mcpServers: {
+                          lifegather: {
+                            command: 'python',
+                            args: ['scripts/mcp/lifegather_mcp.py'],
+                            env: {
+                              LIFEGATHER_URL: window.location.origin,
+                            },
+                          },
+                        },
+                      },
+                      null,
+                      2,
+                    ),
+                  )
+                  setNotice('MCP configuration copied to clipboard.')
+                }}
+              >
+                Copy MCP configuration
+              </Button>
+            </div>
+          </div>
+          <details
+            className="settings-card"
+            open={Boolean(preferences.vault_configured || editing)}
+          >
+            <summary>Advanced: Private credential vault</summary>
             <h2>Private credentials</h2>
             <p>
               Save API keys or access tokens for future integrations. Do not
@@ -419,7 +482,7 @@ export function PrivateSettingsPanel({
                 Load more credentials
               </Button>
             )}
-          </div>
+          </details>
         </>
       )}
     </section>

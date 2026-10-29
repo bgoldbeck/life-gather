@@ -49,6 +49,7 @@ it('defaults navigation left and moves every edge without losing the page or ass
   expect(
     screen.queryByRole('group', { name: /dock position/ }),
   ).not.toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Expand assistant' }))
   await user.type(
     screen.getByLabelText('Message your assistant'),
     'Keep this draft',
@@ -235,6 +236,7 @@ it('drags navigation by its header onto a highlighted drop zone and snaps there'
   vi.stubGlobal('PointerEvent', MouseEvent)
   const user = userEvent.setup()
   const { container } = render(<Workspace userId="one" />)
+  await user.click(screen.getByRole('button', { name: 'Expand assistant' }))
   await user.type(screen.getByLabelText('Message your assistant'), 'Draft')
   mockArea(container.querySelector('.app-layout')!)
   const header = container.querySelector('.brand')!

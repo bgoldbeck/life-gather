@@ -67,7 +67,7 @@ export function WorkspaceAssistant({
       )}
       <ChatPanel
         {...props}
-        defaultMode="organize"
+        defaultMode="assistant"
         compact
         context={context}
         contextLoading={!context}
