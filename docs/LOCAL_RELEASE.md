@@ -139,6 +139,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\tests\Publish-Cont
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\tests\Release-Source.Tests.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\tests\Publish-And-Start.Tests.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\tests\Start-Home-Network.Tests.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\tests\Auto-Publish.Tests.ps1
 ```
 
 The scripts are covered by mocked release/refusal/authentication cases and real
@@ -157,3 +158,34 @@ anonymous registry access and the revision label were verified afterward.
 That release has 71,719,325 bytes of compressed runtime layers (about 71.7 MB), approximately 306 MB on disk. Compared with the prior published image, two new layers totaled 25,233,301 bytes (about 25.2 MB), plus small configuration/manifest/provenance metadata. These are measurements of this release, not a promise for later updates. The first upload attempt stopped before transfer because Windows PowerShell stripped quotes from a Docker-context template; the JSON context lookup now avoids that issue.
 
 Publication does not update an already running container. Pull and recreate/redeploy explicitly. Locally source-built images may lack revision/version labels; the published release carries its Git revision label. Real Google/SMTP/model interactions are not part of the isolated container smoke test.
+
+## Automatic publishing on Windows
+
+`scripts/Auto-Publish.ps1` runs the publisher with no one at the keyboard. A
+Task Scheduler task runs it when you sign in and every 15 minutes while you are
+signed in. When GitHub `main` has a commit not yet published from this PC, it
+runs `Publish-Container.ps1 -Publish -PublishLatest`: the same checks, build,
+smoke test and upload as a manual release. A commit GHCR already has (for
+example from the [TrueNAS auto-publisher](TRUENAS.md#automatic-rebuilds)) is not
+rebuilt. It never starts, stops or changes the preview or any running container.
+
+One-time setup:
+
+1. Make a dedicated clone for publishing, with `main` checked out and no local
+   edits. The publisher refuses a dirty or non-`main` checkout, so pointing the
+   task at your working copy would fail each run.
+2. Sign in to GitHub CLI with package write access:
+   `gh auth login --hostname github.com --web --scopes write:packages`.
+3. Have Docker Desktop start when you sign in (Docker Desktop **Settings → General**).
+4. Double-click `scripts\Register-AutoPublish.cmd` in that clone, or run
+   `.\scripts\Register-AutoPublish.ps1 [-IntervalMinutes 15]`. It checks the
+   clone, GitHub CLI and Docker first and creates no task if any is missing.
+
+The task runs as you without administrator rights, only while you are signed in,
+because Docker Desktop and your GitHub CLI sign-in belong to your session. It is
+skipped quietly when Docker is not running, when nothing is new, or when an
+earlier run is still going. Results are in
+`%LOCALAPPDATA%\LifeGather\auto-publish\auto-publish.log`. A failed commit is
+retried after 6 hours; run `.\scripts\Auto-Publish.ps1 -Force` to retry now.
+A console window may flash briefly when the task starts. Remove the task with
+`.\scripts\Register-AutoPublish.ps1 -Unregister`.

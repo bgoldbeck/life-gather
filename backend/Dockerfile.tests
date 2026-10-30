@@ -11,6 +11,7 @@ COPY README.md /app/README.md
 COPY frontend/public /app/frontend/public
 COPY deploy/cloudflare/container-settings.json /app/deploy/cloudflare/container-settings.json
 COPY scripts/backend_test_shard.py /runner/backend_test_shard.py
+COPY scripts/mcp/lifegather_mcp.py /app/scripts/mcp/lifegather_mcp.py
 RUN groupadd --gid 10001 tests && useradd --uid 10001 --gid 10001 --no-create-home tests
 USER 10001:10001
 ENTRYPOINT ["/app/backend/.venv/bin/python", "/runner/backend_test_shard.py"]
