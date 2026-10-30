@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import {
   ArrowUpRight,
   BookOpen,
@@ -9,8 +9,8 @@ import {
   CircleCheck,
   ClipboardCheck,
   FileText,
-  Leaf,
   MessageCircle,
+  MessageSquare,
   Network,
   RefreshCw,
   ShieldCheck,
@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { ToneIcon, type Tone } from './tones'
+import { navItem } from './navigation'
 import './overview.css'
 
 export type OverviewPage =
@@ -32,6 +33,7 @@ export type OverviewPage =
   | 'Review'
   | 'Graph'
   | 'Timeline'
+  | 'Maintenance'
 
 type Target = { view: OverviewPage; id: string }
 
@@ -140,6 +142,27 @@ const recentKinds: Record<
   photo: { icon: Camera, tone: 'photos', label: 'Photo' },
 }
 
+// Pages around the centre, clockwise from the top left. Their icons and tones
+// come from the main menu, so the hero always matches it.
+const orbitPages = [
+  'Memories',
+  'Timeline',
+  'Assets',
+  'Documents',
+  'Chat',
+  'Photos',
+  'Maintenance',
+] as const satisfies readonly (OverviewPage | 'Chat')[]
+const tilts = [-9, 6, 8, -6, 7, -8, 5]
+
+/** Where node `index` sits, in percent of the illustration: alternate nodes
+ * ride the outer and inner orbit so the ring has depth. */
+function place(index: number) {
+  const angle = ((-125 + (360 / orbitPages.length) * index) * Math.PI) / 180
+  const [rx, ry] = index % 2 === 0 ? [40, 40] : [30, 35]
+  return { x: 50 + rx * Math.cos(angle), y: 45 + ry * Math.sin(angle) }
+}
+
 /** Hero illustration whose icons are links: a label shows on hover and focus. */
 function Orbit({
   onNavigate,
@@ -148,65 +171,85 @@ function Orbit({
   onNavigate: (view: OverviewPage) => void
   onOpenAssistant: () => void
 }) {
-  const nodes: {
-    className: string
-    tone: Tone
-    icon: LucideIcon
-    label: string
-    open: () => void
-  }[] = [
-    {
-      className: 'node-one',
-      tone: 'documents',
-      icon: BookOpen,
-      label: 'Memories',
-      open: () => onNavigate('Memories'),
-    },
-    {
-      className: 'node-two',
-      tone: 'assets',
-      icon: Boxes,
-      label: 'Assets',
-      open: () => onNavigate('Assets'),
-    },
-    {
-      className: 'node-three',
-      tone: 'ai',
-      icon: MessageCircle,
-      label: 'Chat',
-      open: onOpenAssistant,
-    },
-  ]
+  const [active, setActive] = useState('')
+  const graph = navItem('Graph')
+  const nodes = orbitPages.map((page, index) => {
+    // Chat is the assistant dock, not a menu page: use the dock's icon.
+    const { icon, tone } =
+      page === 'Chat'
+        ? { icon: MessageSquare, tone: 'ai' as Tone }
+        : navItem(page)
+    return {
+      page,
+      icon,
+      tone,
+      tilt: tilts[index % tilts.length],
+      ...place(index),
+      open: page === 'Chat' ? onOpenAssistant : () => onNavigate(page),
+    }
+  })
+  const highlight = (page: string) => ({
+    onMouseEnter: () => setActive(page),
+    onMouseLeave: () => setActive(''),
+    onFocus: () => setActive(page),
+    onBlur: () => setActive(''),
+  })
   return (
     <nav className="memory-illustration" aria-label="Explore your workspace">
       <div className="orbit orbit-one" aria-hidden="true" />
       <div className="orbit orbit-two" aria-hidden="true" />
-      <div className="graph-line line-one" aria-hidden="true" />
-      <div className="graph-line line-two" aria-hidden="true" />
-      <div className="graph-line line-three" aria-hidden="true" />
+      <svg
+        className="orbit-links"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        {nodes.map(({ page, tone, x, y }) => (
+          <line
+            key={page}
+            x1={50}
+            y1={45}
+            x2={x}
+            y2={y}
+            data-tone={tone}
+            data-active={active === page || active === 'Graph' || undefined}
+          />
+        ))}
+      </svg>
       <button
         type="button"
         className="graph-center"
+        data-tone={graph.tone}
         aria-label="Open Graph"
         onClick={() => onNavigate('Graph')}
+        {...highlight('Graph')}
       >
-        <Leaf aria-hidden="true" size={47} strokeWidth={1.4} />
+        <graph.icon aria-hidden="true" size={44} strokeWidth={1.4} />
         <span className="orbit-label" aria-hidden="true">
           Graph
         </span>
       </button>
-      {nodes.map(({ className, tone, icon: Icon, label, open }) => (
+      {nodes.map(({ page, icon: Icon, tone, tilt, x, y, open }, index) => (
         <button
-          key={label}
+          key={page}
           type="button"
-          className={`graph-node ${className}`}
+          className="graph-node"
           data-tone={tone}
-          aria-label={`Open ${label}`}
+          style={
+            {
+              left: `${x}%`,
+              top: `${y}%`,
+              '--tilt': `${tilt}deg`,
+              '--delay': `${index * -0.9}s`,
+            } as CSSProperties
+          }
+          aria-label={`Open ${page}`}
           onClick={open}
+          {...highlight(page)}
         >
           <Icon aria-hidden="true" size={22} />
           <span className="orbit-label" aria-hidden="true">
-            {label}
+            {page}
           </span>
         </button>
       ))}

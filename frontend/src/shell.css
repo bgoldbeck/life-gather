@@ -264,43 +264,6 @@ button {
   z-index: 2;
   transform: rotate(var(--tilt, 0deg));
 }
-.node-one {
-  left: 4%;
-  top: 21%;
-  --tilt: -9deg;
-}
-.node-two {
-  right: 3%;
-  top: 12%;
-  --tilt: 8deg;
-}
-.node-three {
-  right: 17%;
-  bottom: 15%;
-  --tilt: 7deg;
-}
-.graph-line {
-  position: absolute;
-  height: 1px;
-  width: 38%;
-  background: var(--border);
-  top: 44%;
-  left: 16%;
-  transform-origin: right;
-}
-.line-one {
-  transform: rotate(21deg);
-}
-.line-two {
-  left: 45%;
-  transform-origin: left;
-  transform: rotate(-35deg);
-}
-.line-three {
-  left: 48%;
-  transform-origin: left;
-  transform: rotate(57deg);
-}
 .little-node {
   position: absolute;
   width: 9px;

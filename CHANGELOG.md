@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.109.0 - More of the app around the Overview hero
+
+- The Overview illustration now links seven pages around the centre:
+  Memories, Timeline, Assets, Documents, Chat, Photos and Maintenance, with
+  Graph in the middle (it was Memories, Assets and Chat).
+- Each icon and colour comes from the main menu, so the hero always matches it.
+  Memories now uses its purple menu tone, and the centre shows Graph's menu icon
+  (it was a leaf). Chat uses the assistant dock's icon.
+- Hovering or focusing an icon lights its line to the centre in that page's
+  colour; hovering the centre lights all of them. The icons drift gently, which
+  stops when your system asks for reduced motion. Phones still show the tiles
+  instead of the illustration.
+- The menu list moved to `frontend/src/navigation.ts`. Frontend only, no
+  migration.
+
 ## 0.108.3 - One-click Windows auto-publish setup
 
 - Double-click `scripts\Auto-Publish-Windows.cmd` to turn on automatic

@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { OverviewPanel, type Overview } from './OverviewPanel'
+import { navigation } from './navigation'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -76,14 +77,41 @@ describe('Overview', () => {
     expect(props.onNavigate).toHaveBeenCalledWith('Assets')
     await user.click(within(hero).getByRole('button', { name: 'Open Graph' }))
     expect(props.onNavigate).toHaveBeenCalledWith('Graph')
+    for (const page of ['Timeline', 'Documents', 'Photos', 'Maintenance']) {
+      await user.click(
+        within(hero).getByRole('button', { name: `Open ${page}` }),
+      )
+      expect(props.onNavigate).toHaveBeenCalledWith(page)
+    }
     // Keyboard: the chat icon is reachable with Tab and opens with Enter.
-    within(hero).getByRole('button', { name: 'Open Assets' }).focus()
+    within(hero).getByRole('button', { name: 'Open Documents' }).focus()
     await user.tab()
     expect(
       within(hero).getByRole('button', { name: 'Open Chat' }),
     ).toHaveFocus()
     await user.keyboard('{Enter}')
     expect(props.onOpenAssistant).toHaveBeenCalledOnce()
+  })
+
+  it('uses the main menu icon and tone for every hero page', () => {
+    stub(overview)
+    setup()
+    const hero = screen.getByRole('navigation', {
+      name: 'Explore your workspace',
+    })
+    for (const item of navigation) {
+      const button = within(hero).queryByRole('button', {
+        name: `Open ${item.name}`,
+      })
+      if (!button) continue
+      expect(button).toHaveAttribute('data-tone', item.tone)
+      // Lucide marks each icon with its own class, e.g. lucide-book-open.
+      const iconClass = [...button.querySelector('svg')!.classList].find(
+        (name) => name.startsWith('lucide-'),
+      )
+      const { container } = render(<item.icon />)
+      expect(container.querySelector('svg')).toHaveClass(iconClass!)
+    }
   })
 
   it('shows counts, waiting work and recent records that open', async () => {
