@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.108.1 - MCP bridge signs in to the right account
+
+- `scripts/mcp/lifegather_mcp.py` (added in 0.108.0) could not connect: email
+  sign-in returns no body and no CSRF token, so every call was refused, and the
+  fallback called `/auth/test`, a route that does not exist. The bridge now signs
+  in with `LIFEGATHER_EMAIL`/`LIFEGATHER_PASSWORD` or `LIFEGATHER_SESSION`, reads
+  the CSRF token from `/auth/session`, and signs in again once if the session ends.
+- It never falls back to the test workspace. Missing or wrong credentials, or
+  unaccepted terms, are returned as a clear error on each request.
+- `initialize` is forwarded, so the server negotiates the protocol version
+  instead of the bridge always claiming `2026-07-28`. The MCP server now reports
+  the application version (it said `0.1.0`).
+- Notifications get no reply and are not forwarded (previously a notification
+  could produce an error reply). Unreadable input gets a `-32700` parse error.
+- Settings' copy-ready MCP configuration now includes the email and password
+  fields, with a note to fill them in.
+- New `backend/tests/test_mcp_bridge.py` runs the bridge against the app.
+- Docs: `CLAUDE.md` points to the current feature plan, `docs/FIRST_TASK.md`
+  is marked historical, the capabilities baseline is current, and
+  `docs/PRIVATE_MCP.md` describes the bridge. No migration.
+
 ## 0.108.0 - Streamlined AI assistant and MCP integration
 
 - The assistant dock now defaults to collapsed (off) on all screens, keeping

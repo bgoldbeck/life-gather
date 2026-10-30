@@ -1,5 +1,9 @@
 # First Claude Code / Codex Assignment — Phase 0
 
+> **Historical.** Phase 0 is complete; this was the original starter brief. For
+> current work see [the feature plan](FEATURE_PLAN.md) and
+> [what remains](CAPABILITIES_AND_REMAINING_WORK.md).
+
 Copy the prompt below into Claude Code or Codex after placing this starter pack at the root of a new git repository.
 
 ---

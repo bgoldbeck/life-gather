@@ -6,10 +6,12 @@ dedicated UI beautification phase. The remaining-scope table is a capability-gap
 inventory, not a mandatory implementation queue. The active plan classifies every
 area as core, conditional or deferred; no implemented feature is removed.
 
-Current source baseline for this priority revision: v0.59.0, migration 0026,
-fetched main `41cd377631a9996b1cda901a98d61071c7d06628`. The older audit below
-records historical verification; no application test suite was rerun for this
-documentation-only change.
+Current source baseline: v0.108.1, migration 0041 (`0041_photo_galleries`),
+building on main `91450115c2222c14ef5874240b56b0b78d4f8805`. The priority
+revision above was made at v0.59.0 / migration 0026 (main
+`41cd377631a9996b1cda901a98d61071c7d06628`). Table rows note features as
+releases land; `CHANGELOG.md` is authoritative for anything newer. The older
+audit below records historical verification.
 
 Reviewed 2026-10-20 against fetched `origin/main` at
 `2b46d3939dcd26e5a609d2a8c04000247811b108`, application **0.55.1**, migration **0024**.

@@ -17,6 +17,36 @@ const response = (body: unknown, status = 200) => ({
 afterEach(() => vi.unstubAllGlobals())
 
 describe('Private settings', () => {
+  it('copies an MCP configuration that names the sign-in account', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (path: string) =>
+        path === '/api/settings'
+          ? response({ allow_external_ai: false, vault_configured: false })
+          : response({ items: [], next_cursor: null }),
+      ),
+    )
+    const user = userEvent.setup()
+    render(<PrivateSettingsPanel csrfToken="fixture-csrf" />)
+    const shown = await screen.findByLabelText('MCP connection configuration')
+    const env = JSON.parse((shown as HTMLTextAreaElement).value).mcpServers
+      .lifegather.env
+    expect(Object.keys(env)).toEqual([
+      'LIFEGATHER_URL',
+      'LIFEGATHER_EMAIL',
+      'LIFEGATHER_PASSWORD',
+    ])
+    await user.click(
+      screen.getByRole('button', { name: 'Copy MCP configuration' }),
+    )
+    expect(await navigator.clipboard.readText()).toBe(
+      (shown as HTMLTextAreaElement).value,
+    )
+    expect(
+      await screen.findByText('MCP configuration copied to clipboard.'),
+    ).toBeVisible()
+  })
+
   it('saves consent and credentials, replaces secrets, and removes entries', async () => {
     let items: unknown[] = []
     let consent = false
