@@ -64,7 +64,7 @@ For an existing installation showing `127.0.0.1:8787`, edit its YAML port mappin
 
 ## Updates and rollback
 
-GitHub Actions is disabled by maintainer choice; pushes and pull requests do not publish images automatically. Maintainers run checks locally and ask for approval before rebuilding or uploading an image, reporting its size. Approved local releases publish `latest` and a `sha-<full-commit-sha>` tag. Publishing a newer image does not automatically restart an installed TrueNAS app: use its image update/pull controls, or pull and recreate the Compose service. To have the NAS do all of this by itself, see [Automatic rebuilds](#automatic-rebuilds).
+GitHub Actions is disabled by maintainer choice; pushes and pull requests do not publish images automatically. Maintainers run checks locally and ask for approval before rebuilding or uploading an image, reporting its size. Approved local releases publish `latest` and a `sha-<full-commit-sha>` tag. Publishing a newer image does not automatically restart an installed TrueNAS app: use its image update/pull controls, or pull and recreate the Compose service. To have the NAS pick up each new `latest` by itself, see [Automatic updates](#automatic-updates); to have it also build and publish, see [Automatic rebuilds](#automatic-rebuilds).
 
 ```sh
 docker compose -f deploy/compose.image.yaml pull
@@ -74,6 +74,60 @@ docker compose -f deploy/compose.image.yaml up -d --wait
 For a repeatable deployment or rollback, pin the image by its published digest (`ghcr.io/bgoldbeck/life-gather@sha256:...`) or select a previously published commit tag. Keep the same persistent storage mounts. Do not remove the data or database volumes when updating. Migrations run automatically on startup; an image rollback across a migration needs the database backup taken before the update.
 
 Public images contain application code and bundled assets, not users' `/data` volumes, local `.env` files or provider credentials.
+
+## Automatic updates
+
+`scripts/auto-update.sh` is a pull-only TrueNAS SCALE cron job for when images
+are published elsewhere (the [release script](LOCAL_RELEASE.md) on a PC). Each
+run pulls `ghcr.io/bgoldbeck/life-gather:latest` and compares it with the image
+the app's running `backend` container uses. When they differ, it redeploys the
+app (`midclt call -j app.redeploy <name>`, the same job as the **Redeploy**
+button) and, if a health URL is set, waits up to three minutes for it to
+answer. It builds, pushes and needs no credentials: the package is public.
+
+It exits without output when the app is up to date, and does nothing when the
+app is stopped. It refuses an app whose image is a pinned digest or commit
+tag, so a deliberate pin is never replaced. A failed pull, redeploy or health
+check is written to stderr, which the cron job turns into an alert mail.
+
+Every new `latest` goes live within one cron interval, including a bad build,
+and each update restarts the app. Read
+[Before turning on redeploys](#before-turning-on-redeploys) first, and use
+either this script or `auto-publish.sh` with `LIFEGATHER_TRUENAS_APP`, not
+both.
+
+1. In **Apps → Installed → lifegather → Edit**, set the `backend` service to:
+
+   ```yaml
+   image: ghcr.io/bgoldbeck/life-gather:latest
+   pull_policy: always
+   ```
+
+   Save. TrueNAS redeploys the app on the current `latest`.
+2. As root, copy the script to a dataset, for example
+   `/mnt/tank/lifegather-ops/auto-update.sh`. It runs from any folder and
+   needs no clone.
+3. Run it once by hand: it prints nothing when the app is current.
+
+   ```sh
+   LIFEGATHER_HEALTH_URL=http://127.0.0.1:8787/health/ready bash /mnt/tank/lifegather-ops/auto-update.sh
+   ```
+
+4. Add the cron job in **System → Advanced Settings → Cron Jobs → Add**:
+
+   | Field | Value |
+   | --- | --- |
+   | Description | LifeGather auto-update |
+   | Command | `LIFEGATHER_TRUENAS_APP=lifegather LIFEGATHER_HEALTH_URL=http://127.0.0.1:8787/health/ready bash /mnt/tank/lifegather-ops/auto-update.sh` |
+   | Run As User | `root` (Docker needs it) |
+   | Schedule | Custom, `*/15 * * * *` (every 15 minutes) |
+   | Hide Standard Output | checked |
+   | Hide Standard Error | unchecked, so a failure sends a TrueNAS alert mail |
+   | Enabled | checked |
+
+To stop automatic updates, disable the cron job; to hold one version, pin the
+app's image to its digest. The offline test is
+`bash scripts/tests/auto-update.test.sh` (Linux: it needs `flock`).
 
 ## Automatic rebuilds
 
