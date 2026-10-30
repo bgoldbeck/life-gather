@@ -169,23 +169,34 @@ smoke test and upload as a manual release. A commit GHCR already has (for
 example from the [TrueNAS auto-publisher](TRUENAS.md#automatic-rebuilds)) is not
 rebuilt. It never starts, stops or changes the preview or any running container.
 
-One-time setup:
+Setup: double-click **`scripts\Auto-Publish-Windows.cmd`** from any LifeGather
+checkout. It does the rest:
 
-1. Make a dedicated clone for publishing, with `main` checked out and no local
-   edits. The publisher refuses a dirty or non-`main` checkout, so pointing the
-   task at your working copy would fail each run.
-2. Sign in to GitHub CLI with package write access:
-   `gh auth login --hostname github.com --web --scopes write:packages`.
-3. Have Docker Desktop start when you sign in (Docker Desktop **Settings → General**).
-4. Double-click `scripts\Register-AutoPublish.cmd` in that clone, or run
-   `.\scripts\Register-AutoPublish.ps1 [-IntervalMinutes 15]`. It checks the
-   clone, GitHub CLI and Docker first and creates no task if any is missing.
+1. clones GitHub `main` into `%LOCALAPPDATA%\LifeGather\publish-source`, a folder
+   used only for publishing, so your own working copy and its edits are never
+   involved (each run updates that clone from GitHub);
+2. if GitHub CLI is not signed in with the `write:packages` permission, opens
+   the browser once for you to approve it;
+3. checks Docker Desktop, creates the scheduled task and starts a first run.
+
+Git, GitHub CLI and Docker Desktop must be installed; it names any that are
+missing and changes nothing. In Docker Desktop, turn on **Settings → General →
+Start Docker Desktop when you sign in**. Run the file again at any time to
+repair the setup; it keeps the existing clone.
+
+| Command | Does |
+| --- | --- |
+| `Auto-Publish-Windows.cmd` | Set up or repair, then start a run |
+| `Auto-Publish-Windows.cmd status` | Show whether it is on, last/next run and the latest log lines |
+| `Auto-Publish-Windows.cmd off` | Remove the scheduled task (the clone is kept) |
 
 The task runs as you without administrator rights, only while you are signed in,
 because Docker Desktop and your GitHub CLI sign-in belong to your session. It is
 skipped quietly when Docker is not running, when nothing is new, or when an
 earlier run is still going. Results are in
 `%LOCALAPPDATA%\LifeGather\auto-publish\auto-publish.log`. A failed commit is
-retried after 6 hours; run `.\scripts\Auto-Publish.ps1 -Force` to retry now.
-A console window may flash briefly when the task starts. Remove the task with
-`.\scripts\Register-AutoPublish.ps1 -Unregister`.
+retried after 6 hours; to retry now, run
+`powershell -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\LifeGather\publish-source\scripts\Auto-Publish.ps1" -Force`.
+A console window may flash briefly when the task starts. The scripts behind the
+file are `scripts\Register-AutoPublish.ps1` (setup) and `scripts\Auto-Publish.ps1`
+(each run).
