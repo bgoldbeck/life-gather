@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.108.3 - One-click Windows auto-publish setup
+
+- Double-click `scripts\Auto-Publish-Windows.cmd` to turn on automatic
+  publishing. It clones GitHub `main` into its own publishing folder
+  (`%LOCALAPPDATA%\LifeGather\publish-source`), opens the browser once if
+  GitHub CLI needs the `write:packages` permission, checks Docker Desktop,
+  creates the scheduled task and starts a first run. You no longer need to
+  make a separate clone or sign in by hand.
+- `Auto-Publish-Windows.cmd status` shows whether it is on, the last and next
+  run and the latest log lines; `Auto-Publish-Windows.cmd off` removes the task.
+- It replaces `Register-AutoPublish.cmd`. Release tooling only: server and app
+  are unchanged. No migration.
+
 ## 0.108.2 - Release checks pass again; hands-off publishing on Windows
 
 - Releases stopped at "Backend and frontend verification in Docker" because the

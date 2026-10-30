@@ -1,5 +1,5 @@
 # Unattended Windows counterpart of auto-publish.sh, run by the Task Scheduler
-# task that Register-AutoPublish.ps1 creates. Each run checks GitHub main; when
+# task that Auto-Publish-Windows.cmd (Register-AutoPublish.ps1) creates. Each run checks GitHub main; when
 # it has a commit not yet published from this PC, it runs the normal publisher
 # (Publish-Container.ps1 -Publish -PublishLatest), which verifies, builds,
 # smoke-tests and uploads, or skips a commit GHCR already has (for example one
