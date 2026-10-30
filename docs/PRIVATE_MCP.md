@@ -96,6 +96,27 @@ The adapter delegates to owner-scoped services. Note corrections use migration
 records to an external provider. Authentication still
 uses the existing session database; domain reads do not append graph audit events.
 
+## Desktop assistants (stdio bridge)
+
+`scripts/mcp/lifegather_mcp.py` lets stdio MCP clients (Claude Desktop, Cursor,
+Antigravity) reach `/mcp`. It uses only the Python standard library. Settings shows
+a ready-to-copy configuration.
+
+- Set `LIFEGATHER_URL` to the installation's public URL (it must match
+  `LIFEGATHER_PUBLIC_URL`, because `/mcp` checks the origin).
+- Sign in with `LIFEGATHER_EMAIL` and `LIFEGATHER_PASSWORD`, or pass an existing
+  browser session as `LIFEGATHER_SESSION`. The bridge reads the CSRF token from
+  `/auth/session` and sends the session cookie itself.
+- Without credentials, or when sign-in fails, every request gets a JSON-RPC
+  error naming the problem. The bridge never falls back to test login.
+- If a password session ends, the bridge signs in once more and retries.
+- Requests, including `initialize`, are forwarded; the server negotiates the
+  protocol version and reports the application version. Notifications are not
+  forwarded and get no reply. Unreadable input gets `-32700`; non-object
+  messages get `-32600`.
+
+From `backend/`, run `uv run --locked pytest tests/test_mcp_bridge.py`.
+
 ## Verification and remaining work
 
 From `backend/`, run `uv run --locked pytest tests/test_mcp_http.py`.

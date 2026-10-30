@@ -3,137 +3,213 @@
 
 Allows AI assistants (such as Google Antigravity, Claude Desktop, and Cursor)
 to connect via Model Context Protocol (MCP) using standard I/O (stdio).
-Forwards JSON-RPC requests to the running LifeGather HTTP server.
+Forwards JSON-RPC requests to the running LifeGather HTTP server, which
+negotiates the protocol version and reports its own name and version.
 Uses only the Python standard library so no additional packages are required.
+
+Sign in with LIFEGATHER_EMAIL and LIFEGATHER_PASSWORD (an email-and-password
+account), or pass an existing browser session as LIFEGATHER_SESSION. Without
+either, every request is answered with an error explaining what to set; the
+bridge never falls back to the test workspace.
 """
 
 import argparse
-import http.cookiejar
 import json
 import os
 import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Callable, Mapping
+from http.cookies import CookieError, SimpleCookie
 from typing import Any
+
+SESSION_COOKIE = "lifegather_session"
+
+# (method, url, headers, body) -> (status, response headers, response body)
+Transport = Callable[
+    [str, str, dict[str, str], bytes | None],
+    tuple[int, list[tuple[str, str]], bytes],
+]
+
+
+class BridgeError(Exception):
+    """A problem the person must fix before the bridge can reach LifeGather."""
+
+
+def urllib_transport(
+    method: str, url: str, headers: dict[str, str], body: bytes | None
+) -> tuple[int, list[tuple[str, str]], bytes]:
+    req = urllib.request.Request(url, data=body, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=30.0) as resp:
+            return resp.status, list(resp.headers.items()), resp.read()
+    except urllib.error.HTTPError as exc:
+        return exc.code, list(exc.headers.items()), exc.read()
+
+
+def detail(body: bytes) -> str:
+    try:
+        value = json.loads(body).get("detail")
+    except (ValueError, AttributeError):
+        value = None
+    text = value if isinstance(value, str) else body.decode("utf-8", "replace")
+    return text[:200]
+
+
+def rpc_error(request_id: Any, code: int, message: str) -> dict[str, Any]:
+    return {
+        "jsonrpc": "2.0",
+        "id": request_id,
+        "error": {"code": code, "message": message},
+    }
 
 
 class LifeGatherBridge:
-    def __init__(self, base_url: str):
+    def __init__(
+        self,
+        base_url: str,
+        env: Mapping[str, str],
+        transport: Transport = urllib_transport,
+    ):
         self.base_url = base_url.rstrip("/")
         parsed = urllib.parse.urlsplit(self.base_url)
-        self.host = parsed.netloc
-        self.origin = f"{parsed.scheme}://{self.host}"
-        self.cookie_jar = http.cookiejar.CookieJar()
-        self.opener = urllib.request.build_opener(
-            urllib.request.HTTPCookieProcessor(self.cookie_jar)
-        )
-        self.session_token: str = os.environ.get("LIFEGATHER_SESSION", "")
-        self.csrf_token: str = ""
+        self.origin = f"{parsed.scheme}://{parsed.netloc}"
+        self.transport = transport
+        self.email = env.get("LIFEGATHER_EMAIL", "")
+        self.password = env.get("LIFEGATHER_PASSWORD", "")
+        self.session_token = env.get("LIFEGATHER_SESSION", "")
+        self.csrf_token = ""
+        self.auth_error = ""
+
+    def request(
+        self,
+        method: str,
+        path: str,
+        body: bytes | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> tuple[int, list[tuple[str, str]], bytes]:
+        sent = {"Origin": self.origin, **(headers or {})}
+        if self.session_token:
+            sent["Cookie"] = f"{SESSION_COOKIE}={self.session_token}"
+        try:
+            return self.transport(method, self.base_url + path, sent, body)
+        except (OSError, ValueError) as exc:
+            raise BridgeError(
+                f"Failed to connect to LifeGather at {self.base_url}: {exc}"
+            ) from exc
 
     def authenticate(self) -> None:
-        """Authenticate with the LifeGather backend if credentials exist."""
-        email = os.environ.get("LIFEGATHER_EMAIL", "")
-        password = os.environ.get("LIFEGATHER_PASSWORD", "")
-
-        # 1. Direct email and password login
-        if email and password:
-            data = json.dumps({"email": email, "password": password}).encode("utf-8")
-            req = urllib.request.Request(
-                f"{self.base_url}/auth/email/login",
-                data=data,
-                headers={
-                    "Content-Type": "application/json",
-                    "Origin": self.origin,
-                    "Host": self.host,
-                },
-                method="POST",
-            )
-            try:
-                with self.opener.open(req) as resp:
-                    body = json.loads(resp.read().decode("utf-8"))
-                    self.csrf_token = body.get("csrf_token", "")
-                    return
-            except Exception as exc:
-                sys.stderr.write(f"LifeGather login warning: {exc}\n")
-                sys.stderr.flush()
-
-        # 2. Try test login if enabled
+        """Sign in once at startup; remember why it failed instead of exiting."""
         try:
-            req = urllib.request.Request(
-                f"{self.base_url}/auth/test",
-                data=b"",
-                headers={
-                    "Origin": self.origin,
-                    "Host": self.host,
-                },
-                method="POST",
-            )
-            with self.opener.open(req):
-                pass
+            self._authenticate()
+            self.auth_error = ""
+        except BridgeError as exc:
+            self.auth_error = str(exc)
+            sys.stderr.write(f"LifeGather MCP: {exc}\n")
+            sys.stderr.flush()
 
-            # Fetch settings to get CSRF token
-            req_settings = urllib.request.Request(
-                f"{self.base_url}/api/settings",
-                headers={
-                    "Origin": self.origin,
-                    "Host": self.host,
-                },
+    def _authenticate(self) -> None:
+        if self.email and self.password:
+            self.session_token = ""
+            status, headers, body = self.request(
+                "POST",
+                "/auth/email/login",
+                json.dumps({"email": self.email, "password": self.password}).encode(),
+                {"Content-Type": "application/json"},
             )
-            with self.opener.open(req_settings) as resp:
-                self.csrf_token = resp.headers.get("x-csrf-token", "")
-        except Exception:
-            pass
+            if status != 204:
+                raise BridgeError(
+                    f"LifeGather sign-in failed (HTTP {status}): {detail(body)}"
+                )
+            self.session_token = session_from(headers)
+            if not self.session_token:
+                raise BridgeError("LifeGather sign-in returned no session")
+        elif not self.session_token:
+            raise BridgeError(
+                "Set LIFEGATHER_EMAIL and LIFEGATHER_PASSWORD (or LIFEGATHER_SESSION) "
+                "in the MCP server's env to choose the LifeGather account"
+            )
+        status, _, body = self.request("GET", "/auth/session")
+        try:
+            session = json.loads(body) if status == 200 else {}
+        except ValueError:
+            session = {}
+        self.csrf_token = session.get("csrf_token") or ""
+        if not self.csrf_token:
+            raise BridgeError(
+                "LifeGather did not accept the session; check the sign-in details"
+            )
+        terms = session.get("terms")
+        if isinstance(terms, dict) and not terms.get("accepted"):
+            raise BridgeError(
+                "Accept the LifeGather terms in the browser before connecting"
+            )
 
-    def forward(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def handle(self, message: Any) -> dict[str, Any] | None:
+        """Return the reply for one message, or None when no reply is allowed."""
+        if not isinstance(message, dict):
+            return rpc_error(None, -32600, "Invalid Request")
+        if "id" not in message:
+            # Notifications never get a reply, and the stateless server has
+            # nothing to do with them.
+            return None
+        if self.auth_error:
+            return rpc_error(message["id"], -32000, self.auth_error)
+        try:
+            return self.forward(message)
+        except BridgeError as exc:
+            return rpc_error(message["id"], -32603, str(exc))
+
+    def forward(self, payload: dict[str, Any], retry: bool = True) -> dict[str, Any]:
         """Forward a JSON-RPC request to the LifeGather /mcp endpoint."""
         method = payload.get("method", "")
         headers = {
             "Content-Type": "application/json",
-            "Origin": self.origin,
-            "Host": self.host,
             "Accept": "application/json",
-            "Mcp-Method": method,
+            "X-CSRF-Token": self.csrf_token,
         }
-        if self.csrf_token:
-            headers["X-CSRF-Token"] = self.csrf_token
-
-        params = payload.get("params", {})
-        if method == "tools/call" and isinstance(params, dict) and "name" in params:
-            headers["Mcp-Name"] = params["name"]
-
-        if self.session_token:
-            headers["Cookie"] = f"lifegather_session={self.session_token}"
-
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            f"{self.base_url}/mcp",
-            data=data,
-            headers=headers,
-            method="POST",
+        if isinstance(method, str):
+            headers["Mcp-Method"] = method
+        params = payload.get("params")
+        if method == "tools/call" and isinstance(params, dict):
+            if isinstance(params.get("name"), str):
+                headers["Mcp-Name"] = params["name"]
+        status, _, body = self.request(
+            "POST", "/mcp", json.dumps(payload).encode(), headers
         )
+        if status == 401 and retry and self.email and self.password:
+            self._authenticate()
+            return self.forward(payload, retry=False)
         try:
-            with self.opener.open(req, timeout=30.0) as resp:
-                return json.loads(resp.read().decode("utf-8"))  # type: ignore[no-any-return]
-        except urllib.error.HTTPError as exc:
-            err_body = exc.read().decode("utf-8", errors="replace")[:200]
-            return {
-                "jsonrpc": "2.0",
-                "id": payload.get("id"),
-                "error": {
-                    "code": -32603,
-                    "message": f"LifeGather returned HTTP {exc.code}: {err_body}",
-                },
-            }
-        except Exception as exc:
-            return {
-                "jsonrpc": "2.0",
-                "id": payload.get("id"),
-                "error": {
-                    "code": -32603,
-                    "message": f"Failed to connect to LifeGather at {self.base_url}: {exc}",
-                },
-            }
+            reply = json.loads(body)
+        except ValueError:
+            reply = None
+        if isinstance(reply, dict) and reply.get("jsonrpc") == "2.0":
+            return reply
+        if status == 401:
+            return rpc_error(
+                payload["id"],
+                -32000,
+                "LifeGather session ended; restart the MCP server to sign in again",
+            )
+        return rpc_error(
+            payload["id"], -32603, f"LifeGather returned HTTP {status}: {detail(body)}"
+        )
+
+
+def session_from(headers: list[tuple[str, str]]) -> str:
+    for name, value in headers:
+        if name.lower() != "set-cookie":
+            continue
+        cookie: SimpleCookie = SimpleCookie()
+        try:
+            cookie.load(value)
+        except CookieError:
+            continue
+        if SESSION_COOKIE in cookie:
+            return cookie[SESSION_COOKIE].value
+    return ""
 
 
 def main() -> None:
@@ -147,48 +223,22 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    bridge = LifeGatherBridge(args.url)
-    try:
-        bridge.authenticate()
-    except Exception as exc:
-        sys.stderr.write(f"LifeGather MCP auth warning: {exc}\n")
-        sys.stderr.flush()
+    bridge = LifeGatherBridge(args.url, os.environ)
+    bridge.authenticate()
 
     for line in sys.stdin:
         text = line.strip()
         if not text:
             continue
         try:
-            request = json.loads(text)
-        except json.JSONDecodeError:
-            continue
-
-        method = request.get("method")
-        req_id = request.get("id")
-
-        if method == "initialize":
-            init_response = {
-                "jsonrpc": "2.0",
-                "id": req_id,
-                "result": {
-                    "protocolVersion": "2026-07-28",
-                    "capabilities": {"tools": {}},
-                    "serverInfo": {
-                        "name": "LifeGather",
-                        "version": "0.108.0",
-                    },
-                },
-            }
-            sys.stdout.write(json.dumps(init_response) + "\n")
+            message = json.loads(text)
+        except ValueError:
+            response: dict[str, Any] | None = rpc_error(None, -32700, "Parse error")
+        else:
+            response = bridge.handle(message)
+        if response is not None:
+            sys.stdout.write(json.dumps(response) + "\n")
             sys.stdout.flush()
-            continue
-
-        if method == "notifications/initialized":
-            continue
-
-        response = bridge.forward(request)
-        sys.stdout.write(json.dumps(response) + "\n")
-        sys.stdout.flush()
 
 
 if __name__ == "__main__":

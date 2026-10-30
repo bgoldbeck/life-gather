@@ -15,6 +15,29 @@ type Entry = {
 type Preferences = { allow_external_ai: boolean; vault_configured: boolean }
 type Page = { items: Entry[]; next_cursor: string | null }
 
+function mcpConfiguration(): string {
+  return JSON.stringify(
+    {
+      mcpServers: {
+        lifegather: {
+          command: 'python',
+          args: ['scripts/mcp/lifegather_mcp.py'],
+          env: {
+            LIFEGATHER_URL:
+              typeof window !== 'undefined'
+                ? window.location.origin
+                : 'http://127.0.0.1:8787',
+            LIFEGATHER_EMAIL: 'your sign-in email',
+            LIFEGATHER_PASSWORD: 'your LifeGather password',
+          },
+        },
+      },
+    },
+    null,
+    2,
+  )
+}
+
 export function PrivateSettingsPanel({
   csrfToken,
   refreshSession,
@@ -270,6 +293,10 @@ export function PrivateSettingsPanel({
               Desktop, or Cursor) directly to your LifeGather memory graph
               without storing API keys on the server.
             </p>
+            <p>
+              Replace the email and password with your LifeGather sign-in. The
+              connector uses only that account and never the test workspace.
+            </p>
             <div className="mcp-config-box">
               <label>
                 MCP connection configuration
@@ -281,47 +308,14 @@ export function PrivateSettingsPanel({
                     fontFamily: 'monospace',
                     fontSize: '0.85rem',
                   }}
-                  value={JSON.stringify(
-                    {
-                      mcpServers: {
-                        lifegather: {
-                          command: 'python',
-                          args: ['scripts/mcp/lifegather_mcp.py'],
-                          env: {
-                            LIFEGATHER_URL:
-                              typeof window !== 'undefined'
-                                ? window.location.origin
-                                : 'http://127.0.0.1:8787',
-                          },
-                        },
-                      },
-                    },
-                    null,
-                    2,
-                  )}
+                  value={mcpConfiguration()}
                 />
               </label>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  void navigator.clipboard?.writeText(
-                    JSON.stringify(
-                      {
-                        mcpServers: {
-                          lifegather: {
-                            command: 'python',
-                            args: ['scripts/mcp/lifegather_mcp.py'],
-                            env: {
-                              LIFEGATHER_URL: window.location.origin,
-                            },
-                          },
-                        },
-                      },
-                      null,
-                      2,
-                    ),
-                  )
+                  void navigator.clipboard?.writeText(mcpConfiguration())
                   setNotice('MCP configuration copied to clipboard.')
                 }}
               >

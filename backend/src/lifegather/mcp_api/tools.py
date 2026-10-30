@@ -121,6 +121,7 @@ from lifegather.reconciliation.service import ReconciliationService
 from lifegather.scans.registry import ScanPage, ScanRead, ScanRegistry
 from lifegather.scans.schedules import ScheduleService
 from lifegather.scans.service import ScanService
+from lifegather.version import __version__
 
 logger = logging.getLogger(__name__)
 MAX_RESULT_BYTES = 32768
@@ -204,7 +205,7 @@ def read(
 def build_server(power_factory: Callable[[], PowerCenter] | None = None) -> MCPServer:
     server = MCPServer(
         "LifeGather private recall",
-        version="0.1.0",
+        version=__version__,
         log_level="WARNING",
         instructions=(
             "Private memory. Save text only on an explicit user request. "
