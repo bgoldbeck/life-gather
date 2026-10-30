@@ -145,7 +145,12 @@ script:
    `main` has not moved meanwhile;
 5. optionally redeploys the TrueNAS app and waits for it to report healthy.
 
-Otherwise it exits without output. Any failed step stops the run: nothing is
+Otherwise it exits without output. If GHCR already has the commit's image, for
+example because the [Windows scheduled publisher](LOCAL_RELEASE.md#automatic-publishing-on-windows)
+uploaded it first, the script does not rebuild: once `latest` points to that
+image it records the commit as published and redeploys the app. The commit tag
+is never overwritten, including when the other machine uploads it while this
+run is still building. Any failed step stops the run: nothing is
 pushed and the app is not touched. The failing commit is remembered, so later
 runs stay quiet until `main` gets a new commit (or you rerun with `--force`).
 A lock file makes an overlapping run exit at once, so a slow build is never

@@ -12,6 +12,8 @@
 !deploy/cloudflare/container-settings.json
 !scripts/
 !scripts/backend_test_shard.py
+!scripts/mcp/
+!scripts/mcp/lifegather_mcp.py
 !frontend/
 !frontend/public/
 !frontend/public/**

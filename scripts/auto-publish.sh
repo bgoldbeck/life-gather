@@ -11,6 +11,9 @@
 #
 # Options: --force  rebuild even if main is already published or just failed.
 #
+# Commits already in GHCR (for example uploaded by the Windows scheduled
+# publisher, scripts/Auto-Publish.ps1) are adopted instead of rebuilt.
+#
 # Settings (environment variables, all optional):
 #   LIFEGATHER_AUTOBUILD_DIR  state, log and registry token (default: a
 #                             lifegather-autobuild folder next to the clone)
@@ -74,6 +77,20 @@ main() {
     STAGE=Preflight
     log "Run started for origin/main $target (last published: ${published:-none})."
     preflight "$target"
+    # The Windows scheduled publisher may have uploaded this commit already.
+    # Its commit tag is immutable: adopt it rather than build a second image.
+    if [[ $force == false ]] && registry_manifest "sha-$target" >/dev/null; then
+        if [[ $(registry_manifest "sha-$target") != "$(registry_manifest latest)" ]]; then
+            log "$IMAGE:sha-$target exists but latest does not point to it yet; checking again next run."
+            return 0
+        fi
+        log "Another publisher already uploaded $IMAGE:sha-$target; not rebuilding."
+        write_state last-published-revision "$target"
+        rm -f -- "$STATE_DIR/last-failed-revision"
+        redeploy
+        STAGE=Done
+        return 0
+    fi
 
     # From here on a failure belongs to this commit: remember it so cron does
     # not rebuild the same broken revision every few minutes.
@@ -333,11 +350,21 @@ print('Container health, UI, PostgreSQL migration, user, and private storage ver
 PY
 }
 
+# Print the registry manifest for a tag; fails when the tag does not exist.
+registry_manifest() {
+    docker --config "${REGISTRY_CONFIG:-$STATE_DIR/docker-config}" manifest inspect "$IMAGE:$1" 2>/dev/null
+}
+
 publish_image() {
     local revision=$1
     stage 'Registry upload'
     [[ -z $(git_cmd status --porcelain) && $(git_cmd rev-parse HEAD) == "$revision" ]] \
         || fail 'Source changed during the run. Nothing uploaded.'
+    # $force is main's local (bash locals are visible to called functions).
+    if [[ $force == false ]] && registry_manifest "sha-$revision" >/dev/null; then
+        log "Another publisher uploaded $IMAGE:sha-$revision during this build; keeping its image."
+        return 0
+    fi
     local auth=(--config "${REGISTRY_CONFIG:-$STATE_DIR/docker-config}")
     run docker "${auth[@]}" push --quiet "$IMAGE:sha-$revision"
     # Recheck GitHub main before moving the shared latest tag.

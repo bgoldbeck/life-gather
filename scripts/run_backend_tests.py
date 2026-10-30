@@ -98,6 +98,7 @@ def fingerprint() -> str:
             "backend/Dockerfile.tests",
             "backend/Dockerfile.tests.dockerignore",
             "scripts/backend_test_shard.py",
+            "scripts/mcp/lifegather_mcp.py",
             "deploy/cloudflare/container-settings.json",
         ]
     ]

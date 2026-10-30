@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.108.2 - Release checks pass again; hands-off publishing on Windows
+
+- Releases stopped at "Backend and frontend verification in Docker" because the
+  test container lacked `scripts/mcp/lifegather_mcp.py`, which
+  `tests/test_mcp_bridge.py` (0.108.1) loads. The test image now includes it,
+  and the test runner's cache fingerprint covers it.
+- New `scripts/Auto-Publish.ps1` publishes from Windows with no one present.
+  `scripts/Register-AutoPublish.cmd` (or `.ps1`) creates a Task Scheduler task
+  that runs it at sign-in and every 15 minutes while signed in. It runs the
+  usual publisher, skips commits GHCR already has, retries a failed commit
+  after 6 hours, logs to `%LOCALAPPDATA%\LifeGather\auto-publish`, and never
+  changes running containers. See `docs/LOCAL_RELEASE.md`.
+- `scripts/auto-publish.sh` (TrueNAS) no longer rebuilds a commit another
+  publisher already uploaded. It adopts that image once `latest` points to it,
+  and it never overwrites an existing commit tag, even when the other upload
+  lands mid-build. Both machines can publish automatically.
+- Server and app behavior are unchanged. No migration.
+
 ## 0.108.1 - MCP bridge signs in to the right account
 
 - `scripts/mcp/lifegather_mcp.py` (added in 0.108.0) could not connect: email

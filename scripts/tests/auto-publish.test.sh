@@ -24,6 +24,12 @@ case "$*" in
     'image inspect --format {{.Size}} '*) echo 123 ;;
     'build --quiet --tag '*' -'|'exec --interactive '*) cat >/dev/null ;;
     *' login ghcr.io '*) cat >"$STUB_LOG.token" ;;
+    # A tag "exists" when $STUB_REGISTRY has a file named after it.
+    *' manifest inspect ghcr.io/bgoldbeck/life-gather:'*)
+        args=$*
+        tag=${args##*:}
+        [[ -f $STUB_REGISTRY/$tag ]] || exit 1
+        cat -- "$STUB_REGISTRY/$tag" ;;
 esac
 SH
 cat >"$root/bin/midclt" <<'SH'
@@ -45,8 +51,8 @@ git clone --quiet "$root/origin.git" "$root/nas/source"
 git -C "$root/nas/source" remote set-url origin git@unreachable.invalid:life-gather.git
 export LIFEGATHER_SOURCE_URL=$root/origin.git
 
-export LIFEGATHER_AUTOBUILD_DIR=$root/nas/state STUB_LOG=$root/calls
-mkdir -p "$LIFEGATHER_AUTOBUILD_DIR/docker-config"
+export LIFEGATHER_AUTOBUILD_DIR=$root/nas/state STUB_LOG=$root/calls STUB_REGISTRY=$root/registry
+mkdir -p "$LIFEGATHER_AUTOBUILD_DIR/docker-config" "$STUB_REGISTRY"
 script=$root/nas/source/scripts/auto-publish.sh
 pass=0
 check() { if eval "$2"; then pass=$((pass + 1)); else echo "FAIL: $1" >&2; exit 1; fi; }
@@ -131,5 +137,36 @@ check 'removes the per-run login' "! compgen -G '$LIFEGATHER_AUTOBUILD_DIR/regis
 reset_calls
 if STUB_FAIL='login ghcr.io' bash "$script" --force 2>/dev/null; then check 'a rejected token fails' false; fi
 check 'a rejected token stops before building' "! grep -q '^build' '$STUB_LOG'"
+
+# Another machine (the Windows scheduled publisher) already uploaded main.
+rm -f "$LIFEGATHER_AUTOBUILD_DIR/last-failed-revision"
+sixth=$(commit six)
+echo 'digest-six' >"$STUB_REGISTRY/sha-$sixth"
+echo 'digest-five' >"$STUB_REGISTRY/latest"
+reset_calls
+bash "$script"
+check 'latest not moved yet: nothing built' "! grep -q '^build' '$STUB_LOG'"
+check 'latest not moved yet: not recorded' "[[ \$(cat '$LIFEGATHER_AUTOBUILD_DIR/last-published-revision') != $sixth ]]"
+echo 'digest-six' >"$STUB_REGISTRY/latest"
+reset_calls
+LIFEGATHER_TRUENAS_APP=lifegather bash "$script"
+check 'published elsewhere: nothing built' "! grep -q '^build' '$STUB_LOG'"
+check 'published elsewhere: nothing pushed' "! grep -q ' push ' '$STUB_LOG'"
+check 'published elsewhere: recorded' "[[ \$(cat '$LIFEGATHER_AUTOBUILD_DIR/last-published-revision') == $sixth ]]"
+check 'published elsewhere: redeploys' "grep -q 'midclt call -j app.redeploy lifegather' '$STUB_LOG'"
+
+# Uploaded elsewhere while this run was building: keep that image.
+seventh=$(commit seven)
+reset_calls
+cat >"$root/bin/npm-race" <<SH
+#!/usr/bin/env bash
+echo digest-seven-windows >'$STUB_REGISTRY/sha-$seventh'
+SH
+chmod +x "$root/bin/npm-race"
+sed -i 's|^case "\$\*" in$|[[ "$*" == *"npm test"* ]] \&\& npm-race\ncase "$*" in|' "$root/bin/docker"
+bash "$script"
+check 'race: built and tested' "grep -q 'npm test' '$STUB_LOG'"
+check 'race: commit tag not overwritten' "! grep -q 'push --quiet ghcr.io/bgoldbeck/life-gather:sha-$seventh' '$STUB_LOG'"
+check 'race: recorded as published' "[[ \$(cat '$LIFEGATHER_AUTOBUILD_DIR/last-published-revision') == $seventh ]]"
 
 echo "auto-publish.sh: $pass checks passed."
